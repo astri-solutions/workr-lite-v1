@@ -97,7 +97,7 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
       open={open}
       onClose={handleClose}
       title="Mudar senha"
-      size="sm"
+      size="md"
       description="Altere a senha de acesso ao painel. Use no mínimo 8 caracteres com letras e números."
       footer={
         success ? null : (
