@@ -32,7 +32,7 @@ export default function LoginPage() {
       style={{
         backgroundImage: [
           'linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(11,91,104,0.82) 52%, rgba(5,50,60,0.93) 100%)',
-          "url('/login-bg.jpg')",
+          "url('/img/bg-image-workr-login.webp')",
         ].join(', '),
       }}
     >
