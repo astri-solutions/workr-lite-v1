@@ -274,6 +274,7 @@
 
 .portais-kebab__item:hover {
   background: var(--color-gray-50);
+  color: var(--color-gray-900);
 }
 
 .portais-kebab__item--danger {
@@ -282,4 +283,190 @@
 
 .portais-kebab__item--danger:hover {
   background: var(--color-error-50, #fef2f2);
+}
+
+/* ─── Detalhes do site modal ──────────────────────────── */
+.portais-detalhes__section-title {
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-3);
+}
+
+.portais-detalhes__rows {
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: #fff;
+}
+
+.portais-detalhes__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-gray-100);
+  gap: var(--space-4);
+}
+
+.portais-detalhes__row:last-child {
+  border-bottom: none;
+}
+
+.portais-detalhes__label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  flex-shrink: 0;
+}
+
+.portais-detalhes__link {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-primary-500);
+  text-decoration: none;
+}
+
+.portais-detalhes__link:hover {
+  text-decoration: underline;
+}
+
+.portais-detalhes__value--bold {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-900);
+}
+
+.portais-btn--outline-sm {
+  background: #fff;
+  border: 1px solid var(--color-gray-300);
+  color: var(--color-gray-700);
+  font-size: var(--text-xs);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.portais-btn--outline-sm:hover {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+}
+
+/* ─── Modal shared buttons ────────────────────────────── */
+.portais-modal-btn-close {
+  background: transparent;
+  border: none;
+  color: var(--color-gray-500);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.portais-modal-btn-close:hover {
+  color: var(--color-gray-800);
+  background: var(--color-gray-100);
+}
+
+.portais-modal-btn-cancel {
+  background: transparent;
+  border: none;
+  color: var(--color-gray-500);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.portais-modal-btn-cancel:hover {
+  color: var(--color-gray-800);
+  background: var(--color-gray-100);
+}
+
+.portais-modal-btn-confirm {
+  background: var(--color-gray-200);
+  border: none;
+  color: var(--color-gray-400);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-8);
+  border-radius: var(--radius-full);
+  cursor: not-allowed;
+  transition: background 0.15s, color 0.15s;
+}
+
+.portais-modal-btn-confirm--active {
+  background: var(--color-primary-500);
+  color: #fff;
+  cursor: pointer;
+}
+
+.portais-modal-btn-confirm--active:hover {
+  background: var(--color-primary-600);
+}
+
+/* ─── Alterar domínio modal ───────────────────────────── */
+.portais-alterar__intro {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.portais-alterar__list {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  margin: 0 0 var(--space-5) 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.portais-alterar__list li {
+  line-height: 1.5;
+}
+
+.portais-alterar__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-gray-50);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  line-height: 1.5;
+}
+
+.portais-alterar__check input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary-500);
+  cursor: pointer;
+}
+
+.portais-alterar__check--checked {
+  border-color: var(--color-primary-400);
+  background: var(--color-primary-50, #f0fafb);
 }
