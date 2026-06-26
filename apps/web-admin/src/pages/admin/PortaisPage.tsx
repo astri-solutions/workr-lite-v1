@@ -1,86 +1,57 @@
-import './AdminPages.css';
+import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
+import './AdminPages.css';
 
-interface Portal {
-  id: string;
-  cliente: string;
-  status: 'Ativo' | 'Suspenso';
-  entidades: number;
-  usuarios: number;
-  convitesPendentes: number;
-  criadoEm: string;
-}
-
-const PORTAIS: Portal[] = [
-  { id: '1', cliente: 'Construtora Aurora', status: 'Ativo', entidades: 1, usuarios: 1, convitesPendentes: 1, criadoEm: '03/03/2026' },
-  { id: '2', cliente: 'International Meal Company', status: 'Ativo', entidades: 3, usuarios: 2, convitesPendentes: 0, criadoEm: '12/02/2026' },
-  { id: '3', cliente: 'Vetra Energia', status: 'Suspenso', entidades: 2, usuarios: 1, convitesPendentes: 0, criadoEm: '21/01/2026' },
+const PORTAIS = [
+  { id: 1, nome: 'IMC Capital', dominio: 'imc.workr.com.br', status: 'Ativo', plano: 'Pro', criadoEm: '12/01/2025' },
+  { id: 2, nome: 'Aurora Investimentos', dominio: 'aurora.workr.com.br', status: 'Ativo', plano: 'Starter', criadoEm: '03/02/2025' },
+  { id: 3, nome: 'Vetra Asset', dominio: 'vetra.workr.com.br', status: 'Suspenso', plano: 'Pro', criadoEm: '17/03/2025' },
+  { id: 4, nome: 'Nora Capital', dominio: 'nora.workr.com.br', status: 'Pendente', plano: 'Starter', criadoEm: '22/04/2025' },
 ];
 
+const STATUS_BADGE: Record<string, string> = {
+  Ativo: 'badge badge--success',
+  Suspenso: 'badge badge--error',
+  Pendente: 'badge badge--warning',
+};
+
 export default function PortaisPage() {
-  const totalPortais = PORTAIS.length;
-  const ativos = PORTAIS.filter((p) => p.status === 'Ativo').length;
-  const totalUsuarios = PORTAIS.reduce((sum, p) => sum + p.usuarios, 0);
+  const [portais] = useState(PORTAIS);
 
   return (
     <div className="page">
       <PageHeader
         title="Portais"
-        description="Os sites de RI dos clientes. Cada portal é um tenant isolado — criar um novo provisiona o banco, a entidade inicial e o convite do admin."
+        description="Gerencie os portais de Relações com Investidores dos seus clientes. Cada portal é um tenant isolado — criar um novo provisiona o banco, a entidade inicial e o convite do admin."
         action={
           <button className="btn-primary" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Novo Portal
+            Novo portal
           </button>
         }
       />
 
-      <div className="stat-cards">
-        <div className="stat-card">
-          <span className="stat-card__number">{totalPortais}</span>
-          <span className="stat-card__label">Portais</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-card__number">{ativos}</span>
-          <span className="stat-card__label">Ativos</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-card__number">{totalUsuarios}</span>
-          <span className="stat-card__label">Usuários</span>
-        </div>
-      </div>
-
-      <div className="table-wrapper">
+      <div className="data-table-wrap">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Cliente</th>
+              <th>Portal</th>
+              <th>Domínio</th>
               <th>Status</th>
-              <th>Entidades</th>
-              <th>Usuários</th>
-              <th>Convites Pendentes</th>
+              <th>Plano</th>
               <th>Criado em</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {PORTAIS.map((portal) => (
+            {portais.map((portal) => (
               <tr key={portal.id}>
-                <td className="table-cell--bold">{portal.cliente}</td>
-                <td>
-                  <span className={`badge ${portal.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
-                    {portal.status}
-                  </span>
-                </td>
-                <td>{portal.entidades}</td>
-                <td>{portal.usuarios}</td>
-                <td>
-                  <span className={`badge ${portal.convitesPendentes > 0 ? 'badge--warning' : 'badge--gray'}`}>
-                    {portal.convitesPendentes} Pendente{portal.convitesPendentes !== 1 ? 's' : ''}
-                  </span>
-                </td>
+                <td className="table-cell--bold">{portal.nome}</td>
+                <td className="table-cell--muted">{portal.dominio}</td>
+                <td><span className={STATUS_BADGE[portal.status] ?? 'badge'}>{portal.status}</span></td>
+                <td>{portal.plano}</td>
                 <td className="table-cell--muted">{portal.criadoEm}</td>
                 <td>
                   <div className="table-actions">
@@ -90,11 +61,14 @@ export default function PortaisPage() {
                         <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
                       </svg>
                     </button>
-                    <button className="btn-action btn-action--danger" type="button" aria-label="Remover">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" /><line x1="8" y1="12" x2="16" y2="12" />
-                      </svg>
-                    </button>
+                    <span className="tooltip-wrap">
+                      <button className="btn-action btn-action--danger" type="button" aria-label="Suspender portal">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" /><line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                      </button>
+                      <span className="tooltip">Suspender portal</span>
+                    </span>
                   </div>
                 </td>
               </tr>
