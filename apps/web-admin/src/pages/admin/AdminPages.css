@@ -1,7 +1,8 @@
 /* ─── Shared page layout ─────────────────────────────── */
 .page {
   padding: var(--space-8);
-  max-width: 1200px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .page-header {

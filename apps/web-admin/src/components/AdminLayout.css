@@ -125,7 +125,7 @@
 }
 
 .admin-sidebar {
-  width: 210px;
+  width: 220px;
   flex-shrink: 0;
   background-color: white;
   border-right: 1px solid var(--color-gray-200);
@@ -174,42 +174,72 @@
 .admin-sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   padding: 0 var(--space-3);
 }
 
+/* ─── Nav item: card style ───────────────────────────── */
 .admin-nav-item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  color: var(--color-gray-600);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  text-decoration: none;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.admin-nav-item:hover {
-  background-color: var(--color-gray-100);
-  color: var(--color-gray-900);
-  text-decoration: none;
-}
-
-.admin-nav-item--active {
+  padding: 14px var(--space-4);
+  border-radius: var(--radius-lg);
   background-color: var(--color-primary-100);
-  color: var(--color-primary-500);
+  color: var(--color-primary-700);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.18s, color 0.18s;
+}
+
+.admin-nav-item__label {
+  flex: 1;
+}
+
+.admin-nav-item__icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.admin-nav-item__chevron {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: transform 0.18s;
+}
+
+/* hover */
+.admin-nav-item:hover {
+  background-color: var(--color-primary-200);
+  color: var(--color-primary-800);
+  text-decoration: none;
+}
+
+/* active / current page */
+.admin-nav-item--active {
+  background-color: var(--color-primary-500);
+  color: #ffffff;
+}
+
+.admin-nav-item--active .admin-nav-item__icon,
+.admin-nav-item--active .admin-nav-item__chevron {
+  opacity: 1;
+}
+
+.admin-nav-item--active .admin-nav-item__chevron {
+  transform: rotate(180deg);
 }
 
 .admin-nav-item--active:hover {
-  background-color: var(--color-primary-100);
-  color: var(--color-primary-500);
+  background-color: var(--color-primary-600);
+  color: #ffffff;
 }
 
+/* ─── Main content area ──────────────────────────────── */
 .admin-main {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-8);
   background-color: var(--color-gray-100);
 }
