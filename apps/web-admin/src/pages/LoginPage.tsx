@@ -33,8 +33,7 @@ export default function LoginPage() {
       <div className="login-left">
         <div className="login-card">
           <div className="login-logo">
-            <span className="login-logo__mark">■</span>
-            <span className="login-logo__text">ASTRI</span>
+            <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
           </div>
 
           <h1 className="login-title">Acesse sua conta</h1>
@@ -101,10 +100,7 @@ export default function LoginPage() {
         </div>
         <div className="login-right__footer">
           <span className="login-right__domain">astri.solutions</span>
-          <span className="login-right__logo-small">
-            <span className="login-right__logo-mark">■</span>
-            <span className="login-right__logo-text">ASTRI</span>
-          </span>
+          <img src="/logos/logotipo-negative.svg" alt="Astri" className="login-right__logo-img" />
         </div>
       </div>
     </div>

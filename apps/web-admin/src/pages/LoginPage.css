@@ -31,6 +31,12 @@
   margin-bottom: var(--space-8);
 }
 
+.login-logo__img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
 .login-logo__mark {
   color: var(--color-primary-500);
   font-size: var(--text-2xl);
@@ -221,6 +227,14 @@
   font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.02em;
+}
+
+.login-right__logo-img {
+  height: 24px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
 }
 
 .login-right__logo-small {

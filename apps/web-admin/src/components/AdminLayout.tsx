@@ -48,8 +48,7 @@ export default function AdminLayout() {
       <div className="admin-body">
         <aside className="admin-sidebar">
           <div className="admin-sidebar__logo">
-            <span className="admin-sidebar__logo-mark">■</span>
-            <span className="admin-sidebar__logo-text">ASTRI</span>
+            <img src="/logos/logotipo-original.svg" alt="Astri" className="admin-sidebar__logo-img" />
           </div>
           <nav className="admin-sidebar__nav">
             <p className="admin-sidebar__section-label">Plataforma</p>

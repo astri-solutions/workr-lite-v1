@@ -142,6 +142,12 @@
   padding: 0 var(--space-5) var(--space-6);
 }
 
+.admin-sidebar__logo-img {
+  height: 28px;
+  width: auto;
+  display: block;
+}
+
 .admin-sidebar__logo-mark {
   color: var(--color-primary-500);
   font-size: var(--text-xl);
