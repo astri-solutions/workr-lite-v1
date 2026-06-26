@@ -76,3 +76,56 @@
 .info-edit-btn-save:hover {
   background-color: var(--color-primary-600);
 }
+
+/* ─── Address modal ─────────────────────────────────── */
+.info-addr-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.info-edit-optional {
+  font-weight: var(--font-normal);
+  color: var(--color-gray-400);
+}
+
+.info-edit-select-wrap {
+  position: relative;
+  background-color: #ffffff;
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.info-edit-select-wrap:focus-within {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.08);
+}
+
+.info-edit-select {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: var(--space-4) var(--space-5);
+  padding-right: 40px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-900);
+  box-sizing: border-box;
+  min-height: 52px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.info-edit-select-caret {
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  pointer-events: none;
+}

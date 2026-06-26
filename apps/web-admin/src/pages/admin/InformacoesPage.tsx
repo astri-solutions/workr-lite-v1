@@ -5,9 +5,17 @@ import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import './InformacoesPage.css';
 
+interface AddressValues {
+  pais: string;
+  estado: string;
+  cidade: string;
+  endereco: string;
+  cep: string;
+}
+
 interface FieldValues {
   nome: string;
-  endereco: string;
+  address: AddressValues;
   telefone: string;
   empresa: string;
   email: string;
@@ -15,12 +23,19 @@ interface FieldValues {
 }
 
 interface EditState {
-  field: keyof FieldValues;
+  field: keyof Omit<FieldValues, 'address'>;
   title: string;
   label: string;
   type: string;
   placeholder: string;
   draft: string;
+}
+
+const PAISES = ['Brasil', 'Portugal', 'Estados Unidos', 'Argentina', 'Chile', 'Colômbia', 'México'];
+
+function formatAddress(a: AddressValues): string {
+  const parts = [a.endereco, a.cidade, a.estado, a.pais].filter(Boolean);
+  return parts.join(', ') || '–';
 }
 
 function SettingsRow({
@@ -61,7 +76,7 @@ function SettingsRow({
 export default function InformacoesPage() {
   const [values, setValues] = useState<FieldValues>({
     nome: 'Admin Astri',
-    endereco: '',
+    address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
     telefone: '',
     empresa: 'Astri Solutions',
     email: 'admin@astri.solutions',
@@ -69,15 +84,27 @@ export default function InformacoesPage() {
   });
 
   const [edit, setEdit] = useState<EditState | null>(null);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const [addrDraft, setAddrDraft] = useState<AddressValues>(values.address);
 
-  function openEdit(field: keyof FieldValues, title: string, label: string, type = 'text', placeholder = '') {
-    setEdit({ field, title, label, type, placeholder: placeholder || label, draft: values[field] });
+  function openEdit(field: keyof Omit<FieldValues, 'address'>, title: string, label: string, type = 'text', placeholder = '') {
+    setEdit({ field, title, label, type, placeholder: placeholder || label, draft: values[field] as string });
   }
 
   function handleSave() {
     if (!edit) return;
     setValues((v) => ({ ...v, [edit.field]: edit.draft }));
     setEdit(null);
+  }
+
+  function openAddr() {
+    setAddrDraft(values.address);
+    setAddrOpen(true);
+  }
+
+  function handleAddrSave() {
+    setValues((v) => ({ ...v, address: addrDraft }));
+    setAddrOpen(false);
   }
 
   return (
@@ -94,8 +121,8 @@ export default function InformacoesPage() {
         <div className="info-rows">
           <SettingsRow label="Nome" value={values.nome}
             onClick={() => openEdit('nome', 'Atualize seu nome', 'Nome')} />
-          <SettingsRow label="Endereço" value={values.endereco}
-            onClick={() => openEdit('endereco', 'Atualize seu endereço', 'Endereço')} />
+          <SettingsRow label="Endereço" value={formatAddress(values.address)}
+            onClick={openAddr} />
           <SettingsRow label="Número de telefone" value={values.telefone}
             onClick={() => openEdit('telefone', 'Atualize seu telefone', 'Número de telefone', 'tel')} />
           <SettingsRow label="Empresa" value={values.empresa}
@@ -137,6 +164,7 @@ export default function InformacoesPage() {
         </div>
       </div>
 
+      {/* Generic field edit modal */}
       {edit && (
         <Modal
           open
@@ -169,6 +197,79 @@ export default function InformacoesPage() {
           </div>
         </Modal>
       )}
+
+      {/* Address modal */}
+      <Modal
+        open={addrOpen}
+        onClose={() => setAddrOpen(false)}
+        title="Atualize seu endereço"
+        size="sm"
+        footer={
+          <>
+            <button className="info-edit-btn-cancel" type="button" onClick={() => setAddrOpen(false)}>
+              Cancelar
+            </button>
+            <button className="info-edit-btn-save" type="button" onClick={handleAddrSave}>
+              Salvar
+            </button>
+          </>
+        }
+      >
+        <div className="info-addr-fields">
+          <div className="info-edit-field">
+            <label className="info-edit-label">País</label>
+            <div className="info-edit-select-wrap">
+              <select
+                className="info-edit-select"
+                value={addrDraft.pais}
+                onChange={(e) => setAddrDraft((s) => ({ ...s, pais: e.target.value }))}
+              >
+                {PAISES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <svg className="info-edit-select-caret" width="16" height="16" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+          </div>
+
+          <div className="info-edit-field">
+            <label className="info-edit-label">Estado/Região <span className="info-edit-optional">(opcional)</span></label>
+            <div className="info-edit-input-wrap">
+              <input className="info-edit-input" type="text" placeholder="Ex: SP"
+                value={addrDraft.estado}
+                onChange={(e) => setAddrDraft((s) => ({ ...s, estado: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="info-edit-field">
+            <label className="info-edit-label">Cidade</label>
+            <div className="info-edit-input-wrap">
+              <input className="info-edit-input" type="text" placeholder="Ex: São Paulo"
+                value={addrDraft.cidade}
+                onChange={(e) => setAddrDraft((s) => ({ ...s, cidade: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="info-edit-field">
+            <label className="info-edit-label">Endereço</label>
+            <div className="info-edit-input-wrap">
+              <input className="info-edit-input" type="text" placeholder="Rua, número"
+                value={addrDraft.endereco}
+                onChange={(e) => setAddrDraft((s) => ({ ...s, endereco: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="info-edit-field">
+            <label className="info-edit-label">CEP</label>
+            <div className="info-edit-input-wrap">
+              <input className="info-edit-input" type="text" placeholder="00000-000"
+                value={addrDraft.cep}
+                onChange={(e) => setAddrDraft((s) => ({ ...s, cep: e.target.value }))} />
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
