@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
 import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import './InformacoesPage.css';
@@ -84,6 +85,7 @@ export default function InformacoesPage() {
   });
 
   const [edit, setEdit] = useState<EditState | null>(null);
+  const [changePwOpen, setChangePwOpen] = useState(false);
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrDraft, setAddrDraft] = useState<AddressValues>(values.address);
 
@@ -145,7 +147,8 @@ export default function InformacoesPage() {
             onClick={() => openEdit('email', 'Atualize seu e-mail', 'E-mail', 'email')} />
           <SettingsRow label="E-mail de recuperação" value={values.emailRecup}
             onClick={() => openEdit('emailRecup', 'E-mail de recuperação', 'E-mail de recuperação', 'email', 'Adicionar e-mail de recuperação')} />
-          <SettingsRow label="Mudar senha" value="············" readOnly />
+          <SettingsRow label="Mudar senha" value="············"
+            onClick={() => setChangePwOpen(true)} />
           <SettingsRow
             label="Verificação em duas etapas"
             value="active"
@@ -164,7 +167,6 @@ export default function InformacoesPage() {
         </div>
       </div>
 
-      {/* Generic field edit modal */}
       {edit && (
         <Modal
           open
@@ -198,7 +200,8 @@ export default function InformacoesPage() {
         </Modal>
       )}
 
-      {/* Address modal */}
+      <ChangePasswordModal open={changePwOpen} onClose={() => setChangePwOpen(false)} />
+
       <Modal
         open={addrOpen}
         onClose={() => setAddrOpen(false)}

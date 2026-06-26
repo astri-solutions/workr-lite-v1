@@ -216,13 +216,13 @@
 }
 
 .btn-action--danger {
-  background: transparent;
+  background: var(--color-error-50, #fef2f2);
   border-color: transparent;
-  color: var(--color-gray-400);
+  color: var(--color-error-500);
   padding: 6px;
 }
 .btn-action--danger:hover {
-  color: var(--color-error-500);
+  color: var(--color-error-600, #dc2626);
   background: var(--color-error-100);
 }
 

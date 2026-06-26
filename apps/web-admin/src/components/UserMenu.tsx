@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import ChangePasswordModal from './ChangePasswordModal';
 import './UserMenu.css';
 
 function getInitials(name: string): string {
@@ -17,10 +16,8 @@ export default function UserMenu() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [changePwOpen, setChangePwOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -31,7 +28,6 @@ export default function UserMenu() {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
 
-  // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
@@ -51,7 +47,6 @@ export default function UserMenu() {
   const initials = getInitials(user.name);
 
   return (
-    <>
     <div className="user-menu" ref={menuRef}>
       <button
         className={`user-menu__trigger${open ? ' user-menu__trigger--open' : ''}`}
@@ -77,7 +72,6 @@ export default function UserMenu() {
 
       {open && (
         <div className="user-menu__dropdown" role="menu">
-          {/* Identity header */}
           <div className="user-menu__identity">
             <span className="user-menu__identity-name">{user.name}</span>
             <span className="user-menu__identity-email">{user.email}</span>
@@ -85,7 +79,6 @@ export default function UserMenu() {
 
           <div className="user-menu__divider" />
 
-          {/* Menu items */}
           <button className="user-menu__item" type="button" role="menuitem"
             onClick={() => { setOpen(false); navigate('/admin/informacoes'); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -93,15 +86,6 @@ export default function UserMenu() {
               <circle cx="12" cy="7" r="4" />
             </svg>
             Informações pessoais
-          </button>
-
-          <button className="user-menu__item" type="button" role="menuitem"
-            onClick={() => { setOpen(false); setChangePwOpen(true); }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            Mudar senha
           </button>
 
           <div className="user-menu__divider" />
@@ -118,8 +102,5 @@ export default function UserMenu() {
         </div>
       )}
     </div>
-
-    <ChangePasswordModal open={changePwOpen} onClose={() => setChangePwOpen(false)} />
-    </>
   );
 }
