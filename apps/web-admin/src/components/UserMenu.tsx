@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ChangePasswordModal from './ChangePasswordModal';
 import './UserMenu.css';
 
 function getInitials(name: string): string {
@@ -16,6 +17,7 @@ export default function UserMenu() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [changePwOpen, setChangePwOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -93,7 +95,7 @@ export default function UserMenu() {
           </button>
 
           <button className="user-menu__item" type="button" role="menuitem"
-            onClick={() => setOpen(false)}>
+            onClick={() => { setOpen(false); setChangePwOpen(true); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -115,5 +117,7 @@ export default function UserMenu() {
         </div>
       )}
     </div>
+
+    <ChangePasswordModal open={changePwOpen} onClose={() => setChangePwOpen(false)} />
   );
 }
