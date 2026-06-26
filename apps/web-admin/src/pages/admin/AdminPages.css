@@ -5,33 +5,6 @@
   box-sizing: border-box;
 }
 
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--color-gray-200);
-}
-
-.page-title {
-  font-family: var(--font-heading);
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-  color: var(--color-gray-900);
-  margin: 0 0 var(--space-1) 0;
-  line-height: 1.2;
-}
-
-.page-subtitle {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-gray-500);
-  margin: 0;
-  max-width: 560px;
-}
-
 /* ─── Buttons ────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;

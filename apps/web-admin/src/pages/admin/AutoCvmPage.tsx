@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './AdminPages.css';
 import './AutoCvmPage.css';
+import PageHeader from '../../components/PageHeader';
 
 type EntityStatus = 'ativo' | 'pausado' | 'erro';
 
@@ -108,33 +109,35 @@ export default function AutoCvmPage() {
     <div className="page cvm-page">
 
       {/* ── Header ── */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Auto CVM</h1>
-          <p className="page-subtitle cvm-page__desc">
+      <PageHeader
+        title="Auto CVM"
+        description={
+          <>
             Importação automática de documentos da CVM, configurada pela Workr — para{' '}
             <strong>empresas listadas</strong> e <strong>fundos de gestoras</strong>. A conexão é
             pelo <strong>CNPJ</strong>: todo documento publicado com aquele CNPJ é reconhecido e
             alimenta o site (apenas canais regulatórios; a Central de Resultados é manual). O
             cliente não edita isto — vê só a marcação "Auto CVM".
-          </p>
-        </div>
-        <button
-          className="btn-outline-dark"
-          type="button"
-          onClick={handleSync}
-          disabled={syncing}
-        >
-          {syncing ? (
-            <>
-              <span className="cvm-spin" />
-              Sincronizando…
-            </>
-          ) : (
-            'Sincronizar agora'
-          )}
-        </button>
-      </div>
+          </>
+        }
+        action={
+          <button
+            className="btn-outline-dark"
+            type="button"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <>
+                <span className="cvm-spin" />
+                Sincronizando…
+              </>
+            ) : (
+              'Sincronizar agora'
+            )}
+          </button>
+        }
+      />
 
       {/* ── Portal selector ── */}
       <div className="cvm-section">
