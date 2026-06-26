@@ -51,6 +51,7 @@ export default function UserMenu() {
   const initials = getInitials(user.name);
 
   return (
+    <>
     <div className="user-menu" ref={menuRef}>
       <button
         className={`user-menu__trigger${open ? ' user-menu__trigger--open' : ''}`}
@@ -119,5 +120,6 @@ export default function UserMenu() {
     </div>
 
     <ChangePasswordModal open={changePwOpen} onClose={() => setChangePwOpen(false)} />
+    </>
   );
 }
