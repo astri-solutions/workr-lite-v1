@@ -1,59 +1,67 @@
-# Workr Lite CMS — CLAUDE.md
+# Workr Lite CMS — Astri
 
-CMS multi-tenant de Relações com Investidores (RI) para empresas CVM Categoria B / Pré-IPO. Marca **Astri**.
+Multi-tenant CMS for Investor Relations (RI) websites, branded as **Astri / Workr Lite**.
+
+## Project structure
+
+```
+workr-lite-v1/
+├── apps/
+│   └── web-admin/          # React + TypeScript SPA (admin panel)
+│       ├── src/
+│       │   ├── contexts/   # AuthContext
+│       │   ├── components/ # ProtectedRoute, shared UI
+│       │   ├── pages/      # LoginPage, DashboardPage
+│       │   └── styles/     # globals.css
+│       ├── index.html
+│       ├── vite.config.ts
+│       └── package.json
+└── vercel.json             # Vercel deployment config
+```
 
 ## Stack
 
-- **Frontend:** React + TypeScript + Vite (`apps/web-admin/`)
-- **Backend:** Go — API REST + Auth + SSG + Ingestor CVM (`services/`) — *não implementado ainda*
-- **Banco:** PostgreSQL puro self-hosted — *não implementado ainda*
-- **Deploy:** Vercel (frontend) + VPS Hostinger (backend/banco) — *backend pendente*
+- **Frontend**: Vite + React 18 + TypeScript + React Router v6
+- **Backend**: Go (planned — not yet implemented)
+- **CSS**: Custom CSS (no Tailwind, no component library)
+- **Fonts**: Plus Jakarta Sans (headings) + Inter (body) via Google Fonts
+- **Deploy**: Vercel (configured via root `vercel.json`)
 
-## Estrutura do monorepo
+## Brand
 
-```
-/apps/web-admin        React+TS: Painel Admin (SPA)
-/apps/web-public       Templates sites públicos (SSG) — pendente
-/services/api          Go: API REST + Auth JWT — pendente
-/services/ssg          Go: gerador estático — pendente
-/services/ingestor     Go: Auto CVM — pendente
-/db/migrations         SQL 0001..0019 — pendente
-/infra                 Nginx, systemd, config Azion — pendente
-/shared                Contrato de API compartilhado — pendente
-```
+| Token | Value | Usage |
+|---|---|---|
+| Green | `#00D865` | Accent/highlight (not as text on white) |
+| Teal | `#0B5B68` | Links / primary actions |
+| Dark | `#141414` | Text |
+| Gray 1 | `#6F6F6F` | Secondary text |
+| Gray 2 | `#949494` | Tertiary text |
+| Gray 3 | `#B8B8B8` | Placeholders/muted |
+| BG Light | `#F4F4F4` | Page background |
+| BG Lighter | `#FAFAFA` | Input background |
 
-## Identidade visual
+## Auth (hardcoded for now)
 
-- Verde `#00D865` (destaque — não usar como texto sobre branco)
-- Teal `#0B5B68` (links/ações/primary)
-- Escuro `#141414`
-- Neutros `#6F6F6F` / `#949494` / `#B8B8B8`
-- Fundos `#F4F4F4` / `#FAFAFA`
-- Fontes: **Plus Jakarta Sans** (títulos) + **Inter** (corpo)
-
-## Auth (fase atual — sem banco)
-
-Credencial hardcoded em `AuthContext.tsx`:
 - Email: `admin@astri.solutions`
-- Senha: `workr2025`
+- Password: `workr2025`
+- Session persisted in `localStorage` (key: `workr_auth`)
 
-Substituir por API Go com JWT quando o backend estiver pronto.
+## Routes
 
-## Regras fundamentais (não alterar sem revisão)
+| Path | Component | Guard |
+|---|---|---|
+| `/` | → redirect | — |
+| `/login` | `LoginPage` | Public |
+| `/dashboard` | `DashboardPage` | `ProtectedRoute` |
 
-- Tenant resolvido pelo **domínio** (não path)
-- Público **estático** (SSG) — sem banco no acesso público
-- Frontend **nunca** fala direto com o banco
-- Seletor de empresa **adaptativo junto ao conteúdo** (oculta ≤1, cards 2–4, dropdown >4)
-- Auto CVM: apenas regulatório, por CNPJ, CAPTCHA nunca contornado
-- Central de Resultados: **sempre manual**
+## Running locally
 
-## Próximos passos (roadmap)
+```bash
+cd apps/web-admin
+npm install
+npm run dev
+```
 
-1. ~~Tela de login + shell do painel~~ ✅
-2. API Go MVP (auth JWT, CRUD entidades/coleções/documentos)
-3. Painel React: Documentos, Central de Resultados
-4. SSG MVP + deploy estático
-5. Auto CVM (ingestor)
-6. Editor por blocos (`content_blocks` 0020)
-7. Multi-domínio + SSL
+## Deployment
+
+Vercel is configured at the repo root via `vercel.json`. It builds `apps/web-admin` and serves `apps/web-admin/dist`.
