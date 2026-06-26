@@ -1,0 +1,78 @@
+.info-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.info-edit-label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+}
+
+.info-edit-input-wrap {
+  background-color: #ffffff;
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.info-edit-input-wrap:focus-within {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.08);
+}
+
+.info-edit-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: var(--space-4) var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-900);
+  box-sizing: border-box;
+  min-height: 52px;
+}
+
+.info-edit-input::placeholder {
+  color: var(--color-gray-400);
+}
+
+.info-edit-btn-cancel {
+  background: transparent;
+  border: none;
+  color: var(--color-gray-500);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.info-edit-btn-cancel:hover {
+  color: var(--color-gray-800);
+  background-color: var(--color-gray-100);
+}
+
+.info-edit-btn-save {
+  background-color: var(--color-primary-500);
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding: var(--space-3) var(--space-8);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.info-edit-btn-save:hover {
+  background-color: var(--color-primary-600);
+}

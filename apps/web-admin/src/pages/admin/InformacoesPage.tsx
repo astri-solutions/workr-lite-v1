@@ -1,104 +1,83 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
+import Modal from '../../components/Modal';
 import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
+import './InformacoesPage.css';
 
-interface RowState {
-  value: string;
-  editing: boolean;
-  draft: string;
+interface FieldValues {
+  nome: string;
+  endereco: string;
+  telefone: string;
+  empresa: string;
+  email: string;
+  emailRecup: string;
 }
 
-function makeRow(value: string): RowState {
-  return { value, editing: false, draft: value };
+interface EditState {
+  field: keyof FieldValues;
+  title: string;
+  label: string;
+  type: string;
+  placeholder: string;
+  draft: string;
 }
 
 function SettingsRow({
   label,
-  row,
-  onEdit,
-  onSave,
-  onCancel,
-  onChange,
+  value,
   readOnly,
-  type = 'text',
-  placeholder,
+  onClick,
   renderValue,
 }: {
   label: string;
-  row: RowState;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  onChange: (v: string) => void;
+  value: string;
   readOnly?: boolean;
-  type?: string;
-  placeholder?: string;
-  renderValue?: (v: string) => React.ReactNode;
+  onClick?: () => void;
+  renderValue?: () => React.ReactNode;
 }) {
   return (
-    <div className={`info-row${row.editing ? ' info-row--editing' : ''}`}>
+    <div className="info-row">
       <div
         className="info-row__main"
-        onClick={!readOnly && !row.editing ? onEdit : undefined}
-        style={{ cursor: readOnly || row.editing ? 'default' : 'pointer' }}
+        onClick={!readOnly ? onClick : undefined}
+        style={{ cursor: readOnly ? 'default' : 'pointer' }}
       >
         <span className="info-row__label">{label}</span>
         <span className="info-row__value">
-          {renderValue ? renderValue(row.value) : row.value || '–'}
+          {renderValue ? renderValue() : value || '–'}
         </span>
-        {!readOnly && !row.editing && (
+        {!readOnly && (
           <svg className="info-row__chevron" width="16" height="16" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         )}
       </div>
-
-      {row.editing && (
-        <div className="info-row__edit">
-          <div className="info-input-wrap">
-            <input
-              className="info-input"
-              type={type}
-              placeholder={placeholder || label}
-              value={row.draft}
-              onChange={(e) => onChange(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="info-row__edit-actions">
-            <button className="info-btn-cancel" type="button" onClick={onCancel}>Cancelar</button>
-            <button className="info-btn-save" type="button" onClick={onSave}>Salvar</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export default function InformacoesPage() {
-  const [nome, setNome] = useState(makeRow('Admin Astri'));
-  const [endereco, setEndereco] = useState(makeRow(''));
-  const [telefone, setTelefone] = useState(makeRow(''));
-  const [empresa, setEmpresa] = useState(makeRow('Astri Solutions'));
-  const [email, setEmail] = useState(makeRow('admin@astri.solutions'));
-  const [emailRecup, setEmailRecup] = useState(makeRow(''));
+  const [values, setValues] = useState<FieldValues>({
+    nome: 'Admin Astri',
+    endereco: '',
+    telefone: '',
+    empresa: 'Astri Solutions',
+    email: 'admin@astri.solutions',
+    emailRecup: '',
+  });
 
-  function startEdit(setter: React.Dispatch<React.SetStateAction<RowState>>) {
-    setter((s) => ({ ...s, editing: true, draft: s.value }));
+  const [edit, setEdit] = useState<EditState | null>(null);
+
+  function openEdit(field: keyof FieldValues, title: string, label: string, type = 'text', placeholder = '') {
+    setEdit({ field, title, label, type, placeholder: placeholder || label, draft: values[field] });
   }
 
-  function saveEdit(setter: React.Dispatch<React.SetStateAction<RowState>>) {
-    setter((s) => ({ ...s, value: s.draft, editing: false }));
-  }
-
-  function cancelEdit(setter: React.Dispatch<React.SetStateAction<RowState>>) {
-    setter((s) => ({ ...s, editing: false, draft: s.value }));
-  }
-
-  function change(setter: React.Dispatch<React.SetStateAction<RowState>>, v: string) {
-    setter((s) => ({ ...s, draft: v }));
+  function handleSave() {
+    if (!edit) return;
+    setValues((v) => ({ ...v, [edit.field]: edit.draft }));
+    setEdit(null);
   }
 
   return (
@@ -113,20 +92,15 @@ export default function InformacoesPage() {
           As informações fornecidas abaixo aparecerão nas suas faturas.
         </p>
         <div className="info-rows">
-          <SettingsRow label="Nome" row={nome}
-            onEdit={() => startEdit(setNome)} onSave={() => saveEdit(setNome)}
-            onCancel={() => cancelEdit(setNome)} onChange={(v) => change(setNome, v)} />
-          <SettingsRow label="Endereço" row={endereco}
-            onEdit={() => startEdit(setEndereco)} onSave={() => saveEdit(setEndereco)}
-            onCancel={() => cancelEdit(setEndereco)} onChange={(v) => change(setEndereco, v)} />
-          <SettingsRow label="Número de telefone" row={telefone} type="tel"
-            onEdit={() => startEdit(setTelefone)} onSave={() => saveEdit(setTelefone)}
-            onCancel={() => cancelEdit(setTelefone)} onChange={(v) => change(setTelefone, v)} />
-          <SettingsRow label="Empresa" row={empresa}
-            onEdit={() => startEdit(setEmpresa)} onSave={() => saveEdit(setEmpresa)}
-            onCancel={() => cancelEdit(setEmpresa)} onChange={(v) => change(setEmpresa, v)} />
-          <SettingsRow label="Moeda da conta" row={{ value: 'BRL', editing: false, draft: 'BRL' }}
-            readOnly onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}} />
+          <SettingsRow label="Nome" value={values.nome}
+            onClick={() => openEdit('nome', 'Atualize seu nome', 'Nome')} />
+          <SettingsRow label="Endereço" value={values.endereco}
+            onClick={() => openEdit('endereco', 'Atualize seu endereço', 'Endereço')} />
+          <SettingsRow label="Número de telefone" value={values.telefone}
+            onClick={() => openEdit('telefone', 'Atualize seu telefone', 'Número de telefone', 'tel')} />
+          <SettingsRow label="Empresa" value={values.empresa}
+            onClick={() => openEdit('empresa', 'Atualize sua empresa', 'Empresa')} />
+          <SettingsRow label="Moeda da conta" value="BRL" readOnly />
         </div>
       </div>
 
@@ -140,20 +114,15 @@ export default function InformacoesPage() {
           <span className="info-section__title">Configurações da conta</span>
         </div>
         <div className="info-rows">
-          <SettingsRow label="E-mail" row={email} type="email"
-            onEdit={() => startEdit(setEmail)} onSave={() => saveEdit(setEmail)}
-            onCancel={() => cancelEdit(setEmail)} onChange={(v) => change(setEmail, v)} />
-          <SettingsRow label="E-mail de recuperação" row={emailRecup} type="email"
-            placeholder="Adicionar e-mail de recuperação"
-            onEdit={() => startEdit(setEmailRecup)} onSave={() => saveEdit(setEmailRecup)}
-            onCancel={() => cancelEdit(setEmailRecup)} onChange={(v) => change(setEmailRecup, v)} />
-          <SettingsRow label="Mudar senha" row={{ value: '············', editing: false, draft: '' }}
-            readOnly onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}} />
+          <SettingsRow label="E-mail" value={values.email}
+            onClick={() => openEdit('email', 'Atualize seu e-mail', 'E-mail', 'email')} />
+          <SettingsRow label="E-mail de recuperação" value={values.emailRecup}
+            onClick={() => openEdit('emailRecup', 'E-mail de recuperação', 'E-mail de recuperação', 'email', 'Adicionar e-mail de recuperação')} />
+          <SettingsRow label="Mudar senha" value="············" readOnly />
           <SettingsRow
             label="Verificação em duas etapas"
-            row={{ value: 'active', editing: false, draft: '' }}
+            value="active"
             readOnly
-            onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}}
             renderValue={() => (
               <span className="info-badge-active">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -164,10 +133,42 @@ export default function InformacoesPage() {
               </span>
             )}
           />
-          <SettingsRow label="Membro desde" row={{ value: '2025-01-12 09:00', editing: false, draft: '' }}
-            readOnly onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}} />
+          <SettingsRow label="Membro desde" value="2025-01-12 09:00" readOnly />
         </div>
       </div>
+
+      {edit && (
+        <Modal
+          open
+          onClose={() => setEdit(null)}
+          title={edit.title}
+          size="sm"
+          footer={
+            <>
+              <button className="info-edit-btn-cancel" type="button" onClick={() => setEdit(null)}>
+                Cancelar
+              </button>
+              <button className="info-edit-btn-save" type="button" onClick={handleSave}>
+                Salvar
+              </button>
+            </>
+          }
+        >
+          <div className="info-edit-field">
+            <label className="info-edit-label">{edit.label}</label>
+            <div className="info-edit-input-wrap">
+              <input
+                className="info-edit-input"
+                type={edit.type}
+                placeholder={edit.placeholder}
+                value={edit.draft}
+                onChange={(e) => setEdit((s) => s ? { ...s, draft: e.target.value } : s)}
+                autoFocus
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
