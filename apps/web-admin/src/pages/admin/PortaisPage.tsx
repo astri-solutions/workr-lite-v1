@@ -94,11 +94,9 @@ function FerramentasDropdown() {
 }
 
 function SiteKebabMenu({
-  site,
   onDetalhes,
   onAlterarDominio,
 }: {
-  site: Site;
   onDetalhes: () => void;
   onAlterarDominio: () => void;
 }) {
@@ -186,7 +184,7 @@ function DetalhesModal({ site, onClose }: { site: Site; onClose: () => void }) {
   );
 }
 
-function AlterarDominioModal({ site, onClose }: { site: Site; onClose: () => void }) {
+function AlterarDominioModal({ onClose }: { onClose: () => void }) {
   const [confirmed, setConfirmed] = useState(false);
 
   function handleClose() {
@@ -352,7 +350,6 @@ export default function PortaisPage() {
                     </button>
                     <FerramentasDropdown />
                     <SiteKebabMenu
-                      site={site}
                       onDetalhes={() => setDetalhesSite(site)}
                       onAlterarDominio={() => setAlterarSite(site)}
                     />
@@ -380,7 +377,7 @@ export default function PortaisPage() {
         <DetalhesModal site={detalhesSite} onClose={() => setDetalhesSite(null)} />
       )}
       {alterarSite && (
-        <AlterarDominioModal site={alterarSite} onClose={() => setAlterarSite(null)} />
+        <AlterarDominioModal onClose={() => setAlterarSite(null)} />
       )}
     </div>
   );
