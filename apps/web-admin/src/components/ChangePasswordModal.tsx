@@ -164,7 +164,9 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                 <EyeIcon visible={next.show} />
               </button>
             </div>
-            {next.error && <FieldError message={next.error} />}
+            {next.error
+              ? <FieldError message={next.error} />
+              : <p className="chpw-hint">Mínimo 8 caracteres com letras e números.</p>}
           </div>
 
           {/* Confirm new password */}
@@ -175,7 +177,11 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
                 type={confirm.show ? 'text' : 'password'}
                 placeholder="Insira a nova senha novamente"
                 value={confirm.value}
-                onChange={(e) => setConfirm((s) => ({ ...s, value: e.target.value, error: '' }))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const mismatch = val.length > 0 && val !== next.value;
+                  setConfirm((s) => ({ ...s, value: val, error: mismatch ? 'As senhas não coincidem.' : '' }));
+                }}
                 autoComplete="new-password"
               />
               <button type="button" className="chpw-eye"
