@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChangePasswordModal from './ChangePasswordModal';
-import InformacoesModal from './InformacoesModal';
 import './UserMenu.css';
 
 function getInitials(name: string): string {
@@ -19,7 +18,6 @@ export default function UserMenu() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [changePwOpen, setChangePwOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -89,7 +87,7 @@ export default function UserMenu() {
 
           {/* Menu items */}
           <button className="user-menu__item" type="button" role="menuitem"
-            onClick={() => { setOpen(false); setInfoOpen(true); }}>
+            onClick={() => { setOpen(false); navigate('/admin/informacoes'); }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
@@ -122,7 +120,6 @@ export default function UserMenu() {
     </div>
 
     <ChangePasswordModal open={changePwOpen} onClose={() => setChangePwOpen(false)} />
-    <InformacoesModal open={infoOpen} onClose={() => setInfoOpen(false)} />
     </>
   );
 }

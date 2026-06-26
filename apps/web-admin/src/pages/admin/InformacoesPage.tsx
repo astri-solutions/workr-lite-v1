@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import Modal from './Modal';
-import './InformacoesModal.css';
-
-interface InformacoesModalProps {
-  open: boolean;
-  onClose: () => void;
-}
+import PageHeader from '../../components/PageHeader';
+import '../admin/AdminPages.css';
+import '../../components/InformacoesModal.css';
 
 interface RowState {
   value: string;
@@ -42,8 +38,11 @@ function SettingsRow({
 }) {
   return (
     <div className={`info-row${row.editing ? ' info-row--editing' : ''}`}>
-      <div className="info-row__main" onClick={!readOnly && !row.editing ? onEdit : undefined}
-        style={{ cursor: readOnly || row.editing ? 'default' : 'pointer' }}>
+      <div
+        className="info-row__main"
+        onClick={!readOnly && !row.editing ? onEdit : undefined}
+        style={{ cursor: readOnly || row.editing ? 'default' : 'pointer' }}
+      >
         <span className="info-row__label">{label}</span>
         <span className="info-row__value">
           {renderValue ? renderValue(row.value) : row.value || '–'}
@@ -78,7 +77,7 @@ function SettingsRow({
   );
 }
 
-export default function InformacoesModal({ open, onClose }: InformacoesModalProps) {
+export default function InformacoesPage() {
   const [nome, setNome] = useState(makeRow('Admin Astri'));
   const [endereco, setEndereco] = useState(makeRow(''));
   const [telefone, setTelefone] = useState(makeRow(''));
@@ -103,7 +102,12 @@ export default function InformacoesModal({ open, onClose }: InformacoesModalProp
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Informações da conta" size="md">
+    <div className="page">
+      <PageHeader
+        title="Informações da conta"
+        description="Gerencie seus dados pessoais e configurações da conta."
+      />
+
       <div className="info-section">
         <p className="info-section__hint">
           As informações fornecidas abaixo aparecerão nas suas faturas.
@@ -164,6 +168,6 @@ export default function InformacoesModal({ open, onClose }: InformacoesModalProp
             readOnly onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}} />
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }
