@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd apps/web-admin && npm install && npm run build",
+  "outputDirectory": "apps/web-admin/dist",
+  "installCommand": "echo 'skip root install'"
+}
