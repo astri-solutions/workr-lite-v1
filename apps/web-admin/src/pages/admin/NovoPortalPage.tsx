@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { applyColorScale, removeColorScale } from '../../utils/colorUtils';
 import './AdminPages.css';
 import './NovoPortalPage.css';
 
@@ -803,6 +804,16 @@ export default function NovoPortalPage() {
     analyticsId: '',
     emailContato: '',
   });
+
+  useEffect(() => {
+    applyColorScale('primary', form.corPrimaria);
+    return () => { removeColorScale('primary'); };
+  }, [form.corPrimaria]);
+
+  useEffect(() => {
+    applyColorScale('secondary', form.corSecundaria);
+    return () => { removeColorScale('secondary'); };
+  }, [form.corSecundaria]);
 
   useEffect(() => {
     const link = document.createElement('link');
