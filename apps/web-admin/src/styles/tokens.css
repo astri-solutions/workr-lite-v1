@@ -1,38 +1,46 @@
+/*
+  Color scales generated via generateColorScale() in colorUtils.ts.
+  500 = brand base color; 50–400 interpolate toward white; 600–900 toward black.
+  Update the 500 value and re-run the generator to regenerate the full scale.
+*/
 :root {
-  /* Primary — Teal/Dark green */
-  --color-primary-100: #e6f4f6;
-  --color-primary-200: #b3dde3;
-  --color-primary-300: #80c6d0;
-  --color-primary-400: #4dafbc;
+  /* ── Primary  #0B5B68  (teal)  H=188 S=81 L=23 ───────────── */
+  --color-primary-50:  hsl(188, 18%, 93%);
+  --color-primary-100: hsl(188, 23%, 88%);
+  --color-primary-200: hsl(188, 36%, 73%);
+  --color-primary-300: hsl(188, 50%, 58%);
+  --color-primary-400: hsl(188, 67%, 39%);
   --color-primary-500: #0B5B68;
-  --color-primary-600: #094f5a;
-  --color-primary-700: #07424b;
-  --color-primary-800: #05353c;
-  --color-primary-900: #03282d;
+  --color-primary-600: hsl(188, 81%, 20%);
+  --color-primary-700: hsl(188, 81%, 18%);
+  --color-primary-800: hsl(188, 81%, 14%);
+  --color-primary-900: hsl(188, 81%, 11%);
 
-  /* Secondary — Green (accent) */
-  --color-secondary-100: #e6fff0;
-  --color-secondary-200: #b3ffcc;
-  --color-secondary-300: #80ff99;
-  --color-secondary-400: #33ff66;
+  /* ── Secondary  #00D865  (green accent)  H=148 S=100 L=42 ── */
+  --color-secondary-50:  hsl(148, 20%, 94%);
+  --color-secondary-100: hsl(148, 25%, 90%);
+  --color-secondary-200: hsl(148, 42%, 79%);
+  --color-secondary-300: hsl(148, 60%, 68%);
+  --color-secondary-400: hsl(148, 81%, 54%);
   --color-secondary-500: #00D865;
-  --color-secondary-600: #00b854;
-  --color-secondary-700: #009843;
-  --color-secondary-800: #007832;
-  --color-secondary-900: #005821;
+  --color-secondary-600: hsl(148, 100%, 37%);
+  --color-secondary-700: hsl(148, 100%, 31%);
+  --color-secondary-800: hsl(148, 100%, 23%);
+  --color-secondary-900: hsl(148, 100%, 17%);
 
-  /* Tertiary — Slate/neutral blue */
-  --color-tertiary-100: #f0f2f5;
-  --color-tertiary-200: #d1d8e0;
-  --color-tertiary-300: #b2becb;
-  --color-tertiary-400: #8fa3b5;
+  /* ── Tertiary  #5a7a94  (slate-blue)  H=207 S=24 L=47 ────── */
+  --color-tertiary-50:  hsl(207, 15%, 95%);
+  --color-tertiary-100: hsl(207, 16%, 91%);
+  --color-tertiary-200: hsl(207, 18%, 81%);
+  --color-tertiary-300: hsl(207, 20%, 71%);
+  --color-tertiary-400: hsl(207, 22%, 58%);
   --color-tertiary-500: #5a7a94;
-  --color-tertiary-600: #4a6880;
-  --color-tertiary-700: #3a566c;
-  --color-tertiary-800: #2a4458;
-  --color-tertiary-900: #1a3244;
+  --color-tertiary-600: hsl(207, 24%, 41%);
+  --color-tertiary-700: hsl(207, 24%, 35%);
+  --color-tertiary-800: hsl(207, 24%, 26%);
+  --color-tertiary-900: hsl(207, 24%, 18%);
 
-  /* Grayscale */
+  /* ── Grayscale ────────────────────────────────────────────── */
   --color-gray-50:  #FAFAFA;
   --color-gray-100: #F4F4F4;
   --color-gray-200: #E8E8E8;
@@ -44,55 +52,86 @@
   --color-gray-800: #2D2D2D;
   --color-gray-900: #141414;
 
-  /* Semantic */
+  /* ── Semantic ─────────────────────────────────────────────── */
+  --color-error-50:  #fff5f5;
   --color-error-100: #fde8e8;
+  --color-error-200: #fca5a5;
+  --color-error-300: #f87171;
+  --color-error-400: #f87171;
   --color-error-500: #e53e3e;
+  --color-error-600: #dc2626;
   --color-error-700: #9b1c1c;
-  --color-warning-100: #fef3c7;
-  --color-warning-500: #d97706;
-  --color-warning-700: #92400e;
-  --color-success-100: #d1fae5;
-  --color-success-500: #059669;
-  --color-success-700: #065f46;
-  --color-info-100: #dbeafe;
-  --color-info-500: #2563eb;
-  --color-info-700: #1e40af;
+  --color-error-800: #7f1d1d;
+  --color-error-900: #450a0a;
 
-  /* Typography */
+  --color-warning-50:  #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #d97706;
+  --color-warning-600: #b45309;
+  --color-warning-700: #92400e;
+  --color-warning-800: #78350f;
+  --color-warning-900: #451a03;
+
+  --color-success-50:  #f0fdf4;
+  --color-success-100: #d1fae5;
+  --color-success-200: #a7f3d0;
+  --color-success-300: #6ee7b7;
+  --color-success-400: #34d399;
+  --color-success-500: #059669;
+  --color-success-600: #047857;
+  --color-success-700: #065f46;
+  --color-success-800: #064e3b;
+  --color-success-900: #022c22;
+
+  --color-info-50:  #eff6ff;
+  --color-info-100: #dbeafe;
+  --color-info-200: #bfdbfe;
+  --color-info-300: #93c5fd;
+  --color-info-400: #60a5fa;
+  --color-info-500: #2563eb;
+  --color-info-600: #1d4ed8;
+  --color-info-700: #1e40af;
+  --color-info-800: #1e3a8a;
+  --color-info-900: #172554;
+
+  /* ── Typography ───────────────────────────────────────────── */
   --font-heading: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
   --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
-  --font-regular: 400;
-  --font-medium: 500;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+  --font-regular:  400;
+  --font-medium:   500;
   --font-semibold: 600;
-  --font-bold: 700;
+  --font-bold:     700;
 
-  /* Spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
+  /* ── Spacing ──────────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
   --space-10: 40px;
   --space-12: 48px;
 
-  /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* ── Radius ───────────────────────────────────────────────── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
   --radius-full: 9999px;
 
-  /* Shadows */
+  /* ── Shadows ──────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.05);
   --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
