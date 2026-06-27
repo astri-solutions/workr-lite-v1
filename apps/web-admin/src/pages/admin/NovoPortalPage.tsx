@@ -6,16 +6,13 @@ import './NovoPortalPage.css';
 
 /* ─── Steps ─────────────────────────────────────────────── */
 const STEPS = [
-  { id: 1, label: 'Nome' },
-  { id: 2, label: 'URL' },
-  { id: 3, label: 'Tipo' },
-  { id: 4, label: 'Fonte' },
-  { id: 5, label: 'Cores' },
-  { id: 6, label: 'Logo' },
-  { id: 7, label: 'Favicon' },
-  { id: 8, label: 'Idioma' },
-  { id: 9, label: 'SEO' },
-  { id: 10, label: 'Email' },
+  { id: 1, label: 'Identificação' },
+  { id: 2, label: 'Tipo' },
+  { id: 3, label: 'Fonte' },
+  { id: 4, label: 'Cores' },
+  { id: 5, label: 'Identidade' },
+  { id: 6, label: 'SEO' },
+  { id: 7, label: 'Email' },
 ];
 
 /* ─── Tipos ──────────────────────────────────────────────── */
@@ -169,75 +166,72 @@ function Stepper({ current }: { current: number }) {
   );
 }
 
-/* ─── Step 1: Nome ───────────────────────────────────────── */
-function StepNome({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="np-step">
-      <div className="np-step__head">
-        <h2 className="np-step__title">Como se chama o site?</h2>
-        <p className="np-step__desc">Esse nome é exibido no painel e identifica o portal internamente.</p>
-      </div>
-      <div className="np-step__body">
-        <label className="np-label">Nome do site</label>
-        <input
-          className="np-input np-input--lg"
-          type="text"
-          placeholder="Ex: Aurora RI"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoFocus
-          maxLength={80}
-        />
-        {value && <span className="np-input__hint">{value.length}/80 caracteres</span>}
-      </div>
-    </div>
-  );
-}
+/* ─── Step 1: Identificação (Nome + URL) ─────────────────── */
+function StepIdentificacao({
+  nome, url, onNome, onUrl,
+}: {
+  nome: string; url: string;
+  onNome: (v: string) => void; onUrl: (v: string) => void;
+}) {
+  const slug = url.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
 
-/* ─── Step 2: URL ────────────────────────────────────────── */
-function StepUrl({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const slug = value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
-
-  function handleChange(raw: string) {
-    onChange(raw.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-'));
+  function handleUrl(raw: string) {
+    onUrl(raw.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-'));
   }
 
   return (
     <div className="np-step">
       <div className="np-step__head">
-        <h2 className="np-step__title">Qual será o endereço?</h2>
-        <p className="np-step__desc">Escolha o subdomínio do portal. Pode ser alterado depois.</p>
+        <h2 className="np-step__title">Identificação do portal</h2>
+        <p className="np-step__desc">Defina o nome interno e o endereço público do portal.</p>
       </div>
       <div className="np-step__body">
-        <label className="np-label">Subdomínio</label>
-        <div className="np-url-wrap">
-          <span className="np-url-prefix">workr.com.br /</span>
+        <div className="np-field">
+          <label className="np-label">Nome do site</label>
+          <p className="np-field__hint">Esse nome é exibido no painel e identifica o portal internamente.</p>
           <input
-            className="np-input np-input--url"
+            className="np-input np-input--lg"
             type="text"
-            placeholder="aurora"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
+            placeholder="Ex: Aurora RI"
+            value={nome}
+            onChange={(e) => onNome(e.target.value)}
             autoFocus
-            maxLength={40}
+            maxLength={80}
           />
+          {nome && <span className="np-input__hint">{nome.length}/80 caracteres</span>}
         </div>
-        {slug && (
-          <div className="np-url-preview">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            <span>https://<strong>{slug}</strong>.workr.com.br</span>
+
+        <div className="np-field">
+          <label className="np-label">Subdomínio</label>
+          <p className="np-field__hint">Escolha o endereço do portal. Pode ser alterado depois.</p>
+          <div className="np-url-wrap">
+            <span className="np-url-prefix">workr.com.br /</span>
+            <input
+              className="np-input np-input--url"
+              type="text"
+              placeholder="aurora"
+              value={url}
+              onChange={(e) => handleUrl(e.target.value)}
+              maxLength={40}
+            />
           </div>
-        )}
+          {slug && (
+            <div className="np-url-preview">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span>https://<strong>{slug}</strong>.workr.com.br</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ─── Step 3: Tipo ───────────────────────────────────────── */
+/* ─── Step 2: Tipo ───────────────────────────────────────── */
 function StepTipo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div className="np-step">
@@ -276,7 +270,7 @@ function StepTipo({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 }
 
-/* ─── Step 4: Fonte ──────────────────────────────────────── */
+/* ─── Step 3: Fonte ──────────────────────────────────────── */
 function StepFonte({
   value, onChange, customFontFile, customFontName, onCustomFont,
 }: {
@@ -430,7 +424,7 @@ function StepFonte({
   );
 }
 
-/* ─── Step 5: Cores ──────────────────────────────────────── */
+/* ─── Step 4: Cores ──────────────────────────────────────── */
 function StepCores({
   primaria, secundaria, terciaria,
   onPrimaria, onSecundaria, onTerciaria,
@@ -506,14 +500,12 @@ function StepCores({
   );
 }
 
-/* ─── Shared dropzone ────────────────────────────────────── */
-function ImageDropzone({
-  preview, onFile, title, desc, hint, accept, size,
+/* ─── Dropzone (sem wrapper np-step) ─────────────────────── */
+function Dropzone({
+  preview, onFile, hint, accept, size,
 }: {
   preview: string | null;
   onFile: (file: File | null, preview: string | null) => void;
-  title: string;
-  desc: string;
   hint: string;
   accept: string;
   size: 'logo' | 'favicon';
@@ -542,143 +534,148 @@ function ImageDropzone({
     if (file) processFile(file);
   }
 
+  if (preview) {
+    return (
+      <div className={`np-logo-preview${size === 'favicon' ? ' np-logo-preview--favicon' : ''}`}>
+        <img src={preview} alt="" className={size === 'favicon' ? 'np-logo-preview__favicon' : 'np-logo-preview__img'} />
+        <button
+          className="np-logo-preview__remove"
+          type="button"
+          onClick={() => { onFile(null, null); if (inputRef.current) inputRef.current.value = ''; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          Remover
+        </button>
+        <input ref={inputRef} type="file" accept={accept} style={{ display: 'none' }} onChange={handleChange} />
+      </div>
+    );
+  }
+
   return (
-    <div className="np-step">
-      <div className="np-step__head">
-        <h2 className="np-step__title">{title}</h2>
-        <p className="np-step__desc">{desc}</p>
+    <div
+      className={`np-dropzone${dragging ? ' np-dropzone--over' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+    >
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <polyline points="21 15 16 10 5 21" />
+      </svg>
+      <div className="np-dropzone__text">
+        <strong>Arraste o arquivo aqui</strong> ou clique para selecionar
       </div>
-      <div className="np-step__body">
-        {preview ? (
-          <div className={`np-logo-preview${size === 'favicon' ? ' np-logo-preview--favicon' : ''}`}>
-            <img src={preview} alt={title} className={size === 'favicon' ? 'np-logo-preview__favicon' : 'np-logo-preview__img'} />
-            <button
-              className="np-logo-preview__remove"
-              type="button"
-              onClick={() => { onFile(null, null); if (inputRef.current) inputRef.current.value = ''; }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-              Remover
-            </button>
-          </div>
-        ) : (
-          <div
-            className={`np-dropzone${dragging ? ' np-dropzone--over' : ''}`}
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => inputRef.current?.click()}
-          >
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-            <div className="np-dropzone__text">
-              <strong>Arraste o arquivo aqui</strong> ou clique para selecionar
-            </div>
-            <div className="np-dropzone__hint">{hint}</div>
-            <input
-              ref={inputRef}
-              type="file"
-              accept={accept}
-              className="np-dropzone__input"
-              onChange={handleChange}
-            />
-          </div>
-        )}
-      </div>
+      <div className="np-dropzone__hint">{hint}</div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="np-dropzone__input"
+        onChange={handleChange}
+      />
     </div>
   );
 }
 
-/* ─── Step 6: Logotipo ───────────────────────────────────── */
-function StepLogo({ preview, onFile }: { preview: string | null; onFile: (file: File | null, preview: string | null) => void }) {
-  return (
-    <ImageDropzone
-      preview={preview}
-      onFile={onFile}
-      title="Adicione o logotipo"
-      desc="Aceita PNG, SVG ou JPG. Tamanho recomendado: 400×120px. Etapa opcional."
-      hint="PNG, SVG, JPG ou WebP — máx. 5 MB"
-      accept="image/png,image/svg+xml,image/jpeg,image/webp"
-      size="logo"
-    />
-  );
-}
-
-/* ─── Step 7: Favicon ────────────────────────────────────── */
-function StepFavicon({ preview, onFile }: { preview: string | null; onFile: (file: File | null, preview: string | null) => void }) {
-  return (
-    <ImageDropzone
-      preview={preview}
-      onFile={onFile}
-      title="Adicione o favicon"
-      desc="Ícone exibido na aba do navegador. Tamanho recomendado: 32×32px. Etapa opcional."
-      hint="ICO, PNG ou SVG — máx. 1 MB"
-      accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml"
-      size="favicon"
-    />
-  );
-}
-
-/* ─── Step 8: Idioma ─────────────────────────────────────── */
-function StepIdioma({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
-  const idiomas = [
+/* ─── Step 5: Identidade (Logo + Favicon + Idioma) ───────── */
+function StepIdentidade({
+  logoPreview, faviconPreview, idiomas,
+  onLogo, onFavicon, onIdiomas,
+}: {
+  logoPreview: string | null;
+  faviconPreview: string | null;
+  idiomas: string[];
+  onLogo: (file: File | null, preview: string | null) => void;
+  onFavicon: (file: File | null, preview: string | null) => void;
+  onIdiomas: (v: string[]) => void;
+}) {
+  const langs = [
     { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
     { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
   ];
 
-  function toggle(id: string) {
-    if (value.includes(id)) {
-      onChange(value.filter((v) => v !== id));
+  function toggleIdioma(id: string) {
+    if (idiomas.includes(id)) {
+      onIdiomas(idiomas.filter((v) => v !== id));
     } else {
-      onChange([...value, id]);
+      onIdiomas([...idiomas, id]);
     }
   }
 
   return (
     <div className="np-step">
       <div className="np-step__head">
-        <h2 className="np-step__title">Idiomas do portal</h2>
-        <p className="np-step__desc">Selecione um ou mais idiomas. Você pode configurar versões adicionais depois.</p>
+        <h2 className="np-step__title">Identidade visual e idioma</h2>
+        <p className="np-step__desc">Configure o logotipo, favicon e os idiomas disponíveis no portal.</p>
       </div>
       <div className="np-step__body">
-        <div className="np-idioma-list">
-          {idiomas.map((lang) => {
-            const selected = value.includes(lang.id);
-            return (
-              <button
-                key={lang.id}
-                type="button"
-                className={`np-idioma-card${selected ? ' np-idioma-card--selected' : ''}`}
-                onClick={() => toggle(lang.id)}
-              >
-                <span className="np-idioma-card__flag">{lang.flag}</span>
-                <div className="np-idioma-card__info">
-                  <span className="np-idioma-card__label">{lang.label}</span>
-                  <span className="np-idioma-card__desc">{lang.desc}</span>
-                </div>
-                <div className={`np-idioma-card__check${selected ? ' np-idioma-card__check--active' : ''}`}>
-                  {selected && (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+
+        <div className="np-field">
+          <label className="np-label">Logotipo</label>
+          <p className="np-field__hint">PNG, SVG ou JPG. Tamanho recomendado: 400×120px. Etapa opcional.</p>
+          <Dropzone
+            preview={logoPreview}
+            onFile={onLogo}
+            hint="PNG, SVG, JPG ou WebP — máx. 5 MB"
+            accept="image/png,image/svg+xml,image/jpeg,image/webp"
+            size="logo"
+          />
         </div>
+
+        <div className="np-field">
+          <label className="np-label">Favicon</label>
+          <p className="np-field__hint">Ícone exibido na aba do navegador. Tamanho recomendado: 32×32px. Etapa opcional.</p>
+          <Dropzone
+            preview={faviconPreview}
+            onFile={onFavicon}
+            hint="ICO, PNG ou SVG — máx. 1 MB"
+            accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml"
+            size="favicon"
+          />
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Idiomas do portal</label>
+          <p className="np-field__hint">Selecione um ou mais idiomas. Você pode configurar versões adicionais depois.</p>
+          <div className="np-idioma-list">
+            {langs.map((lang) => {
+              const selected = idiomas.includes(lang.id);
+              return (
+                <button
+                  key={lang.id}
+                  type="button"
+                  className={`np-idioma-card${selected ? ' np-idioma-card--selected' : ''}`}
+                  onClick={() => toggleIdioma(lang.id)}
+                >
+                  <span className="np-idioma-card__flag">{lang.flag}</span>
+                  <div className="np-idioma-card__info">
+                    <span className="np-idioma-card__label">{lang.label}</span>
+                    <span className="np-idioma-card__desc">{lang.desc}</span>
+                  </div>
+                  <div className={`np-idioma-card__check${selected ? ' np-idioma-card__check--active' : ''}`}>
+                    {selected && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
       </div>
     </div>
   );
 }
 
-/* ─── Step 9: SEO e Analytics ────────────────────────────── */
+/* ─── Step 6: SEO e Analytics ────────────────────────────── */
 function StepSeo({
   metaTitulo, metaDescricao, analyticsId,
   onMetaTitulo, onMetaDescricao, onAnalyticsId,
@@ -744,7 +741,7 @@ function StepSeo({
   );
 }
 
-/* ─── Step 10: Email de contato ──────────────────────────── */
+/* ─── Step 7: Email de contato ───────────────────────────── */
 function StepEmail({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const isValid = !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -824,11 +821,10 @@ export default function NovoPortalPage() {
   }, []);
 
   const canProceed = () => {
-    if (step === 1) return form.nome.trim().length > 0;
-    if (step === 2) return form.url.trim().length > 0;
-    if (step === 3) return form.tipo !== '';
-    if (step === 8) return form.idiomas.length > 0;
-    if (step === 10) {
+    if (step === 1) return form.nome.trim().length > 0 && form.url.trim().length > 0;
+    if (step === 2) return form.tipo !== '';
+    if (step === 5) return form.idiomas.length > 0;
+    if (step === 7) {
       if (!form.emailContato) return true;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailContato);
     }
@@ -859,15 +855,17 @@ export default function NovoPortalPage() {
 
       <div className="np-card">
         {step === 1 && (
-          <StepNome value={form.nome} onChange={(v) => setForm((f) => ({ ...f, nome: v }))} />
+          <StepIdentificacao
+            nome={form.nome}
+            url={form.url}
+            onNome={(v) => setForm((f) => ({ ...f, nome: v }))}
+            onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
+          />
         )}
         {step === 2 && (
-          <StepUrl value={form.url} onChange={(v) => setForm((f) => ({ ...f, url: v }))} />
-        )}
-        {step === 3 && (
           <StepTipo value={form.tipo} onChange={(v) => setForm((f) => ({ ...f, tipo: v }))} />
         )}
-        {step === 4 && (
+        {step === 3 && (
           <StepFonte
             value={form.fonte}
             onChange={(v) => setForm((f) => ({ ...f, fonte: v }))}
@@ -876,7 +874,7 @@ export default function NovoPortalPage() {
             onCustomFont={(file, name) => setForm((f) => ({ ...f, customFontFile: file, customFontName: name }))}
           />
         )}
-        {step === 5 && (
+        {step === 4 && (
           <StepCores
             primaria={form.corPrimaria}
             secundaria={form.corSecundaria}
@@ -886,22 +884,17 @@ export default function NovoPortalPage() {
             onTerciaria={(v) => setForm((f) => ({ ...f, corTerciaria: v }))}
           />
         )}
+        {step === 5 && (
+          <StepIdentidade
+            logoPreview={form.logoPreview}
+            faviconPreview={form.faviconPreview}
+            idiomas={form.idiomas}
+            onLogo={(file, preview) => setForm((f) => ({ ...f, logoFile: file, logoPreview: preview }))}
+            onFavicon={(file, preview) => setForm((f) => ({ ...f, faviconFile: file, faviconPreview: preview }))}
+            onIdiomas={(v) => setForm((f) => ({ ...f, idiomas: v }))}
+          />
+        )}
         {step === 6 && (
-          <StepLogo
-            preview={form.logoPreview}
-            onFile={(file, preview) => setForm((f) => ({ ...f, logoFile: file, logoPreview: preview }))}
-          />
-        )}
-        {step === 7 && (
-          <StepFavicon
-            preview={form.faviconPreview}
-            onFile={(file, preview) => setForm((f) => ({ ...f, faviconFile: file, faviconPreview: preview }))}
-          />
-        )}
-        {step === 8 && (
-          <StepIdioma value={form.idiomas} onChange={(v) => setForm((f) => ({ ...f, idiomas: v }))} />
-        )}
-        {step === 9 && (
           <StepSeo
             metaTitulo={form.metaTitulo}
             metaDescricao={form.metaDescricao}
@@ -911,7 +904,7 @@ export default function NovoPortalPage() {
             onAnalyticsId={(v) => setForm((f) => ({ ...f, analyticsId: v }))}
           />
         )}
-        {step === 10 && (
+        {step === 7 && (
           <StepEmail value={form.emailContato} onChange={(v) => setForm((f) => ({ ...f, emailContato: v }))} />
         )}
 
