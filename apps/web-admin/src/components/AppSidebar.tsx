@@ -32,7 +32,7 @@ export default function AppSidebar({ sections }: AppSidebarProps) {
 
       <nav className="admin-sidebar__nav">
         {sections.map((section) => (
-          <div key={section.label}>
+          <div key={section.label} className="admin-sidebar__section">
             {!collapsed && (
               <p className="admin-sidebar__section-label">{section.label}</p>
             )}
