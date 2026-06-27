@@ -55,6 +55,7 @@ const EMPTY: InviteFormData = {
 export default function InviteUserModal({ open, onClose, portais, onSubmit }: InviteUserModalProps) {
   const [form, setForm] = useState<InviteFormData>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof InviteFormData, string>>>({});
+  const [sent, setSent] = useState(false);
 
   function set<K extends keyof InviteFormData>(key: K, val: InviteFormData[K]) {
     setForm((f) => ({ ...f, [key]: val }));
@@ -79,15 +80,50 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
   function handleSubmit() {
     if (!validate()) return;
     onSubmit(form);
-    handleClose();
+    setSent(true);
   }
 
   function handleClose() {
     onClose();
-    setTimeout(() => { setForm(EMPTY); setErrors({}); }, 200);
+    setTimeout(() => { setForm(EMPTY); setErrors({}); setSent(false); }, 200);
   }
 
   const isClient = form.perfil === 'client_user';
+
+  /* ── Success state ── */
+  if (sent) {
+    return (
+      <Modal
+        open={open}
+        onClose={handleClose}
+        title=""
+        size="sm"
+        footer={
+          <button className="modal-btn modal-btn--primary" type="button" onClick={handleClose}>
+            Fechar
+          </button>
+        }
+      >
+        <div className="invite-success">
+          <div className="invite-success__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h3 className="invite-success__title">Convite enviado!</h3>
+          <p className="invite-success__desc">
+            Um email foi enviado para <strong>{form.email}</strong> com o link de acesso à plataforma.
+          </p>
+          <div className="invite-success__detail">
+            <span className="invite-success__name">{form.nome}</span>
+            <span className={`badge ${form.perfil === 'super_admin' ? 'badge--info' : 'badge--gray'}`}>
+              {form.perfil === 'super_admin' ? 'Admin' : 'Cliente'}
+            </span>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
