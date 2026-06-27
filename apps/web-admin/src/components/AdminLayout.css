@@ -193,7 +193,7 @@
 .admin-sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
   padding: 0 var(--space-4);
   flex: 1;
 }
@@ -203,7 +203,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 12px var(--space-3);
+  padding: 9px var(--space-3);
   border-radius: var(--radius-lg);
   background-color: var(--color-primary-100);
   color: var(--color-primary-700);
@@ -219,7 +219,7 @@
 
 .admin-sidebar--collapsed .admin-nav-item {
   justify-content: center;
-  padding: 12px;
+  padding: 9px;
   gap: 0;
 }
 
