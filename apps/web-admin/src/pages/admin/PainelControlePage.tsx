@@ -11,7 +11,6 @@ interface SiteData {
   ip: string;
   status: 'Ativo' | 'Suspenso';
   criadoEm: string;
-  plano: string;
   disco: { usado: number; total: number };
   cpu: number;
   memoria: number;
@@ -25,32 +24,28 @@ const SITES_DB: SiteData[] = [
   {
     id: 's1', portalId: '1', cliente: 'Construtora Aurora',
     link: 'aurora.workr.com.br', ip: '177.71.142.53', status: 'Ativo',
-    criadoEm: '2026-03-03', plano: 'Business Hosting',
-    disco: { usado: 0.82, total: 50 }, cpu: 3, memoria: 42,
+    criadoEm: '2026-03-03',    disco: { usado: 0.82, total: 50 }, cpu: 3, memoria: 42,
     inodes: { usado: 8200, total: 200000 },
     phpVersion: '8.2', ssl: true, cdn: true,
   },
   {
     id: 's2', portalId: '2', cliente: 'International Meal Company',
     link: 'imc.workr.com.br', ip: '177.71.142.54', status: 'Ativo',
-    criadoEm: '2026-02-12', plano: 'Business Hosting',
-    disco: { usado: 2.4, total: 50 }, cpu: 7, memoria: 128,
+    criadoEm: '2026-02-12',    disco: { usado: 2.4, total: 50 }, cpu: 7, memoria: 128,
     inodes: { usado: 24000, total: 200000 },
     phpVersion: '8.2', ssl: true, cdn: true,
   },
   {
     id: 's3', portalId: '2', cliente: 'International Meal Company',
     link: 'imc-en.workr.com.br', ip: '177.71.142.55', status: 'Ativo',
-    criadoEm: '2026-02-12', plano: 'Business Hosting',
-    disco: { usado: 1.1, total: 50 }, cpu: 2, memoria: 38,
+    criadoEm: '2026-02-12',    disco: { usado: 1.1, total: 50 }, cpu: 2, memoria: 38,
     inodes: { usado: 11000, total: 200000 },
     phpVersion: '8.2', ssl: true, cdn: false,
   },
   {
     id: 's4', portalId: '3', cliente: 'Vetra Energia',
     link: 'vetra.workr.com.br', ip: '177.71.142.56', status: 'Suspenso',
-    criadoEm: '2026-01-21', plano: 'Starter Hosting',
-    disco: { usado: 0.52, total: 20 }, cpu: 1, memoria: 25,
+    criadoEm: '2026-01-21',    disco: { usado: 0.52, total: 20 }, cpu: 1, memoria: 25,
     inodes: { usado: 6450, total: 200000 },
     phpVersion: '8.1', ssl: true, cdn: false,
   },
@@ -221,7 +216,7 @@ export default function PainelControlePage() {
               </button>
             </div>
 
-            <div className="painel-item">
+            <div className="painel-item painel-item--last">
               <div className="painel-item__icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                   <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -252,25 +247,6 @@ export default function PainelControlePage() {
                   ) : 'Limpar cache'}
                 </button>
               </div>
-            </div>
-
-            <div className="painel-item painel-item--last">
-              <div className="painel-item__icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                  <rect x="2" y="3" width="20" height="14" rx="2" />
-                  <line x1="8" y1="21" x2="16" y2="21" />
-                  <line x1="12" y1="17" x2="12" y2="21" />
-                </svg>
-              </div>
-              <div className="painel-item__content">
-                <span className="painel-item__label">Plano de hospedagem</span>
-                <span className="painel-item__sub">{site.plano}</span>
-              </div>
-              <button className="painel-item__btn painel-item__btn--chevron" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
             </div>
 
           </div>
