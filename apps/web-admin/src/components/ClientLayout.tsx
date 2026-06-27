@@ -1,6 +1,6 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Outlet } from 'react-router-dom';
 import AppSidebar, { NavSection } from './AppSidebar';
+import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
 
 const SECTIONS: NavSection[] = [
@@ -147,41 +147,9 @@ const SECTIONS: NavSection[] = [
 ];
 
 export default function ClientLayout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  function handleLogout() {
-    logout();
-    navigate('/login', { replace: true });
-  }
-
-  const initials = user?.name
-    ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
-    : 'U';
-
   return (
     <div className="admin-shell">
-      <header className="admin-topbar">
-        <div className="admin-topbar__left">
-          <div className="admin-search">
-            <svg className="admin-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <input className="admin-search__input" type="text" placeholder="Buscar..." />
-          </div>
-        </div>
-        <div className="admin-topbar__right">
-          <div className="admin-topbar__separator" />
-          <div className="admin-topbar__user">
-            <div className="admin-topbar__avatar">{initials}</div>
-            <span className="admin-topbar__email">{user?.name}</span>
-          </div>
-          <button className="admin-topbar__logout" type="button" onClick={handleLogout}>
-            Sair
-          </button>
-        </div>
-      </header>
-
+      <AppTopbar />
       <div className="admin-body">
         <AppSidebar sections={SECTIONS} />
         <main className="admin-main">
