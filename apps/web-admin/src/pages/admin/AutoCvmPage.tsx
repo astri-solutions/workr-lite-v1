@@ -95,10 +95,13 @@ const STATUS_CLASS: Record<EntityStatus, string> = {
 };
 
 export default function AutoCvmPage() {
-  const [portalId, setPortalId] = useState(PORTAIS[0].id);
+  const [portalId, setPortalId] = useState('');
   const [syncing, setSyncing] = useState(false);
 
-  const portal = PORTAIS.find((p) => p.id === portalId)!;
+  const selectedPortal = portalId ? PORTAIS.find((p) => p.id === portalId) : null;
+  const visibleEntidades = selectedPortal
+    ? selectedPortal.entidades.map((e) => ({ ...e, portalNome: selectedPortal.nome }))
+    : PORTAIS.flatMap((p) => p.entidades.map((e) => ({ ...e, portalNome: p.nome })));
 
   function handleSync() {
     setSyncing(true);
@@ -148,6 +151,7 @@ export default function AutoCvmPage() {
           value={portalId}
           onChange={(e) => setPortalId(e.target.value)}
         >
+          <option value="">Todos os portais</option>
           {PORTAIS.map((p) => (
             <option key={p.id} value={p.id}>{p.nome}</option>
           ))}
@@ -165,7 +169,7 @@ export default function AutoCvmPage() {
         </button>
       </div>
 
-      {portal.entidades.length === 0 ? (
+      {visibleEntidades.length === 0 ? (
         <div className="cvm-empty">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -175,12 +179,15 @@ export default function AutoCvmPage() {
         </div>
       ) : (
         <div className="cvm-entity-list">
-          {portal.entidades.map((entity) => (
+          {visibleEntidades.map((entity) => (
             <div key={entity.id} className="cvm-entity-card">
 
               {/* Card header */}
               <div className="cvm-entity-card__header">
                 <div>
+                  {!selectedPortal && (
+                    <p className="cvm-entity-card__portal">{entity.portalNome}</p>
+                  )}
                   <h3 className="cvm-entity-card__name">{entity.nome}</h3>
                   <p className="cvm-entity-card__meta">
                     {entity.tipo} · CNPJ {entity.cnpj} · CVM {entity.cvmCode}
