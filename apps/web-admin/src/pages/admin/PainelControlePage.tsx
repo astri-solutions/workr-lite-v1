@@ -3,21 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './AdminPages.css';
 import './PainelControlePage.css';
 
-interface AnalyticsData {
-  totalRequests: number;
-  uniqueIps: number;
-  bandwidth: string;
-  topCountry: string;
-  topCountryPct: number;
-  sparkline: number[];
-}
-
-const ANALYTICS_DB: Record<string, AnalyticsData> = {
-  s1: { totalRequests: 91, uniqueIps: 14, bandwidth: '857 KB', topCountry: 'Brasil', topCountryPct: 62, sparkline: [2,4,3,5,4,8,6,5,7,19,10,8,6,5,4,3,4,5,3,4] },
-  s2: { totalRequests: 248, uniqueIps: 37, bandwidth: '2.4 MB', topCountry: 'Brasil', topCountryPct: 78, sparkline: [5,8,10,12,9,14,11,16,13,22,18,15,12,10,9,11,13,10,8,9] },
-  s3: { totalRequests: 74, uniqueIps: 9, bandwidth: '420 KB', topCountry: 'EUA', topCountryPct: 45, sparkline: [1,3,2,4,3,6,4,5,3,8,6,5,4,3,2,3,4,3,2,2] },
-  s4: { totalRequests: 3, uniqueIps: 2, bandwidth: '18 KB', topCountry: 'Brasil', topCountryPct: 100, sparkline: [0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0] },
-};
 
 interface SiteData {
   id: string;
@@ -67,18 +52,6 @@ const SITES_DB: SiteData[] = [
   },
 ];
 
-function Sparkline({ data }: { data: number[] }) {
-  const max = Math.max(...data, 1);
-  const w = 200;
-  const h = 40;
-  const step = w / (data.length - 1);
-  const pts = data.map((v, i) => `${i * step},${h - (v / max) * h}`).join(' ');
-  return (
-    <svg className="painel-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-      <polyline points={pts} fill="none" stroke="var(--color-primary-500)" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function StatBar({ value, max }: { value: number; max: number }) {
   const pct = Math.min(100, (value / max) * 100);
@@ -122,7 +95,6 @@ export default function PainelControlePage() {
 
   const discoPercent = Math.round((site.disco.usado / site.disco.total) * 100);
   const inodesPercent = Math.round((site.inodes.usado / site.inodes.total) * 100);
-  const analytics = ANALYTICS_DB[site.id] ?? ANALYTICS_DB['s1'];
 
   return (
     <div className="page painel-page">
@@ -363,48 +335,22 @@ export default function PainelControlePage() {
         </div>
       </div>
 
-      {/* ── Analytics summary ── */}
+      {/* ── Analytics entry ── */}
       <div className="painel-card painel-analytics">
-        <div className="painel-card__header-row">
-          <div className="painel-card__title">Analytics</div>
-          <span className="painel-analytics__period">Últimas 6 horas</span>
-        </div>
-
-        <div className="painel-analytics__body">
-          <div className="painel-analytics__stats">
-            <div className="painel-analytics__stat">
-              <span className="painel-analytics__stat-value">{analytics.totalRequests}</span>
-              <span className="painel-analytics__stat-label">Solicitações</span>
-            </div>
-            <div className="painel-analytics__stat">
-              <span className="painel-analytics__stat-value">{analytics.uniqueIps}</span>
-              <span className="painel-analytics__stat-label">IPs únicos</span>
-            </div>
-            <div className="painel-analytics__stat">
-              <span className="painel-analytics__stat-value">{analytics.bandwidth}</span>
-              <span className="painel-analytics__stat-label">Banda</span>
-            </div>
-            <div className="painel-analytics__stat">
-              <span className="painel-analytics__stat-value">{analytics.topCountry}</span>
-              <span className="painel-analytics__stat-label">Top país · {analytics.topCountryPct}%</span>
-            </div>
-          </div>
-
-          <div className="painel-analytics__chart">
-            <Sparkline data={analytics.sparkline} />
-            <div className="painel-analytics__chart-label">Total de solicitações</div>
-          </div>
-        </div>
-
-        <div className="painel-analytics__footer">
-          <button className="painel-analytics__link" type="button">
-            Ver Analytics completo
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
+        <button className="painel-analytics__row" type="button">
+          <div className="painel-item__icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
-          </button>
-        </div>
+          </div>
+          <div className="painel-item__content">
+            <span className="painel-item__label">Analytics</span>
+            <span className="painel-item__sub">Solicitações, IPs, banda e países de acesso</span>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="painel-analytics__chevron">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
       </div>
     </div>
   );
