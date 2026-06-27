@@ -218,7 +218,7 @@ export default function PainelControlePage() {
               </button>
             </div>
 
-            <div className="painel-item painel-item--last">
+            <div className="painel-item">
               <div className="painel-item__icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                   <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -249,6 +249,23 @@ export default function PainelControlePage() {
                   ) : 'Limpar cache'}
                 </button>
               </div>
+            </div>
+
+            <div className="painel-item painel-item--last painel-item--clickable">
+              <div className="painel-item__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+              </div>
+              <div className="painel-item__content">
+                <span className="painel-item__label">Analytics</span>
+                <span className="painel-item__sub">Solicitações, IPs, banda e países de acesso</span>
+              </div>
+              <button className="painel-item__btn painel-item__btn--chevron" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
             </div>
 
           </div>
@@ -335,23 +352,6 @@ export default function PainelControlePage() {
         </div>
       </div>
 
-      {/* ── Analytics entry ── */}
-      <div className="painel-card painel-analytics">
-        <button className="painel-analytics__row" type="button">
-          <div className="painel-item__icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-          </div>
-          <div className="painel-item__content">
-            <span className="painel-item__label">Analytics</span>
-            <span className="painel-item__sub">Solicitações, IPs, banda e países de acesso</span>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="painel-analytics__chevron">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
     </div>
   );
 }
