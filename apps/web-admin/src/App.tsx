@@ -10,6 +10,7 @@ import AutoCvmPage from './pages/admin/AutoCvmPage';
 import InformacoesPage from './pages/admin/InformacoesPage';
 import PainelControlePage from './pages/admin/PainelControlePage';
 import NovoPortalPage from './pages/admin/NovoPortalPage';
+import AnalyticsPage from './pages/admin/AnalyticsPage';
 import PortalPage from './pages/PortalPage';
 
 function RootRedirect() {
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="auto-cvm" element={<AutoCvmPage />} />
             <Route path="informacoes" element={<InformacoesPage />} />
             <Route path="portais/:siteId/painel" element={<PainelControlePage />} />
+            <Route path="portais/:siteId/analytics" element={<AnalyticsPage />} />
           </Route>
 
           <Route
