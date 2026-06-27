@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './AdminPages.css';
 import './PortaisPage.css';
 import PageHeader from '../../components/PageHeader';
@@ -237,6 +238,7 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function PortaisPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
@@ -340,7 +342,7 @@ export default function PortaisPage() {
                     </a>
                   </div>
                   <div className="portal-site-row__right">
-                    <button className="portais-btn portais-btn--panel" type="button">
+                    <button className="portais-btn portais-btn--panel" type="button" onClick={() => navigate(`/admin/portais/${site.id}/painel`)}>
                       Painel de controle
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" strokeWidth="2">
