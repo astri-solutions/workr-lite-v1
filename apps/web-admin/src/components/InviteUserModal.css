@@ -1,0 +1,209 @@
+/* ─── Modal form field ───────────────────────────────────── */
+.mf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mf__label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+}
+
+.mf__input {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-900);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mf__input:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+  background: #fff;
+}
+
+.mf__input--error {
+  border-color: var(--color-error-400);
+}
+
+.mf__input--error:focus {
+  box-shadow: 0 0 0 3px var(--color-error-100);
+}
+
+.mf__error {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-error-600);
+}
+
+/* Icon input */
+.mf__icon-wrap {
+  position: relative;
+}
+
+.mf__icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  pointer-events: none;
+}
+
+.mf__input--icon {
+  padding-left: 38px;
+}
+
+/* ─── Perfil cards ───────────────────────────────────────── */
+.mf__perfil-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.mf__perfil-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: #fff;
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mf__perfil-card:hover {
+  border-color: var(--color-primary-300);
+}
+
+.mf__perfil-card--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+}
+
+.mf__perfil-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+  margin-bottom: var(--space-1);
+  transition: background 0.15s, color 0.15s;
+}
+
+.mf__perfil-icon--active {
+  background: var(--color-primary-100);
+  color: var(--color-primary-600);
+}
+
+.mf__perfil-label {
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-gray-900);
+}
+
+.mf__perfil-card--active .mf__perfil-label {
+  color: var(--color-primary-700);
+}
+
+.mf__perfil-desc {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--color-gray-500);
+  line-height: 1.45;
+}
+
+.mf__perfil-check {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gray-300);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.mf__perfil-check--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-500);
+  color: #fff;
+}
+
+/* ─── Select ─────────────────────────────────────────────── */
+.mf__select-wrap {
+  position: relative;
+}
+
+.mf__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.mf__select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  pointer-events: none;
+}
+
+/* ─── Modal buttons ──────────────────────────────────────── */
+.modal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+
+.modal-btn--primary {
+  background: var(--color-primary-500);
+  color: #fff;
+}
+
+.modal-btn--primary:hover {
+  background: var(--color-primary-600);
+}
+
+.modal-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--color-gray-300);
+  color: var(--color-gray-600);
+}
+
+.modal-btn--ghost:hover {
+  border-color: var(--color-gray-400);
+  color: var(--color-gray-800);
+}
