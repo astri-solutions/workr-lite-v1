@@ -46,7 +46,6 @@ const PORTAIS: Portal[] = [
 const FERRAMENTAS = [
   'Gerenciador de arquivos',
   'Bancos de dados',
-  'Editor de código',
   'Variáveis de ambiente',
   'Logs de acesso',
   'Certificados SSL',
