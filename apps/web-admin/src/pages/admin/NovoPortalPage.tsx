@@ -101,8 +101,20 @@ const FONTS = [
   { id: 'poppins', label: 'Poppins', family: "'Poppins', sans-serif", category: 'Sans-serif' },
   { id: 'raleway', label: 'Raleway', family: "'Raleway', sans-serif", category: 'Sans-serif' },
   { id: 'lato', label: 'Lato', family: "'Lato', sans-serif", category: 'Sans-serif' },
+  { id: 'nunito', label: 'Nunito', family: "'Nunito', sans-serif", category: 'Sans-serif' },
+  { id: 'dm-sans', label: 'DM Sans', family: "'DM Sans', sans-serif", category: 'Sans-serif' },
+  { id: 'outfit', label: 'Outfit', family: "'Outfit', sans-serif", category: 'Sans-serif' },
+  { id: 'rubik', label: 'Rubik', family: "'Rubik', sans-serif", category: 'Sans-serif' },
+  { id: 'work-sans', label: 'Work Sans', family: "'Work Sans', sans-serif", category: 'Sans-serif' },
+  { id: 'manrope', label: 'Manrope', family: "'Manrope', sans-serif", category: 'Sans-serif' },
+  { id: 'ibm-plex', label: 'IBM Plex Sans', family: "'IBM Plex Sans', sans-serif", category: 'Sans-serif' },
+  { id: 'space-grotesk', label: 'Space Grotesk', family: "'Space Grotesk', sans-serif", category: 'Sans-serif' },
   { id: 'playfair', label: 'Playfair Display', family: "'Playfair Display', serif", category: 'Serif' },
   { id: 'merriweather', label: 'Merriweather', family: "'Merriweather', serif", category: 'Serif' },
+  { id: 'lora', label: 'Lora', family: "'Lora', serif", category: 'Serif' },
+  { id: 'eb-garamond', label: 'EB Garamond', family: "'EB Garamond', serif", category: 'Serif' },
+  { id: 'libre-baskerville', label: 'Libre Baskerville', family: "'Libre Baskerville', serif", category: 'Serif' },
+  { id: 'cormorant', label: 'Cormorant Garamond', family: "'Cormorant Garamond', serif", category: 'Serif' },
 ];
 
 /* ─── Form state ─────────────────────────────────────────── */
@@ -114,6 +126,8 @@ interface FormData {
   corPrimaria: string;
   corSecundaria: string;
   corTerciaria: string;
+  customFontFile: File | null;
+  customFontName: string;
   logoFile: File | null;
   logoPreview: string | null;
   faviconFile: File | null;
@@ -262,11 +276,37 @@ function StepTipo({ value, onChange }: { value: string; onChange: (v: string) =>
 }
 
 /* ─── Step 4: Fonte ──────────────────────────────────────── */
-function StepFonte({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const sansSerif = FONTS.filter((f) => f.category === 'Sans-serif');
-  const serif = FONTS.filter((f) => f.category === 'Serif');
+function StepFonte({
+  value, onChange, customFontFile, customFontName, onCustomFont,
+}: {
+  value: string; onChange: (v: string) => void;
+  customFontFile: File | null; customFontName: string;
+  onCustomFont: (file: File | null, name: string) => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [customFontFamily, setCustomFontFamily] = useState<string | null>(null);
+  const customInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!customFontFile) { setCustomFontFamily(null); return; }
+    const url = URL.createObjectURL(customFontFile);
+    const prev = document.getElementById('np-custom-font-style');
+    if (prev) prev.remove();
+    const style = document.createElement('style');
+    style.id = 'np-custom-font-style';
+    style.textContent = `@font-face { font-family: 'NPCustomFont'; src: url('${url}'); }`;
+    document.head.appendChild(style);
+    setCustomFontFamily("'NPCustomFont', sans-serif");
+    return () => { URL.revokeObjectURL(url); };
+  }, [customFontFile]);
+
+  const q = search.toLowerCase();
+  const filtered = FONTS.filter((f) => f.label.toLowerCase().includes(q));
+  const sansSerif = filtered.filter((f) => f.category === 'Sans-serif');
+  const serif = filtered.filter((f) => f.category === 'Serif');
 
   function FontGroup({ fonts, title }: { fonts: typeof FONTS; title: string }) {
+    if (!fonts.length) return null;
     return (
       <div className="np-font-group">
         <div className="np-font-group__title">{title}</div>
@@ -292,7 +332,17 @@ function StepFonte({ value, onChange }: { value: string; onChange: (v: string) =
     );
   }
 
-  const selected = FONTS.find((f) => f.id === value);
+  const selected = value === 'custom'
+    ? { label: customFontName || 'Fonte personalizada', family: customFontFamily || 'sans-serif' }
+    : FONTS.find((f) => f.id === value);
+
+  function handleCustomFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const name = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+    onCustomFont(file, name);
+    onChange('custom');
+  }
 
   return (
     <div className="np-step">
@@ -309,8 +359,71 @@ function StepFonte({ value, onChange }: { value: string; onChange: (v: string) =
             <span className="np-font-preview-bar__name">{selected.label}</span>
           </div>
         )}
-        <FontGroup fonts={sansSerif} title="Sans-serif" />
-        <FontGroup fonts={serif} title="Serif" />
+
+        <div className="np-font-search-wrap">
+          <svg className="np-font-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            className="np-input np-font-search"
+            type="search"
+            placeholder="Buscar fonte por nome…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {filtered.length > 0 ? (
+          <>
+            <FontGroup fonts={sansSerif} title="Sans-serif" />
+            <FontGroup fonts={serif} title="Serif" />
+          </>
+        ) : (
+          <div className="np-font-empty">Nenhuma fonte encontrada para "{search}"</div>
+        )}
+
+        <div className="np-font-custom">
+          <div className="np-font-custom__header">
+            <div className="np-font-custom__title">Fonte personalizada</div>
+            <p className="np-font-custom__desc">Faça upload de uma fonte nos formatos TTF, WOFF ou WOFF2.</p>
+          </div>
+          {customFontFile && value === 'custom' ? (
+            <div className={`np-font-item np-font-item--selected np-font-custom__row`}>
+              <span className="np-font-item__preview" style={{ fontFamily: customFontFamily || 'sans-serif' }}>Aa</span>
+              <span className="np-font-item__name">{customFontName || customFontFile.name}</span>
+              <button
+                className="np-font-custom__remove"
+                type="button"
+                onClick={() => {
+                  onCustomFont(null, '');
+                  if (value === 'custom') onChange('inter');
+                  if (customInputRef.current) customInputRef.current.value = '';
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <button className="np-font-custom__upload" type="button" onClick={() => customInputRef.current?.click()}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Fazer upload de fonte
+            </button>
+          )}
+          <input
+            ref={customInputRef}
+            type="file"
+            accept=".ttf,.woff,.woff2,.otf"
+            style={{ display: 'none' }}
+            onChange={handleCustomFile}
+          />
+        </div>
       </div>
     </div>
   );
@@ -675,6 +788,8 @@ export default function NovoPortalPage() {
     url: '',
     tipo: '',
     fonte: 'inter',
+    customFontFile: null,
+    customFontName: '',
     corPrimaria: '#0B5B68',
     corSecundaria: '#00D865',
     corTerciaria: '#141414',
@@ -692,7 +807,7 @@ export default function NovoPortalPage() {
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Poppins:wght@400;600;700&family=Raleway:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Poppins:wght@400;600;700&family=Raleway:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Nunito:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Outfit:wght@400;600;700&family=Rubik:wght@400;600;700&family=Work+Sans:wght@400;600;700&family=Manrope:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&family=Lora:wght@400;600;700&family=EB+Garamond:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Cormorant+Garamond:wght@400;600;700&display=swap';
     document.head.appendChild(link);
     return () => { document.head.removeChild(link); };
   }, []);
@@ -742,7 +857,13 @@ export default function NovoPortalPage() {
           <StepTipo value={form.tipo} onChange={(v) => setForm((f) => ({ ...f, tipo: v }))} />
         )}
         {step === 4 && (
-          <StepFonte value={form.fonte} onChange={(v) => setForm((f) => ({ ...f, fonte: v }))} />
+          <StepFonte
+            value={form.fonte}
+            onChange={(v) => setForm((f) => ({ ...f, fonte: v }))}
+            customFontFile={form.customFontFile}
+            customFontName={form.customFontName}
+            onCustomFont={(file, name) => setForm((f) => ({ ...f, customFontFile: file, customFontName: name }))}
+          />
         )}
         {step === 5 && (
           <StepCores
