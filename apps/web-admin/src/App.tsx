@@ -8,6 +8,7 @@ import PortaisPage from './pages/admin/PortaisPage';
 import UsuariosPage from './pages/admin/UsuariosPage';
 import AutoCvmPage from './pages/admin/AutoCvmPage';
 import InformacoesPage from './pages/admin/InformacoesPage';
+import PainelControlePage from './pages/admin/PainelControlePage';
 import PortalPage from './pages/PortalPage';
 
 function RootRedirect() {
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="usuarios" element={<UsuariosPage />} />
             <Route path="auto-cvm" element={<AutoCvmPage />} />
             <Route path="informacoes" element={<InformacoesPage />} />
+            <Route path="portais/:siteId/painel" element={<PainelControlePage />} />
           </Route>
 
           <Route
