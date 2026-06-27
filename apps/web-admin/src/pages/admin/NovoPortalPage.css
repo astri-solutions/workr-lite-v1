@@ -135,7 +135,7 @@
 
 /* ─── Step content ───────────────────────────────────────── */
 .np-step {
-  padding: var(--space-7) var(--space-7) var(--space-5);
+  padding: var(--space-6) var(--space-6) var(--space-5);
 }
 
 .np-step__head {
@@ -781,7 +781,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-7);
+  padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-gray-100);
   background: var(--color-gray-50, #fafafa);
 }
