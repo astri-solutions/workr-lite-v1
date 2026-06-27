@@ -219,11 +219,20 @@
   background: var(--color-error-50, #fef2f2);
   border-color: transparent;
   color: var(--color-error-500);
-  padding: 6px;
 }
 .btn-action--danger:hover {
   color: var(--color-error-600, #dc2626);
   background: var(--color-error-100);
+}
+
+.btn-action--activate {
+  background: var(--color-success-50);
+  border-color: transparent;
+  color: var(--color-success-600);
+}
+.btn-action--activate:hover {
+  background: var(--color-success-100);
+  color: var(--color-success-700);
 }
 
 /* ─── Table empty state ──────────────────────────────────── */

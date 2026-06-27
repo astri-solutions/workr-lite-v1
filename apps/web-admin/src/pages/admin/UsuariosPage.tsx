@@ -3,6 +3,7 @@ import './AdminPages.css';
 import PageHeader from '../../components/PageHeader';
 import FilterBar from '../../components/FilterBar';
 import InviteUserModal, { InviteFormData } from '../../components/InviteUserModal';
+import EditUserModal, { EditableUser } from '../../components/EditUserModal';
 
 interface UsuarioItem {
   id: string;
@@ -13,7 +14,7 @@ interface UsuarioItem {
   status: 'Ativo' | 'Suspenso';
 }
 
-const USUARIOS: UsuarioItem[] = [
+const INITIAL_USUARIOS: UsuarioItem[] = [
   { id: '1', nome: 'G. Santos', email: 'g.santos@astri.solutions', role: 'super_admin', portal: '—', status: 'Ativo' },
   { id: '2', nome: 'Rafael Lima', email: 'rafael@astri.solutions', role: 'super_admin', portal: '—', status: 'Ativo' },
   { id: '3', nome: 'Ana Souza', email: 'ana@construtoraaurora.com', role: 'client_user', portal: 'Construtora Aurora', status: 'Ativo' },
@@ -54,11 +55,10 @@ const FILTER_GROUPS = [
 ];
 
 export default function UsuariosPage() {
-  const [filters, setFilters] = useState<Record<string, string>>({
-    role: 'all',
-    status: 'all',
-  });
+  const [usuarios, setUsuarios] = useState<UsuarioItem[]>(INITIAL_USUARIOS);
+  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', status: 'all' });
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
 
   function handleFilter(key: string, value: string) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -68,7 +68,21 @@ export default function UsuariosPage() {
     console.log('Convidar usuário:', data);
   }
 
-  const filtered = USUARIOS.filter((u) => {
+  function handleSaveRole(id: string, role: 'super_admin' | 'client_user') {
+    setUsuarios((list) => list.map((u) => u.id === id ? { ...u, role } : u));
+  }
+
+  function handleToggleStatus(id: string) {
+    setUsuarios((list) =>
+      list.map((u) => u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Suspenso' : 'Ativo' } : u)
+    );
+  }
+
+  function handleDelete(id: string) {
+    setUsuarios((list) => list.filter((u) => u.id !== id));
+  }
+
+  const filtered = usuarios.filter((u) => {
     if (filters.role !== 'all' && u.role !== filters.role) return false;
     if (filters.status !== 'all' && u.status !== filters.status) return false;
     return true;
@@ -96,6 +110,15 @@ export default function UsuariosPage() {
         onClose={() => setInviteOpen(false)}
         portais={PORTAIS}
         onSubmit={handleInvite}
+      />
+
+      <EditUserModal
+        user={editTarget}
+        open={editTarget !== null}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSaveRole}
+        onToggleStatus={handleToggleStatus}
+        onDelete={handleDelete}
       />
 
       <div className="table-wrapper">
@@ -129,11 +152,19 @@ export default function UsuariosPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn-action btn-action--enter" type="button">
-                        Convidar
+                      <button
+                        className="btn-action btn-action--enter"
+                        type="button"
+                        onClick={() => setEditTarget(u)}
+                      >
+                        Editar
                       </button>
-                      <button className="btn-action btn-action--danger" type="button">
-                        Suspender
+                      <button
+                        className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--danger'}`}
+                        type="button"
+                        onClick={() => handleToggleStatus(u.id)}
+                      >
+                        {u.status === 'Suspenso' ? 'Ativar' : 'Suspender'}
                       </button>
                     </div>
                   </td>
