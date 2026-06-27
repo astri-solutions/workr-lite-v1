@@ -1,4 +1,4 @@
-/* ─── Page ───────────────────────────────────────────────── */
+/* ─── Page ─────────────────────────────────────────────── */
 .novo-portal-page {
   max-width: 760px;
   margin: 0 auto;
@@ -124,7 +124,7 @@
   background: var(--color-success-400, #4ade80);
 }
 
-/* ─── Card wrapper ───────────────────────────────────────── */
+/* ─── Card wrapper ─────────────────────────────────────────── */
 .np-card {
   background: #fff;
   border: 1px solid var(--color-gray-200);
@@ -133,9 +133,9 @@
   overflow: hidden;
 }
 
-/* ─── Step content ───────────────────────────────────────── */
+/* ─── Step content ─────────────────────────────────────────── */
 .np-step {
-  padding: var(--space-7) var(--space-7) var(--space-5);
+  padding: var(--space-6) var(--space-6) var(--space-5);
 }
 
 .np-step__head {
@@ -162,7 +162,7 @@
   gap: var(--space-4);
 }
 
-/* ─── Label / field ──────────────────────────────────────── */
+/* ─── Label / field ────────────────────────────────────────── */
 .np-label {
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -185,7 +185,7 @@
   margin: 0;
 }
 
-/* ─── Inputs ─────────────────────────────────────────────── */
+/* ─── Inputs ─────────────────────────────────────────────────── */
 .np-input {
   font-family: var(--font-body);
   font-size: var(--text-sm);
@@ -229,7 +229,7 @@
 .np-input__hint--warn { color: var(--color-warning-600, #d97706); }
 .np-input__hint--error { color: var(--color-error-600, #dc2626); }
 
-/* ─── URL step ───────────────────────────────────────────── */
+/* ─── URL step ──────────────────────────────────────────────── */
 .np-url-wrap {
   display: flex;
   align-items: center;
@@ -283,7 +283,7 @@
 
 .np-url-preview strong { color: var(--color-primary-500); }
 
-/* ─── Tipo grid — 3 layout thumbs ───────────────────────── */
+/* ─── Tipo grid — 3 layout thumbs ─────────────────────────────── */
 .np-tipo-grid--3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -377,7 +377,7 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 
-/* ─── Font picker ────────────────────────────────────────── */
+/* ─── Font picker ────────────────────────────────────────────── */
 .np-font-preview-bar {
   display: flex;
   align-items: center;
@@ -477,7 +477,7 @@
   flex-shrink: 0;
 }
 
-/* ─── Cores step ─────────────────────────────────────────── */
+/* ─── Cores step ────────────────────────────────────────────── */
 .np-cores-preview {
   background: #f8f9fa;
   border: 1px solid var(--color-gray-200);
@@ -591,7 +591,7 @@
   font-size: var(--text-sm);
 }
 
-/* ─── Logo / favicon upload ──────────────────────────────── */
+/* ─── Logo / favicon upload ──────────────────────────────────── */
 .np-dropzone {
   display: flex;
   flex-direction: column;
@@ -684,7 +684,7 @@
   color: var(--color-error-600, #dc2626);
 }
 
-/* ─── Idioma ─────────────────────────────────────────────── */
+/* ─── Idioma ────────────────────────────────────────────────── */
 .np-idioma-list {
   display: flex;
   flex-direction: column;
@@ -758,7 +758,7 @@
   color: #fff;
 }
 
-/* ─── Email ──────────────────────────────────────────────── */
+/* ─── Email ─────────────────────────────────────────────────── */
 .np-email-wrap {
   position: relative;
 }
@@ -776,12 +776,12 @@
   padding-left: 40px;
 }
 
-/* ─── Footer nav ─────────────────────────────────────────── */
+/* ─── Footer nav ────────────────────────────────────────────── */
 .np-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-7);
+  padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-gray-100);
   background: var(--color-gray-50, #fafafa);
 }
