@@ -694,7 +694,7 @@ export default function NovoPortalPage() {
     link.rel = 'stylesheet';
     link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Poppins:wght@400;600;700&family=Raleway:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap';
     document.head.appendChild(link);
-    return () => document.head.removeChild(link);
+    return () => { document.head.removeChild(link); };
   }, []);
 
   const canProceed = () => {
