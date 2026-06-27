@@ -260,6 +260,27 @@
   color: #ffffff;
 }
 
+/* ─── Nav badge ──────────────────────────────────────── */
+.nav-badge {
+  background: var(--color-primary-500);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.admin-nav-item--active .nav-badge {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 /* ─── Collapse toggle ────────────────────────────────── */
 .admin-sidebar__toggle {
   display: flex;

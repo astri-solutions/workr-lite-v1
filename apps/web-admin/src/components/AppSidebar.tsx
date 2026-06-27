@@ -50,7 +50,7 @@ export default function AppSidebar({ sections }: AppSidebarProps) {
                   <>
                     <span className="admin-nav-item__label">{item.label}</span>
                     {item.badge !== undefined && (
-                      <span className="cl-nav-badge">{item.badge}</span>
+                      <span className="nav-badge">{item.badge}</span>
                     )}
                   </>
                 )}
