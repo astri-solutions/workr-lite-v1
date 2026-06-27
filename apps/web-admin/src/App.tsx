@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
+import ClientLayout from './components/ClientLayout';
 import LoginPage from './pages/LoginPage';
 import PortaisPage from './pages/admin/PortaisPage';
 import UsuariosPage from './pages/admin/UsuariosPage';
@@ -11,7 +12,20 @@ import InformacoesPage from './pages/admin/InformacoesPage';
 import PainelControlePage from './pages/admin/PainelControlePage';
 import NovoPortalPage from './pages/admin/NovoPortalPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
-import PortalPage from './pages/PortalPage';
+import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
+import DocumentosPage from './pages/portal/DocumentosPage';
+import {
+  MidiaPage,
+  CanaisPage,
+  MateriasPage,
+  InteracoesPage,
+  LayoutPage,
+  CoresPage,
+  FontesPage,
+  LogotipoPage,
+  FaviconPage,
+  BannerPage,
+} from './pages/portal/PlaceholderPages';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -50,10 +64,24 @@ export default function App() {
             path="/portal"
             element={
               <ProtectedRoute requiredRole="client_user">
-                <PortalPage />
+                <ClientLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="/portal/central-de-resultados" replace />} />
+            <Route path="central-de-resultados" element={<CentralDeResultadosPage />} />
+            <Route path="documentos" element={<DocumentosPage />} />
+            <Route path="midia" element={<MidiaPage />} />
+            <Route path="canais" element={<CanaisPage />} />
+            <Route path="materias" element={<MateriasPage />} />
+            <Route path="interacoes" element={<InteracoesPage />} />
+            <Route path="layout" element={<LayoutPage />} />
+            <Route path="cores" element={<CoresPage />} />
+            <Route path="fontes" element={<FontesPage />} />
+            <Route path="logotipo" element={<LogotipoPage />} />
+            <Route path="favicon" element={<FaviconPage />} />
+            <Route path="banner" element={<BannerPage />} />
+          </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

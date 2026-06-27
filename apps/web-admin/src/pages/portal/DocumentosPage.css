@@ -1,0 +1,231 @@
+/* ─── Page ──────────────────────────────────────────── */
+.docs-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.docs-page__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-gray-900);
+  margin: 0;
+}
+
+/* ─── Entity cards (reused from CDR) ───────────────── */
+.docs-entities {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* ─── Filter bar ────────────────────────────────────── */
+.docs-filterbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.docs-filterbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.docs-filterbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.docs-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  padding: 8px var(--space-3);
+  color: var(--color-gray-400);
+}
+
+.docs-search input {
+  border: none;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-800);
+  background: transparent;
+  width: 200px;
+}
+
+.docs-search input::placeholder {
+  color: var(--color-gray-400);
+}
+
+.docs-filter-select {
+  padding: 8px var(--space-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  background: #ffffff;
+  outline: none;
+  cursor: pointer;
+}
+
+/* ─── Outline buttons ───────────────────────────────── */
+.docs-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px var(--space-4);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.docs-btn-outline:hover {
+  border-color: var(--color-gray-500);
+  color: var(--color-gray-900);
+}
+
+.docs-btn-outline--success {
+  border-color: var(--color-success-500);
+  color: var(--color-success-600);
+}
+
+.docs-btn-outline--success:hover {
+  background: var(--color-success-50);
+}
+
+.docs-btn-outline--danger {
+  border-color: var(--color-error-400);
+  color: var(--color-error-500);
+}
+
+.docs-btn-outline--danger:hover:not(:disabled) {
+  background: var(--color-error-50);
+}
+
+.docs-btn-outline--danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.docs-count {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  white-space: nowrap;
+}
+
+/* ─── Table ─────────────────────────────────────────── */
+.docs-row--selected {
+  background-color: var(--color-primary-50) !important;
+}
+
+.docs-cell-nome {
+  max-width: 260px;
+}
+
+.docs-nome-title {
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-900);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.docs-nome-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.docs-cell-tipo {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Tags ──────────────────────────────────────────── */
+.docs-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.docs-tag--dark {
+  background: var(--color-gray-800);
+  color: #ffffff;
+}
+
+.docs-tag--lang {
+  background: var(--color-primary-100);
+  color: var(--color-primary-700);
+  border: 1px solid var(--color-primary-200);
+}
+
+/* ─── Idiomas cell ──────────────────────────────────── */
+.docs-idiomas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ─── Avatar ────────────────────────────────────────── */
+.docs-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-500);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  font-family: var(--font-heading);
+}
+
+/* ─── Delete modal ──────────────────────────────────── */
+.docs-delete-msg {
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.docs-btn-confirm-delete {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px var(--space-5);
+  background: var(--color-error-500);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.docs-btn-confirm-delete:hover {
+  background: var(--color-error-600);
+}
