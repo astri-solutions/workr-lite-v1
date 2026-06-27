@@ -927,3 +927,15 @@
   border-color: var(--color-gray-400);
   color: var(--color-gray-800);
 }
+
+.np-btn--cancel {
+  background: var(--color-warning-50);
+  border: 1px solid var(--color-warning-200);
+  color: var(--color-warning-700);
+}
+
+.np-btn--cancel:hover {
+  background: var(--color-warning-100);
+  border-color: var(--color-warning-300);
+  color: var(--color-warning-800);
+}

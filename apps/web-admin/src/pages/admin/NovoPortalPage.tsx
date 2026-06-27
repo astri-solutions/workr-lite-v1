@@ -841,13 +841,6 @@ export default function NovoPortalPage() {
   return (
     <div className="page novo-portal-page">
       <div className="np-header">
-        <button className="np-back-btn" type="button" onClick={() => navigate('/admin/portais')}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Cancelar
-        </button>
         <span className="np-header__title">Novo Portal</span>
       </div>
 
@@ -917,7 +910,11 @@ export default function NovoPortalPage() {
               </svg>
               Voltar
             </button>
-          ) : <div />}
+          ) : (
+            <button className="np-btn np-btn--cancel" type="button" onClick={() => navigate('/admin/portais')}>
+              Cancelar
+            </button>
+          )}
 
           {step < STEPS.length ? (
             <button
