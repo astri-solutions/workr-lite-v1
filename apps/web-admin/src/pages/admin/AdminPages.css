@@ -226,6 +226,14 @@
   background: var(--color-error-100);
 }
 
+/* ─── Table empty state ──────────────────────────────────── */
+.table-empty {
+  text-align: center;
+  color: var(--color-gray-400) !important;
+  font-style: italic;
+  padding: var(--space-8) var(--space-4) !important;
+}
+
 /* ─── Placeholder / empty ────────────────────────────────── */
 .page-placeholder {
   display: flex;
