@@ -377,6 +377,105 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 
+/* ─── Font search ────────────────────────────────────────── */
+.np-font-search-wrap {
+  position: relative;
+}
+
+.np-font-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-400);
+  pointer-events: none;
+}
+
+.np-font-search {
+  padding-left: 36px;
+}
+
+.np-font-empty {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  text-align: center;
+  padding: var(--space-6) 0;
+}
+
+/* ─── Custom font upload ─────────────────────────────────── */
+.np-font-custom {
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.np-font-custom__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.np-font-custom__title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+}
+
+.np-font-custom__desc {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin: 0;
+}
+
+.np-font-custom__upload {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 9px 16px;
+  background: transparent;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+
+.np-font-custom__upload:hover {
+  border-color: var(--color-primary-400, #3db5c4);
+  color: var(--color-primary-500);
+}
+
+.np-font-custom__row {
+  border-radius: var(--radius-md) !important;
+}
+
+.np-font-custom__remove {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--color-gray-400);
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.np-font-custom__remove:hover {
+  color: var(--color-error-600, #dc2626);
+}
+
 /* ─── Font picker ────────────────────────────────────────── */
 .np-font-preview-bar {
   display: flex;
