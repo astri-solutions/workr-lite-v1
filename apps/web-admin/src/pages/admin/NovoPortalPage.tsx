@@ -10,58 +10,84 @@ const STEPS = [
   { id: 3, label: 'Tipo' },
   { id: 4, label: 'Fonte' },
   { id: 5, label: 'Cores' },
-  { id: 6, label: 'Logotipo' },
+  { id: 6, label: 'Logo' },
+  { id: 7, label: 'Favicon' },
+  { id: 8, label: 'Idioma' },
+  { id: 9, label: 'SEO' },
+  { id: 10, label: 'Email' },
 ];
 
 /* ─── Tipos ──────────────────────────────────────────────── */
 const TIPOS = [
   {
-    id: 'ri',
-    label: 'RI',
-    title: 'Relações com Investidores',
-    desc: 'Resultados, fatos relevantes, governança e divulgações obrigatórias.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-        <line x1="2" y1="20" x2="22" y2="20" />
+    id: 'sidebar',
+    label: 'Menu lateral',
+    desc: 'Navegação na barra lateral com conteúdo central.',
+    thumb: (
+      <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* header */}
+        <rect x="0" y="0" width="160" height="14" rx="2" fill="#e8edf2" />
+        <rect x="6" y="4" width="28" height="6" rx="1" fill="#c8d2db" />
+        {/* sidebar */}
+        <rect x="0" y="16" width="38" height="64" rx="2" fill="#f0f4f8" />
+        <rect x="6" y="22" width="26" height="5" rx="1" fill="#c8d2db" />
+        <rect x="6" y="31" width="22" height="5" rx="1" fill="#dde3ea" />
+        <rect x="6" y="40" width="24" height="5" rx="1" fill="#dde3ea" />
+        <rect x="6" y="49" width="20" height="5" rx="1" fill="#dde3ea" />
+        <rect x="6" y="58" width="23" height="5" rx="1" fill="#dde3ea" />
+        {/* content */}
+        <rect x="42" y="16" width="118" height="10" rx="2" fill="#e8edf2" />
+        <rect x="42" y="30" width="118" height="5" rx="1" fill="#eef1f5" />
+        <rect x="42" y="39" width="96" height="5" rx="1" fill="#eef1f5" />
+        <rect x="42" y="50" width="56" height="14" rx="2" fill="#eef1f5" />
+        <rect x="102" y="50" width="58" height="14" rx="2" fill="#eef1f5" />
       </svg>
     ),
   },
   {
-    id: 'institucional',
-    label: 'Institucional',
-    title: 'Site Institucional',
-    desc: 'Presença institucional com sobre, produtos, equipe e contato.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
+    id: 'tabmenu',
+    label: 'Tabs de conteúdo',
+    desc: 'Navegação por abas horizontais com conteúdo organizado por seção.',
+    thumb: (
+      <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* header */}
+        <rect x="0" y="0" width="160" height="14" rx="2" fill="#e8edf2" />
+        <rect x="6" y="4" width="28" height="6" rx="1" fill="#c8d2db" />
+        <rect x="106" y="4" width="18" height="6" rx="1" fill="#dde3ea" />
+        <rect x="128" y="4" width="18" height="6" rx="1" fill="#dde3ea" />
+        {/* tabs */}
+        <rect x="0" y="16" width="160" height="16" rx="0" fill="#f5f7fa" />
+        <rect x="6" y="19" width="28" height="10" rx="2" fill="#0B5B68" />
+        <rect x="38" y="21" width="24" height="6" rx="1" fill="#dde3ea" />
+        <rect x="66" y="21" width="28" height="6" rx="1" fill="#dde3ea" />
+        <rect x="98" y="21" width="22" height="6" rx="1" fill="#dde3ea" />
+        {/* content */}
+        <rect x="6" y="38" width="148" height="10" rx="2" fill="#e8edf2" />
+        <rect x="6" y="52" width="148" height="6" rx="1" fill="#eef1f5" />
+        <rect x="6" y="62" width="120" height="6" rx="1" fill="#eef1f5" />
       </svg>
     ),
   },
   {
-    id: 'landing',
-    label: 'Landing Page',
-    title: 'Landing Page',
-    desc: 'Página de conversão focada em um produto, campanha ou evento.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M5 3l14 9-14 9V3z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'simples',
-    label: 'Simples',
-    title: 'Site Simples',
-    desc: 'Estrutura mínima, ideal para microsites e páginas informativas.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <line x1="3" y1="9" x2="21" y2="9" />
-        <line x1="9" y1="21" x2="9" y2="9" />
+    id: 'banner',
+    label: 'Banner com menu',
+    desc: 'Banner de destaque no topo com navegação no header.',
+    thumb: (
+      <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* header */}
+        <rect x="0" y="0" width="160" height="14" rx="2" fill="#0B5B68" />
+        <rect x="6" y="4" width="28" height="6" rx="1" fill="rgba(255,255,255,0.4)" />
+        <rect x="106" y="4" width="14" height="6" rx="1" fill="rgba(255,255,255,0.25)" />
+        <rect x="124" y="4" width="14" height="6" rx="1" fill="rgba(255,255,255,0.25)" />
+        <rect x="142" y="4" width="12" height="6" rx="1" fill="rgba(255,255,255,0.25)" />
+        {/* banner */}
+        <rect x="0" y="16" width="160" height="28" rx="0" fill="#e4eef0" />
+        <rect x="10" y="22" width="60" height="8" rx="2" fill="#c8d2db" />
+        <rect x="10" y="34" width="40" height="5" rx="1" fill="#dde3ea" />
+        {/* content grid */}
+        <rect x="6" y="50" width="46" height="22" rx="2" fill="#eef1f5" />
+        <rect x="57" y="50" width="46" height="22" rx="2" fill="#eef1f5" />
+        <rect x="108" y="50" width="46" height="22" rx="2" fill="#eef1f5" />
       </svg>
     ),
   },
@@ -90,6 +116,13 @@ interface FormData {
   corTerciaria: string;
   logoFile: File | null;
   logoPreview: string | null;
+  faviconFile: File | null;
+  faviconPreview: string | null;
+  idiomas: string[];
+  metaTitulo: string;
+  metaDescricao: string;
+  analyticsId: string;
+  emailContato: string;
 }
 
 /* ─── Stepper ────────────────────────────────────────────── */
@@ -103,7 +136,7 @@ function Stepper({ current }: { current: number }) {
           <div key={s.id} className="np-stepper__item">
             <div className={`np-stepper__circle${done ? ' np-stepper__circle--done' : active ? ' np-stepper__circle--active' : ''}`}>
               {done ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : s.id}
@@ -194,25 +227,28 @@ function StepTipo({ value, onChange }: { value: string; onChange: (v: string) =>
   return (
     <div className="np-step">
       <div className="np-step__head">
-        <h2 className="np-step__title">Qual é o tipo do site?</h2>
-        <p className="np-step__desc">O tipo define a estrutura e os módulos disponíveis no portal.</p>
+        <h2 className="np-step__title">Escolha o layout do site</h2>
+        <p className="np-step__desc">O layout define a estrutura de navegação e a disposição do conteúdo.</p>
       </div>
       <div className="np-step__body">
-        <div className="np-tipo-grid">
+        <div className="np-tipo-grid np-tipo-grid--3">
           {TIPOS.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={`np-tipo-card${value === t.id ? ' np-tipo-card--selected' : ''}`}
+              className={`np-tipo-card np-tipo-card--layout${value === t.id ? ' np-tipo-card--selected' : ''}`}
               onClick={() => onChange(t.id)}
             >
-              <div className="np-tipo-card__icon">{t.icon}</div>
-              <div className="np-tipo-card__label">{t.label}</div>
-              <div className="np-tipo-card__title">{t.title}</div>
-              <div className="np-tipo-card__desc">{t.desc}</div>
+              <div className="np-tipo-card__thumb">
+                {t.thumb}
+              </div>
+              <div className="np-tipo-card__footer">
+                <div className="np-tipo-card__label">{t.label}</div>
+                <div className="np-tipo-card__desc">{t.desc}</div>
+              </div>
               {value === t.id && (
                 <div className="np-tipo-card__check">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
@@ -356,17 +392,23 @@ function StepCores({
   );
 }
 
-/* ─── Step 6: Logotipo ───────────────────────────────────── */
-function StepLogo({
-  preview, onFile,
+/* ─── Shared dropzone ────────────────────────────────────── */
+function ImageDropzone({
+  preview, onFile, title, desc, hint, accept, size,
 }: {
-  preview: string | null; onFile: (file: File, preview: string) => void;
+  preview: string | null;
+  onFile: (file: File | null, preview: string | null) => void;
+  title: string;
+  desc: string;
+  hint: string;
+  accept: string;
+  size: 'logo' | 'favicon';
 }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback((file: File) => {
-    if (!file.type.match(/image\/(png|svg\+xml|jpeg|webp)/)) return;
+    if (!file.type.match(/image\/(png|svg\+xml|jpeg|webp|x-icon|vnd.microsoft.icon)/)) return;
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) onFile(file, e.target.result as string);
@@ -389,17 +431,17 @@ function StepLogo({
   return (
     <div className="np-step">
       <div className="np-step__head">
-        <h2 className="np-step__title">Adicione o logotipo</h2>
-        <p className="np-step__desc">Aceita PNG, SVG ou JPG. Tamanho recomendado: 400×120px. Etapa opcional.</p>
+        <h2 className="np-step__title">{title}</h2>
+        <p className="np-step__desc">{desc}</p>
       </div>
       <div className="np-step__body">
         {preview ? (
-          <div className="np-logo-preview">
-            <img src={preview} alt="Logotipo" className="np-logo-preview__img" />
+          <div className={`np-logo-preview${size === 'favicon' ? ' np-logo-preview--favicon' : ''}`}>
+            <img src={preview} alt={title} className={size === 'favicon' ? 'np-logo-preview__favicon' : 'np-logo-preview__img'} />
             <button
               className="np-logo-preview__remove"
               type="button"
-              onClick={() => { onFile(null as unknown as File, ''); inputRef.current && (inputRef.current.value = ''); }}
+              onClick={() => { onFile(null, null); if (inputRef.current) inputRef.current.value = ''; }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -424,16 +466,201 @@ function StepLogo({
             <div className="np-dropzone__text">
               <strong>Arraste o arquivo aqui</strong> ou clique para selecionar
             </div>
-            <div className="np-dropzone__hint">PNG, SVG, JPG ou WebP — máx. 5 MB</div>
+            <div className="np-dropzone__hint">{hint}</div>
             <input
               ref={inputRef}
               type="file"
-              accept="image/png,image/svg+xml,image/jpeg,image/webp"
+              accept={accept}
               className="np-dropzone__input"
               onChange={handleChange}
             />
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step 6: Logotipo ───────────────────────────────────── */
+function StepLogo({ preview, onFile }: { preview: string | null; onFile: (file: File | null, preview: string | null) => void }) {
+  return (
+    <ImageDropzone
+      preview={preview}
+      onFile={onFile}
+      title="Adicione o logotipo"
+      desc="Aceita PNG, SVG ou JPG. Tamanho recomendado: 400×120px. Etapa opcional."
+      hint="PNG, SVG, JPG ou WebP — máx. 5 MB"
+      accept="image/png,image/svg+xml,image/jpeg,image/webp"
+      size="logo"
+    />
+  );
+}
+
+/* ─── Step 7: Favicon ────────────────────────────────────── */
+function StepFavicon({ preview, onFile }: { preview: string | null; onFile: (file: File | null, preview: string | null) => void }) {
+  return (
+    <ImageDropzone
+      preview={preview}
+      onFile={onFile}
+      title="Adicione o favicon"
+      desc="Ícone exibido na aba do navegador. Tamanho recomendado: 32×32px. Etapa opcional."
+      hint="ICO, PNG ou SVG — máx. 1 MB"
+      accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml"
+      size="favicon"
+    />
+  );
+}
+
+/* ─── Step 8: Idioma ─────────────────────────────────────── */
+function StepIdioma({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const idiomas = [
+    { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
+    { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
+  ];
+
+  function toggle(id: string) {
+    if (value.includes(id)) {
+      onChange(value.filter((v) => v !== id));
+    } else {
+      onChange([...value, id]);
+    }
+  }
+
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Idiomas do portal</h2>
+        <p className="np-step__desc">Selecione um ou mais idiomas. Você pode configurar versões adicionais depois.</p>
+      </div>
+      <div className="np-step__body">
+        <div className="np-idioma-list">
+          {idiomas.map((lang) => {
+            const selected = value.includes(lang.id);
+            return (
+              <button
+                key={lang.id}
+                type="button"
+                className={`np-idioma-card${selected ? ' np-idioma-card--selected' : ''}`}
+                onClick={() => toggle(lang.id)}
+              >
+                <span className="np-idioma-card__flag">{lang.flag}</span>
+                <div className="np-idioma-card__info">
+                  <span className="np-idioma-card__label">{lang.label}</span>
+                  <span className="np-idioma-card__desc">{lang.desc}</span>
+                </div>
+                <div className={`np-idioma-card__check${selected ? ' np-idioma-card__check--active' : ''}`}>
+                  {selected && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step 9: SEO e Analytics ────────────────────────────── */
+function StepSeo({
+  metaTitulo, metaDescricao, analyticsId,
+  onMetaTitulo, onMetaDescricao, onAnalyticsId,
+}: {
+  metaTitulo: string; metaDescricao: string; analyticsId: string;
+  onMetaTitulo: (v: string) => void; onMetaDescricao: (v: string) => void; onAnalyticsId: (v: string) => void;
+}) {
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">SEO e Analytics</h2>
+        <p className="np-step__desc">Configure as informações de indexação e rastreamento do portal. Etapa opcional.</p>
+      </div>
+      <div className="np-step__body">
+        <div className="np-field">
+          <label className="np-label">Meta título</label>
+          <p className="np-field__hint">Título exibido nos resultados de busca (recomendado: até 60 caracteres)</p>
+          <input
+            className="np-input"
+            type="text"
+            placeholder="Ex: Aurora RI — Relações com Investidores"
+            value={metaTitulo}
+            onChange={(e) => onMetaTitulo(e.target.value)}
+            maxLength={100}
+          />
+          {metaTitulo && (
+            <span className={`np-input__hint${metaTitulo.length > 60 ? ' np-input__hint--warn' : ''}`}>
+              {metaTitulo.length}/60 caracteres recomendados
+            </span>
+          )}
+        </div>
+        <div className="np-field">
+          <label className="np-label">Meta descrição</label>
+          <p className="np-field__hint">Resumo exibido nos resultados de busca (recomendado: até 160 caracteres)</p>
+          <textarea
+            className="np-input np-input--textarea"
+            placeholder="Ex: Acesse os resultados financeiros, fatos relevantes e informações de governança da Aurora."
+            value={metaDescricao}
+            onChange={(e) => onMetaDescricao(e.target.value)}
+            maxLength={300}
+            rows={3}
+          />
+          {metaDescricao && (
+            <span className={`np-input__hint${metaDescricao.length > 160 ? ' np-input__hint--warn' : ''}`}>
+              {metaDescricao.length}/160 caracteres recomendados
+            </span>
+          )}
+        </div>
+        <div className="np-field">
+          <label className="np-label">ID do Google Analytics / GTM</label>
+          <p className="np-field__hint">Google Analytics 4 (G-XXXXXXXX) ou Google Tag Manager (GTM-XXXXXXX)</p>
+          <input
+            className="np-input"
+            type="text"
+            placeholder="G-XXXXXXXXXX ou GTM-XXXXXXX"
+            value={analyticsId}
+            onChange={(e) => onAnalyticsId(e.target.value)}
+            maxLength={30}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step 10: Email de contato ──────────────────────────── */
+function StepEmail({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isValid = !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Email de contato</h2>
+        <p className="np-step__desc">Endereço de e-mail exibido no portal para contato com a empresa.</p>
+      </div>
+      <div className="np-step__body">
+        <div className="np-field">
+          <label className="np-label">Email</label>
+          <div className="np-email-wrap">
+            <svg className="np-email-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            <input
+              className={`np-input np-input--email${!isValid ? ' np-input--error' : ''}`}
+              type="email"
+              placeholder="ri@empresa.com.br"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              autoFocus
+            />
+          </div>
+          {!isValid && (
+            <span className="np-input__hint np-input__hint--error">Digite um endereço de e-mail válido.</span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -453,6 +680,13 @@ export default function NovoPortalPage() {
     corTerciaria: '#141414',
     logoFile: null,
     logoPreview: null,
+    faviconFile: null,
+    faviconPreview: null,
+    idiomas: ['pt'],
+    metaTitulo: '',
+    metaDescricao: '',
+    analyticsId: '',
+    emailContato: '',
   });
 
   useEffect(() => {
@@ -467,15 +701,16 @@ export default function NovoPortalPage() {
     if (step === 1) return form.nome.trim().length > 0;
     if (step === 2) return form.url.trim().length > 0;
     if (step === 3) return form.tipo !== '';
+    if (step === 8) return form.idiomas.length > 0;
+    if (step === 10) {
+      if (!form.emailContato) return true;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailContato);
+    }
     return true;
   };
 
   function next() { if (canProceed()) setStep((s) => Math.min(s + 1, STEPS.length)); }
   function back() { setStep((s) => Math.max(s - 1, 1)); }
-
-  function handleLogoFile(file: File, preview: string) {
-    setForm((f) => ({ ...f, logoFile: file || null, logoPreview: preview || null }));
-  }
 
   function handleSubmit() {
     navigate('/admin/portais');
@@ -520,7 +755,32 @@ export default function NovoPortalPage() {
           />
         )}
         {step === 6 && (
-          <StepLogo preview={form.logoPreview} onFile={handleLogoFile} />
+          <StepLogo
+            preview={form.logoPreview}
+            onFile={(file, preview) => setForm((f) => ({ ...f, logoFile: file, logoPreview: preview }))}
+          />
+        )}
+        {step === 7 && (
+          <StepFavicon
+            preview={form.faviconPreview}
+            onFile={(file, preview) => setForm((f) => ({ ...f, faviconFile: file, faviconPreview: preview }))}
+          />
+        )}
+        {step === 8 && (
+          <StepIdioma value={form.idiomas} onChange={(v) => setForm((f) => ({ ...f, idiomas: v }))} />
+        )}
+        {step === 9 && (
+          <StepSeo
+            metaTitulo={form.metaTitulo}
+            metaDescricao={form.metaDescricao}
+            analyticsId={form.analyticsId}
+            onMetaTitulo={(v) => setForm((f) => ({ ...f, metaTitulo: v }))}
+            onMetaDescricao={(v) => setForm((f) => ({ ...f, metaDescricao: v }))}
+            onAnalyticsId={(v) => setForm((f) => ({ ...f, analyticsId: v }))}
+          />
+        )}
+        {step === 10 && (
+          <StepEmail value={form.emailContato} onChange={(v) => setForm((f) => ({ ...f, emailContato: v }))} />
         )}
 
         <div className="np-footer">
@@ -548,7 +808,12 @@ export default function NovoPortalPage() {
               </svg>
             </button>
           ) : (
-            <button className="np-btn np-btn--primary" type="button" onClick={handleSubmit}>
+            <button
+              className="np-btn np-btn--primary"
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canProceed()}
+            >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
