@@ -127,7 +127,7 @@ export default function UsuariosPage() {
             <tr>
               <th>Nome</th>
               <th>Email</th>
-              <th>Role</th>
+              <th>Tipo</th>
               <th>Portal</th>
               <th>Status</th>
               <th>Ações</th>
