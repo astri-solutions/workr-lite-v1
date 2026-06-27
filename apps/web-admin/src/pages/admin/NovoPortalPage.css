@@ -162,6 +162,10 @@
   gap: var(--space-4);
 }
 
+.np-step__body--sections {
+  gap: var(--space-8);
+}
+
 /* ─── Label / field ──────────────────────────────────────── */
 .np-label {
   font-family: var(--font-body);

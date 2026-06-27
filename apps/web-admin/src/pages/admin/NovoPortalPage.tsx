@@ -613,7 +613,7 @@ function StepIdentidade({
         <h2 className="np-step__title">Identidade visual e idioma</h2>
         <p className="np-step__desc">Configure o logotipo, favicon e os idiomas disponíveis no portal.</p>
       </div>
-      <div className="np-step__body">
+      <div className="np-step__body np-step__body--sections">
 
         <div className="np-field">
           <label className="np-label">Logotipo</label>
