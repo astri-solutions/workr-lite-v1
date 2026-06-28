@@ -304,6 +304,13 @@
   overflow: hidden;
 }
 
+.admin-sidebar--collapsed .admin-sidebar__toggle {
+  margin: var(--space-4) auto 0;
+  padding: 9px;
+  width: 38px;
+  height: 38px;
+}
+
 .admin-sidebar__toggle:hover {
   background: var(--color-gray-50);
   color: var(--color-gray-600);
