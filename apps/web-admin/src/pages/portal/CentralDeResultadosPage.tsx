@@ -33,9 +33,17 @@ const QUARTERS_BY_ENTITY: Record<string, Quarter[]> = {
   'imc-ce': [],
 };
 
+function parsePeriod(period: string): { quarter: string; year: string } {
+  const match = period.match(/^(\d)[Tt](\d{2,4})$/);
+  if (!match) return { quarter: '', year: '' };
+  return { quarter: `${match[1]}T`, year: match[2].length === 2 ? `20${match[2]}` : match[2] };
+}
+
 export default function CentralDeResultadosPage() {
   const [activeEntity, setActiveEntity] = useState<string>('imc');
   const [search, setSearch] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterQuarter, setFilterQuarter] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [newPeriod, setNewPeriod] = useState('');
@@ -43,9 +51,18 @@ export default function CentralDeResultadosPage() {
   const [quarters, setQuarters] =
     useState<Record<string, Quarter[]>>(QUARTERS_BY_ENTITY);
 
-  const currentQuarters = (quarters[activeEntity] ?? []).filter((q) =>
-    q.period.toLowerCase().includes(search.toLowerCase())
-  );
+  const allQuarters = quarters[activeEntity] ?? [];
+
+  const years = [...new Set(allQuarters.map((q) => parsePeriod(q.period).year).filter(Boolean))].sort((a, b) => +b - +a);
+  const quarterOptions = ['1T', '2T', '3T', '4T'];
+
+  const currentQuarters = allQuarters.filter((q) => {
+    const { quarter, year } = parsePeriod(q.period);
+    if (search && !q.period.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterYear && year !== filterYear) return false;
+    if (filterQuarter && quarter !== filterQuarter) return false;
+    return true;
+  });
 
   function handleAddResult() {
     if (!newPeriod.trim()) return;
@@ -115,13 +132,37 @@ export default function CentralDeResultadosPage() {
         />
       </div>
 
+      {/* Filters */}
+      <div className="cdr-filters">
+        <select
+          className="cdr-filter-select"
+          value={filterYear}
+          onChange={(e) => setFilterYear(e.target.value)}
+        >
+          <option value="">Todos os anos</option>
+          {years.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        <select
+          className="cdr-filter-select"
+          value={filterQuarter}
+          onChange={(e) => setFilterQuarter(e.target.value)}
+        >
+          <option value="">Todos os trimestres</option>
+          {quarterOptions.map((q) => (
+            <option key={q} value={q}>{q}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Accordion list */}
       <div className="cdr-list">
         {currentQuarters.length === 0 ? (
           <div className="cdr-empty">Nenhum resultado encontrado.</div>
         ) : (
           currentQuarters.map((q) => (
-            <div key={q.id} className="cdr-accordion">
+            <div key={q.id} className={`cdr-accordion${expandedId === q.id ? ' cdr-accordion--open' : ''}`}>
               <button
                 type="button"
                 className="cdr-accordion__row"

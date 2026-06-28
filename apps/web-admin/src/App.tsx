@@ -25,6 +25,7 @@ import {
   LogotipoPage,
   FaviconPage,
   BannerPage,
+  InformacoesPortalPage,
 } from './pages/portal/PlaceholderPages';
 
 function RootRedirect() {
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="logotipo" element={<LogotipoPage />} />
             <Route path="favicon" element={<FaviconPage />} />
             <Route path="banner" element={<BannerPage />} />
+            <Route path="informacoes" element={<InformacoesPortalPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
