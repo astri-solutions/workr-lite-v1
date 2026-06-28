@@ -1,7 +1,20 @@
 import { Outlet } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
+
+// Logo paths follow the convention /logos/tenants/{tenantId}/logotipo.svg
+// When the portal upload feature is complete, these files will be served
+// from storage and the paths below will resolve automatically.
+function useTenantLogo() {
+  const { user } = useAuth();
+  const tenantId = user?.tenantId ?? 'default';
+  return {
+    logoSrc: `/logos/tenants/${tenantId}/logotipo.svg`,
+    logoAlt: user?.name ?? 'Portal',
+  };
+}
 
 const SECTIONS: NavSection[] = [
   {
@@ -147,11 +160,17 @@ const SECTIONS: NavSection[] = [
 ];
 
 export default function ClientLayout() {
+  const { logoSrc, logoAlt } = useTenantLogo();
+
   return (
     <div className="admin-shell">
       <AppTopbar />
       <div className="admin-body">
-        <AppSidebar sections={SECTIONS} />
+        <AppSidebar
+          sections={SECTIONS}
+          logoSrc={logoSrc}
+          logoAlt={logoAlt}
+        />
         <main className="admin-main">
           <Outlet />
         </main>

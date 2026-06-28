@@ -15,17 +15,30 @@ export interface NavSection {
 
 interface AppSidebarProps {
   sections: NavSection[];
+  /** Full logo shown when sidebar is expanded */
+  logoSrc: string;
+  /** Optional compact logo (icon-only) shown when sidebar is collapsed.
+   *  Falls back to logoSrc if not provided. */
+  logoCollapsedSrc?: string;
+  logoAlt?: string;
 }
 
-export default function AppSidebar({ sections }: AppSidebarProps) {
+export default function AppSidebar({
+  sections,
+  logoSrc,
+  logoCollapsedSrc,
+  logoAlt = 'Logo',
+}: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+
+  const currentLogo = collapsed ? (logoCollapsedSrc ?? logoSrc) : logoSrc;
 
   return (
     <aside className={`admin-sidebar${collapsed ? ' admin-sidebar--collapsed' : ''}`}>
       <div className="admin-sidebar__logo">
         <img
-          src={collapsed ? '/logos/logo-original.svg' : '/logos/logotipo-original.svg'}
-          alt="Astri"
+          src={currentLogo}
+          alt={logoAlt}
           className="admin-sidebar__logo-img"
         />
       </div>
@@ -73,7 +86,6 @@ export default function AppSidebar({ sections }: AppSidebarProps) {
         >
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M9 3v18" />
-          <polyline points="5 9 5 15" strokeWidth="0" />
           <path d="M13 9l-3 3 3 3" />
         </svg>
         {!collapsed && <span>Recolher</span>}

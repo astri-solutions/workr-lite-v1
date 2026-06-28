@@ -47,7 +47,12 @@ export default function AdminLayout() {
     <div className="admin-shell">
       <AppTopbar />
       <div className="admin-body">
-        <AppSidebar sections={SECTIONS} />
+        <AppSidebar
+          sections={SECTIONS}
+          logoSrc="/logos/logotipo-original.svg"
+          logoCollapsedSrc="/logos/logo-original.svg"
+          logoAlt="Astri"
+        />
         <main className="admin-main">
           <Outlet />
         </main>
