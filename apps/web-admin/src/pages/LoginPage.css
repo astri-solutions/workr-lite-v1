@@ -8,7 +8,10 @@
   min-height: 100vh;
   display: flex;
   align-items: stretch;
-  background: #ffffff;
+  background-image: url('/img/bg-image-workr-login.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* ─── Left column: card ─────────────────────────────── */
@@ -18,7 +21,6 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-8);
-  background: #ffffff;
 }
 
 .login-card {
@@ -162,11 +164,7 @@
   justify-content: space-between;
   padding: 48px 56px 40px;
   position: relative;
-  background-image:
-    linear-gradient(160deg, rgba(13,99,117,0.55) 0%, rgba(4,30,38,0.72) 100%),
-    url('/img/bg-image-workr-login.webp');
-  background-size: cover;
-  background-position: center;
+  background: linear-gradient(160deg, rgba(13,99,117,0.72) 0%, rgba(4,30,38,0.88) 100%);
 }
 
 .login-right__tagline {
