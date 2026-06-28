@@ -1,0 +1,43 @@
+.canais-page {
+  max-width: 720px;
+}
+
+.cp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cp-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #141414;
+  margin: 0 0 4px;
+}
+
+.cp-subtitle {
+  font-size: 0.875rem;
+  color: #6F6F6F;
+  margin: 0;
+}
+
+.cp-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #166534;
+  margin-bottom: 16px;
+}
+
+.cp-body {
+  background: #F4F4F4;
+  border-radius: 12px;
+  padding: 16px;
+}
