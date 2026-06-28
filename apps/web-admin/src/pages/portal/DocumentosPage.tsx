@@ -294,7 +294,6 @@ export default function DocumentosPage() {
               <th>Tipo</th>
               <th>Data de publicação</th>
               <th>Página</th>
-              <th>Idiomas</th>
               <th>Publicado por</th>
               <th>Última edição</th>
               <th></th>
@@ -303,7 +302,7 @@ export default function DocumentosPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="table-empty">Nenhum documento encontrado.</td>
+                <td colSpan={9} className="table-empty">Nenhum documento encontrado.</td>
               </tr>
             ) : (
               filtered.map((doc) => (
@@ -326,21 +325,11 @@ export default function DocumentosPage() {
                       {doc.tags.map((tag) => (
                         <span key={tag} className="docs-tag docs-tag--dark">{tag}</span>
                       ))}
-                      {doc.idiomas.map((lang) => (
-                        <span key={lang} className="docs-tag docs-tag--lang">{lang}</span>
-                      ))}
                     </div>
                   </td>
                   <td className="docs-cell-tipo table-cell--muted">{doc.tipo}</td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
                   <td className="table-cell--muted">{doc.pagina}</td>
-                  <td>
-                    <div className="docs-idiomas">
-                      {doc.idiomas.map((lang) => (
-                        <span key={lang} className="docs-tag docs-tag--lang">{lang}</span>
-                      ))}
-                    </div>
-                  </td>
                   <td>
                     <div className="docs-avatar" title={doc.publicadoPor}>{doc.publicadoPor}</div>
                   </td>
