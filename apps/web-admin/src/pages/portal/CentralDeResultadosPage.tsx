@@ -39,6 +39,15 @@ function parsePeriod(period: string): { quarter: string; year: string } {
   return { quarter: `${match[1]}T`, year: match[2].length === 2 ? `20${match[2]}` : match[2] };
 }
 
+const QUARTER_OPTIONS = ['1T', '2T', '3T', '4T'];
+const IDIOMA_OPTIONS = [
+  { value: 'pt', label: 'Português' },
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Español' },
+];
+const CURRENT_YEAR = 2026;
+const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - i));
+
 export default function CentralDeResultadosPage() {
   const [activeEntity, setActiveEntity] = useState<string>('imc');
   const [search, setSearch] = useState('');
@@ -46,10 +55,17 @@ export default function CentralDeResultadosPage() {
   const [filterQuarter, setFilterQuarter] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [newPeriod, setNewPeriod] = useState('');
-  const [newEntity, setNewEntity] = useState('imc');
   const [quarters, setQuarters] =
     useState<Record<string, Quarter[]>>(QUARTERS_BY_ENTITY);
+
+  // Modal form state
+  const [newEntity, setNewEntity] = useState('imc');
+  const [newQuarter, setNewQuarter] = useState('');
+  const [newYear, setNewYear] = useState('');
+  const [newIdioma, setNewIdioma] = useState('pt');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
 
   const allQuarters = quarters[activeEntity] ?? [];
 
@@ -64,16 +80,43 @@ export default function CentralDeResultadosPage() {
     return true;
   });
 
-  function handleAddResult() {
-    if (!newPeriod.trim()) return;
-    const id = newPeriod.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-    const newQ: Quarter = { id, period: newPeriod.trim(), totalDocs: 0, publishedDocs: 0 };
+  function isFormValid() {
+    return newEntity && newQuarter && newYear;
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setNewEntity(activeEntity);
+    setNewQuarter('');
+    setNewYear('');
+    setNewIdioma('pt');
+    setScheduleEnabled(false);
+    setScheduleDate('');
+    setScheduleTime('');
+  }
+
+  function handlePublish() {
+    if (!isFormValid()) return;
+    const period = `${newQuarter}${newYear.slice(-2)}`;
+    const id = `${period.toLowerCase()}-${newEntity}`;
+    const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0 };
     setQuarters((prev) => ({
       ...prev,
       [newEntity]: [newQ, ...(prev[newEntity] ?? [])],
     }));
-    setNewPeriod('');
-    setModalOpen(false);
+    closeModal();
+  }
+
+  function handleSaveDraft() {
+    if (!isFormValid()) return;
+    const period = `${newQuarter}${newYear.slice(-2)}`;
+    const id = `${period.toLowerCase()}-${newEntity}-draft`;
+    const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0 };
+    setQuarters((prev) => ({
+      ...prev,
+      [newEntity]: [newQ, ...(prev[newEntity] ?? [])],
+    }));
+    closeModal();
   }
 
   return (
@@ -92,6 +135,9 @@ export default function CentralDeResultadosPage() {
           type="button"
           onClick={() => {
             setNewEntity(activeEntity);
+            setNewQuarter('');
+            setNewYear('');
+            setScheduleEnabled(false);
             setModalOpen(true);
           }}
         >
@@ -197,55 +243,134 @@ export default function CentralDeResultadosPage() {
       {/* Modal */}
       <Modal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={closeModal}
         title="Novo resultado"
         size="sm"
         footer={
           <div className="cdr-modal-footer">
             <button
               type="button"
-              className="cdr-modal-footer__cancel"
-              onClick={() => setModalOpen(false)}
+              className="cdr-modal-footer__draft"
+              onClick={handleSaveDraft}
+              disabled={!isFormValid()}
             >
-              Cancelar
+              Salvar como Rascunho
             </button>
             <button
               type="button"
               className="btn-primary"
-              onClick={handleAddResult}
-              disabled={!newPeriod.trim()}
+              onClick={handlePublish}
+              disabled={!isFormValid()}
             >
-              Criar resultado
+              Publicar Resultado
             </button>
           </div>
         }
       >
         <div className="cdr-modal-form">
-          <label className="cdr-modal-form__label">
-            Período
-            <input
-              className="cdr-modal-form__input"
-              type="text"
-              placeholder="ex: 3T25"
-              value={newPeriod}
-              onChange={(e) => setNewPeriod(e.target.value)}
-              autoFocus
-            />
-          </label>
+          {/* Entidade */}
           <label className="cdr-modal-form__label">
             Entidade
             <select
-              className="cdr-modal-form__input"
+              className="cdr-modal-form__input cdr-modal-form__select"
               value={newEntity}
               onChange={(e) => setNewEntity(e.target.value)}
+              autoFocus
             >
               {ENTITIES.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
+                <option key={e.id} value={e.id}>{e.name}</option>
               ))}
             </select>
           </label>
+
+          {/* Trimestre */}
+          <label className="cdr-modal-form__label">
+            Trimestre
+            <select
+              className="cdr-modal-form__input cdr-modal-form__select"
+              value={newQuarter}
+              onChange={(e) => setNewQuarter(e.target.value)}
+            >
+              <option value="">Selecionar trimestre</option>
+              {QUARTER_OPTIONS.map((q) => (
+                <option key={q} value={q}>{q}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* Ano */}
+          <label className="cdr-modal-form__label">
+            Ano
+            <select
+              className="cdr-modal-form__input cdr-modal-form__select"
+              value={newYear}
+              onChange={(e) => setNewYear(e.target.value)}
+            >
+              <option value="">Selecionar ano</option>
+              {YEAR_OPTIONS.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* Idioma */}
+          <label className="cdr-modal-form__label">
+            Idioma
+            <select
+              className="cdr-modal-form__input cdr-modal-form__select"
+              value={newIdioma}
+              onChange={(e) => setNewIdioma(e.target.value)}
+            >
+              {IDIOMA_OPTIONS.map((l) => (
+                <option key={l.value} value={l.value}>{l.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* Agendamento */}
+          <div className="cdr-modal-schedule">
+            <div className="cdr-modal-schedule__header">
+              <div className="cdr-modal-schedule__title-group">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span className="cdr-modal-schedule__title">Agendamento</span>
+              </div>
+              <button
+                type="button"
+                className={`cdr-modal-schedule__toggle${scheduleEnabled ? ' cdr-modal-schedule__toggle--on' : ''}`}
+                onClick={() => setScheduleEnabled((v) => !v)}
+                aria-pressed={scheduleEnabled}
+              >
+                <span className="cdr-modal-schedule__toggle-knob" />
+              </button>
+            </div>
+            {scheduleEnabled && (
+              <div className="cdr-modal-schedule__fields">
+                <label className="cdr-modal-form__label">
+                  Data
+                  <input
+                    className="cdr-modal-form__input"
+                    type="date"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                  />
+                </label>
+                <label className="cdr-modal-form__label">
+                  Horário
+                  <input
+                    className="cdr-modal-form__input"
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
     </div>

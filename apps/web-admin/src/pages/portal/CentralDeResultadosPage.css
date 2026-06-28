@@ -279,13 +279,94 @@
   border-color: var(--color-primary-400);
 }
 
+.cdr-modal-form__select {
+  appearance: none;
+  background: var(--color-gray-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F6F6F' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
+  padding-right: var(--space-8);
+  cursor: pointer;
+}
+
+/* ─── Schedule section ───────────────────────────── */
+.cdr-modal-schedule {
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.cdr-modal-schedule__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+}
+
+.cdr-modal-schedule__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-gray-700);
+}
+
+.cdr-modal-schedule__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-800);
+}
+
+/* Toggle switch */
+.cdr-modal-schedule__toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--color-gray-300);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.cdr-modal-schedule__toggle--on {
+  background: var(--color-primary-500);
+}
+
+.cdr-modal-schedule__toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  display: block;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.cdr-modal-schedule__toggle--on .cdr-modal-schedule__toggle-knob {
+  transform: translateX(16px);
+}
+
+.cdr-modal-schedule__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-gray-200);
+  background: #ffffff;
+}
+
+/* ─── Modal footer ───────────────────────────────── */
 .cdr-modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
-.cdr-modal-footer__cancel {
+.cdr-modal-footer__draft {
   display: inline-flex;
   align-items: center;
   padding: 10px var(--space-5);
@@ -300,7 +381,12 @@
   transition: all 0.15s;
 }
 
-.cdr-modal-footer__cancel:hover {
+.cdr-modal-footer__draft:hover:not(:disabled) {
   border-color: var(--color-gray-400);
   color: var(--color-gray-800);
+}
+
+.cdr-modal-footer__draft:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
