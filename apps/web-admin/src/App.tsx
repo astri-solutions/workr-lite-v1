@@ -14,6 +14,7 @@ import NovoPortalPage from './pages/admin/NovoPortalPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
 import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
 import DocumentosPage from './pages/portal/DocumentosPage';
+import InformacoesPortalPage from './pages/portal/InformacoesPortalPage';
 import {
   MidiaPage,
   CanaisPage,
@@ -25,7 +26,6 @@ import {
   LogotipoPage,
   FaviconPage,
   BannerPage,
-  InformacoesPortalPage,
 } from './pages/portal/PlaceholderPages';
 
 function RootRedirect() {

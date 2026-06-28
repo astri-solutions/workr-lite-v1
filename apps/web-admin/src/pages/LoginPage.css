@@ -8,21 +8,7 @@
   min-height: 100vh;
   display: flex;
   align-items: stretch;
-
-  /* Background image — replaced by real photo via inline style in JSX.
-     This gradient is the fallback and also acts as the teal color overlay
-     when the photo is present (layered via multiple backgrounds). */
-  background-image:
-    linear-gradient(
-      to right,
-      rgba(255,255,255,0) 0%,
-      rgba(11, 91, 104, 0.82) 52%,
-      rgba(5, 50, 60, 0.93) 100%
-    ),
-    linear-gradient(160deg, #0d6375 0%, #073a45 60%, #041e26 100%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: #ffffff;
 }
 
 /* ─── Left column: card ─────────────────────────────── */
@@ -32,19 +18,15 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-8);
-  /* Subtle light wash behind the card so text stays readable
-     even when a dark photo shows through */
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(0px);
+  background: #ffffff;
 }
 
 .login-card {
   background: #ffffff;
   border-radius: var(--radius-xl);
   box-shadow:
-    0 2px 4px rgba(0,0,0,0.04),
-    0 12px 40px rgba(0,0,0,0.18),
-    0 32px 80px rgba(0,0,0,0.12);
+    0 2px 8px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.08);
   padding: 48px 44px 40px;
   width: 100%;
   max-width: 440px;
@@ -180,6 +162,7 @@
   justify-content: space-between;
   padding: 48px 56px 40px;
   position: relative;
+  background: linear-gradient(160deg, #0d6375 0%, #073a45 60%, #041e26 100%);
 }
 
 .login-right__tagline {

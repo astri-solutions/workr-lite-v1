@@ -51,6 +51,3 @@ export function BannerPage() {
   return <Placeholder title="Banner" />;
 }
 
-export function InformacoesPortalPage() {
-  return <Placeholder title="Informações pessoais" />;
-}

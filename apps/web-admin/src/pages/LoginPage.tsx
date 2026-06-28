@@ -27,15 +27,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="login-root"
-      style={{
-        backgroundImage: [
-          'linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(11,91,104,0.82) 52%, rgba(5,50,60,0.93) 100%)',
-          "url('/img/bg-image-workr-login.webp')",
-        ].join(', '),
-      }}
-    >
+    <div className="login-root">
       {/* ── Left: floating white card ── */}
       <div className="login-left">
         <div className="login-card">
