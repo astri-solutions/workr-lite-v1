@@ -1,21 +1,29 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applyColorScale, removeColorScale } from '../../utils/colorUtils';
+import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import './AdminPages.css';
 import './NovoPortalPage.css';
 
-/* ─── Steps ─────────────────────────────────────────────── */
-const STEPS = [
-  { id: 1, label: 'Identificação' },
-  { id: 2, label: 'Tipo' },
-  { id: 3, label: 'Fonte' },
-  { id: 4, label: 'Cores' },
-  { id: 5, label: 'Identidade' },
-  { id: 6, label: 'SEO' },
-  { id: 7, label: 'Email' },
-];
+/* ─── Dynamic steps ────────────────────────────────────────────────────── */
+function getSteps(tipo: string) {
+  const steps: { id: number; label: string }[] = [
+    { id: 1, label: 'Identificação' },
+    { id: 2, label: 'Tipo' },
+  ];
+  if (tipo === 'banner') steps.push({ id: 3, label: 'Canais' });
+  const off = tipo === 'banner' ? 1 : 0;
+  steps.push(
+    { id: 3 + off, label: 'Fonte' },
+    { id: 4 + off, label: 'Cores' },
+    { id: 5 + off, label: 'Identidade' },
+    { id: 6 + off, label: 'SEO' },
+    { id: 7 + off, label: 'Email' },
+  );
+  return steps;
+}
 
-/* ─── Tipos ──────────────────────────────────────────────── */
+/* ─── Tipos ──────────────────────────────────────────────────────── */
 const TIPOS = [
   {
     id: 'sidebar',
@@ -23,17 +31,14 @@ const TIPOS = [
     desc: 'Navegação na barra lateral com conteúdo central.',
     thumb: (
       <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* header */}
         <rect x="0" y="0" width="160" height="14" rx="2" fill="#e8edf2" />
         <rect x="6" y="4" width="28" height="6" rx="1" fill="#c8d2db" />
-        {/* sidebar */}
         <rect x="0" y="16" width="38" height="64" rx="2" fill="#f0f4f8" />
         <rect x="6" y="22" width="26" height="5" rx="1" fill="#c8d2db" />
         <rect x="6" y="31" width="22" height="5" rx="1" fill="#dde3ea" />
         <rect x="6" y="40" width="24" height="5" rx="1" fill="#dde3ea" />
         <rect x="6" y="49" width="20" height="5" rx="1" fill="#dde3ea" />
         <rect x="6" y="58" width="23" height="5" rx="1" fill="#dde3ea" />
-        {/* content */}
         <rect x="42" y="16" width="118" height="10" rx="2" fill="#e8edf2" />
         <rect x="42" y="30" width="118" height="5" rx="1" fill="#eef1f5" />
         <rect x="42" y="39" width="96" height="5" rx="1" fill="#eef1f5" />
@@ -48,18 +53,15 @@ const TIPOS = [
     desc: 'Navegação por abas horizontais com conteúdo organizado por seção.',
     thumb: (
       <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* header */}
         <rect x="0" y="0" width="160" height="14" rx="2" fill="#e8edf2" />
         <rect x="6" y="4" width="28" height="6" rx="1" fill="#c8d2db" />
         <rect x="106" y="4" width="18" height="6" rx="1" fill="#dde3ea" />
         <rect x="128" y="4" width="18" height="6" rx="1" fill="#dde3ea" />
-        {/* tabs */}
         <rect x="0" y="16" width="160" height="16" rx="0" fill="#f5f7fa" />
         <rect x="6" y="19" width="28" height="10" rx="2" fill="#0B5B68" />
         <rect x="38" y="21" width="24" height="6" rx="1" fill="#dde3ea" />
         <rect x="66" y="21" width="28" height="6" rx="1" fill="#dde3ea" />
         <rect x="98" y="21" width="22" height="6" rx="1" fill="#dde3ea" />
-        {/* content */}
         <rect x="6" y="38" width="148" height="10" rx="2" fill="#e8edf2" />
         <rect x="6" y="52" width="148" height="6" rx="1" fill="#eef1f5" />
         <rect x="6" y="62" width="120" height="6" rx="1" fill="#eef1f5" />
@@ -72,17 +74,14 @@ const TIPOS = [
     desc: 'Banner de destaque no topo com navegação no header.',
     thumb: (
       <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* header */}
         <rect x="0" y="0" width="160" height="14" rx="2" fill="#0B5B68" />
         <rect x="6" y="4" width="28" height="6" rx="1" fill="rgba(255,255,255,0.4)" />
         <rect x="106" y="4" width="14" height="6" rx="1" fill="rgba(255,255,255,0.25)" />
         <rect x="124" y="4" width="14" height="6" rx="1" fill="rgba(255,255,255,0.25)" />
         <rect x="142" y="4" width="12" height="6" rx="1" fill="rgba(255,255,255,0.25)" />
-        {/* banner */}
         <rect x="0" y="16" width="160" height="28" rx="0" fill="#e4eef0" />
         <rect x="10" y="22" width="60" height="8" rx="2" fill="#c8d2db" />
         <rect x="10" y="34" width="40" height="5" rx="1" fill="#dde3ea" />
-        {/* content grid */}
         <rect x="6" y="50" width="46" height="22" rx="2" fill="#eef1f5" />
         <rect x="57" y="50" width="46" height="22" rx="2" fill="#eef1f5" />
         <rect x="108" y="50" width="46" height="22" rx="2" fill="#eef1f5" />
@@ -91,7 +90,7 @@ const TIPOS = [
   },
 ];
 
-/* ─── Fonts ──────────────────────────────────────────────── */
+/* ─── Fonts ──────────────────────────────────────────────────────── */
 const FONTS = [
   { id: 'inter', label: 'Inter', family: "'Inter', sans-serif", category: 'Sans-serif' },
   { id: 'plus-jakarta', label: 'Plus Jakarta Sans', family: "'Plus Jakarta Sans', sans-serif", category: 'Sans-serif' },
@@ -115,7 +114,7 @@ const FONTS = [
   { id: 'cormorant', label: 'Cormorant Garamond', family: "'Cormorant Garamond', serif", category: 'Serif' },
 ];
 
-/* ─── Form state ─────────────────────────────────────────── */
+/* ─── Form state ────────────────────────────────────────────────────── */
 interface FormData {
   nome: string;
   url: string;
@@ -135,17 +134,18 @@ interface FormData {
   metaDescricao: string;
   analyticsId: string;
   emailContato: string;
+  canais: Canal[];
 }
 
-/* ─── Stepper ────────────────────────────────────────────── */
-function Stepper({ current }: { current: number }) {
+/* ─── Stepper ──────────────────────────────────────────────────────── */
+function Stepper({ steps, current }: { steps: { id: number; label: string }[]; current: number }) {
   return (
     <div className="np-stepper">
-      {STEPS.map((s, i) => {
+      {steps.map((s, i) => {
         const done = s.id < current;
         const active = s.id === current;
         return (
-          <div key={s.id} className="np-stepper__item">
+          <div key={s.label} className="np-stepper__item">
             <div className={`np-stepper__circle${done ? ' np-stepper__circle--done' : active ? ' np-stepper__circle--active' : ''}`}>
               {done ? (
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -156,7 +156,7 @@ function Stepper({ current }: { current: number }) {
             <span className={`np-stepper__label${active ? ' np-stepper__label--active' : done ? ' np-stepper__label--done' : ''}`}>
               {s.label}
             </span>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div className={`np-stepper__line${done ? ' np-stepper__line--done' : ''}`} />
             )}
           </div>
@@ -166,7 +166,7 @@ function Stepper({ current }: { current: number }) {
   );
 }
 
-/* ─── Step 1: Identificação (Nome + URL) ─────────────────── */
+/* ─── Step 1: Identificação ──────────────────────────────────────────── */
 function StepIdentificacao({
   nome, url, onNome, onUrl,
 }: {
@@ -231,7 +231,7 @@ function StepIdentificacao({
   );
 }
 
-/* ─── Step 2: Tipo ───────────────────────────────────────── */
+/* ─── Step 2: Tipo ────────────────────────────────────────────────────── */
 function StepTipo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div className="np-step">
@@ -270,7 +270,22 @@ function StepTipo({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 }
 
-/* ─── Step 3: Fonte ──────────────────────────────────────── */
+/* ─── Step 3 (banner only): Canais ───────────────────────────────────────── */
+function StepCanais({ value, onChange }: { value: Canal[]; onChange: (v: Canal[]) => void }) {
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Árvore de canais</h2>
+        <p className="np-step__desc">Configure as seções e páginas que farão parte do portal. Você pode alterar isso depois.</p>
+      </div>
+      <div className="np-step__body">
+        <ChannelEditor value={value} onChange={onChange} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step: Fonte ─────────────────────────────────────────────────────── */
 function StepFonte({
   value, onChange, customFontFile, customFontName, onCustomFont,
 }: {
@@ -424,7 +439,7 @@ function StepFonte({
   );
 }
 
-/* ─── Step 4: Cores ──────────────────────────────────────── */
+/* ─── Step: Cores ─────────────────────────────────────────────────────── */
 function StepCores({
   primaria, secundaria, terciaria,
   onPrimaria, onSecundaria, onTerciaria,
@@ -500,7 +515,7 @@ function StepCores({
   );
 }
 
-/* ─── Dropzone (sem wrapper np-step) ─────────────────────── */
+/* ─── Dropzone ───────────────────────────────────────────────────────── */
 function Dropzone({
   preview, onFile, hint, accept, size,
 }: {
@@ -582,7 +597,7 @@ function Dropzone({
   );
 }
 
-/* ─── Step 5: Identidade (Logo + Favicon + Idioma) ───────── */
+/* ─── Step: Identidade ────────────────────────────────────────────────────── */
 function StepIdentidade({
   logoPreview, faviconPreview, idiomas,
   onLogo, onFavicon, onIdiomas,
@@ -675,7 +690,7 @@ function StepIdentidade({
   );
 }
 
-/* ─── Step 6: SEO e Analytics ────────────────────────────── */
+/* ─── Step: SEO ───────────────────────────────────────────────────────── */
 function StepSeo({
   metaTitulo, metaDescricao, analyticsId,
   onMetaTitulo, onMetaDescricao, onAnalyticsId,
@@ -741,7 +756,7 @@ function StepSeo({
   );
 }
 
-/* ─── Step 7: Email de contato ───────────────────────────── */
+/* ─── Step: Email ──────────────────────────────────────────────────────── */
 function StepEmail({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const isValid = !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -777,7 +792,7 @@ function StepEmail({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
-/* ─── Main ───────────────────────────────────────────────── */
+/* ─── Main ──────────────────────────────────────────────────────────── */
 export default function NovoPortalPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -800,7 +815,11 @@ export default function NovoPortalPage() {
     metaDescricao: '',
     analyticsId: '',
     emailContato: '',
+    canais: DEFAULT_CANAIS,
   });
+
+  const steps = getSteps(form.tipo);
+  const currentLabel = steps[step - 1]?.label ?? '';
 
   useEffect(() => {
     applyColorScale('primary', form.corPrimaria);
@@ -821,17 +840,17 @@ export default function NovoPortalPage() {
   }, []);
 
   const canProceed = () => {
-    if (step === 1) return form.nome.trim().length > 0 && form.url.trim().length > 0;
-    if (step === 2) return form.tipo !== '';
-    if (step === 5) return form.idiomas.length > 0;
-    if (step === 7) {
+    if (currentLabel === 'Identificação') return form.nome.trim().length > 0 && form.url.trim().length > 0;
+    if (currentLabel === 'Tipo') return form.tipo !== '';
+    if (currentLabel === 'Identidade') return form.idiomas.length > 0;
+    if (currentLabel === 'Email') {
       if (!form.emailContato) return true;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailContato);
     }
     return true;
   };
 
-  function next() { if (canProceed()) setStep((s) => Math.min(s + 1, STEPS.length)); }
+  function next() { if (canProceed()) setStep((s) => Math.min(s + 1, steps.length)); }
   function back() { setStep((s) => Math.max(s - 1, 1)); }
 
   function handleSubmit() {
@@ -844,10 +863,10 @@ export default function NovoPortalPage() {
         <span className="np-header__title">Novo Portal</span>
       </div>
 
-      <Stepper current={step} />
+      <Stepper steps={steps} current={step} />
 
       <div className="np-card">
-        {step === 1 && (
+        {currentLabel === 'Identificação' && (
           <StepIdentificacao
             nome={form.nome}
             url={form.url}
@@ -855,10 +874,13 @@ export default function NovoPortalPage() {
             onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
           />
         )}
-        {step === 2 && (
+        {currentLabel === 'Tipo' && (
           <StepTipo value={form.tipo} onChange={(v) => setForm((f) => ({ ...f, tipo: v }))} />
         )}
-        {step === 3 && (
+        {currentLabel === 'Canais' && (
+          <StepCanais value={form.canais} onChange={(v) => setForm((f) => ({ ...f, canais: v }))} />
+        )}
+        {currentLabel === 'Fonte' && (
           <StepFonte
             value={form.fonte}
             onChange={(v) => setForm((f) => ({ ...f, fonte: v }))}
@@ -867,7 +889,7 @@ export default function NovoPortalPage() {
             onCustomFont={(file, name) => setForm((f) => ({ ...f, customFontFile: file, customFontName: name }))}
           />
         )}
-        {step === 4 && (
+        {currentLabel === 'Cores' && (
           <StepCores
             primaria={form.corPrimaria}
             secundaria={form.corSecundaria}
@@ -877,7 +899,7 @@ export default function NovoPortalPage() {
             onTerciaria={(v) => setForm((f) => ({ ...f, corTerciaria: v }))}
           />
         )}
-        {step === 5 && (
+        {currentLabel === 'Identidade' && (
           <StepIdentidade
             logoPreview={form.logoPreview}
             faviconPreview={form.faviconPreview}
@@ -887,7 +909,7 @@ export default function NovoPortalPage() {
             onIdiomas={(v) => setForm((f) => ({ ...f, idiomas: v }))}
           />
         )}
-        {step === 6 && (
+        {currentLabel === 'SEO' && (
           <StepSeo
             metaTitulo={form.metaTitulo}
             metaDescricao={form.metaDescricao}
@@ -897,7 +919,7 @@ export default function NovoPortalPage() {
             onAnalyticsId={(v) => setForm((f) => ({ ...f, analyticsId: v }))}
           />
         )}
-        {step === 7 && (
+        {currentLabel === 'Email' && (
           <StepEmail value={form.emailContato} onChange={(v) => setForm((f) => ({ ...f, emailContato: v }))} />
         )}
 
@@ -916,7 +938,7 @@ export default function NovoPortalPage() {
             </button>
           )}
 
-          {step < STEPS.length ? (
+          {step < steps.length ? (
             <button
               className="np-btn np-btn--primary"
               type="button"

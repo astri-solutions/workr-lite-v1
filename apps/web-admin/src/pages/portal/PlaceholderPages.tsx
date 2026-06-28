@@ -15,10 +15,6 @@ export function MidiaPage() {
   return <Placeholder title="Biblioteca de Mídia" />;
 }
 
-export function CanaisPage() {
-  return <Placeholder title="Árvore de canais" />;
-}
-
 export function MateriasPage() {
   return <Placeholder title="Matérias" />;
 }
@@ -50,4 +46,3 @@ export function FaviconPage() {
 export function BannerPage() {
   return <Placeholder title="Banner" />;
 }
-

@@ -15,9 +15,9 @@ import AnalyticsPage from './pages/admin/AnalyticsPage';
 import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
 import DocumentosPage from './pages/portal/DocumentosPage';
 import InformacoesPortalPage from './pages/portal/InformacoesPortalPage';
+import CanaisPage from './pages/portal/CanaisPage';
 import {
   MidiaPage,
-  CanaisPage,
   MateriasPage,
   InteracoesPage,
   LayoutPage,
