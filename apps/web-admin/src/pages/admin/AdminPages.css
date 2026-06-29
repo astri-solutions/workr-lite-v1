@@ -16,7 +16,7 @@
   background: var(--color-primary-500);
   color: #fff;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: var(--text-base);
   font-weight: var(--font-semibold);

@@ -67,6 +67,48 @@
   flex-shrink: 0;
 }
 
+/* ── Locale tab bar ──────────────────────────────── */
+.nm-locale-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 var(--space-5);
+  background: #fff;
+  border-bottom: 1px solid var(--color-gray-200);
+  flex-shrink: 0;
+}
+
+.nm-locale-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px var(--space-4);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-gray-500);
+  transition: color 0.12s, border-color 0.12s;
+  margin-bottom: -1px;
+}
+
+.nm-locale-tab:hover {
+  color: var(--color-gray-800);
+}
+
+.nm-locale-tab--active {
+  color: var(--color-primary-600);
+  border-bottom-color: var(--color-primary-500);
+}
+
+.nm-locale-tab__flag {
+  font-size: 15px;
+  line-height: 1;
+}
+
 /* ── Body: 3-column layout ───────────────────────── */
 .nm-body {
   flex: 1;
@@ -363,6 +405,16 @@
 .sec-cols--2 { grid-template-columns: 1fr 1fr; }
 .sec-cols--3 { grid-template-columns: 1fr 1fr 1fr; }
 
+.sec-image-container {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.sec-image-full {
+  margin: 0 calc(-1 * var(--space-4));
+}
+
 /* Add section inline */
 .nm-add-inline {
   display: flex;
@@ -455,50 +507,6 @@
   border-color: var(--color-primary-400);
 }
 
-/* Locales */
-.nm-locales {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.nm-locale-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px var(--space-3);
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  background: none;
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--color-gray-600);
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
-}
-
-.nm-locale-btn:hover {
-  border-color: var(--color-primary-400);
-  color: var(--color-primary-600);
-}
-
-.nm-locale-btn--active {
-  border-color: var(--color-primary-500);
-  background: var(--color-primary-50, #e8f5f7);
-  color: var(--color-primary-700);
-}
-
-.nm-locale-btn__flag { font-size: 14px; line-height: 1; }
-.nm-locale-btn__label { font-size: var(--text-xs); }
-
-.nm-locale-note {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  color: var(--color-gray-400);
-  margin: 0;
-  font-style: italic;
-}
 
 /* ── Rich text editor ────────────────────────────── */
 .rte {

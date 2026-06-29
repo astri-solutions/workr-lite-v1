@@ -5,7 +5,7 @@ import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
-type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col';
+type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full';
 type PublishStatus = 'draft' | 'published' | 'scheduled';
 
 interface ContentSection {
@@ -69,6 +69,30 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; icon: Reac
       </svg>
     ),
   },
+  {
+    type: 'image',
+    label: 'Imagem',
+    desc: 'Imagem centralizada dentro do container.',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="5" width="18" height="14" rx="1"/>
+        <circle cx="8.5" cy="10.5" r="1.5"/>
+        <polyline points="21 16 16 11 9 18"/>
+      </svg>
+    ),
+  },
+  {
+    type: 'image-full',
+    label: 'Imagem full width',
+    desc: 'Imagem de borda a borda, sem container.',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="0" y="5" width="24" height="14" rx="0"/>
+        <circle cx="8.5" cy="10.5" r="1.5"/>
+        <polyline points="24 16 18 11 11 18"/>
+      </svg>
+    ),
+  },
 ];
 
 const SECTION_LABEL: Record<SectionType, string> = {
@@ -77,6 +101,8 @@ const SECTION_LABEL: Record<SectionType, string> = {
   'bg-image': 'Fundo com texto',
   'two-col': 'Duas colunas',
   'three-col': 'Três colunas',
+  image: 'Imagem',
+  'image-full': 'Imagem full width',
 };
 
 const LOCALES = [
@@ -245,6 +271,18 @@ function SectionEditor({ section, index, onRemove }: {
             <RichTextEditor placeholder="Coluna 3..." />
           </div>
         )}
+
+        {section.type === 'image' && (
+          <div className="sec-image-container">
+            <ImageUpload label="Imagem" ratio="16/9" />
+          </div>
+        )}
+
+        {section.type === 'image-full' && (
+          <div className="sec-image-full">
+            <ImageUpload label="Imagem full width" ratio="21/6" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -363,6 +401,21 @@ export default function NovaMateriaPage() {
         </div>
       </div>
 
+      {/* ── Locale tab bar ── */}
+      <div className="nm-locale-bar">
+        {LOCALES.map((l) => (
+          <button
+            key={l.code}
+            type="button"
+            className={`nm-locale-tab${locale === l.code ? ' nm-locale-tab--active' : ''}`}
+            onClick={() => setLocale(l.code)}
+          >
+            <span className="nm-locale-tab__flag">{l.flag}</span>
+            {l.label}
+          </button>
+        ))}
+      </div>
+
       {/* ── Body: 3 columns ── */}
       <div className="nm-body">
         {/* Left: sections list */}
@@ -448,30 +501,6 @@ export default function NovaMateriaPage() {
 
         {/* Right: meta */}
         <aside className="nm-meta-panel">
-          {/* Locales */}
-          <div className="nm-meta-block">
-            <p className="nm-meta-block__title">Idiomas</p>
-            <div className="nm-locales">
-              {LOCALES.map((l) => (
-                <button
-                  key={l.code}
-                  type="button"
-                  className={`nm-locale-btn${locale === l.code ? ' nm-locale-btn--active' : ''}`}
-                  onClick={() => setLocale(l.code)}
-                  title={l.label}
-                >
-                  <span className="nm-locale-btn__flag">{l.flag}</span>
-                  <span className="nm-locale-btn__label">{l.label}</span>
-                </button>
-              ))}
-            </div>
-            {locale !== 'pt-BR' && (
-              <p className="nm-locale-note">
-                Editando conteúdo em {LOCALES.find((l) => l.code === locale)?.label}.
-              </p>
-            )}
-          </div>
-
           {/* Publish */}
           <div className="nm-meta-block">
             <p className="nm-meta-block__title">Publicação</p>
