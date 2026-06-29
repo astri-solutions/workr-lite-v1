@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useBlocker } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import { Canal, SubCanal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
@@ -22,6 +23,11 @@ export default function CanaisPage() {
   const [isDirty, setIsDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [editModal, setEditModal] = useState<EditState | null>(null);
+
+  // Block in-app navigation when there are unsaved changes
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    isDirty && currentLocation.pathname !== nextLocation.pathname
+  );
 
   // Block browser refresh / tab close
   useEffect(() => {
@@ -242,6 +248,26 @@ export default function CanaisPage() {
           Adicionar novo canal
         </button>
       </div>
+
+      {/* Unsaved changes blocker modal */}
+      {blocker.state === 'blocked' && (
+        <Modal
+          open
+          onClose={() => blocker.reset?.()}
+          title="Alterações não salvas"
+          size="sm"
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+              <button className="btn-action btn-action--secondary" type="button" onClick={() => blocker.reset?.()}>Continuar editando</button>
+              <button className="btn-action btn-action--danger" type="button" onClick={() => blocker.proceed?.()}>Sair sem salvar</button>
+            </div>
+          }
+        >
+          <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>
+            Você tem alterações que não foram salvas. Se sair agora, as alterações serão perdidas.
+          </p>
+        </Modal>
+      )}
 
       {/* Edit modal */}
       {editModal && (

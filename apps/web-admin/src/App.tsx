@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -35,61 +35,60 @@ function RootRedirect() {
   return <Navigate to="/portal" replace />;
 }
 
+const router = createBrowserRouter([
+  { path: '/', element: <RootRedirect /> },
+  { path: '/login', element: <LoginPage /> },
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute requiredRole="super_admin">
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/admin/portais" replace /> },
+      { path: 'portais', element: <PortaisPage /> },
+      { path: 'portais/novo', element: <NovoPortalPage /> },
+      { path: 'usuarios', element: <UsuariosPage /> },
+      { path: 'auto-cvm', element: <AutoCvmPage /> },
+      { path: 'informacoes', element: <InformacoesPage /> },
+      { path: 'portais/:siteId/painel', element: <PainelControlePage /> },
+      { path: 'portais/:siteId/analytics', element: <AnalyticsPage /> },
+    ],
+  },
+  {
+    path: '/portal',
+    element: (
+      <ProtectedRoute requiredRole="client_user">
+        <ClientLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Navigate to="/portal/central-de-resultados" replace /> },
+      { path: 'empresas', element: <EmpresasPage /> },
+      { path: 'usuarios-portal', element: <UsuariosPortalPage /> },
+      { path: 'central-de-resultados', element: <CentralDeResultadosPage /> },
+      { path: 'documentos', element: <DocumentosPage /> },
+      { path: 'midia', element: <MidiaPage /> },
+      { path: 'canais', element: <CanaisPage /> },
+      { path: 'materias', element: <MateriasPage /> },
+      { path: 'interacoes', element: <InteracoesPage /> },
+      { path: 'layout', element: <LayoutPage /> },
+      { path: 'cores', element: <CoresPage /> },
+      { path: 'fontes', element: <FontesPage /> },
+      { path: 'logotipo', element: <LogotipoPage /> },
+      { path: 'favicon', element: <FaviconPage /> },
+      { path: 'banner', element: <BannerPage /> },
+      { path: 'informacoes', element: <InformacoesPortalPage /> },
+    ],
+  },
+  { path: '*', element: <Navigate to="/" replace /> },
+]);
+
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<LoginPage />} />
-
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requiredRole="super_admin">
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/admin/portais" replace />} />
-            <Route path="portais" element={<PortaisPage />} />
-            <Route path="portais/novo" element={<NovoPortalPage />} />
-            <Route path="usuarios" element={<UsuariosPage />} />
-            <Route path="auto-cvm" element={<AutoCvmPage />} />
-            <Route path="informacoes" element={<InformacoesPage />} />
-            <Route path="portais/:siteId/painel" element={<PainelControlePage />} />
-            <Route path="portais/:siteId/analytics" element={<AnalyticsPage />} />
-          </Route>
-
-          <Route
-            path="/portal"
-            element={
-              <ProtectedRoute requiredRole="client_user">
-                <ClientLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/portal/central-de-resultados" replace />} />
-            <Route path="empresas" element={<EmpresasPage />} />
-            <Route path="usuarios-portal" element={<UsuariosPortalPage />} />
-            <Route path="central-de-resultados" element={<CentralDeResultadosPage />} />
-            <Route path="documentos" element={<DocumentosPage />} />
-            <Route path="midia" element={<MidiaPage />} />
-            <Route path="canais" element={<CanaisPage />} />
-            <Route path="materias" element={<MateriasPage />} />
-            <Route path="interacoes" element={<InteracoesPage />} />
-            <Route path="layout" element={<LayoutPage />} />
-            <Route path="cores" element={<CoresPage />} />
-            <Route path="fontes" element={<FontesPage />} />
-            <Route path="logotipo" element={<LogotipoPage />} />
-            <Route path="favicon" element={<FaviconPage />} />
-            <Route path="banner" element={<BannerPage />} />
-            <Route path="informacoes" element={<InformacoesPortalPage />} />
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </AuthProvider>
   );
 }
