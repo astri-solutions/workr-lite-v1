@@ -3,7 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY } from '../../components/ChannelEditor';
+import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -11,12 +11,122 @@ function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+const PAGE_TYPES = [
+  {
+    id: 'show',
+    label: 'Show',
+    desc: 'Conteúdos variados: texto, imagem, tabelas e listas.',
+    thumb: (
+      <svg width="100%" height="56" viewBox="0 0 160 56" fill="none">
+        <rect x="2" y="2" width="156" height="12" rx="2" fill="#c8d2db"/>
+        <rect x="2" y="18" width="156" height="4" rx="1" fill="#e8edf2"/>
+        <rect x="2" y="26" width="120" height="4" rx="1" fill="#e8edf2"/>
+        <rect x="2" y="34" width="68" height="14" rx="2" fill="#eef1f5"/>
+        <rect x="74" y="34" width="84" height="14" rx="2" fill="#eef1f5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'lista',
+    label: 'Lista',
+    desc: 'Lista de documentos com filtro por ano.',
+    thumb: (
+      <svg width="100%" height="56" viewBox="0 0 160 56" fill="none">
+        <rect x="2" y="2" width="50" height="8" rx="2" fill="#e8edf2"/>
+        <rect x="56" y="2" width="50" height="8" rx="2" fill="#e8edf2"/>
+        <rect x="2" y="14" width="156" height="1" fill="#dde3ea"/>
+        <rect x="2" y="19" width="130" height="6" rx="1" fill="#eef1f5"/>
+        <rect x="2" y="29" width="130" height="6" rx="1" fill="#eef1f5"/>
+        <rect x="2" y="39" width="130" height="6" rx="1" fill="#eef1f5"/>
+        <rect x="2" y="49" width="100" height="6" rx="1" fill="#eef1f5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'lista-agrupada',
+    label: 'Lista Agrupada',
+    desc: 'Documentos organizados por seção ou accordion.',
+    thumb: (
+      <svg width="100%" height="56" viewBox="0 0 160 56" fill="none">
+        <rect x="2" y="2" width="156" height="12" rx="2" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
+        <rect x="6" y="6" width="60" height="4" rx="1" fill="#c8d2db"/>
+        <rect x="2" y="18" width="156" height="12" rx="2" fill="#f5f7fa" stroke="#dde3ea" strokeWidth="1"/>
+        <rect x="6" y="22" width="50" height="4" rx="1" fill="#dde3ea"/>
+        <rect x="6" y="34" width="130" height="4" rx="1" fill="#e8edf2"/>
+        <rect x="6" y="42" width="100" height="4" rx="1" fill="#e8edf2"/>
+        <rect x="6" y="50" width="120" height="4" rx="1" fill="#e8edf2"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'tabela',
+    label: 'Tabela',
+    desc: 'Dados estruturados em linhas e colunas.',
+    thumb: (
+      <svg width="100%" height="56" viewBox="0 0 160 56" fill="none">
+        <rect x="2" y="2" width="156" height="10" rx="2" fill="#c8d2db"/>
+        <rect x="2" y="14" width="156" height="1" fill="#dde3ea"/>
+        <rect x="2" y="18" width="52" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="56" y="18" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="108" y="18" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="2" y="27" width="52" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="56" y="27" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="108" y="27" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="2" y="36" width="52" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="56" y="36" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="108" y="36" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="2" y="45" width="52" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="56" y="45" width="50" height="7" rx="1" fill="#eef1f5"/>
+        <rect x="108" y="45" width="50" height="7" rx="1" fill="#eef1f5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'blog',
+    label: 'Blog',
+    desc: 'Artigos e matérias com capa, título e resumo.',
+    thumb: (
+      <svg width="100%" height="56" viewBox="0 0 160 56" fill="none">
+        <rect x="2" y="2" width="74" height="36" rx="2" fill="#e8edf2"/>
+        <rect x="2" y="42" width="50" height="5" rx="1" fill="#c8d2db"/>
+        <rect x="2" y="50" width="74" height="4" rx="1" fill="#eef1f5"/>
+        <rect x="84" y="2" width="74" height="36" rx="2" fill="#e8edf2"/>
+        <rect x="84" y="42" width="50" height="5" rx="1" fill="#c8d2db"/>
+        <rect x="84" y="50" width="74" height="4" rx="1" fill="#eef1f5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'galeria',
+    label: 'Galeria',
+    desc: 'Imagens, vídeos e apresentações em cards.',
+    thumb: (
+      <svg width="100%" height="56" viewBox="0 0 160 56" fill="none">
+        <rect x="2" y="2" width="48" height="36" rx="2" fill="#e8edf2"/>
+        <circle cx="14" cy="14" r="4" fill="#c8d2db"/>
+        <polyline points="2,38 18,22 30,32 38,26 50,38" stroke="#c8d2db" strokeWidth="1.5" fill="none"/>
+        <rect x="56" y="2" width="48" height="36" rx="2" fill="#e8edf2"/>
+        <circle cx="68" cy="14" r="4" fill="#c8d2db"/>
+        <polyline points="56,38 72,22 84,32 92,26 104,38" stroke="#c8d2db" strokeWidth="1.5" fill="none"/>
+        <rect x="110" y="2" width="48" height="36" rx="2" fill="#e8edf2"/>
+        <circle cx="122" cy="14" r="4" fill="#c8d2db"/>
+        <polyline points="110,38 126,22 138,32 146,26 158,38" stroke="#c8d2db" strokeWidth="1.5" fill="none"/>
+        <rect x="2" y="42" width="48" height="5" rx="1" fill="#dde3ea"/>
+        <rect x="56" y="42" width="48" height="5" rx="1" fill="#dde3ea"/>
+        <rect x="110" y="42" width="48" height="5" rx="1" fill="#dde3ea"/>
+      </svg>
+    ),
+  },
+];
+
 interface EditState {
   canalId: string;
   subId: string;
   label: string;
   href: string;
   targetCanalId: string;
+  pageType: PageType;
+  listaAgrupadaStyle: ListaAgrupadaStyle;
 }
 
 export default function CanaisPage() {
@@ -103,25 +213,35 @@ export default function CanaisPage() {
   }
 
   function openEdit(cid: string, sub: SubCanal) {
-    setEditModal({ canalId: cid, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid });
+    setEditModal({
+      canalId: cid, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
+      pageType: sub.pageType ?? 'show',
+      listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
+    });
   }
 
   function commitEdit() {
     if (!editModal) return;
-    const { canalId, subId, label, href, targetCanalId } = editModal;
+    const { canalId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle } = editModal;
     setCanais(prev => {
-      // find sub
       let movingSub: SubCanal | null = null;
       const without = prev.map(c => {
         if (c.id !== canalId) return c;
         const sub = c.children.find(s => s.id === subId);
-        if (sub) movingSub = { ...sub, label: label.trim() || sub.label, href: href.trim() || sub.href };
+        if (sub) movingSub = {
+          ...sub,
+          label: label.trim() || sub.label,
+          href: href.trim() || sub.href,
+          pageType,
+          listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
+        };
         return { ...c, children: c.children.filter(s => s.id !== subId) };
       });
       if (!movingSub) return prev;
       const ms = movingSub as SubCanal;
       return without.map(c => c.id !== targetCanalId ? c : { ...c, children: [...c.children, ms] });
     });
+    setIsDirty(true);
     setEditModal(null);
   }
 
@@ -260,7 +380,7 @@ export default function CanaisPage() {
           open
           onClose={() => setEditModal(null)}
           title="Editar página"
-          size="sm"
+          size="lg"
           footer={
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
               <button className="btn-action btn-action--secondary" type="button" onClick={() => setEditModal(null)}>Cancelar</button>
@@ -269,35 +389,103 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
-            <label className="canais-edit-form__label">
-              Nome da página
-              <input
-                className="canais-edit-form__input"
-                type="text"
-                value={editModal.label}
-                onChange={e => setEditModal(m => m ? { ...m, label: e.target.value } : m)}
-                autoFocus
-              />
-            </label>
-            <label className="canais-edit-form__label">
-              URL (slug)
-              <input
-                className="canais-edit-form__input"
-                type="text"
-                value={editModal.href}
-                onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)}
-              />
-            </label>
-            <label className="canais-edit-form__label">
-              Mover para seção
-              <select
-                className="canais-edit-form__input filter-select"
-                value={editModal.targetCanalId}
-                onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
-              >
-                {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </label>
+            <div className="canais-edit-row">
+              <label className="canais-edit-form__label">
+                Nome da página
+                <input
+                  className="canais-edit-form__input"
+                  type="text"
+                  value={editModal.label}
+                  onChange={e => setEditModal(m => m ? { ...m, label: e.target.value } : m)}
+                  autoFocus
+                />
+              </label>
+              <label className="canais-edit-form__label">
+                URL (slug)
+                <input
+                  className="canais-edit-form__input"
+                  type="text"
+                  value={editModal.href}
+                  onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)}
+                />
+              </label>
+              <label className="canais-edit-form__label">
+                Mover para seção
+                <select
+                  className="canais-edit-form__input filter-select"
+                  value={editModal.targetCanalId}
+                  onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
+                >
+                  {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </label>
+            </div>
+
+            <div className="canais-edit-divider" />
+
+            <p className="canais-edit-section-title">Tipo de página</p>
+            <div className="canais-page-types">
+              {PAGE_TYPES.map(pt => (
+                <button
+                  key={pt.id}
+                  type="button"
+                  className={`canais-page-type${editModal.pageType === pt.id ? ' canais-page-type--active' : ''}`}
+                  onClick={() => setEditModal(m => m ? { ...m, pageType: pt.id as PageType } : m)}
+                >
+                  <div className="canais-page-type__thumb">{pt.thumb}</div>
+                  <span className="canais-page-type__label">{pt.label}</span>
+                  <span className="canais-page-type__desc">{pt.desc}</span>
+                  {editModal.pageType === pt.id && (
+                    <span className="canais-page-type__check">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {editModal.pageType === 'lista-agrupada' && (
+              <div className="canais-agrupada-opts">
+                <p className="canais-edit-section-title" style={{ marginBottom: 'var(--space-3)' }}>Estilo de agrupamento</p>
+                <div className="canais-agrupada-grid">
+                  <button
+                    type="button"
+                    className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === 'accordion' ? ' canais-agrupada-opt--active' : ''}`}
+                    onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: 'accordion' } : m)}
+                  >
+                    <svg width="100%" height="72" viewBox="0 0 200 72" fill="none">
+                      <rect x="1" y="1" width="198" height="20" rx="3" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
+                      <path d="M186 10l-4 5-4-5" stroke="#6F6F6F" strokeWidth="1.5" fill="none"/>
+                      <rect x="6" y="6" width="60" height="8" rx="2" fill="#c8d2db"/>
+                      <rect x="1" y="25" width="198" height="20" rx="3" fill="#f5f7fa" stroke="#dde3ea" strokeWidth="1"/>
+                      <path d="M186 35l4-5 4 5" stroke="#6F6F6F" strokeWidth="1.5" fill="none"/>
+                      <rect x="6" y="30" width="50" height="8" rx="2" fill="#dde3ea"/>
+                      <rect x="8" y="49" width="140" height="5" rx="1" fill="#e8edf2"/>
+                      <rect x="8" y="58" width="100" height="5" rx="1" fill="#e8edf2"/>
+                    </svg>
+                    <span>Accordion</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === 'secao' ? ' canais-agrupada-opt--active' : ''}`}
+                    onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: 'secao' } : m)}
+                  >
+                    <svg width="100%" height="72" viewBox="0 0 200 72" fill="none">
+                      <rect x="6" y="2" width="80" height="10" rx="2" fill="#c8d2db"/>
+                      <rect x="1" y="16" width="198" height="1" fill="#dde3ea"/>
+                      <rect x="6" y="22" width="140" height="5" rx="1" fill="#e8edf2"/>
+                      <rect x="6" y="31" width="100" height="5" rx="1" fill="#e8edf2"/>
+                      <rect x="6" y="42" width="70" height="10" rx="2" fill="#c8d2db"/>
+                      <rect x="1" y="56" width="198" height="1" fill="#dde3ea"/>
+                      <rect x="6" y="62" width="140" height="5" rx="1" fill="#e8edf2"/>
+                    </svg>
+                    <span>Seção com subtítulo</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </Modal>
       )}
