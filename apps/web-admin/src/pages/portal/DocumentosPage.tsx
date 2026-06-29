@@ -374,11 +374,11 @@ export default function DocumentosPage() {
         </div>
 
         <div className="docs-filterbar__right">
-          <button type="button" className="docs-btn-outline">Despublicar</button>
-          <button type="button" className="docs-btn-outline docs-btn-outline--success">Publicar</button>
+          <button type="button" className="btn-toolbar">Despublicar</button>
+          <button type="button" className="btn-toolbar btn-toolbar--success">Publicar</button>
           <button
             type="button"
-            className="docs-btn-outline docs-btn-outline--danger"
+            className="btn-toolbar btn-toolbar--danger"
             disabled={selected.size === 0}
             onClick={() => setDeleteModalOpen(true)}
           >

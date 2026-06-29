@@ -337,6 +337,40 @@ td:has(.table-actions) {
 }
 .btn-action--publish:hover { background: var(--color-primary-50, #e8f5f7); }
 
+/* ─── Toolbar outline buttons (Despublicar / Publicar / Excluir em massa) ── */
+.btn-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px var(--space-4);
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-toolbar:hover {
+  border-color: var(--color-gray-500);
+  color: var(--color-gray-900);
+}
+.btn-toolbar--success {
+  border-color: var(--color-success-500);
+  color: var(--color-success-600);
+}
+.btn-toolbar--success:hover { background: var(--color-success-50); }
+
+.btn-toolbar--danger {
+  border-color: var(--color-error-400);
+  color: var(--color-error-500);
+}
+.btn-toolbar--danger:hover:not(:disabled) { background: var(--color-error-50); }
+.btn-toolbar--danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ─── Table empty state ──────────────────────────────────── */
 .table-empty {
   text-align: center;

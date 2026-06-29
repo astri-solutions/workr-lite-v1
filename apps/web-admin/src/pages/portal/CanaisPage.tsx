@@ -301,18 +301,18 @@ export default function CanaisPage() {
                 <button className="ce-icon-btn" type="button" title="Mover seção para baixo" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
                   <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_more</span>
                 </button>
-                <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>
+                <button className="btn-toolbar" type="button" onClick={() => openCanalEdit(canal)}>
                   <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit</span>
                   Editar canal
                 </button>
                 <button
-                  className={`btn-action ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
+                  className={`btn-toolbar ${canal.enabled ? '' : 'btn-toolbar--success'}`}
                   type="button"
                   onClick={() => toggleCanal(canal.id)}
                 >
                   {canal.enabled ? 'Despublicar' : 'Publicar'}
                 </button>
-                <button className="btn-action btn-action--danger" type="button" onClick={() => removeCanal(canal.id)}>
+                <button className="btn-toolbar btn-toolbar--danger" type="button" onClick={() => removeCanal(canal.id)}>
                   Excluir
                 </button>
               </div>

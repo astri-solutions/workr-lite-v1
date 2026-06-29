@@ -217,9 +217,9 @@ export default function CentralDeResultadosPage() {
           </div>
         </div>
         <div className="toolbar__actions">
-          <button className="btn-action btn-action--secondary" type="button">Despublicar</button>
-          <button className="btn-action btn-action--publish" type="button">Publicar</button>
-          <button className="btn-action btn-action--danger" type="button">Excluir</button>
+          <button className="btn-toolbar" type="button">Despublicar</button>
+          <button className="btn-toolbar btn-toolbar--success" type="button">Publicar</button>
+          <button className="btn-toolbar btn-toolbar--danger" type="button">Excluir</button>
           <span className="toolbar__count">{currentQuarters.length} resultado{currentQuarters.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
