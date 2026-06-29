@@ -371,9 +371,12 @@
 /* ─── Step: new password ─────────────────────────── */
 .rec-pass-wrap {
   position: relative;
+  width: 100%;
 }
 .rec-pass-wrap .login-input {
   padding-right: 44px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .rec-pass-eye {
   position: absolute;
