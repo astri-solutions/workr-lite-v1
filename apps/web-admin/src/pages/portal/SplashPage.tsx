@@ -18,6 +18,7 @@ interface SplashConfig {
   titulo: string;
   texto: string;
   conteudo: string;
+  legenda: string;
   buttons: SplashBtn[];
 }
 
@@ -100,6 +101,7 @@ export default function SplashPage() {
     titulo: '',
     texto: '',
     conteudo: '',
+    legenda: '',
     buttons: [],
   });
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -136,7 +138,7 @@ export default function SplashPage() {
         description="Configure o modal que aparece ao entrar no site. Ideal para comunicados urgentes ou avisos importantes."
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-            <button type="button" className="btn-action btn-action--secondary" onClick={() => setPreviewOpen(true)}>
+            <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
               Pré-visualizar
             </button>
@@ -249,6 +251,14 @@ export default function SplashPage() {
               <textarea className="splash-field__input splash-field__textarea" rows={5}
                 placeholder="Corpo do comunicado, instruções ou informações detalhadas..."
                 value={config.conteudo} onChange={e => patch('conteudo', e.target.value)} />
+            </div>
+
+            {/* Legenda */}
+            <div className="splash-field">
+              <label className="splash-field__label">Legenda <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}>(opcional)</span></label>
+              <input className="splash-field__input" type="text"
+                placeholder="Ex: contato@empresa.com.br · Av. Paulista, 1000 — São Paulo"
+                value={config.legenda} onChange={e => patch('legenda', e.target.value)} />
             </div>
           </div>
 
@@ -370,6 +380,7 @@ export default function SplashPage() {
               <h2 className="splash-fullpreview__title">{config.titulo || 'Título do comunicado'}</h2>
               {config.texto && <p className="splash-fullpreview__lead">{config.texto}</p>}
               {config.conteudo && <p className="splash-fullpreview__content">{config.conteudo}</p>}
+              {config.legenda && <p className="splash-fullpreview__legenda">{config.legenda}</p>}
               {config.buttons.length > 0 && (
                 <div className="splash-fullpreview__btns">
                   {config.buttons.map((b, i) => (

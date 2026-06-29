@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import '../admin/AdminPages.css';
@@ -23,10 +23,16 @@ const STATUS_LABEL: Record<EventStatus, string> = { publicado: 'Publicado', rasc
 const STATUS_BADGE: Record<EventStatus, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
 
 const INITIAL: CalEvent[] = [
+  // upcoming
   { id: 'e1', titulo: 'Divulgação de resultados do 2T26', data: '2026-08-04', hora: '08:00', local: 'São Paulo (remoto)', tipo: 'Divulgação de Resultados', status: 'publicado', exibirHome: true },
   { id: 'e2', titulo: 'Conference Call do 2T26', data: '2026-08-05', hora: '10:00', local: 'São Paulo (remoto)', tipo: 'Conference Call', status: 'publicado', exibirHome: true },
   { id: 'e3', titulo: 'Divulgação de resultados do 3T26', data: '2026-11-10', hora: '08:00', local: 'São Paulo (remoto)', tipo: 'Divulgação de Resultados', status: 'agendado', exibirHome: false },
   { id: 'e4', titulo: 'Assembleia Geral Ordinária 2027', data: '2027-04-15', hora: '14:00', local: 'São Paulo — Sede IMC', tipo: 'Assembleia', status: 'rascunho', exibirHome: false },
+  // past
+  { id: 'e5', titulo: 'Divulgação de resultados do 1T26', data: '2026-05-06', hora: '08:00', local: 'São Paulo (remoto)', tipo: 'Divulgação de Resultados', status: 'publicado', exibirHome: false },
+  { id: 'e6', titulo: 'Conference Call do 1T26', data: '2026-05-07', hora: '10:00', local: 'São Paulo (remoto)', tipo: 'Conference Call', status: 'publicado', exibirHome: false },
+  { id: 'e7', titulo: 'Assembleia Geral Ordinária 2026', data: '2026-04-10', hora: '14:00', local: 'São Paulo — Sede IMC', tipo: 'Assembleia', status: 'publicado', exibirHome: false },
+  { id: 'e8', titulo: 'Road Show — Europa', data: '2026-03-18', hora: '09:00', local: 'Londres / Paris', tipo: 'Road Show', status: 'publicado', exibirHome: false },
 ];
 
 function formatDate(iso: string) {
@@ -48,13 +54,22 @@ export default function CalendarioPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
+  const [pastOpen, setPastOpen] = useState(false);
 
-  const filtered = events.filter(e => {
-    if (search && !e.titulo.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterStatus && e.status !== filterStatus) return false;
-    if (filterTipo && e.tipo !== filterTipo) return false;
-    return true;
-  });
+  const TODAY = '2026-06-29';
+
+  const { upcoming, past } = useMemo(() => {
+    const all = events.filter(e => {
+      if (search && !e.titulo.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterStatus && e.status !== filterStatus) return false;
+      if (filterTipo && e.tipo !== filterTipo) return false;
+      return true;
+    });
+    return {
+      upcoming: all.filter(e => e.data >= TODAY).sort((a, b) => a.data.localeCompare(b.data)),
+      past: all.filter(e => e.data < TODAY).sort((a, b) => b.data.localeCompare(a.data)),
+    };
+  }, [events, search, filterStatus, filterTipo]);
 
   function openNew() {
     setEditingId(null);
@@ -127,7 +142,8 @@ export default function CalendarioPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Upcoming events table */}
+      <p className="cal-section-heading">Próximos eventos</p>
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -142,9 +158,9 @@ export default function CalendarioPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {upcoming.length === 0 ? (
               <tr><td colSpan={7} className="table-empty">Nenhum evento encontrado.</td></tr>
-            ) : filtered.map(e => (
+            ) : upcoming.map(e => (
               <tr key={e.id}>
                 <td className="table-cell--bold">{e.titulo}</td>
                 <td className="table-cell--muted">{formatDate(e.data)}</td>
@@ -152,15 +168,9 @@ export default function CalendarioPage() {
                 <td className="table-cell--muted">{e.tipo}</td>
                 <td><span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span></td>
                 <td>
-                  <button
-                    type="button"
-                    className={`cal-home-toggle${e.exibirHome ? ' cal-home-toggle--on' : ''}`}
-                    onClick={() => toggleHome(e.id)}
-                    title={e.exibirHome ? 'Remover da home' : 'Exibir na home'}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                      {e.exibirHome ? 'home' : 'home'}
-                    </span>
+                  <button type="button" className={`cal-home-toggle${e.exibirHome ? ' cal-home-toggle--on' : ''}`}
+                    onClick={() => toggleHome(e.id)} title={e.exibirHome ? 'Remover da home' : 'Exibir na home'}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
                     {e.exibirHome ? 'Na home' : 'Oculto'}
                   </button>
                 </td>
@@ -175,6 +185,54 @@ export default function CalendarioPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Past events — collapsible */}
+      <button type="button" className="cal-past-toggle" onClick={() => setPastOpen(o => !o)}>
+        <span className="cal-past-toggle__label">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>history</span>
+          Eventos realizados
+          <span className="cal-past-toggle__count">{past.length}</span>
+        </span>
+        <span className="material-symbols-outlined cal-past-toggle__chevron" style={{ fontSize: '18px', transform: pastOpen ? 'rotate(180deg)' : 'none' }}>
+          expand_more
+        </span>
+      </button>
+
+      {pastOpen && (
+        <div className="table-wrapper">
+          <table className="data-table cal-past-table">
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {past.length === 0 ? (
+                <tr><td colSpan={6} className="table-empty">Nenhum evento realizado.</td></tr>
+              ) : past.map(e => (
+                <tr key={e.id} className="cal-past-row">
+                  <td className="table-cell--bold">{e.titulo}</td>
+                  <td className="table-cell--muted">{formatDate(e.data)}</td>
+                  <td className="table-cell--muted">{e.hora}</td>
+                  <td className="table-cell--muted">{e.tipo}</td>
+                  <td><span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span></td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Create / Edit modal */}
       <Modal
