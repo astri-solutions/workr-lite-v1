@@ -282,13 +282,15 @@ td:has(.table-actions) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   cursor: pointer;
   transition: all 0.15s;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .btn-action--enter {
