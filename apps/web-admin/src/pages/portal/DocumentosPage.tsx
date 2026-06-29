@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
+import PageHeader from '../../components/PageHeader';
+import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
 interface Entity {
@@ -197,8 +199,13 @@ export default function DocumentosPage() {
 
   return (
     <div className="page docs-page">
-      {/* Header */}
-      <h1 className="docs-page__title">Documentos</h1>
+      <PageHeader
+        title="Documentos"
+        description="Gerencie os documentos publicados no portal de Relações com Investidores."
+        action={
+          <button type="button" className="btn-primary">+ Novo documento</button>
+        }
+      />
 
       {/* Entity selector */}
       <div className="docs-entities">
@@ -261,7 +268,6 @@ export default function DocumentosPage() {
         </div>
 
         <div className="docs-filterbar__right">
-          <button type="button" className="btn-primary">+ Novo documento</button>
           <button type="button" className="docs-btn-outline">Despublicar</button>
           <button type="button" className="docs-btn-outline docs-btn-outline--success">Publicar</button>
           <button
