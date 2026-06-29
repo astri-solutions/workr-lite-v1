@@ -599,17 +599,17 @@ export default function DocumentosPage() {
         title="Excluir documentos"
         size="sm"
         footer={
-          <div className="cdr-modal-footer">
+          <div className="modal-footer">
             <button
               type="button"
-              className="cdr-modal-footer__cancel"
+              className="btn-outline"
               onClick={() => setDeleteModalOpen(false)}
             >
               Cancelar
             </button>
             <button
               type="button"
-              className="docs-btn-confirm-delete"
+              className="btn-action btn-action--danger"
               onClick={handleDelete}
             >
               Excluir

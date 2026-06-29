@@ -253,8 +253,8 @@ export default function UsuariosPortalPage() {
           invited ? (
             <button className="btn-primary" type="button" onClick={closeModal}>Fechar</button>
           ) : (
-            <div className="up-modal-footer">
-              <button className="up-modal-cancel" type="button" onClick={closeModal}>Cancelar</button>
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
               <button
                 className="btn-primary"
                 type="button"
@@ -327,9 +327,9 @@ export default function UsuariosPortalPage() {
           title="Remover usuário"
           size="sm"
           footer={
-            <div className="up-modal-footer">
-              <button className="up-modal-cancel" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
-              <button className="up-modal-danger" type="button"
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
+              <button className="btn-action btn-action--danger" type="button"
                 onClick={() => { setUsers(p => p.filter(u => u.id !== deleteTarget.id)); setDeleteTarget(null); }}>
                 Remover
               </button>

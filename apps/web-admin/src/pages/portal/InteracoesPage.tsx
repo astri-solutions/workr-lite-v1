@@ -141,8 +141,8 @@ export default function InteracoesPage() {
           title="Detalhe da interação"
           size="md"
           footer={
-            <div className="int-modal-footer">
-              <button className="int-modal-cancel" type="button" onClick={() => setSelected(null)}>Fechar</button>
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setSelected(null)}>Fechar</button>
               {selected.status !== 'respondido' && (
                 <button className="btn-primary" type="button"
                   onClick={() => { markAs(selected.id, 'respondido'); setSelected(null); }}>

@@ -271,10 +271,10 @@ export default function CentralDeResultadosPage() {
         title="Novo resultado"
         size="sm"
         footer={
-          <div className="cdr-modal-footer">
+          <div className="modal-footer">
             <button
               type="button"
-              className="cdr-modal-footer__draft"
+              className="btn-outline"
               onClick={handleSaveDraft}
               disabled={!isFormValid()}
             >

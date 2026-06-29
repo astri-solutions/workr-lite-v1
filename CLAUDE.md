@@ -102,6 +102,7 @@ Session persisted in `localStorage` (key: `workr_auth`).
 - **Filter selects**: Always use `className="filter-select"` on `<select>` elements in toolbars/filterbars. Never create page-specific filter classes (no `mat-filter`, `int-filter`, etc.). The shared rule lives in `AdminPages.css`.
 - **Toolbar pattern**: Pages with filters + bulk actions must use `<div className="toolbar">` with two children: `<div className="toolbar__filters">` (search + filter-wraps) and `<div className="toolbar__actions">` (action buttons + `<span className="toolbar__count">`). Never create page-specific toolbar classes. Defined in `AdminPages.css`.
 - **Button variants**: `btn-primary` (filled teal), `btn-outline` (white + gray border, same size as primary), `btn-action btn-action--enter` (neutral), `btn-action btn-action--publish` (teal outline), `btn-action btn-action--danger` (red), `btn-action btn-action--secondary` (gray).
+- **Modal footer pattern**: Always use `<div className="modal-footer">` for modal action rows. Never create page-specific footer classes. Renders `space-between` on desktop; stacks full-width on mobile (≤480px). Defined in `AdminPages.css`.
 
 ## Architecture notes
 

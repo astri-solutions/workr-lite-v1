@@ -176,8 +176,8 @@ export default function EmpresasPage() {
         title={editing ? 'Editar empresa' : 'Nova empresa'}
         size="sm"
         footer={
-          <div className="emp-modal-footer">
-            <button className="emp-modal-footer__cancel" type="button" onClick={closeModal}>Cancelar</button>
+          <div className="modal-footer">
+            <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
             <button className="btn-primary" type="button" onClick={handleSave} disabled={!form.nome.trim()}>
               {editing ? 'Salvar' : 'Adicionar'}
             </button>
@@ -229,9 +229,9 @@ export default function EmpresasPage() {
           title="Remover empresa"
           size="sm"
           footer={
-            <div className="emp-modal-footer">
-              <button className="emp-modal-footer__cancel" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
-              <button className="emp-modal-footer__danger" type="button" onClick={() => handleDelete(deleteTarget)}>Remover</button>
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
+              <button className="btn-action btn-action--danger" type="button" onClick={() => handleDelete(deleteTarget)}>Remover</button>
             </div>
           }
         >

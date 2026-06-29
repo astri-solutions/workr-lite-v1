@@ -65,6 +65,26 @@
   padding-left: var(--space-2);
 }
 
+/* ─── Modal footer ─────────────────────────────────────── */
+/* Use <div className="modal-footer"> for all modal action rows.
+   Buttons use space-between; on mobile they stack full-width. */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .modal-footer {
+    flex-direction: column;
+  }
+  .modal-footer > * {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .btn-outline {
   display: inline-flex;
   align-items: center;
