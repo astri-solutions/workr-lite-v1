@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import PageHeader from '../../components/PageHeader';
 import '../admin/AdminPages.css';
@@ -154,6 +154,53 @@ const MOCK_DOCS: DocRow[] = [
   },
 ];
 
+// Pages that accept document uploads (list / list-group types)
+const LIST_PAGES = [
+  { id: 'composicao', label: 'Composição Acionária', group: 'Governança' },
+  { id: 'atas', label: 'Atas e Assembleias', group: 'Governança' },
+  { id: 'docs-cvm', label: 'Documentos CVM', group: 'Governança' },
+  { id: 'resultados', label: 'Central de Resultados', group: 'Investidores' },
+  { id: 'calendario', label: 'Calendário de Eventos', group: 'Investidores' },
+  { id: 'ratings', label: 'Ratings', group: 'Investidores' },
+];
+
+const DOC_TIPOS = [
+  'Fatos Relevantes',
+  'Comunicados ao Mercado',
+  'Avisos aos Acionistas',
+  'Documentos Societários',
+  'Relatórios',
+  'Apresentações',
+  'Informações Periódicas',
+];
+
+const IDIOMAS = [
+  { code: 'PT', label: 'Português', flag: '🇧🇷' },
+  { code: 'EN', label: 'English', flag: '🇺🇸' },
+  { code: 'ES', label: 'Español', flag: '🇪🇸' },
+];
+
+interface DocForm {
+  titulo: string;
+  data: string;
+  tipo: string;
+  paginaId: string;
+  idiomas: string[];
+  scheduleEnabled: boolean;
+  scheduleDate: string;
+  scheduleTime: string;
+  file: File | null;
+  rascunho: boolean;
+}
+
+function emptyDocForm(): DocForm {
+  return {
+    titulo: '', data: '', tipo: '', paginaId: '',
+    idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
+    file: null, rascunho: false,
+  };
+}
+
 export default function DocumentosPage() {
   const [activeEntity, setActiveEntity] = useState('imc');
   const [search, setSearch] = useState('');
@@ -163,6 +210,54 @@ export default function DocumentosPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [docs, setDocs] = useState<DocRow[]>(MOCK_DOCS);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [form, setForm] = useState<DocForm>(emptyDocForm());
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function patchForm<K extends keyof DocForm>(key: K, val: DocForm[K]) {
+    setForm(f => ({ ...f, [key]: val }));
+  }
+
+  function toggleIdioma(code: string) {
+    setForm(f => ({
+      ...f,
+      idiomas: f.idiomas.includes(code) ? f.idiomas.filter(i => i !== code) : [...f.idiomas, code],
+    }));
+  }
+
+  function handleFile(file: File) { patchForm('file', file); }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragActive(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }
+
+  function openDrawer() { setForm(emptyDocForm()); setDrawerOpen(true); }
+  function closeDrawer() { setDrawerOpen(false); }
+
+  function handleSave(asDraft: boolean) {
+    if (!form.titulo.trim()) return;
+    const paginaLabel = LIST_PAGES.find(p => p.id === form.paginaId)?.label ?? '—';
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    const newDoc: DocRow = {
+      id: Date.now(),
+      nome: form.titulo,
+      tipo: form.tipo || 'Sem tipo',
+      status: asDraft ? 'Rascunho' : 'Publicado',
+      dataPub: form.data || dateStr,
+      pagina: paginaLabel,
+      idiomas: form.idiomas,
+      tags: [],
+      publicadoPor: 'MA',
+      ultimaEdicao: dateStr,
+    };
+    setDocs(prev => [newDoc, ...prev]);
+    closeDrawer();
+  }
 
   const filtered = docs.filter((d) => {
     if (search && !d.nome.toLowerCase().includes(search.toLowerCase())) return false;
@@ -203,7 +298,10 @@ export default function DocumentosPage() {
         title="Documentos"
         description="Gerencie os documentos publicados no portal de Relações com Investidores."
         action={
-          <button type="button" className="btn-primary">+ Novo documento</button>
+          <button type="button" className="btn-primary" onClick={openDrawer}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+            Novo documento
+          </button>
         }
       />
 
@@ -352,6 +450,146 @@ export default function DocumentosPage() {
           </tbody>
         </table>
       </div>
+
+      {/* ── New document drawer ── */}
+      {drawerOpen && <div className="doc-drawer-overlay" onClick={closeDrawer} />}
+      <aside className={`doc-drawer${drawerOpen ? ' doc-drawer--open' : ''}`}>
+        <div className="doc-drawer__header">
+          <span className="doc-drawer__title">Novo documento</span>
+          <button type="button" className="doc-drawer__close" onClick={closeDrawer}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+          </button>
+        </div>
+
+        <div className="doc-drawer__body">
+          {/* Upload zone */}
+          <div
+            className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
+            onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+            onDragLeave={() => setDragActive(false)}
+            onDrop={handleDrop}
+            onClick={() => !form.file && fileInputRef.current?.click()}
+          >
+            <input ref={fileInputRef} type="file" style={{ display: 'none' }}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+            {form.file ? (
+              <div className="doc-upload__file">
+                <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
+                <div className="doc-upload__file-info">
+                  <span className="doc-upload__file-name">{form.file.name}</span>
+                  <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
+                </div>
+                <button type="button" className="doc-upload__file-remove"
+                  onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="material-symbols-outlined doc-upload__icon">upload_file</span>
+                <span className="doc-upload__label">Arraste ou clique para enviar</span>
+                <span className="doc-upload__hint">PDF, DOC, XLS, PPT, ZIP</span>
+              </>
+            )}
+          </div>
+
+          {/* Título */}
+          <div className="doc-field">
+            <label className="doc-field__label">Título *</label>
+            <input className="doc-field__input" type="text" placeholder="Nome do documento"
+              value={form.titulo} onChange={e => patchForm('titulo', e.target.value)} />
+          </div>
+
+          {/* Data */}
+          <div className="doc-field">
+            <label className="doc-field__label">Data de publicação</label>
+            <input className="doc-field__input" type="date"
+              value={form.data} onChange={e => patchForm('data', e.target.value)} />
+          </div>
+
+          {/* Tipo */}
+          <div className="doc-field">
+            <label className="doc-field__label">Tipo</label>
+            <div className="doc-select-wrap">
+              <select className="doc-field__select"
+                value={form.tipo} onChange={e => patchForm('tipo', e.target.value)}>
+                <option value="">Selecionar tipo...</option>
+                {DOC_TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
+            </div>
+          </div>
+
+          {/* Página */}
+          <div className="doc-field">
+            <label className="doc-field__label">Página de destino</label>
+            <p className="doc-field__hint">Apenas páginas do tipo lista e lista agrupada</p>
+            <div className="doc-select-wrap">
+              <select className="doc-field__select"
+                value={form.paginaId} onChange={e => patchForm('paginaId', e.target.value)}>
+                <option value="">Selecionar página...</option>
+                {(() => {
+                  const groups: Record<string, typeof LIST_PAGES> = {};
+                  for (const p of LIST_PAGES) {
+                    (groups[p.group] ??= []).push(p);
+                  }
+                  return Object.entries(groups).map(([group, pages]) => (
+                    <optgroup key={group} label={group}>
+                      {pages.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </optgroup>
+                  ));
+                })()}
+              </select>
+              <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
+            </div>
+          </div>
+
+          {/* Idioma */}
+          <div className="doc-field">
+            <label className="doc-field__label">Idioma(s)</label>
+            <div className="doc-idiomas">
+              {IDIOMAS.map(l => (
+                <button key={l.code} type="button"
+                  className={`doc-idioma-chip${form.idiomas.includes(l.code) ? ' doc-idioma-chip--active' : ''}`}
+                  onClick={() => toggleIdioma(l.code)}>
+                  <span>{l.flag}</span>
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Agendamento */}
+          <div className="doc-field">
+            <label className="doc-field__label">Agendamento</label>
+            <label className="doc-schedule-toggle">
+              <input type="checkbox" checked={form.scheduleEnabled}
+                onChange={e => patchForm('scheduleEnabled', e.target.checked)} />
+              <span>Publicar em data e hora específica</span>
+            </label>
+            {form.scheduleEnabled && (
+              <div className="doc-schedule-row">
+                <input className="doc-field__input" type="date"
+                  value={form.scheduleDate} onChange={e => patchForm('scheduleDate', e.target.value)} />
+                <input className="doc-field__input" type="time"
+                  value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="doc-drawer__footer">
+          <button type="button" className="doc-drawer__draft" onClick={() => handleSave(true)}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
+            Salvar rascunho
+          </button>
+          <button type="button" className="btn-primary" onClick={() => handleSave(false)}
+            disabled={!form.titulo.trim()}>
+            Publicar
+          </button>
+        </div>
+      </aside>
 
       {/* Delete modal */}
       <Modal
