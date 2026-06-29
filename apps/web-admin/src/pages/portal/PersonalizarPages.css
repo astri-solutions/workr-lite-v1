@@ -44,8 +44,19 @@
   position: relative;
 }
 
-.pers-tipo-card:hover { border-color: var(--color-primary-300); }
+.pers-tipo-card:hover:not(:disabled) { border-color: var(--color-primary-300); }
 .pers-tipo-card--active { border-color: var(--color-primary-500); background: var(--color-primary-50, #e8f5f7); }
+.pers-tipo-card--locked { opacity: 0.6; cursor: default; }
+
+.pers-section__locked-notice {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+}
 
 .pers-tipo-card__thumb {
   width: 100%;

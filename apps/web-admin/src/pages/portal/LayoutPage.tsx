@@ -3,7 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { PORTAL_LAYOUT_KEY, PortalLayout } from '../../components/ClientLayout';
-import PORTAL_CONFIG from '../../portalConfig';
+import PORTAL_CONFIG, { PortalModel } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -75,6 +75,12 @@ const TIPOS = [
   },
 ];
 
+const portalModel = PORTAL_CONFIG.model as PortalModel;
+// Portals created with sidebar or tabmenu can switch between those two compact models.
+// Portals created with banner (full version) cannot change their layout.
+const isLocked = portalModel === 'banner';
+const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
+
 export default function LayoutPage() {
   const [selected, setSelected] = useState<PortalLayout>(INITIAL);
   const [saved, setSaved] = useState(false);
@@ -95,22 +101,28 @@ export default function LayoutPage() {
         title="Layout"
         description={<>Modelo de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          !isLocked && (
+            <button className="btn-primary" type="button" onClick={handleSave}>
+              {saved ? 'Salvo!' : 'Salvar alterações'}
+            </button>
+          )
         }
       />
 
       <div className="pers-section">
         <h2 className="pers-section__title">Modelo de navegação</h2>
         <p className="pers-section__desc">O modelo define como os visitantes navegam pelo seu site de RI. Esta alteração afeta a estrutura visual do portal publicado.</p>
+        {isLocked && (
+          <p className="pers-section__locked-notice">Este portal foi criado no modelo <strong>Completo</strong>. O layout não pode ser alterado após a criação.</p>
+        )}
         <div className="pers-tipos">
-          {TIPOS.map(t => (
+          {AVAILABLE_TIPOS.map(t => (
             <button
               key={t.id}
               type="button"
-              className={`pers-tipo-card${selected === t.id ? ' pers-tipo-card--active' : ''}`}
-              onClick={() => { setSelected(t.id as PortalLayout); setSaved(false); }}
+              className={`pers-tipo-card${selected === t.id ? ' pers-tipo-card--active' : ''}${isLocked ? ' pers-tipo-card--locked' : ''}`}
+              disabled={isLocked}
+              onClick={() => { if (!isLocked) { setSelected(t.id as PortalLayout); setSaved(false); } }}
             >
               <div className="pers-tipo-card__thumb">{t.thumb}</div>
               <div className="pers-tipo-card__info">
