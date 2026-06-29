@@ -27,6 +27,7 @@ import FontesPage from './pages/portal/FontesPage';
 import LogotipoPage from './pages/portal/LogotipoPage';
 import FaviconPage from './pages/portal/FaviconPage';
 import BannerPage from './pages/portal/BannerPage';
+import DashboardPage from './pages/portal/DashboardPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -64,7 +65,8 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/portal/central-de-resultados" replace /> },
+      { index: true, element: <Navigate to="/portal/dashboard" replace /> },
+      { path: 'dashboard', element: <DashboardPage /> },
       { path: 'empresas', element: <EmpresasPage /> },
       { path: 'usuarios-portal', element: <UsuariosPortalPage /> },
       { path: 'central-de-resultados', element: <CentralDeResultadosPage /> },

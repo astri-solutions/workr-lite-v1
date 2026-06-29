@@ -35,13 +35,13 @@ export default function AppSidebar({
 
   return (
     <aside className={`admin-sidebar${collapsed ? ' admin-sidebar--collapsed' : ''}`}>
-      <div className="admin-sidebar__logo">
+      <NavLink to="/portal/dashboard" className="admin-sidebar__logo">
         <img
           src={currentLogo}
           alt={logoAlt}
           className="admin-sidebar__logo-img"
         />
-      </div>
+      </NavLink>
 
       <nav className="admin-sidebar__nav">
         {sections.map((section) => (
