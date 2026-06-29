@@ -118,9 +118,7 @@ export default function LayoutPage() {
               </div>
               {selected === t.id && (
                 <span className="pers-tipo-card__check">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
                 </span>
               )}
             </button>

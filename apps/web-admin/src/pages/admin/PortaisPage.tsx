@@ -310,22 +310,13 @@ export default function PortaisPage() {
                       rel="noreferrer"
                     >
                       {site.link}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>open_in_new</span>
                     </a>
                   </div>
                   <div className="portal-site-row__right">
                     <button className="portais-btn portais-btn--panel" type="button" onClick={() => navigate(`/admin/portais/${site.id}/painel`)}>
                       Painel de controle
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="2">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>arrow_forward</span>
                     </button>
                     <FerramentasDropdown />
                     <SiteKebabMenu
@@ -341,11 +332,7 @@ export default function PortaisPage() {
 
         {filtered.length === 0 && (
           <div className="page-placeholder">
-            <svg className="page-placeholder__icon" width="40" height="40" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>search</span>
             <h2>Nenhum portal encontrado</h2>
             <p>Tente buscar por outro cliente ou domínio.</p>
           </div>

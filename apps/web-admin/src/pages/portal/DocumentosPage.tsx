@@ -226,9 +226,7 @@ export default function DocumentosPage() {
       <div className="docs-filterbar">
         <div className="docs-filterbar__left">
           <div className="docs-search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>search</span>
             <input
               type="text"
               placeholder="Pesquisar por título..."
