@@ -16,12 +16,6 @@ const DEFAULT: Palette = {
   tertiary: '#F4A261',
 };
 
-const PRESETS: { name: string; colors: Palette }[] = [
-  { name: 'Astri',    colors: { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' } },
-  { name: 'Oceano',   colors: { primary: '#1a56db', secondary: '#3ABFF8', tertiary: '#F59E0B' } },
-  { name: 'Floresta', colors: { primary: '#166534', secondary: '#4ade80', tertiary: '#FCD34D' } },
-  { name: 'Slate',    colors: { primary: '#334155', secondary: '#64748b', tertiary: '#F97316' } },
-];
 
 function hexToHsl(hex: string): [number, number, number] | null {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
@@ -169,10 +163,6 @@ export default function CoresPage() {
     setTimeout(() => setSaved(false), 2500);
   }
 
-  function applyPreset(p: typeof PRESETS[0]) {
-    setDraft(p.colors);
-  }
-
   function setColor(key: keyof Palette, val: string) {
     setDraft(prev => ({ ...prev, [key]: val }));
   }
@@ -188,20 +178,6 @@ export default function CoresPage() {
           </button>
         }
       />
-
-      {/* Presets */}
-      <div className="cores-presets">
-        {PRESETS.map(p => (
-          <button key={p.name} type="button" className="cores-preset" onClick={() => applyPreset(p)}>
-            <div className="cores-preset__swatches">
-              <span className="cores-preset__swatch" style={{ background: p.colors.primary }} />
-              <span className="cores-preset__swatch" style={{ background: p.colors.secondary }} />
-              <span className="cores-preset__swatch" style={{ background: p.colors.tertiary }} />
-            </div>
-            <span className="cores-preset__name">{p.name}</span>
-          </button>
-        ))}
-      </div>
 
       {/* Color pickers */}
       <div className="cores-inputs">
