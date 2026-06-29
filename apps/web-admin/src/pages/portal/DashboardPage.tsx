@@ -117,34 +117,28 @@ export default function DashboardPage() {
       {/* Site info */}
       <div className="dash-block dash-info-block">
         <h2 className="dash-block__title">Informações do portal</h2>
-        <div className="dash-info-grid">
-          <div className="dash-info-item">
-            <span className="dash-info-item__label">Empresa</span>
-            <span className="dash-info-item__value">IMC S.A.</span>
-          </div>
-          <div className="dash-info-item">
-            <span className="dash-info-item__label">Domínio</span>
-            <span className="dash-info-item__value">ri.imc.com.br</span>
-          </div>
-          <div className="dash-info-item">
-            <span className="dash-info-item__label">Layout</span>
-            <span className="dash-info-item__value">Banner com menu</span>
-          </div>
-          <div className="dash-info-item">
-            <span className="dash-info-item__label">Status</span>
-            <span className="dash-info-item__value">
-              <span className="badge badge--success">Publicado</span>
-            </span>
-          </div>
-          <div className="dash-info-item">
-            <span className="dash-info-item__label">Última atualização</span>
-            <span className="dash-info-item__value">29/06/2026</span>
-          </div>
-          <div className="dash-info-item">
-            <span className="dash-info-item__label">Plano</span>
-            <span className="dash-info-item__value">Workr Lite Pro</span>
-          </div>
-        </div>
+        <table className="dash-info-table">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>Domínio</th>
+              <th>Layout</th>
+              <th>Status</th>
+              <th>Última atualização</th>
+              <th>Plano</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>IMC S.A.</td>
+              <td>ri.imc.com.br</td>
+              <td>Banner com menu</td>
+              <td><span className="badge badge--success">Publicado</span></td>
+              <td>29/06/2026</td>
+              <td>Workr Lite Pro</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
