@@ -497,14 +497,16 @@ export default function NovaMateriaPage() {
   const [title, setTitle] = useState(editing?.titulo ?? '');
   const [subtitle, setSubtitle] = useState('');
   const [sections, setSections] = useState<ContentSection[]>(
-    isGaleria ? [{ id: 'init', type: 'galeria', cards: [newCard()] }] : [{ id: 'init', type: 'text' }]
+    isGaleria ? [] : [{ id: 'init', type: 'text' }]
   );
+  const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>([newCard()]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [locale, setLocale] = useState('pt-BR');
   const [page, setPage] = useState(editing?.pagina ?? '');
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
+  const [contentType, setContentType] = useState('');
 
   const dragIndex = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
@@ -612,47 +614,49 @@ export default function NovaMateriaPage() {
         ))}
       </div>
 
-      {/* ── Body: 3 columns ── */}
-      <div className="nm-body">
-        {/* Left: sections list */}
-        <aside className="nm-sections-panel">
-          <p className="nm-panel-heading">Seções</p>
+      {/* ── Body: 3 columns (show) or 2 columns (galeria) ── */}
+      <div className={`nm-body${isGaleria ? ' nm-body--galeria' : ''}`}>
+        {/* Left: sections list (show only) */}
+        {!isGaleria && (
+          <aside className="nm-sections-panel">
+            <p className="nm-panel-heading">Seções</p>
 
-          <div className="nm-sections-list">
-            {sections.map((s, i) => (
-              <div
-                key={s.id}
-                className={`nm-section-item${dragOver === i ? ' nm-section-item--over' : ''}`}
-                draggable
-                onDragStart={() => { dragIndex.current = i; }}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={() => handleDrop(i)}
-                onClick={() => scrollTo(s.id)}
-              >
-                <span className="material-symbols-outlined nm-section-item__grip" style={{ fontSize: '12px' }}>drag_indicator</span>
-                <span className="nm-section-item__num">{i + 1}</span>
-                <span className="nm-section-item__label">{SECTION_LABEL[s.type]}</span>
-              </div>
-            ))}
-          </div>
+            <div className="nm-sections-list">
+              {sections.map((s, i) => (
+                <div
+                  key={s.id}
+                  className={`nm-section-item${dragOver === i ? ' nm-section-item--over' : ''}`}
+                  draggable
+                  onDragStart={() => { dragIndex.current = i; }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+                  onDragLeave={() => setDragOver(null)}
+                  onDrop={() => handleDrop(i)}
+                  onClick={() => scrollTo(s.id)}
+                >
+                  <span className="material-symbols-outlined nm-section-item__grip" style={{ fontSize: '12px' }}>drag_indicator</span>
+                  <span className="nm-section-item__num">{i + 1}</span>
+                  <span className="nm-section-item__label">{SECTION_LABEL[s.type]}</span>
+                </div>
+              ))}
+            </div>
 
-          <button
-            type="button"
-            className="nm-add-section"
-            onClick={() => setPickerOpen(true)}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>add</span>
-            Nova seção
-          </button>
-        </aside>
+            <button
+              type="button"
+              className="nm-add-section"
+              onClick={() => setPickerOpen(true)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>add</span>
+              Nova seção
+            </button>
+          </aside>
+        )}
 
         {/* Center: content editor */}
         <main className="nm-main">
           <div key={locale} className="nm-locale-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
-              <ImageUpload label="Imagem de header" ratio="21/5" />
+              {!isGaleria && <ImageUpload label="Imagem de header" ratio="21/5" />}
               <input
                 className="nm-field nm-field--title"
                 value={title}
@@ -667,26 +671,29 @@ export default function NovaMateriaPage() {
               />
             </div>
 
-            {/* Section editors */}
-            {sections.map((s, i) => (
-              <SectionEditor
-                key={s.id}
-                section={s}
-                index={i}
-                onRemove={() => removeSection(s.id)}
-                onUpdateSection={(patch) => updateSection(s.id, patch)}
-              />
-            ))}
-
-            {/* Add more */}
-            <button
-              type="button"
-              className="nm-add-inline"
-              onClick={() => setPickerOpen(true)}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-              Adicionar seção
-            </button>
+            {isGaleria ? (
+              <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} />
+            ) : (
+              <>
+                {sections.map((s, i) => (
+                  <SectionEditor
+                    key={s.id}
+                    section={s}
+                    index={i}
+                    onRemove={() => removeSection(s.id)}
+                    onUpdateSection={(patch) => updateSection(s.id, patch)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="nm-add-inline"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                  Adicionar seção
+                </button>
+              </>
+            )}
           </div>
         </main>
 
@@ -745,6 +752,23 @@ export default function NovaMateriaPage() {
                 );
               })()}
             </select>
+          </div>
+
+          {/* Content type */}
+          <div className="nm-meta-block">
+            <p className="nm-meta-block__title">Tipo de conteúdo</p>
+            <div className="nm-type-chips">
+              {['Podcast', 'Vídeo', 'Notícia', 'Blog', 'Apresentação', 'Relatório'].map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`nm-type-chip${contentType === t ? ' nm-type-chip--active' : ''}`}
+                  onClick={() => setContentType(prev => prev === t ? '' : t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* SEO */}
