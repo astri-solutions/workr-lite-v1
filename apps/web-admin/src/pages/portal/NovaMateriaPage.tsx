@@ -488,14 +488,17 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
 export default function NovaMateriaPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const editing = (location.state as { editing?: { id: string; titulo: string; pagina: string; status: string } } | null)?.editing ?? null;
+  const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' } | null;
+  const editing = routeState?.editing ?? null;
+  const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
+  const isGaleria = pageType === 'galeria';
 
   const destinos = useCanaisDestinos();
   const [title, setTitle] = useState(editing?.titulo ?? '');
   const [subtitle, setSubtitle] = useState('');
-  const [sections, setSections] = useState<ContentSection[]>([
-    { id: 'init', type: 'text' },
-  ]);
+  const [sections, setSections] = useState<ContentSection[]>(
+    isGaleria ? [{ id: 'init', type: 'galeria', cards: [newCard()] }] : [{ id: 'init', type: 'text' }]
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [locale, setLocale] = useState('pt-BR');
   const [page, setPage] = useState(editing?.pagina ?? '');
@@ -772,7 +775,7 @@ export default function NovaMateriaPage() {
         size="md"
       >
         <div className="nm-picker">
-          {SECTION_DEFS.map((def) => (
+          {SECTION_DEFS.filter(def => isGaleria ? def.type === 'galeria' : def.type !== 'galeria').map((def) => (
             <button
               key={def.type}
               type="button"

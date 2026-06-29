@@ -30,6 +30,21 @@ const INITIAL: Materia[] = [
 const STATUS_LABEL: Record<Status, string> = { publicado: 'Publicado', rascunho: 'Rascunho', agendado: 'Agendado' };
 const STATUS_BADGE: Record<Status, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
 
+const PAGE_TYPES = [
+  {
+    id: 'show' as const,
+    label: 'Show',
+    desc: 'Conteúdo rico com blocos de texto, imagens, colunas e galerias.',
+    icon: 'article',
+  },
+  {
+    id: 'galeria' as const,
+    label: 'Galeria',
+    desc: 'Cards com título, descrição, data, link e imagem opcional.',
+    icon: 'grid_view',
+  },
+];
+
 export default function MateriasPage() {
   const navigate = useNavigate();
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
@@ -37,6 +52,8 @@ export default function MateriasPage() {
   const [filterStatus, setFilterStatus] = useState<Status | ''>('');
   const [filterPagina, setFilterPagina] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState<'show' | 'galeria'>('show');
 
   const filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
@@ -57,7 +74,7 @@ export default function MateriasPage() {
         title="Matérias"
         description="Publique comunicados, notas e artigos de Relações com Investidores."
         action={
-          <button className="btn-primary" type="button" onClick={() => navigate('/portal/materias/nova')}>
+          <button className="btn-primary" type="button" onClick={() => { setSelectedType('show'); setTypePickerOpen(true); }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
             Nova matéria
           </button>
@@ -133,6 +150,44 @@ export default function MateriasPage() {
           </tbody>
         </table>
       </div>
+
+      <Modal
+        open={typePickerOpen}
+        onClose={() => setTypePickerOpen(false)}
+        title="Tipo de página"
+        description="Escolha como o conteúdo desta matéria será estruturado."
+        size="sm"
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+            <button className="btn-action btn-action--secondary" type="button" onClick={() => setTypePickerOpen(false)}>Cancelar</button>
+            <button className="btn-primary" type="button" onClick={() => { setTypePickerOpen(false); navigate('/portal/materias/nova', { state: { pageType: selectedType } }); }}>
+              Continuar
+            </button>
+          </div>
+        }
+      >
+        <div className="mat-type-picker">
+          {PAGE_TYPES.map(t => (
+            <button
+              key={t.id}
+              type="button"
+              className={`mat-type-card${selectedType === t.id ? ' mat-type-card--active' : ''}`}
+              onClick={() => setSelectedType(t.id)}
+            >
+              <span className="material-symbols-outlined mat-type-card__icon">{t.icon}</span>
+              <div className="mat-type-card__info">
+                <span className="mat-type-card__label">{t.label}</span>
+                <span className="mat-type-card__desc">{t.desc}</span>
+              </div>
+              {selectedType === t.id && (
+                <span className="mat-type-card__check">
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </Modal>
 
       <Modal
         open={!!deleteId}
