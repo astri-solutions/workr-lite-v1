@@ -148,7 +148,7 @@ export default function MateriasPage() {
                         onClick={() => navigate('/portal/materias/nova', { state: { editing: m } })}>
                         Editar
                       </button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>
+                      <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>
                     </div>
                   </td>
                 </tr>
@@ -166,7 +166,7 @@ export default function MateriasPage() {
         size="sm"
         footer={
           <div className="modal-footer">
-            <button className="btn-action btn-action--secondary" type="button" onClick={() => setTypePickerOpen(false)}>Cancelar</button>
+            <button className="btn-outline" type="button" onClick={() => setTypePickerOpen(false)}>Cancelar</button>
             <button className="btn-primary" type="button" onClick={() => {
               setTypePickerOpen(false);
               if (selectedType === 'formulario') {
@@ -210,8 +210,8 @@ export default function MateriasPage() {
         size="sm"
         footer={
           <div className="modal-footer">
-            <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
-            <button className="btn-action btn-action--danger" type="button" onClick={confirmDelete}>Excluir</button>
+            <button className="btn-outline" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
+            <button className="btn-outline btn-outline--danger" type="button" onClick={confirmDelete}>Excluir</button>
           </div>
         }
       >

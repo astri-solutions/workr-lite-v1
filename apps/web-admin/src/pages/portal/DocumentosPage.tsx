@@ -609,7 +609,7 @@ export default function DocumentosPage() {
             </button>
             <button
               type="button"
-              className="btn-action btn-action--danger"
+              className="btn-outline btn-outline--danger"
               onClick={handleDelete}
             >
               Excluir

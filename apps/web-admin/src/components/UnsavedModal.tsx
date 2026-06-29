@@ -16,10 +16,10 @@ export default function UnsavedModal({ open, onStay, onLeave }: Props) {
       size="sm"
       footer={
         <div className="modal-footer">
-          <button className="btn-action btn-action--secondary" type="button" onClick={onStay}>
+          <button className="btn-outline" type="button" onClick={onStay}>
             Continuar editando
           </button>
-          <button className="btn-action btn-action--danger" type="button" onClick={onLeave}>
+          <button className="btn-outline btn-outline--danger" type="button" onClick={onLeave}>
             Sair sem salvar
           </button>
         </div>

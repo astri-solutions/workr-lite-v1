@@ -329,7 +329,7 @@ export default function UsuariosPortalPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
-              <button className="btn-action btn-action--danger" type="button"
+              <button className="btn-outline btn-outline--danger" type="button"
                 onClick={() => { setUsers(p => p.filter(u => u.id !== deleteTarget.id)); setDeleteTarget(null); }}>
                 Remover
               </button>

@@ -104,6 +104,12 @@
 }
 .btn-outline:hover { border-color: var(--color-primary-400); color: var(--color-primary-600); background: var(--color-primary-50, #e8f5f7); }
 
+.btn-outline--danger {
+  border-color: var(--color-error-400);
+  color: var(--color-error-500);
+}
+.btn-outline--danger:hover { background: var(--color-error-50); border-color: var(--color-error-500); color: var(--color-error-600); }
+
 /* ─── Stat cards ───────────────────────────────────────── */
 .stat-cards {
   display: flex;

@@ -178,7 +178,7 @@ export default function CalendarioPage() {
                 <td>
                   <div className="table-actions">
                     <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
-                    <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                    <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
                   </div>
                 </td>
               </tr>
@@ -225,7 +225,7 @@ export default function CalendarioPage() {
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                      <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
                     </div>
                   </td>
                 </tr>
@@ -243,7 +243,7 @@ export default function CalendarioPage() {
         size="sm"
         footer={
           <div className="modal-footer">
-            <button className="btn-action btn-action--secondary" type="button" onClick={() => setModalOpen(false)}>Cancelar</button>
+            <button className="btn-outline" type="button" onClick={() => setModalOpen(false)}>Cancelar</button>
             <button className="btn-primary" type="button" onClick={handleSave}>Salvar</button>
           </div>
         }
@@ -297,8 +297,8 @@ export default function CalendarioPage() {
         size="sm"
         footer={
           <div className="modal-footer">
-            <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
-            <button className="btn-action btn-action--danger" type="button" onClick={confirmDelete}>Excluir</button>
+            <button className="btn-outline" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
+            <button className="btn-outline btn-outline--danger" type="button" onClick={confirmDelete}>Excluir</button>
           </div>
         }
       >
