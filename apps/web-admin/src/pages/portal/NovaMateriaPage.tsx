@@ -18,80 +18,43 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; icon: Reac
     type: 'text',
     label: 'Bloco de texto',
     desc: 'Título e parágrafos com formatação rica.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="10" x2="16" y2="10"/>
-        <line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="18" x2="14" y2="18"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>text_fields</span>,
   },
   {
     type: 'image-text',
     label: 'Imagem + Texto',
     desc: 'Imagem à esquerda com texto à direita.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="2" y="4" width="9" height="16" rx="1"/><line x1="14" y1="8" x2="22" y2="8"/>
-        <line x1="14" y1="12" x2="22" y2="12"/><line x1="14" y1="16" x2="19" y2="16"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>view_sidebar</span>,
   },
   {
     type: 'bg-image',
     label: 'Fundo com texto',
     desc: 'Imagem de fundo com sobreposição de texto.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="2" y="4" width="20" height="16" rx="1"/>
-        <circle cx="8.5" cy="10.5" r="1.5"/><polyline points="22 16 16 10 7 19"/>
-        <line x1="6" y1="14" x2="14" y2="14"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>panorama</span>,
   },
   {
     type: 'two-col',
     label: 'Duas colunas',
     desc: 'Dois blocos de texto lado a lado.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="2" y="4" width="9" height="16" rx="1"/><rect x="13" y="4" width="9" height="16" rx="1"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>view_column</span>,
   },
   {
     type: 'three-col',
     label: 'Três colunas',
     desc: 'Três blocos de texto lado a lado.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="4" width="6" height="16" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/>
-        <rect x="17" y="4" width="6" height="16" rx="1"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>view_week</span>,
   },
   {
     type: 'image',
     label: 'Imagem',
     desc: 'Imagem centralizada dentro do container.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="3" y="5" width="18" height="14" rx="1"/>
-        <circle cx="8.5" cy="10.5" r="1.5"/>
-        <polyline points="21 16 16 11 9 18"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>,
   },
   {
     type: 'image-full',
     label: 'Imagem full width',
     desc: 'Imagem de borda a borda, sem container.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="0" y="5" width="24" height="14" rx="0"/>
-        <circle cx="8.5" cy="10.5" r="1.5"/>
-        <polyline points="24 16 18 11 11 18"/>
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>panorama_wide_angle</span>,
   },
 ];
 
@@ -180,98 +143,68 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
 
         {/* Alignment */}
         <button type="button" className="rte-btn" title="Alinhar à esquerda" onMouseDown={(e) => md(e, 'justifyLeft')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_align_left</span>
         </button>
         <button type="button" className="rte-btn" title="Centralizar" onMouseDown={(e) => md(e, 'justifyCenter')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_align_center</span>
         </button>
         <button type="button" className="rte-btn" title="Alinhar à direita" onMouseDown={(e) => md(e, 'justifyRight')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_align_right</span>
         </button>
         <button type="button" className="rte-btn" title="Justificar" onMouseDown={(e) => md(e, 'justifyFull')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_align_justify</span>
         </button>
 
         <div className="rte-sep" />
 
         {/* Lists */}
         <button type="button" className="rte-btn" title="Lista" onMouseDown={(e) => md(e, 'insertUnorderedList')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
-            <circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/>
-            <circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/>
-            <circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_list_bulleted</span>
         </button>
         <button type="button" className="rte-btn" title="Lista numerada" onMouseDown={(e) => md(e, 'insertOrderedList')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/>
-            <path d="M4 6h1v4M4 10H6" strokeLinecap="round"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_list_numbered</span>
         </button>
 
         <div className="rte-sep" />
 
         {/* Indent */}
         <button type="button" className="rte-btn" title="Diminuir recuo" onMouseDown={(e) => md(e, 'outdent')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            <polyline points="7 9 4 12 7 15"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_indent_decrease</span>
         </button>
         <button type="button" className="rte-btn" title="Aumentar recuo" onMouseDown={(e) => md(e, 'indent')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            <polyline points="4 9 7 12 4 15"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_indent_increase</span>
         </button>
 
         <div className="rte-sep" />
 
         {/* Link */}
         <button type="button" className="rte-btn" title="Inserir link" onMouseDown={handleLink}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>link</span>
         </button>
         <button type="button" className="rte-btn" title="Remover link" onMouseDown={(e) => md(e, 'unlink')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            <line x1="4" y1="4" x2="20" y2="20" strokeWidth="2"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>link_off</span>
         </button>
 
         <div className="rte-sep" />
 
         {/* Undo / Redo */}
         <button type="button" className="rte-btn" title="Desfazer" onMouseDown={(e) => md(e, 'undo')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>undo</span>
         </button>
         <button type="button" className="rte-btn" title="Refazer" onMouseDown={(e) => md(e, 'redo')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.51"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>redo</span>
         </button>
 
         <div className="rte-sep" />
 
         {/* HR */}
         <button type="button" className="rte-btn" title="Linha horizontal" onMouseDown={(e) => md(e, 'insertHorizontalRule')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="3" y1="12" x2="21" y2="12"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>horizontal_rule</span>
         </button>
 
         {/* Remove formatting */}
         <button type="button" className="rte-btn" title="Remover formatação" onMouseDown={(e) => md(e, 'removeFormat')}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 7h16M7 7l4 12M17 7l-4 12"/><line x1="4" y1="20" x2="9" y2="20"/>
-            <line x1="2" y1="2" x2="22" y2="22" strokeWidth="2"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_clear</span>
         </button>
       </div>
 
@@ -295,11 +228,7 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
 function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; ratio?: string }) {
   return (
     <div className="img-upload" style={{ aspectRatio: ratio }}>
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/>
-      </svg>
+      <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>image</span>
       <span className="img-upload__label">{label}</span>
       <button type="button" className="img-upload__btn">Escolher arquivo</button>
     </div>
@@ -340,11 +269,7 @@ function ImageEditor() {
           style={{ display: 'none' }}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
         />
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
+        <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
         <span>Clique ou arraste uma imagem</span>
       </div>
     );
@@ -361,16 +286,10 @@ function ImageEditor() {
           </div>
           <div className="img-editor__actions">
             <button type="button" className="img-editor__btn" title="Recortar">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 2 6 8 2 8"/><polyline points="18 22 18 16 22 16"/>
-                <path d="M6 8L18 8a2 2 0 0 1 2 2v8"/><path d="M18 16L6 16a2 2 0 0 1-2-2V6"/>
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>crop</span>
             </button>
             <button type="button" className="img-editor__btn" title="Redimensionar">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>photo_size_select_large</span>
             </button>
             <button
               type="button"
@@ -378,10 +297,7 @@ function ImageEditor() {
               title="Substituir"
               onClick={() => inputRef.current?.click()}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="1 4 1 10 7 10"/>
-                <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>cached</span>
             </button>
             <button
               type="button"
@@ -389,11 +305,7 @@ function ImageEditor() {
               title="Excluir"
               onClick={() => setFile(null)}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14H6L5 6"/>
-                <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>delete</span>
             </button>
           </div>
         </div>
@@ -431,11 +343,7 @@ function SectionEditor({ section, index, onRemove }: {
         <span className="sec-editor__num">{index + 1}</span>
         <span className="sec-editor__label">{SECTION_LABEL[section.type]}</span>
         <button type="button" className="sec-editor__del" onClick={onRemove} title="Remover">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14H6L5 6"/>
-            <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
         </button>
       </div>
       <div className="sec-editor__body">
@@ -560,9 +468,7 @@ export default function NovaMateriaPage() {
       {/* ── Top bar ── */}
       <div className="nm-topbar">
         <button type="button" className="nm-back" onClick={() => navigate('/portal/materias')}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>chevron_left</span>
           Matérias
         </button>
 
@@ -632,11 +538,7 @@ export default function NovaMateriaPage() {
                 onDrop={() => handleDrop(i)}
                 onClick={() => scrollTo(s.id)}
               >
-                <svg className="nm-section-item__grip" width="12" height="12" viewBox="0 0 12 16" fill="currentColor">
-                  <circle cx="3" cy="2" r="1.5"/><circle cx="9" cy="2" r="1.5"/>
-                  <circle cx="3" cy="7" r="1.5"/><circle cx="9" cy="7" r="1.5"/>
-                  <circle cx="3" cy="12" r="1.5"/><circle cx="9" cy="12" r="1.5"/>
-                </svg>
+                <span className="material-symbols-outlined nm-section-item__grip" style={{ fontSize: '12px' }}>drag_indicator</span>
                 <span className="nm-section-item__num">{i + 1}</span>
                 <span className="nm-section-item__label">{SECTION_LABEL[s.type]}</span>
               </div>
@@ -648,9 +550,7 @@ export default function NovaMateriaPage() {
             className="nm-add-section"
             onClick={() => setPickerOpen(true)}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>add</span>
             Nova seção
           </button>
         </aside>
@@ -691,9 +591,7 @@ export default function NovaMateriaPage() {
               className="nm-add-inline"
               onClick={() => setPickerOpen(true)}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Adicionar seção
             </button>
           </div>
@@ -796,9 +694,7 @@ export default function NovaMateriaPage() {
                 <span className="nm-picker-item__label">{def.label}</span>
                 <span className="nm-picker-item__desc">{def.desc}</span>
               </div>
-              <svg className="nm-picker-item__arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
+              <span className="material-symbols-outlined nm-picker-item__arrow" style={{ fontSize: '14px' }}>chevron_right</span>
             </button>
           ))}
         </div>

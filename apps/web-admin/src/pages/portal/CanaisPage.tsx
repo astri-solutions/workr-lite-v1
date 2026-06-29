@@ -293,7 +293,7 @@ export default function CanaisPage() {
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved
-              ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>Salvo!</>
+              ? <><span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>Salvo!</>
               : 'Salvar alterações'}
           </button>
         }
@@ -311,16 +311,13 @@ export default function CanaisPage() {
               </div>
               <div className="canais-section__actions">
                 <button className="ce-icon-btn" type="button" title="Mover seção para cima" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15" /></svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_less</span>
                 </button>
                 <button className="ce-icon-btn" type="button" title="Mover seção para baixo" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_more</span>
                 </button>
                 <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit</span>
                   Editar canal
                 </button>
                 <button
@@ -371,10 +368,10 @@ export default function CanaisPage() {
                         <td>
                           <div className="canais-order">
                             <button className="ce-icon-btn" type="button" title="Mover para cima" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15" /></svg>
+                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>expand_less</span>
                             </button>
                             <button className="ce-icon-btn" type="button" title="Mover para baixo" onClick={() => moveSub(canal.id, si, 1)} disabled={si === canal.children.length - 1}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>expand_more</span>
                             </button>
                           </div>
                         </td>
@@ -399,18 +396,14 @@ export default function CanaisPage() {
             </div>
 
             <button className="canais-add-page" type="button" onClick={() => addSub(canal.id)}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
               Adicionar página
             </button>
           </div>
         ))}
 
         <button className="canais-add-section" type="button" onClick={addCanal}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
           Adicionar novo canal
         </button>
       </div>
@@ -481,11 +474,7 @@ export default function CanaisPage() {
                       if (f) setCanalEditModal(m => m ? { ...m, headerImageUrl: URL.createObjectURL(f) } : m);
                     }}
                   />
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21 15 16 10 5 21"/>
-                  </svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
                   <span>Clique para escolher uma imagem de header</span>
                 </label>
               )}
@@ -518,9 +507,7 @@ export default function CanaisPage() {
                       <span className="canais-page-type__desc">{pt.desc}</span>
                       {canalEditModal.pageType === pt.id && (
                         <span className="canais-page-type__check">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
                         </span>
                       )}
                     </button>
