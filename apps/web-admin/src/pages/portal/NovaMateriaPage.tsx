@@ -107,17 +107,6 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
     if (url) exec('createLink', url);
   }
 
-  const Btn = ({ title, cmd, arg, children }: { title: string; cmd?: string; arg?: string; children: React.ReactNode; onClick?: (e: React.MouseEvent) => void }) => (
-    <button
-      type="button"
-      className="rte-btn"
-      title={title}
-      onMouseDown={cmd ? (e) => md(e, cmd, arg) : undefined}
-    >
-      {children}
-    </button>
-  );
-
   return (
     <div className="rte">
       {/* Row 1 */}
