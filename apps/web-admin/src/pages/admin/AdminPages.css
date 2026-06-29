@@ -27,6 +27,44 @@
 }
 .btn-primary:hover { background: var(--color-primary-600); }
 
+/* ─── Standard toolbar pattern ─────────────────────────────
+   Use on pages that have filters + bulk actions:
+   <div className="toolbar">
+     <div className="toolbar__filters"> search + filter-wraps </div>
+     <div className="toolbar__actions"> action btns + toolbar__count </div>
+   </div>
+────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.toolbar__filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.toolbar__count {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  padding-left: var(--space-2);
+}
+
 .btn-outline {
   display: inline-flex;
   align-items: center;
@@ -262,6 +300,14 @@
   color: var(--color-gray-600);
 }
 .btn-action--secondary:hover { background: var(--color-gray-50); }
+
+.btn-action--publish {
+  background: none;
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-600);
+  font-weight: var(--font-semibold);
+}
+.btn-action--publish:hover { background: var(--color-primary-50, #e8f5f7); }
 
 /* ─── Table empty state ──────────────────────────────────── */
 .table-empty {

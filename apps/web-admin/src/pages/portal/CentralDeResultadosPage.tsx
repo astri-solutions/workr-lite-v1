@@ -169,43 +169,39 @@ export default function CentralDeResultadosPage() {
         ))}
       </div>
 
-      {/* Search + Filters inline */}
-      <div className="cdr-toolbar">
-        <div className="cdr-search-bar">
-          <span className="material-symbols-outlined cdr-search-bar__icon" style={{ fontSize: '16px' }}>search</span>
-          <input
-            className="cdr-search-bar__input"
-            type="text"
-            placeholder="Buscar resultado ou documento..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {/* Toolbar: filters left · actions right */}
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <div className="mat-search-wrap">
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
+            <input
+              className="mat-search"
+              type="text"
+              placeholder="Pesquisar por título..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="filter-wrap">
+            <select className="filter-select" value={filterQuarter} onChange={(e) => setFilterQuarter(e.target.value)}>
+              <option value="">Trimestre</option>
+              {quarterOptions.map((q) => <option key={q} value={q}>{q}</option>)}
+            </select>
+            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+          </div>
+          <div className="filter-wrap">
+            <select className="filter-select" value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
+              <option value="">Ano</option>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+          </div>
         </div>
-        <div className="filter-wrap">
-          <select
-            className="filter-select"
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
-          >
-            <option value="">Todos os anos</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
-        <div className="filter-wrap">
-          <select
-            className="filter-select"
-            value={filterQuarter}
-            onChange={(e) => setFilterQuarter(e.target.value)}
-          >
-            <option value="">Todos os trimestres</option>
-            {quarterOptions.map((q) => (
-              <option key={q} value={q}>{q}</option>
-            ))}
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+        <div className="toolbar__actions">
+          <button className="btn-action btn-action--enter" type="button">Despublicar</button>
+          <button className="btn-action btn-action--publish" type="button">Publicar</button>
+          <button className="btn-action btn-action--danger" type="button">Excluir</button>
+          <span className="toolbar__count">{currentQuarters.length} resultado{currentQuarters.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
