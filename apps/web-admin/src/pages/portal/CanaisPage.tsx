@@ -582,9 +582,7 @@ export default function CanaisPage() {
                   <span className="canais-page-type__desc">{pt.desc}</span>
                   {editModal.pageType === pt.id && (
                     <span className="canais-page-type__check">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
                     </span>
                   )}
                 </button>

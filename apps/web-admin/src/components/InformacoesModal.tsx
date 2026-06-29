@@ -125,11 +125,7 @@ export default function InformacoesModal({ open, onClose }: InformacoesModalProp
 
       <div className="info-section">
         <div className="info-section__header">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="1.75" className="info-section__icon">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          <span className="material-symbols-outlined info-section__icon" style={{ fontSize: '18px' }}>person</span>
           <span className="info-section__title">Configurações da conta</span>
         </div>
         <div className="info-rows">
@@ -149,10 +145,7 @@ export default function InformacoesModal({ open, onClose }: InformacoesModalProp
             onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}}
             renderValue={() => (
               <span className="info-badge-active">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="3">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
                 Ativado
               </span>
             )}

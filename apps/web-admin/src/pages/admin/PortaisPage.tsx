@@ -113,11 +113,7 @@ function SiteKebabMenu({
         aria-label="Mais opções"
         onClick={() => setOpen((v) => !v)}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-        </svg>
+        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>more_vert</span>
       </button>
       {open && (
         <div className="portais-kebab__menu">
@@ -252,11 +248,7 @@ export default function PortaisPage() {
         description="Os sites de RI dos clientes. Cada portal é um tenant isolado."
         action={
           <button className="btn-primary" type="button" onClick={() => navigate('/admin/portais/novo')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="16" />
-              <line x1="8" y1="12" x2="16" y2="12" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
             Novo Portal
           </button>
         }
@@ -278,11 +270,7 @@ export default function PortaisPage() {
       </div>
 
       <div className="portais-search-wrap">
-        <svg className="portais-search-icon" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <span className="material-symbols-outlined portais-search-icon" style={{ fontSize: '16px' }}>search</span>
         <input
           className="portais-search"
           type="search"
@@ -302,11 +290,7 @@ export default function PortaisPage() {
               </div>
               <div className="portal-card__actions">
                 <button className="portais-btn portais-btn--add" type="button">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                   Adicionar site
                 </button>
               </div>
