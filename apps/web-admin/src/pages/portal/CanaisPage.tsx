@@ -129,11 +129,21 @@ interface EditState {
   listaAgrupadaStyle: ListaAgrupadaStyle;
 }
 
+interface CanalEditState {
+  canalId: string;
+  label: string;
+  pageType: PageType;
+  headerImageUrl: string | null;
+  applyHeaderToChildren: boolean;
+  isLeaf: boolean; // no children → show page type picker
+}
+
 export default function CanaisPage() {
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
   const [isDirty, setIsDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [editModal, setEditModal] = useState<EditState | null>(null);
+  const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
 
   const blocker = useUnsavedChanges(isDirty);
 
@@ -212,6 +222,36 @@ export default function CanaisPage() {
     mutate(prev => prev.map(c => c.id !== cid ? c : { ...c, children: [...c.children, s] }));
   }
 
+  function openCanalEdit(canal: Canal) {
+    setCanalEditModal({
+      canalId: canal.id,
+      label: canal.label,
+      pageType: canal.pageType ?? 'show',
+      headerImageUrl: canal.headerImage ?? null,
+      applyHeaderToChildren: false,
+      isLeaf: canal.children.length === 0,
+    });
+  }
+
+  function commitCanalEdit() {
+    if (!canalEditModal) return;
+    const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf } = canalEditModal;
+    mutate(prev => prev.map(c => {
+      if (c.id !== canalId) return c;
+      const updated: Canal = {
+        ...c,
+        label: label.trim() || c.label,
+        pageType: isLeaf ? pageType : c.pageType,
+        headerImage: headerImageUrl ?? undefined,
+      };
+      if (applyHeaderToChildren && headerImageUrl) {
+        updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl } as SubCanal & { headerImage?: string }));
+      }
+      return updated;
+    }));
+    setCanalEditModal(null);
+  }
+
   function openEdit(cid: string, sub: SubCanal) {
     setEditModal({
       canalId: cid, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
@@ -275,6 +315,13 @@ export default function CanaisPage() {
                 </button>
                 <button className="ce-icon-btn" type="button" title="Mover seção para baixo" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+                </button>
+                <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Editar canal
                 </button>
                 <button
                   className={`btn-action ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
@@ -374,7 +421,118 @@ export default function CanaisPage() {
         onLeave={() => blocker.proceed?.()}
       />
 
-      {/* Edit modal */}
+      {/* Canal edit modal */}
+      {canalEditModal && (
+        <Modal
+          open
+          onClose={() => setCanalEditModal(null)}
+          title="Editar canal"
+          size="lg"
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+              <button className="btn-action btn-action--secondary" type="button" onClick={() => setCanalEditModal(null)}>Cancelar</button>
+              <button className="btn-primary" type="button" onClick={commitCanalEdit}>Salvar</button>
+            </div>
+          }
+        >
+          <div className="canais-edit-form">
+            {/* Name */}
+            <label className="canais-edit-form__label">
+              Nome do canal
+              <input
+                className="canais-edit-form__input"
+                type="text"
+                value={canalEditModal.label}
+                onChange={e => setCanalEditModal(m => m ? { ...m, label: e.target.value } : m)}
+                autoFocus
+              />
+            </label>
+
+            <div className="canais-edit-divider" />
+
+            {/* Header image */}
+            <p className="canais-edit-section-title">Imagem do header</p>
+            <div className="canal-header-img-wrap">
+              {canalEditModal.headerImageUrl ? (
+                <div className="canal-header-img-preview">
+                  <img src={canalEditModal.headerImageUrl} alt="Header" className="canal-header-img-preview__img" />
+                  <div className="canal-header-img-preview__actions">
+                    <label className="btn-action btn-action--enter canais-img-file-label">
+                      Substituir
+                      <input
+                        type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={e => {
+                          const f = e.target.files?.[0];
+                          if (f) setCanalEditModal(m => m ? { ...m, headerImageUrl: URL.createObjectURL(f) } : m);
+                        }}
+                      />
+                    </label>
+                    <button className="btn-action btn-action--danger" type="button" onClick={() => setCanalEditModal(m => m ? { ...m, headerImageUrl: null } : m)}>
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="canal-header-img-empty canais-img-file-label">
+                  <input
+                    type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) setCanalEditModal(m => m ? { ...m, headerImageUrl: URL.createObjectURL(f) } : m);
+                    }}
+                  />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <span>Clique para escolher uma imagem de header</span>
+                </label>
+              )}
+
+              <label className="canal-apply-default">
+                <input
+                  type="checkbox"
+                  checked={canalEditModal.applyHeaderToChildren}
+                  onChange={e => setCanalEditModal(m => m ? { ...m, applyHeaderToChildren: e.target.checked } : m)}
+                />
+                Aplicar como padrão para todas as páginas filhas
+              </label>
+            </div>
+
+            {/* Page type — only for leaf canals */}
+            {canalEditModal.isLeaf && (
+              <>
+                <div className="canais-edit-divider" />
+                <p className="canais-edit-section-title">Tipo de página</p>
+                <div className="canais-page-types">
+                  {PAGE_TYPES.map(pt => (
+                    <button
+                      key={pt.id}
+                      type="button"
+                      className={`canais-page-type${canalEditModal.pageType === pt.id ? ' canais-page-type--active' : ''}`}
+                      onClick={() => setCanalEditModal(m => m ? { ...m, pageType: pt.id as PageType } : m)}
+                    >
+                      <div className="canais-page-type__thumb">{pt.thumb}</div>
+                      <span className="canais-page-type__label">{pt.label}</span>
+                      <span className="canais-page-type__desc">{pt.desc}</span>
+                      {canalEditModal.pageType === pt.id && (
+                        <span className="canais-page-type__check">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Sub-page edit modal */}
       {editModal && (
         <Modal
           open

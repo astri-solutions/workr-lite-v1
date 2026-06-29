@@ -21,6 +21,8 @@ export interface Canal {
   href?: string;
   enabled: boolean;
   children: SubCanal[];
+  headerImage?: string;
+  pageType?: PageType;
 }
 
 export const DEFAULT_CANAIS: Canal[] = [
