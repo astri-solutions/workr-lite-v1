@@ -221,6 +221,119 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; rat
   );
 }
 
+/* ── Inline image editor (container-width image) ──────────── */
+function ImageEditor() {
+  const [file, setFile] = useState<{ name: string; url: string; w: number; h: number } | null>(null);
+  const [alt, setAlt] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(f: File) {
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => setFile({ name: f.name, url, w: img.naturalWidth, h: img.naturalHeight });
+    img.src = url;
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleFile(f);
+  }
+
+  if (!file) {
+    return (
+      <div
+        className="img-editor-empty"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>Clique ou arraste uma imagem</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="img-editor">
+      <img className="img-editor__preview" src={file.url} alt={alt || file.name} />
+      <div className="img-editor__body">
+        <div className="img-editor__top">
+          <div className="img-editor__info">
+            <span className="img-editor__name">Image</span>
+            <span className="img-editor__dims"> · {file.w}×{file.h}px</span>
+          </div>
+          <div className="img-editor__actions">
+            <button type="button" className="img-editor__btn" title="Recortar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 2 6 8 2 8"/><polyline points="18 22 18 16 22 16"/>
+                <path d="M6 8L18 8a2 2 0 0 1 2 2v8"/><path d="M18 16L6 16a2 2 0 0 1-2-2V6"/>
+              </svg>
+            </button>
+            <button type="button" className="img-editor__btn" title="Redimensionar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="img-editor__btn"
+              title="Substituir"
+              onClick={() => inputRef.current?.click()}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="img-editor__btn img-editor__btn--danger"
+              title="Excluir"
+              onClick={() => setFile(null)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14H6L5 6"/>
+                <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="img-editor__alt-wrap">
+          <label className="img-editor__alt-label">Alt text</label>
+          <input
+            className="img-editor__alt-input"
+            type="text"
+            placeholder="Short description for the visually impaired"
+            value={alt}
+            onChange={(e) => setAlt(e.target.value)}
+          />
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+    </div>
+  );
+}
+
 /* ── Section editor ───────────────────────────────────────── */
 function SectionEditor({ section, index, onRemove }: {
   section: ContentSection;
@@ -274,7 +387,7 @@ function SectionEditor({ section, index, onRemove }: {
 
         {section.type === 'image' && (
           <div className="sec-image-container">
-            <ImageUpload label="Imagem" ratio="16/9" />
+            <ImageEditor />
           </div>
         )}
 
