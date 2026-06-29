@@ -25,6 +25,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-height: calc(100vh - var(--space-8) * 2);
   animation: modal-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -92,12 +93,16 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .modal__footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--space-3);
-  padding: 0 32px 32px;
+  padding: var(--space-4) 32px 32px;
+  border-top: 1px solid var(--color-gray-100);
+  flex-shrink: 0;
 }

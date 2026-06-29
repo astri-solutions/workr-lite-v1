@@ -15,7 +15,7 @@ export default function UnsavedModal({ open, onStay, onLeave }: Props) {
       title="Alterações não salvas"
       size="sm"
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+        <div className="modal-footer">
           <button className="btn-action btn-action--secondary" type="button" onClick={onStay}>
             Continuar editando
           </button>

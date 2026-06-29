@@ -242,7 +242,7 @@ export default function CalendarioPage() {
         title={editingId ? 'Editar evento' : 'Novo evento'}
         size="sm"
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+          <div className="modal-footer">
             <button className="btn-action btn-action--secondary" type="button" onClick={() => setModalOpen(false)}>Cancelar</button>
             <button className="btn-primary" type="button" onClick={handleSave}>Salvar</button>
           </div>
@@ -296,7 +296,7 @@ export default function CalendarioPage() {
         title="Excluir evento"
         size="sm"
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+          <div className="modal-footer">
             <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
             <button className="btn-action btn-action--danger" type="button" onClick={confirmDelete}>Excluir</button>
           </div>

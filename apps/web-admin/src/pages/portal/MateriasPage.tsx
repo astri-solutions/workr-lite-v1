@@ -44,6 +44,12 @@ const PAGE_TYPES = [
     desc: 'Cards com título, descrição, data, link e imagem opcional.',
     icon: 'grid_view',
   },
+  {
+    id: 'formulario' as const,
+    label: 'Formulário',
+    desc: 'Página com formulário de contato configurável e e-mail de recebimento.',
+    icon: 'assignment',
+  },
 ];
 
 export default function MateriasPage() {
@@ -54,7 +60,7 @@ export default function MateriasPage() {
   const [filterPagina, setFilterPagina] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<'show' | 'galeria'>('show');
+  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'formulario'>('show');
 
   const filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
@@ -159,9 +165,16 @@ export default function MateriasPage() {
         description="Escolha como o conteúdo desta matéria será estruturado."
         size="sm"
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+          <div className="modal-footer">
             <button className="btn-action btn-action--secondary" type="button" onClick={() => setTypePickerOpen(false)}>Cancelar</button>
-            <button className="btn-primary" type="button" onClick={() => { setTypePickerOpen(false); navigate('/portal/materias/nova', { state: { pageType: selectedType } }); }}>
+            <button className="btn-primary" type="button" onClick={() => {
+              setTypePickerOpen(false);
+              if (selectedType === 'formulario') {
+                navigate('/portal/materias/formulario');
+              } else {
+                navigate('/portal/materias/nova', { state: { pageType: selectedType } });
+              }
+            }}>
               Continuar
             </button>
           </div>
@@ -196,7 +209,7 @@ export default function MateriasPage() {
         title="Excluir matéria"
         size="sm"
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+          <div className="modal-footer">
             <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
             <button className="btn-action btn-action--danger" type="button" onClick={confirmDelete}>Excluir</button>
           </div>

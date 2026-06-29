@@ -397,7 +397,7 @@ export default function CanaisPage() {
           title="Editar canal"
           size="lg"
           footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+            <div className="modal-footer">
               <button className="btn-action btn-action--secondary" type="button" onClick={() => setCanalEditModal(null)}>Cancelar</button>
               <button className="btn-primary" type="button" onClick={commitCanalEdit}>Salvar</button>
             </div>
@@ -502,7 +502,7 @@ export default function CanaisPage() {
           title="Editar página"
           size="lg"
           footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+            <div className="modal-footer">
               <button className="btn-action btn-action--secondary" type="button" onClick={() => setEditModal(null)}>Cancelar</button>
               <button className="btn-primary" type="button" onClick={commitEdit}>Salvar</button>
             </div>

@@ -29,6 +29,7 @@ import FaviconPage from './pages/portal/FaviconPage';
 import BannerPage from './pages/portal/BannerPage';
 import DashboardPage from './pages/portal/DashboardPage';
 import NovaMateriaPage from './pages/portal/NovaMateriaPage';
+import NovoFormularioPage from './pages/portal/NovoFormularioPage';
 import CalendarioPage from './pages/portal/CalendarioPage';
 import SplashPage from './pages/portal/SplashPage';
 import MailingPage from './pages/portal/MailingPage';
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
       { path: 'canais', element: <CanaisPage /> },
       { path: 'materias', element: <MateriasPage /> },
       { path: 'materias/nova', element: <NovaMateriaPage /> },
+      { path: 'materias/formulario', element: <NovoFormularioPage /> },
       { path: 'calendario', element: <CalendarioPage /> },
       { path: 'splash', element: <SplashPage /> },
       { path: 'mailing', element: <MailingPage /> },
