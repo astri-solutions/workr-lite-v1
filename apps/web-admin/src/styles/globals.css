@@ -82,3 +82,21 @@ input, textarea, select {
   background-color: var(--color-gray-200);
   color: var(--color-gray-600);
 }
+
+/* ─── Filter select (shared across all pages) ────────── */
+/* Always use .filter-select for toolbar dropdowns. Never create page-specific classes. */
+.filter-select {
+  padding: 8px var(--space-6) 8px var(--space-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%236F6F6F%27 stroke-width=%272.5%27%3E%3Cpolyline points=%276 9 12 15 18 9%27/%3E%3C/svg%3E") no-repeat right 10px center;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  box-shadow: var(--shadow-sm);
+}
+.filter-select:focus { border-color: var(--color-primary-400); }

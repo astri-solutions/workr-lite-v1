@@ -1,28 +1,5 @@
 /* ─── Shared page layout ────────────────────────────── */
-/*
- * FILTER CONVENTION
- * Always use .filter-select for all dropdown filters in toolbars/filterbar.
- * Wrap multiple filters in a div with display:flex gap:space-3.
- * Never create page-specific filter select classes.
- */
-
-/* ─── Filter select (shared across all pages) ────────── */
-.filter-select {
-  padding: 8px var(--space-6) 8px var(--space-3);
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-gray-700);
-  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F6F6F' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center;
-  appearance: none;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s;
-  box-shadow: var(--shadow-sm);
-}
-.filter-select:focus { border-color: var(--color-primary-400); }
-
+/* Filter select rule lives in globals.css — always available, no per-page import needed. */
 
 .page {
   padding: var(--space-8);
