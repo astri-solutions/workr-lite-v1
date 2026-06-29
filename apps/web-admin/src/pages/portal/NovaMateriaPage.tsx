@@ -5,12 +5,22 @@ import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
-type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full';
+type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria';
 type PublishStatus = 'draft' | 'published' | 'scheduled';
+
+interface GaleriaCard {
+  id: string;
+  titulo: string;
+  descricao: string;
+  data: string;
+  link: string;
+  imageUrl: string | null;
+}
 
 interface ContentSection {
   id: string;
   type: SectionType;
+  cards?: GaleriaCard[];
 }
 
 const SECTION_DEFS: { type: SectionType; label: string; desc: string; icon: React.ReactNode }[] = [
@@ -56,6 +66,12 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; icon: Reac
     desc: 'Imagem de borda a borda, sem container.',
     icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>panorama_wide_angle</span>,
   },
+  {
+    type: 'galeria',
+    label: 'Galeria',
+    desc: 'Cards com título, descrição, data, link e imagem opcional.',
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>grid_view</span>,
+  },
 ];
 
 const SECTION_LABEL: Record<SectionType, string> = {
@@ -66,6 +82,7 @@ const SECTION_LABEL: Record<SectionType, string> = {
   'three-col': 'Três colunas',
   image: 'Imagem',
   'image-full': 'Imagem full width',
+  galeria: 'Galeria',
 };
 
 const LOCALES = [
@@ -320,11 +337,88 @@ function ImageEditor() {
   );
 }
 
+/* ── Galeria card editor ──────────────────────────────────── */
+function newCard(): GaleriaCard {
+  return { id: Math.random().toString(36).slice(2), titulo: '', descricao: '', data: '', link: '', imageUrl: null };
+}
+
+function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (cards: GaleriaCard[]) => void }) {
+  function update(id: string, patch: Partial<GaleriaCard>) {
+    onChange(cards.map(c => c.id === id ? { ...c, ...patch } : c));
+  }
+  function remove(id: string) { onChange(cards.filter(c => c.id !== id)); }
+  function add() { onChange([...cards, newCard()]); }
+
+  return (
+    <div className="galeria-editor">
+      {cards.map((card, i) => (
+        <div key={card.id} className="galeria-card-editor">
+          <div className="galeria-card-editor__header">
+            <span className="galeria-card-editor__num">Card {i + 1}</span>
+            <button type="button" className="sec-editor__del" onClick={() => remove(card.id)} title="Remover card">
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+            </button>
+          </div>
+          <div className="galeria-card-editor__fields">
+            <div className="galeria-card-editor__col-img">
+              {card.imageUrl ? (
+                <div className="galeria-card-img-preview">
+                  <img src={card.imageUrl} alt="" className="galeria-card-img-preview__img" />
+                  <div className="galeria-card-img-preview__actions">
+                    <label className="btn-action btn-action--enter galeria-img-label">
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>cached</span>
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) update(card.id, { imageUrl: URL.createObjectURL(f) }); }} />
+                    </label>
+                    <button type="button" className="btn-action btn-action--danger" onClick={() => update(card.id, { imageUrl: null })}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="galeria-card-img-empty galeria-img-label">
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) update(card.id, { imageUrl: URL.createObjectURL(f) }); }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
+                  <span>Imagem (opcional)</span>
+                </label>
+              )}
+            </div>
+            <div className="galeria-card-editor__col-fields">
+              <input className="nm-field--sm" type="text" placeholder="Título" value={card.titulo}
+                onChange={e => update(card.id, { titulo: e.target.value })} />
+              <textarea className="nm-field--sm nm-textarea" rows={2} placeholder="Descrição" value={card.descricao}
+                onChange={e => update(card.id, { descricao: e.target.value })} />
+              <div className="galeria-card-editor__row2">
+                <input className="nm-field--sm" type="date" placeholder="Data" value={card.data}
+                  onChange={e => update(card.id, { data: e.target.value })} />
+                <input className="nm-field--sm" type="text" placeholder="Link (ex: /pagina ou https://...)" value={card.link}
+                  onChange={e => update(card.id, { link: e.target.value })} />
+              </div>
+              {card.link && !card.link.startsWith('http') && card.link.startsWith('/') && (
+                <a className="galeria-card-inner-link" href={card.link} target="_blank" rel="noreferrer">
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span>
+                  Editar conteúdo interno
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+      <button type="button" className="galeria-add-card" onClick={add}>
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+        Adicionar card
+      </button>
+    </div>
+  );
+}
+
 /* ── Section editor ───────────────────────────────────────── */
-function SectionEditor({ section, index, onRemove }: {
+function SectionEditor({ section, index, onRemove, onUpdateSection }: {
   section: ContentSection;
   index: number;
   onRemove: () => void;
+  onUpdateSection: (patch: Partial<ContentSection>) => void;
 }) {
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
@@ -378,6 +472,13 @@ function SectionEditor({ section, index, onRemove }: {
             <ImageUpload label="Imagem full width" ratio="21/6" />
           </div>
         )}
+
+        {section.type === 'galeria' && (
+          <GaleriaEditor
+            cards={section.cards ?? []}
+            onChange={(cards) => onUpdateSection({ cards })}
+          />
+        )}
       </div>
     </div>
   );
@@ -406,15 +507,18 @@ export default function NovaMateriaPage() {
   const [dragOver, setDragOver] = useState<number | null>(null);
 
   function addSection(type: SectionType) {
-    setSections((prev) => [
-      ...prev,
-      { id: Math.random().toString(36).slice(2), type },
-    ]);
+    const base: ContentSection = { id: Math.random().toString(36).slice(2), type };
+    if (type === 'galeria') base.cards = [newCard()];
+    setSections((prev) => [...prev, base]);
     setPickerOpen(false);
   }
 
   function removeSection(id: string) {
     setSections((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  function updateSection(id: string, patch: Partial<ContentSection>) {
+    setSections((prev) => prev.map(s => s.id === id ? { ...s, ...patch } : s));
   }
 
   function handleDrop(targetIndex: number) {
@@ -574,6 +678,7 @@ export default function NovaMateriaPage() {
                 section={s}
                 index={i}
                 onRemove={() => removeSection(s.id)}
+                onUpdateSection={(patch) => updateSection(s.id, patch)}
               />
             ))}
 
