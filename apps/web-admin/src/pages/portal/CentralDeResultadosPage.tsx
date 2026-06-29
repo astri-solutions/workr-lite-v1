@@ -161,20 +161,18 @@ export default function CentralDeResultadosPage() {
         ))}
       </div>
 
-      {/* Search */}
-      <div className="cdr-search-bar">
-        <span className="material-symbols-outlined cdr-search-bar__icon" style={{ fontSize: '16px' }}>search</span>
-        <input
-          className="cdr-search-bar__input"
-          type="text"
-          placeholder="Buscar resultado ou documento..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      {/* Filters */}
-      <div className="cdr-filters">
+      {/* Search + Filters inline */}
+      <div className="cdr-toolbar">
+        <div className="cdr-search-bar">
+          <span className="material-symbols-outlined cdr-search-bar__icon" style={{ fontSize: '16px' }}>search</span>
+          <input
+            className="cdr-search-bar__input"
+            type="text"
+            placeholder="Buscar resultado ou documento..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <select
           className="filter-select"
           value={filterYear}
@@ -197,39 +195,53 @@ export default function CentralDeResultadosPage() {
         </select>
       </div>
 
-      {/* Accordion list */}
+      {/* Accordion list grouped by year */}
       <div className="cdr-list">
         {currentQuarters.length === 0 ? (
           <div className="cdr-empty">Nenhum resultado encontrado.</div>
         ) : (
-          currentQuarters.map((q) => (
-            <div key={q.id} className={`cdr-accordion${expandedId === q.id ? ' cdr-accordion--open' : ''}`}>
-              <button
-                type="button"
-                className="cdr-accordion__row"
-                onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
-              >
-                <span className="cdr-accordion__folder">📁</span>
-                <span className="cdr-accordion__period">{q.period}</span>
-                <span className="cdr-accordion__meta">
-                  {q.totalDocs} {q.totalDocs === 1 ? 'doc' : 'docs'} ·{' '}
-                  {q.publishedDocs} publicado{q.publishedDocs !== 1 ? 's' : ''}
-                </span>
-                <span
-                  className={`cdr-accordion__chevron${expandedId === q.id ? ' cdr-accordion__chevron--open' : ''}`}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_right</span>
-                </span>
-              </button>
-              {expandedId === q.id && (
-                <div className="cdr-accordion__body">
-                  <p className="cdr-accordion__placeholder">
-                    Documentos do período <strong>{q.period}</strong> aparecerão aqui.
-                  </p>
-                </div>
-              )}
-            </div>
-          ))
+          (() => {
+            const byYear: { year: string; quarters: typeof currentQuarters }[] = [];
+            for (const q of currentQuarters) {
+              const { year } = parsePeriod(q.period);
+              const existing = byYear.find((g) => g.year === year);
+              if (existing) existing.quarters.push(q);
+              else byYear.push({ year, quarters: [q] });
+            }
+            return byYear.map((group) => (
+              <div key={group.year} className="cdr-year-group">
+                <div className="cdr-year-label">{group.year}</div>
+                {group.quarters.map((q) => (
+                  <div key={q.id} className={`cdr-accordion${expandedId === q.id ? ' cdr-accordion--open' : ''}`}>
+                    <button
+                      type="button"
+                      className="cdr-accordion__row"
+                      onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
+                    >
+                      <span className="cdr-accordion__folder">📁</span>
+                      <span className="cdr-accordion__period">{q.period}</span>
+                      <span className="cdr-accordion__meta">
+                        {q.totalDocs} {q.totalDocs === 1 ? 'doc' : 'docs'} ·{' '}
+                        {q.publishedDocs} publicado{q.publishedDocs !== 1 ? 's' : ''}
+                      </span>
+                      <span
+                        className={`cdr-accordion__chevron${expandedId === q.id ? ' cdr-accordion__chevron--open' : ''}`}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_right</span>
+                      </span>
+                    </button>
+                    {expandedId === q.id && (
+                      <div className="cdr-accordion__body">
+                        <p className="cdr-accordion__placeholder">
+                          Documentos do período <strong>{q.period}</strong> aparecerão aqui.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ));
+          })()
         )}
       </div>
 

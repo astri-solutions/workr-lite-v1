@@ -118,8 +118,6 @@ export default function InformacoesModal({ open, onClose }: InformacoesModalProp
           <SettingsRow label="Empresa" row={empresa}
             onEdit={() => startEdit(setEmpresa)} onSave={() => saveEdit(setEmpresa)}
             onCancel={() => cancelEdit(setEmpresa)} onChange={(v) => change(setEmpresa, v)} />
-          <SettingsRow label="Moeda da conta" row={{ value: 'BRL', editing: false, draft: 'BRL' }}
-            readOnly onEdit={() => {}} onSave={() => {}} onCancel={() => {}} onChange={() => {}} />
         </div>
       </div>
 
