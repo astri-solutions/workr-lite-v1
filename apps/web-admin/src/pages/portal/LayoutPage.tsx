@@ -2,10 +2,11 @@ import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { PORTAL_LAYOUT_KEY, PortalLayout } from '../../components/ClientLayout';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
-const INITIAL = 'banner';
+const INITIAL: PortalLayout = (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar';
 
 const TIPOS = [
   {
@@ -74,12 +75,15 @@ const TIPOS = [
 ];
 
 export default function LayoutPage() {
-  const [selected, setSelected] = useState(INITIAL);
+  const [selected, setSelected] = useState<PortalLayout>(INITIAL);
   const [saved, setSaved] = useState(false);
   const isDirty = selected !== INITIAL && !saved;
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
+    localStorage.setItem(PORTAL_LAYOUT_KEY, selected);
+    // Notify same-tab listeners (ClientLayout uses useState, so dispatch manually)
+    window.dispatchEvent(new StorageEvent('storage', { key: PORTAL_LAYOUT_KEY, newValue: selected }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -105,7 +109,7 @@ export default function LayoutPage() {
               key={t.id}
               type="button"
               className={`pers-tipo-card${selected === t.id ? ' pers-tipo-card--active' : ''}`}
-              onClick={() => setSelected(t.id)}
+              onClick={() => { setSelected(t.id as PortalLayout); setSaved(false); }}
             >
               <div className="pers-tipo-card__thumb">{t.thumb}</div>
               <div className="pers-tipo-card__info">

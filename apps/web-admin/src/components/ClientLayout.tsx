@@ -1,8 +1,12 @@
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
+
+export const PORTAL_LAYOUT_KEY = 'portal_layout';
+export type PortalLayout = 'sidebar' | 'tabmenu' | 'banner';
 
 // Logo paths follow the convention /logos/tenants/{tenantId}/logotipo.svg
 // When the portal upload feature is complete, these files will be served
@@ -188,13 +192,36 @@ const SECTIONS: NavSection[] = [
 
 export default function ClientLayout() {
   const { logoSrc, logoAlt } = useTenantLogo();
+  const [portalLayout, setPortalLayout] = useState<PortalLayout>(
+    () => (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar'
+  );
+
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === PORTAL_LAYOUT_KEY) {
+        setPortalLayout((e.newValue as PortalLayout) ?? 'sidebar');
+      }
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const hasBanner = portalLayout === 'tabmenu' || portalLayout === 'banner';
+
+  const sections: NavSection[] = SECTIONS.map(section => ({
+    ...section,
+    items: section.items.filter(item => {
+      if (item.to === '/portal/banner') return hasBanner;
+      return true;
+    }),
+  }));
 
   return (
     <div className="admin-shell">
       <AppTopbar />
       <div className="admin-body">
         <AppSidebar
-          sections={SECTIONS}
+          sections={sections}
           logoSrc={logoSrc}
           logoAlt={logoAlt}
         />
