@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import './ChannelEditor.css';
 
+export const CANAIS_KEY = 'portal_canais';
+
 export interface SubCanal {
   id: string;
   label: string;

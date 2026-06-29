@@ -3,7 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import { Canal, SubCanal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
+import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY } from '../../components/ChannelEditor';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -43,6 +43,7 @@ export default function CanaisPage() {
   }, []);
 
   function handleSave() {
+    localStorage.setItem(CANAIS_KEY, JSON.stringify(canais));
     setIsDirty(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal';
+import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
@@ -84,14 +85,6 @@ const LOCALES = [
   { code: 'es', label: 'ES', flag: '🇪🇸' },
 ];
 
-const PAGES = [
-  'Central de Resultados',
-  'Documentos',
-  'Matérias',
-  'Sobre a empresa',
-  'Governança Corporativa',
-  'Outros',
-];
 
 /* ── Rich text editor (uncontrolled) ─────────────────────── */
 function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: string }) {
@@ -260,6 +253,7 @@ function SectionEditor({ section, index, onRemove }: {
 /* ── Main page ────────────────────────────────────────────── */
 export default function NovaMateriaPage() {
   const navigate = useNavigate();
+  const destinos = useCanaisDestinos();
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [sections, setSections] = useState<ContentSection[]>([
@@ -504,10 +498,32 @@ export default function NovaMateriaPage() {
               value={page}
               onChange={(e) => setPage(e.target.value)}
             >
-              <option value="">Selecionar...</option>
-              {PAGES.map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
+              <option value="">Selecionar canal...</option>
+              {(() => {
+                const groups: Record<string, typeof destinos> = {};
+                const ungrouped: typeof destinos = [];
+                for (const d of destinos) {
+                  if (d.parentLabel) {
+                    (groups[d.parentLabel] ??= []).push(d);
+                  } else {
+                    ungrouped.push(d);
+                  }
+                }
+                return (
+                  <>
+                    {ungrouped.map((d) => (
+                      <option key={d.id} value={d.id}>{d.label}</option>
+                    ))}
+                    {Object.entries(groups).map(([parent, items]) => (
+                      <optgroup key={parent} label={parent}>
+                        {items.map((d) => (
+                          <option key={d.id} value={d.id}>{d.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </>
+                );
+              })()}
             </select>
           </div>
 
