@@ -30,6 +30,8 @@ import BannerPage from './pages/portal/BannerPage';
 import DashboardPage from './pages/portal/DashboardPage';
 import NovaMateriaPage from './pages/portal/NovaMateriaPage';
 import CalendarioPage from './pages/portal/CalendarioPage';
+import SplashPage from './pages/portal/SplashPage';
+import MailingPage from './pages/portal/MailingPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -78,6 +80,8 @@ const router = createBrowserRouter([
       { path: 'materias', element: <MateriasPage /> },
       { path: 'materias/nova', element: <NovaMateriaPage /> },
       { path: 'calendario', element: <CalendarioPage /> },
+      { path: 'splash', element: <SplashPage /> },
+      { path: 'mailing', element: <MailingPage /> },
       { path: 'interacoes', element: <InteracoesPage /> },
       { path: 'layout', element: <LayoutPage /> },
       { path: 'cores', element: <CoresPage /> },
