@@ -33,3 +33,13 @@
 }
 
 .lang-tab__flag { font-size: 15px; line-height: 1; }
+
+/* Shared dissolve animation — apply to any content that should fade on lang change */
+@keyframes lang-dissolve {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lang-fade {
+  animation: lang-dissolve 0.22s ease-out both;
+}

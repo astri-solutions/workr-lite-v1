@@ -649,7 +649,7 @@ export default function NovaMateriaPage() {
 
         {/* Center: content editor */}
         <main className="nm-main">
-          <div key={locale} className="nm-locale-fade nm-content-wrap">
+          <div key={locale} className="lang-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
               {!isGaleria && <ImageUpload label="Imagem de header" ratio="21/5" />}

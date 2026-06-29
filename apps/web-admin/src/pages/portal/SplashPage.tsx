@@ -156,7 +156,7 @@ export default function SplashPage() {
 
       <div className="splash-layout">
         {/* Left: editor */}
-        <div className="splash-editor">
+        <div key={activeLang} className="splash-editor lang-fade">
 
           {/* Enable toggle */}
           <div className="splash-card">
