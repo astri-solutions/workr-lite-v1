@@ -342,6 +342,15 @@ function newCard(): GaleriaCard {
   return { id: Math.random().toString(36).slice(2), titulo: '', descricao: '', data: '', link: '', imageUrl: null };
 }
 
+const SAMPLE_GALERIA_CARDS: GaleriaCard[] = [
+  { id: 'g1', titulo: 'IMC reporta crescimento de 12% no EBITDA do 2T25', descricao: 'A IMC apresentou resultados acima das expectativas do mercado, com crescimento expressivo em todas as marcas do portfólio.', data: '2026-06-10', link: '/resultados/2t25', imageUrl: null },
+  { id: 'g2', titulo: 'Calendário de eventos corporativos — 2º semestre 2026', descricao: 'Confira as datas de teleconferências, road shows e demais eventos para investidores no segundo semestre.', data: '2026-06-01', link: '/eventos/2s26', imageUrl: null },
+  { id: 'g3', titulo: 'Convocação: Assembleia Geral Ordinária 2026', descricao: 'A IMC convoca seus acionistas para a Assembleia Geral Ordinária a ser realizada em 20 de junho de 2026.', data: '2026-05-28', link: '/governanca/ago2026', imageUrl: null },
+  { id: 'g4', titulo: 'Nota ao mercado: aquisição estratégica no segmento de fast food', descricao: 'A companhia informa ao mercado a conclusão de aquisição de cadeia regional com 45 unidades, fortalecendo presença no Nordeste.', data: '2026-05-15', link: '', imageUrl: null },
+  { id: 'g5', titulo: 'Resultados do 1T26: receita líquida cresce 18% a/a', descricao: 'Destaques do primeiro trimestre incluem expansão de margens e redução de alavancagem financeira.', data: '2026-05-08', link: '/resultados/1t26', imageUrl: null },
+  { id: 'g6', titulo: 'IMC anuncia programa de recompra de ações', descricao: 'O Conselho de Administração aprovou programa de recompra de até 5% das ações em circulação pelo prazo de 18 meses.', data: '2026-04-22', link: '', imageUrl: null },
+];
+
 function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (cards: GaleriaCard[]) => void }) {
   function update(id: string, patch: Partial<GaleriaCard>) {
     onChange(cards.map(c => c.id === id ? { ...c, ...patch } : c));
@@ -494,19 +503,21 @@ export default function NovaMateriaPage() {
   const isGaleria = pageType === 'galeria';
 
   const destinos = useCanaisDestinos();
-  const [title, setTitle] = useState(editing?.titulo ?? '');
-  const [subtitle, setSubtitle] = useState('');
+  const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
+  const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
   const [sections, setSections] = useState<ContentSection[]>(
     isGaleria ? [] : [{ id: 'init', type: 'text' }]
   );
-  const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>([newCard()]);
+  const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>(
+    isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()]
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [locale, setLocale] = useState('pt-BR');
   const [page, setPage] = useState(editing?.pagina ?? '');
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
-  const [contentType, setContentType] = useState('');
+  const [contentType, setContentType] = useState(isGaleria && !editing ? 'Notícia' : '');
 
   const dragIndex = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
