@@ -77,7 +77,7 @@ export default function CentralDeResultadosPage() {
   const [newTitles, setNewTitles] = useState<Record<string, string>>({});
   const [newDate, setNewDate] = useState('');
   const [newPeriodType, setNewPeriodType] = useState<'trimestral' | 'anual'>(
-    PORTAL_CONFIG.orgType === 'anual' ? 'anual' : 'trimestral'
+    (PORTAL_CONFIG.orgType as string) === 'anual' ? 'anual' : 'trimestral'
   );
   const [newQuarter, setNewQuarter] = useState('');
   const [newYear, setNewYear] = useState('');
@@ -111,7 +111,7 @@ export default function CentralDeResultadosPage() {
     setNewEntity(activeEntity);
     setNewTitles({});
     setNewDate('');
-    setNewPeriodType(PORTAL_CONFIG.orgType === 'anual' ? 'anual' : 'trimestral');
+    setNewPeriodType((PORTAL_CONFIG.orgType as string) === 'anual' ? 'anual' : 'trimestral');
     setNewQuarter('');
     setNewYear('');
     setNewTipo('');
