@@ -94,14 +94,65 @@ const STATUS_CLASS: Record<EntityStatus, string> = {
   erro: 'badge badge--error',
 };
 
+function EntityCard({ entity }: { entity: CvmEntity }) {
+  return (
+    <div className="cvm-entity-card">
+      <div className="cvm-entity-card__header">
+        <div>
+          <h3 className="cvm-entity-card__name">{entity.nome}</h3>
+          <p className="cvm-entity-card__meta">
+            {entity.tipo} · CNPJ {entity.cnpj} · CVM {entity.cvmCode}
+          </p>
+        </div>
+        <span className={STATUS_CLASS[entity.status]}>
+          {STATUS_LABEL[entity.status]}
+        </span>
+      </div>
+
+      <div className="cvm-entity-card__fields">
+        <div className="cvm-field">
+          <label className="cvm-field__label">CNPJ (chave de conexão)</label>
+          <input
+            className="cvm-field__input cvm-field__input--readonly"
+            type="text"
+            value={entity.cnpj}
+            readOnly
+          />
+        </div>
+        <div className="cvm-field">
+          <label className="cvm-field__label">Importar desde (retroativo)</label>
+          <input
+            className="cvm-field__input"
+            type="text"
+            defaultValue={entity.importarDesde}
+            placeholder="dd/mm/aaaa"
+          />
+        </div>
+      </div>
+
+      <div className="cvm-entity-card__footer">
+        <span className="cvm-entity-card__sync-info">
+          Casa por CNPJ · incremental a cada 5 min
+          {entity.ultimaSync !== '—' && (
+            <> · última: <strong>{entity.ultimaSync}</strong></>
+          )}
+        </span>
+        <button className="btn-outline-sm" type="button">
+          Importar histórico
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AutoCvmPage() {
   const [portalId, setPortalId] = useState('');
   const [syncing, setSyncing] = useState(false);
 
   const selectedPortal = portalId ? PORTAIS.find((p) => p.id === portalId) : null;
   const visibleEntidades = selectedPortal
-    ? selectedPortal.entidades.map((e) => ({ ...e, portalNome: selectedPortal.nome }))
-    : PORTAIS.flatMap((p) => p.entidades.map((e) => ({ ...e, portalNome: p.nome })));
+    ? selectedPortal.entidades
+    : PORTAIS.flatMap((p) => p.entidades);
 
   function handleSync() {
     setSyncing(true);
@@ -177,62 +228,33 @@ export default function AutoCvmPage() {
           <p>Nenhuma entidade conectada neste portal.</p>
           <p className="cvm-empty__hint">Clique em "+ Buscar e adicionar entidade" para conectar pelo CNPJ.</p>
         </div>
-      ) : (
+      ) : selectedPortal ? (
+        /* ── Single portal: flat list ── */
         <div className="cvm-entity-list">
-          {visibleEntidades.map((entity) => (
-            <div key={entity.id} className="cvm-entity-card">
-
-              {/* Card header */}
-              <div className="cvm-entity-card__header">
-                <div>
-                  {!selectedPortal && (
-                    <p className="cvm-entity-card__portal">{entity.portalNome}</p>
-                  )}
-                  <h3 className="cvm-entity-card__name">{entity.nome}</h3>
-                  <p className="cvm-entity-card__meta">
-                    {entity.tipo} · CNPJ {entity.cnpj} · CVM {entity.cvmCode}
-                  </p>
-                </div>
-                <span className={STATUS_CLASS[entity.status]}>
-                  {STATUS_LABEL[entity.status]}
+          {selectedPortal.entidades.map((entity) => (
+            <EntityCard key={entity.id} entity={entity} />
+          ))}
+        </div>
+      ) : (
+        /* ── All portals: grouped by portal ── */
+        <div className="cvm-groups">
+          {PORTAIS.map((portal) => (
+            <div key={portal.id} className="cvm-group">
+              <div className="cvm-group__header">
+                <span className="cvm-group__name">{portal.nome}</span>
+                <span className="cvm-group__count">
+                  {portal.entidades.length} entidade{portal.entidades.length !== 1 ? 's' : ''}
                 </span>
               </div>
-
-              {/* Fields */}
-              <div className="cvm-entity-card__fields">
-                <div className="cvm-field">
-                  <label className="cvm-field__label">CNPJ (chave de conexão)</label>
-                  <input
-                    className="cvm-field__input cvm-field__input--readonly"
-                    type="text"
-                    value={entity.cnpj}
-                    readOnly
-                  />
+              {portal.entidades.length === 0 ? (
+                <p className="cvm-group__empty">Nenhuma entidade conectada.</p>
+              ) : (
+                <div className="cvm-entity-list cvm-entity-list--ingroup">
+                  {portal.entidades.map((entity) => (
+                    <EntityCard key={entity.id} entity={entity} />
+                  ))}
                 </div>
-                <div className="cvm-field">
-                  <label className="cvm-field__label">Importar desde (retroativo)</label>
-                  <input
-                    className="cvm-field__input"
-                    type="text"
-                    defaultValue={entity.importarDesde}
-                    placeholder="dd/mm/aaaa"
-                  />
-                </div>
-              </div>
-
-              {/* Card footer */}
-              <div className="cvm-entity-card__footer">
-                <span className="cvm-entity-card__sync-info">
-                  Casa por CNPJ · incremental a cada 5 min
-                  {entity.ultimaSync !== '—' && (
-                    <> · última: <strong>{entity.ultimaSync}</strong></>
-                  )}
-                </span>
-                <button className="btn-outline-sm" type="button">
-                  Importar histórico
-                </button>
-              </div>
-
+              )}
             </div>
           ))}
         </div>
