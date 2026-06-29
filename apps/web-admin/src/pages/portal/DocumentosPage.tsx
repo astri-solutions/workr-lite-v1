@@ -234,35 +234,44 @@ export default function DocumentosPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select
-            className="filter-select"
-            value={filterTipo}
-            onChange={(e) => setFilterTipo(e.target.value)}
-          >
-            <option value="">Tipo</option>
-            {tipoOptions.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-          <select
-            className="filter-select"
-            value={filterAno}
-            onChange={(e) => setFilterAno(e.target.value)}
-          >
-            <option value="">Ano</option>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-          </select>
-          <select
-            className="filter-select"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="">Status</option>
-            <option value="Publicado">Publicado</option>
-            <option value="Rascunho">Rascunho</option>
-          </select>
+          <div className="filter-wrap">
+            <select
+              className="filter-select"
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value)}
+            >
+              <option value="">Tipo</option>
+              {tipoOptions.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+          </div>
+          <div className="filter-wrap">
+            <select
+              className="filter-select"
+              value={filterAno}
+              onChange={(e) => setFilterAno(e.target.value)}
+            >
+              <option value="">Ano</option>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+          </div>
+          <div className="filter-wrap">
+            <select
+              className="filter-select"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">Status</option>
+              <option value="Publicado">Publicado</option>
+              <option value="Rascunho">Rascunho</option>
+            </select>
+            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+          </div>
         </div>
 
         <div className="docs-filterbar__right">

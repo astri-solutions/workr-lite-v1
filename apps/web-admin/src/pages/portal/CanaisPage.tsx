@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
-import UnsavedModal from '../../components/UnsavedModal';
-import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
@@ -140,33 +138,15 @@ interface CanalEditState {
 
 export default function CanaisPage() {
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
-  const [isDirty, setIsDirty] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [editModal, setEditModal] = useState<EditState | null>(null);
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
 
-  const blocker = useUnsavedChanges(isDirty);
-
-  // Block browser refresh / tab close
-  useEffect(() => {
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      if (!isDirty) return;
-      e.preventDefault();
-    }
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [isDirty]);
-
   const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => {
     setCanais(fn);
-    setIsDirty(true);
   }, []);
 
-  function handleSave() {
-    localStorage.setItem(CANAIS_KEY, JSON.stringify(canais));
-    setIsDirty(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  function saveToStorage(updated: Canal[]) {
+    localStorage.setItem(CANAIS_KEY, JSON.stringify(updated));
   }
 
   // ── Canal-level actions ──────────────────────────────
@@ -236,19 +216,23 @@ export default function CanaisPage() {
   function commitCanalEdit() {
     if (!canalEditModal) return;
     const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf } = canalEditModal;
-    mutate(prev => prev.map(c => {
-      if (c.id !== canalId) return c;
-      const updated: Canal = {
-        ...c,
-        label: label.trim() || c.label,
-        pageType: isLeaf ? pageType : c.pageType,
-        headerImage: headerImageUrl ?? undefined,
-      };
-      if (applyHeaderToChildren && headerImageUrl) {
-        updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl } as SubCanal & { headerImage?: string }));
-      }
-      return updated;
-    }));
+    setCanais(prev => {
+      const next = prev.map(c => {
+        if (c.id !== canalId) return c;
+        const updated: Canal = {
+          ...c,
+          label: label.trim() || c.label,
+          pageType: isLeaf ? pageType : c.pageType,
+          headerImage: headerImageUrl ?? undefined,
+        };
+        if (applyHeaderToChildren && headerImageUrl) {
+          updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl } as SubCanal & { headerImage?: string }));
+        }
+        return updated;
+      });
+      saveToStorage(next);
+      return next;
+    });
     setCanalEditModal(null);
   }
 
@@ -279,9 +263,10 @@ export default function CanaisPage() {
       });
       if (!movingSub) return prev;
       const ms = movingSub as SubCanal;
-      return without.map(c => c.id !== targetCanalId ? c : { ...c, children: [...c.children, ms] });
+      const next = without.map(c => c.id !== targetCanalId ? c : { ...c, children: [...c.children, ms] });
+      saveToStorage(next);
+      return next;
     });
-    setIsDirty(true);
     setEditModal(null);
   }
 
@@ -291,17 +276,10 @@ export default function CanaisPage() {
         title="Árvore de canais"
         description="Configure a navegação do portal — ative, renomeie e reorganize seções e páginas."
         action={
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            <button className="btn-action btn-action--secondary" type="button" onClick={addCanal}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-              Novo canal
-            </button>
-            <button className="btn-primary" type="button" onClick={handleSave}>
-              {saved
-                ? <><span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>Salvo!</>
-                : 'Salvar alterações'}
-            </button>
-          </div>
+          <button className="btn-primary" type="button" onClick={addCanal}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+            Novo canal
+          </button>
         }
       />
 
@@ -409,12 +387,6 @@ export default function CanaisPage() {
         ))}
 
       </div>
-
-      <UnsavedModal
-        open={blocker.state === 'blocked'}
-        onStay={() => blocker.reset?.()}
-        onLeave={() => blocker.proceed?.()}
-      />
 
       {/* Canal edit modal */}
       {canalEditModal && (

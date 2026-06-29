@@ -173,26 +173,32 @@ export default function CentralDeResultadosPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          className="filter-select"
-          value={filterYear}
-          onChange={(e) => setFilterYear(e.target.value)}
-        >
-          <option value="">Todos os anos</option>
-          {years.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <select
-          className="filter-select"
-          value={filterQuarter}
-          onChange={(e) => setFilterQuarter(e.target.value)}
-        >
-          <option value="">Todos os trimestres</option>
-          {quarterOptions.map((q) => (
-            <option key={q} value={q}>{q}</option>
-          ))}
-        </select>
+        <div className="filter-wrap">
+          <select
+            className="filter-select"
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+          >
+            <option value="">Todos os anos</option>
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+        </div>
+        <div className="filter-wrap">
+          <select
+            className="filter-select"
+            value={filterQuarter}
+            onChange={(e) => setFilterQuarter(e.target.value)}
+          >
+            <option value="">Todos os trimestres</option>
+            {quarterOptions.map((q) => (
+              <option key={q} value={q}>{q}</option>
+            ))}
+          </select>
+          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+        </div>
       </div>
 
       {/* Accordion list grouped by year */}

@@ -114,12 +114,15 @@ export default function MidiaPage() {
           <input className="midia-search" type="text" placeholder="Buscar arquivo..." value={search}
             onChange={e => setSearch(e.target.value)} />
         </div>
-        <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value as FileType | '')}>
-          <option value="">Todos os tipos</option>
-          <option value="image">Imagens</option>
-          <option value="pdf">PDFs</option>
-          <option value="video">Vídeos</option>
-        </select>
+        <div className="filter-wrap">
+          <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value as FileType | '')}>
+            <option value="">Todos os tipos</option>
+            <option value="image">Imagens</option>
+            <option value="pdf">PDFs</option>
+            <option value="video">Vídeos</option>
+          </select>
+          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
