@@ -131,7 +131,7 @@ export default function CentralDeResultadosPage() {
           </p>
         </div>
         <button
-          className="btn-novo-resultado"
+          className="btn-primary"
           type="button"
           onClick={() => {
             setNewEntity(activeEntity);
