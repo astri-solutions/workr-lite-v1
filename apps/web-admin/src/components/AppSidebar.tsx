@@ -43,45 +43,49 @@ export default function AppSidebar({
         />
       </NavLink>
 
-      <nav className="admin-sidebar__nav">
-        {sections.map((section) => (
-          <div key={section.label} className="admin-sidebar__section">
-            {!collapsed && (
-              <p className="admin-sidebar__section-label">{section.label}</p>
-            )}
-            {section.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={collapsed ? item.label : undefined}
-                className={({ isActive }) =>
-                  `admin-nav-item${isActive ? ' admin-nav-item--active' : ''}`
-                }
-              >
-                <span className="admin-nav-item__icon">{item.icon}</span>
-                {!collapsed && (
-                  <>
-                    <span className="admin-nav-item__label">{item.label}</span>
-                    {item.badge !== undefined && (
-                      <span className="nav-badge">{item.badge}</span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </div>
-        ))}
-      </nav>
+      <div className="admin-sidebar__scroll">
+        <nav className="admin-sidebar__nav">
+          {sections.map((section) => (
+            <div key={section.label} className="admin-sidebar__section">
+              {!collapsed && (
+                <p className="admin-sidebar__section-label">{section.label}</p>
+              )}
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  title={collapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `admin-nav-item${isActive ? ' admin-nav-item--active' : ''}`
+                  }
+                >
+                  <span className="admin-nav-item__icon">{item.icon}</span>
+                  {!collapsed && (
+                    <>
+                      <span className="admin-nav-item__label">{item.label}</span>
+                      {item.badge !== undefined && (
+                        <span className="nav-badge">{item.badge}</span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </div>
 
-      <button
-        className="admin-sidebar__toggle"
-        type="button"
-        onClick={() => setCollapsed((c) => !c)}
-        title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: '18px', transform: collapsed ? 'scaleX(-1)' : 'none', transition: 'transform 0.22s', display: 'inline-block' }}>menu_open</span>
-        {!collapsed && <span>Recolher</span>}
-      </button>
+      <div className="admin-sidebar__footer">
+        <button
+          className="admin-sidebar__toggle"
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px', transform: collapsed ? 'scaleX(-1)' : 'none', transition: 'transform 0.22s', display: 'inline-block' }}>menu_open</span>
+          {!collapsed && <span>Recolher</span>}
+        </button>
+      </div>
     </aside>
   );
 }
