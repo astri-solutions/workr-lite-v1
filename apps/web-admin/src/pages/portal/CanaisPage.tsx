@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import LangTabs from '../../components/LangTabs';
 import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
-import PORTAL_CONFIG from '../../portalConfig';
+import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -137,10 +138,34 @@ interface CanalEditState {
   isLeaf: boolean; // no children → show page type picker
 }
 
+type CanalType = 'pagina' | 'pai';
+
+interface NewCanalForm {
+  titles: Record<string, string>;
+  subtitles: Record<string, string>;
+  headerImageUrl: string | null;
+  tipo: CanalType;
+  draft: boolean;
+  locale: LocaleCode;
+}
+
+function emptyNewCanalForm(): NewCanalForm {
+  return {
+    titles: { [PORTAL_CONFIG.languages[0]]: '' },
+    subtitles: {},
+    headerImageUrl: null,
+    tipo: 'pai',
+    draft: false,
+    locale: PORTAL_CONFIG.languages[0],
+  };
+}
+
 export default function CanaisPage() {
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
   const [editModal, setEditModal] = useState<EditState | null>(null);
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
+  const [newCanalOpen, setNewCanalOpen] = useState(false);
+  const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
 
   const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => {
     setCanais(fn);
@@ -169,9 +194,19 @@ export default function CanaisPage() {
     });
   }
 
-  function addCanal() {
-    const c: Canal = { id: genId(), label: 'Nova seção', enabled: true, children: [] };
+  function commitNewCanal() {
+    const primaryLang = PORTAL_CONFIG.languages[0];
+    const label = newCanalForm.titles[primaryLang]?.trim() || 'Novo canal';
+    const c: Canal = {
+      id: genId(),
+      label,
+      enabled: !newCanalForm.draft,
+      children: [],
+      ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
+    };
     mutate(prev => [...prev, c]);
+    setNewCanalOpen(false);
+    setNewCanalForm(emptyNewCanalForm());
   }
 
   // ── Page-level actions ───────────────────────────────
@@ -277,7 +312,7 @@ export default function CanaisPage() {
         title="Árvore de canais"
         description={<>Árvore de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={addCanal}>
+          <button className="btn-primary" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm()); setNewCanalOpen(true); }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
             Novo canal
           </button>
@@ -607,6 +642,125 @@ export default function CanaisPage() {
           </div>
         </Modal>
       )}
+
+      {/* New canal modal */}
+      <Modal
+        open={newCanalOpen}
+        onClose={() => setNewCanalOpen(false)}
+        title="Novo canal"
+        description="Configure o canal que será exibido na navegação do portal."
+        size="md"
+        footer={
+          <div className="modal-footer">
+            <button className="btn-outline" type="button" onClick={() => setNewCanalOpen(false)}>Cancelar</button>
+            <button
+              className="btn-primary"
+              type="button"
+              onClick={commitNewCanal}
+              disabled={!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim()}
+            >
+              Criar canal
+            </button>
+          </div>
+        }
+      >
+        <LangTabs active={newCanalForm.locale} onChange={l => setNewCanalForm(f => ({ ...f, locale: l }))} />
+
+        {/* Header image */}
+        <div>
+          <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Imagem do header</p>
+          {newCanalForm.headerImageUrl ? (
+            <div className="canal-header-img-preview">
+              <img src={newCanalForm.headerImageUrl} alt="Header" className="canal-header-img-preview__img" />
+              <div className="canal-header-img-preview__actions">
+                <label className="btn-toolbar canais-img-file-label">
+                  Substituir
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) setNewCanalForm(p => ({ ...p, headerImageUrl: URL.createObjectURL(f) }));
+                    }} />
+                </label>
+                <button className="btn-toolbar btn-toolbar--danger" type="button" onClick={() => setNewCanalForm(p => ({ ...p, headerImageUrl: null }))}>
+                  Remover
+                </button>
+              </div>
+            </div>
+          ) : (
+            <label className="canal-header-img-empty canais-img-file-label">
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f) setNewCanalForm(p => ({ ...p, headerImageUrl: URL.createObjectURL(f) }));
+                }} />
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
+              <span>Clique para adicionar imagem de header</span>
+            </label>
+          )}
+        </div>
+
+        {/* Titles */}
+        <div key={newCanalForm.locale} className="canais-edit-form__label-group">
+          <label className="canais-edit-form__label lang-fade">
+            Título
+            <input
+              className="canais-edit-form__input"
+              type="text"
+              placeholder="Ex: Governança"
+              value={newCanalForm.titles[newCanalForm.locale] ?? ''}
+              onChange={e => setNewCanalForm(p => ({ ...p, titles: { ...p.titles, [p.locale]: e.target.value } }))}
+              autoFocus
+            />
+          </label>
+          <label className="canais-edit-form__label lang-fade" style={{ marginTop: '12px' }}>
+            Subtítulo <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(opcional)</span>
+            <input
+              className="canais-edit-form__input"
+              type="text"
+              placeholder="Breve descrição do canal"
+              value={newCanalForm.subtitles[newCanalForm.locale] ?? ''}
+              onChange={e => setNewCanalForm(p => ({ ...p, subtitles: { ...p.subtitles, [p.locale]: e.target.value } }))}
+            />
+          </label>
+        </div>
+
+        {/* Canal type */}
+        <div>
+          <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Tipo de canal</p>
+          <div className="canais-new-type-row">
+            <button
+              type="button"
+              className={`canais-new-type-btn${newCanalForm.tipo === 'pai' ? ' canais-new-type-btn--active' : ''}`}
+              onClick={() => setNewCanalForm(p => ({ ...p, tipo: 'pai' }))}
+            >
+              <span className="material-symbols-outlined canais-new-type-btn__icon">account_tree</span>
+              <span className="canais-new-type-btn__label">Canal pai</span>
+              <span className="canais-new-type-btn__desc">Agrupa páginas filhas na navegação</span>
+              {newCanalForm.tipo === 'pai' && <span className="canais-new-type-btn__check"><span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span></span>}
+            </button>
+            <button
+              type="button"
+              className={`canais-new-type-btn${newCanalForm.tipo === 'pagina' ? ' canais-new-type-btn--active' : ''}`}
+              onClick={() => setNewCanalForm(p => ({ ...p, tipo: 'pagina' }))}
+            >
+              <span className="material-symbols-outlined canais-new-type-btn__icon">article</span>
+              <span className="canais-new-type-btn__label">Página direta</span>
+              <span className="canais-new-type-btn__desc">Link direto sem filhos na navegação</span>
+              {newCanalForm.tipo === 'pagina' && <span className="canais-new-type-btn__check"><span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span></span>}
+            </button>
+          </div>
+        </div>
+
+        {/* Draft toggle */}
+        <label className="canais-new-draft-check">
+          <input
+            type="checkbox"
+            checked={newCanalForm.draft}
+            onChange={e => setNewCanalForm(p => ({ ...p, draft: e.target.checked }))}
+          />
+          <span>Salvar como rascunho (não exibir no portal ainda)</span>
+        </label>
+      </Modal>
     </div>
   );
 }

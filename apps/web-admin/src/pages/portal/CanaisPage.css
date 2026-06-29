@@ -411,3 +411,91 @@
 .canais-order {
   align-items: center;
 }
+
+/* ── New canal modal ─────────────────────────────── */
+.canais-edit-form__label-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.canais-new-type-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.canais-new-type-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.canais-new-type-btn:hover { border-color: var(--color-primary-300); }
+.canais-new-type-btn--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50, #e8f5f7);
+  box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.1);
+}
+
+.canais-new-type-btn__icon {
+  font-size: 22px;
+  color: var(--color-gray-400);
+  margin-bottom: var(--space-1);
+}
+.canais-new-type-btn--active .canais-new-type-btn__icon { color: var(--color-primary-600); }
+
+.canais-new-type-btn__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-800);
+}
+
+.canais-new-type-btn__desc {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  line-height: 1.4;
+}
+
+.canais-new-type-btn__check {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 20px;
+  height: 20px;
+  background: var(--color-primary-600);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.canais-new-draft-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+}
+
+.canais-new-draft-check input[type="checkbox"] {
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary-500);
+  flex-shrink: 0;
+}
