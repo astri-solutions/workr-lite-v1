@@ -565,7 +565,7 @@
 
 .rte-body {
   position: relative;
-  min-height: 120px;
+  min-height: 48px;
 }
 
 .rte-placeholder {
@@ -579,8 +579,8 @@
 }
 
 .rte-content {
-  padding: var(--space-3) var(--space-4);
-  min-height: 120px;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  min-height: 48px;
   outline: none;
   font-family: var(--font-body);
   font-size: var(--text-sm);
