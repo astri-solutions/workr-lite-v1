@@ -30,18 +30,13 @@ const INITIAL: Materia[] = [
 const STATUS_LABEL: Record<Status, string> = { publicado: 'Publicado', rascunho: 'Rascunho', agendado: 'Agendado' };
 const STATUS_BADGE: Record<Status, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
 
-interface MateriaForm { titulo: string; pagina: string; status: Status; }
-const EMPTY: MateriaForm = { titulo: '', pagina: PAGINAS[0], status: 'rascunho' };
-
 export default function MateriasPage() {
   const navigate = useNavigate();
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<Status | ''>('');
   const [filterPagina, setFilterPagina] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Materia | null>(null);
-  const [form, setForm] = useState<MateriaForm>(EMPTY);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
@@ -50,39 +45,10 @@ export default function MateriasPage() {
     return true;
   });
 
-
-  function openEdit(m: Materia) {
-    setEditing(m);
-    setForm({ titulo: m.titulo, pagina: m.pagina, status: m.status });
-    setModalOpen(true);
-  }
-  function closeModal() { setModalOpen(false); setEditing(null); setForm(EMPTY); }
-
-  function handleSave() {
-    if (!form.titulo.trim()) return;
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    if (editing) {
-      setMaterias(prev => prev.map(m => m.id === editing.id
-        ? { ...m, ...form, ultimaEdicao: hoje, ultimoEditor: 'Você' }
-        : m));
-    } else {
-      const nova: Materia = {
-        id: 'a' + Date.now(),
-        titulo: form.titulo,
-        pagina: form.pagina,
-        status: form.status,
-        data: hoje,
-        autor: 'Você',
-        ultimaEdicao: hoje,
-        ultimoEditor: 'Você',
-      };
-      setMaterias(prev => [nova, ...prev]);
-    }
-    closeModal();
-  }
-
-  function handleDelete(id: string) {
-    setMaterias(prev => prev.filter(m => m.id !== id));
+  function confirmDelete() {
+    if (!deleteId) return;
+    setMaterias(prev => prev.filter(m => m.id !== deleteId));
+    setDeleteId(null);
   }
 
   return (
@@ -154,8 +120,11 @@ export default function MateriasPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(m)}>Editar</button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => handleDelete(m.id)}>Excluir</button>
+                      <button className="btn-action btn-action--enter" type="button"
+                        onClick={() => navigate('/portal/materias/nova', { state: { editing: m } })}>
+                        Editar
+                      </button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>
                     </div>
                   </td>
                 </tr>
@@ -166,43 +135,20 @@ export default function MateriasPage() {
       </div>
 
       <Modal
-        open={modalOpen}
-        onClose={closeModal}
-        title={editing ? 'Editar matéria' : 'Nova matéria'}
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        title="Excluir matéria"
         size="sm"
         footer={
-          <div className="mat-modal-footer">
-            <button className="mat-modal-cancel" type="button" onClick={closeModal}>Cancelar</button>
-            <button className="btn-primary" type="button" onClick={handleSave} disabled={!form.titulo.trim()}>
-              {editing ? 'Salvar' : 'Criar matéria'}
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+            <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteId(null)}>Cancelar</button>
+            <button className="btn-action btn-action--danger" type="button" onClick={confirmDelete}>Excluir</button>
           </div>
         }
       >
-        <div className="mat-form">
-          <label className="mat-form__label">
-            Título
-            <input className="mat-form__input" type="text" autoFocus value={form.titulo}
-              onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
-              placeholder="Ex: IMC reporta crescimento no 2T25" />
-          </label>
-          <label className="mat-form__label">
-            Página
-            <select className="mat-form__input mat-form__select" value={form.pagina}
-              onChange={e => setForm(f => ({ ...f, pagina: e.target.value }))}>
-              {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </label>
-          <label className="mat-form__label">
-            Status
-            <select className="mat-form__input mat-form__select" value={form.status}
-              onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))}>
-              <option value="rascunho">Rascunho</option>
-              <option value="publicado">Publicado</option>
-              <option value="agendado">Agendado</option>
-            </select>
-          </label>
-        </div>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: '1.5' }}>
+          Tem certeza que deseja excluir esta matéria? Esta ação não pode ser desfeita.
+        </p>
       </Modal>
     </div>
   );

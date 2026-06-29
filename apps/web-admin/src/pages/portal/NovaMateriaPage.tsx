@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Modal from '../../components/Modal';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import '../admin/AdminPages.css';
@@ -386,16 +386,19 @@ function SectionEditor({ section, index, onRemove }: {
 /* ── Main page ────────────────────────────────────────────── */
 export default function NovaMateriaPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editing = (location.state as { editing?: { id: string; titulo: string; pagina: string; status: string } } | null)?.editing ?? null;
+
   const destinos = useCanaisDestinos();
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(editing?.titulo ?? '');
   const [subtitle, setSubtitle] = useState('');
   const [sections, setSections] = useState<ContentSection[]>([
     { id: 'init', type: 'text' },
   ]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [locale, setLocale] = useState('pt-BR');
-  const [page, setPage] = useState('');
-  const [status, setStatus] = useState<PublishStatus>('draft');
+  const [page, setPage] = useState(editing?.pagina ?? '');
+  const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
 
@@ -465,7 +468,7 @@ export default function NovaMateriaPage() {
           className="nm-title-input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título da matéria..."
+          placeholder={editing ? '' : 'Título da matéria...'}
         />
 
         <div className="nm-topbar-actions">
