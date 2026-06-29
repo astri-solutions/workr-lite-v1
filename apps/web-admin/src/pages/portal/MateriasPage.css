@@ -56,3 +56,8 @@
   color: var(--color-gray-600); cursor: pointer; transition: background 0.15s;
 }
 .mat-modal-cancel:hover { background: var(--color-gray-50); }
+
+/* Last edit cell */
+.mat-last-edit { display: flex; flex-direction: column; gap: 2px; }
+.mat-last-edit__date { font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-gray-700); }
+.mat-last-edit__user { font-family: var(--font-body); font-size: var(--text-xs); color: var(--color-gray-400); }

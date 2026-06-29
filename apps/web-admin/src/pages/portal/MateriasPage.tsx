@@ -9,31 +9,34 @@ type Status = 'publicado' | 'rascunho' | 'agendado';
 interface Materia {
   id: string;
   titulo: string;
-  categoria: string;
+  pagina: string;
   status: Status;
   data: string;
   autor: string;
+  ultimaEdicao: string;
+  ultimoEditor: string;
 }
 
-const CATEGORIAS = ['Resultados', 'Governança', 'Comunicados', 'Eventos', 'Press Release'];
+const PAGINAS = ['Início', 'Resultados', 'Governança', 'Comunicados', 'Eventos', 'Press Release', 'Sobre'];
 
 const INITIAL: Materia[] = [
-  { id: 'a1', titulo: 'IMC reporta crescimento de 12% no EBITDA do 2T25', categoria: 'Resultados', status: 'publicado', data: '10/06/2026', autor: 'Carlos Souza' },
-  { id: 'a2', titulo: 'Calendário de eventos corporativos — 2º semestre 2026', categoria: 'Eventos', status: 'publicado', data: '01/06/2026', autor: 'Ana Lima' },
-  { id: 'a3', titulo: 'Convocação: Assembleia Geral Ordinária 2026', categoria: 'Governança', status: 'agendado', data: '20/06/2026', autor: 'Carlos Souza' },
-  { id: 'a4', titulo: 'Nota ao mercado: aquisição estratégica no segmento de fast food', categoria: 'Comunicados', status: 'rascunho', data: '12/06/2026', autor: 'Ana Lima' },
+  { id: 'a1', titulo: 'IMC reporta crescimento de 12% no EBITDA do 2T25', pagina: 'Resultados', status: 'publicado', data: '10/06/2026', autor: 'Carlos Souza', ultimaEdicao: '11/06/2026', ultimoEditor: 'Carlos Souza' },
+  { id: 'a2', titulo: 'Calendário de eventos corporativos — 2º semestre 2026', pagina: 'Eventos', status: 'publicado', data: '01/06/2026', autor: 'Ana Lima', ultimaEdicao: '05/06/2026', ultimoEditor: 'Ana Lima' },
+  { id: 'a3', titulo: 'Convocação: Assembleia Geral Ordinária 2026', pagina: 'Governança', status: 'agendado', data: '20/06/2026', autor: 'Carlos Souza', ultimaEdicao: '20/06/2026', ultimoEditor: 'Ana Lima' },
+  { id: 'a4', titulo: 'Nota ao mercado: aquisição estratégica no segmento de fast food', pagina: 'Comunicados', status: 'rascunho', data: '12/06/2026', autor: 'Ana Lima', ultimaEdicao: '14/06/2026', ultimoEditor: 'Carlos Souza' },
 ];
 
 const STATUS_LABEL: Record<Status, string> = { publicado: 'Publicado', rascunho: 'Rascunho', agendado: 'Agendado' };
 const STATUS_BADGE: Record<Status, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
 
-interface MateriaForm { titulo: string; categoria: string; status: Status; }
-const EMPTY: MateriaForm = { titulo: '', categoria: CATEGORIAS[0], status: 'rascunho' };
+interface MateriaForm { titulo: string; pagina: string; status: Status; }
+const EMPTY: MateriaForm = { titulo: '', pagina: PAGINAS[0], status: 'rascunho' };
 
 export default function MateriasPage() {
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<Status | ''>('');
+  const [filterPagina, setFilterPagina] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Materia | null>(null);
   const [form, setForm] = useState<MateriaForm>(EMPTY);
@@ -41,29 +44,35 @@ export default function MateriasPage() {
   const filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterStatus && m.status !== filterStatus) return false;
+    if (filterPagina && m.pagina !== filterPagina) return false;
     return true;
   });
 
   function openCreate() { setEditing(null); setForm(EMPTY); setModalOpen(true); }
   function openEdit(m: Materia) {
     setEditing(m);
-    setForm({ titulo: m.titulo, categoria: m.categoria, status: m.status });
+    setForm({ titulo: m.titulo, pagina: m.pagina, status: m.status });
     setModalOpen(true);
   }
   function closeModal() { setModalOpen(false); setEditing(null); setForm(EMPTY); }
 
   function handleSave() {
     if (!form.titulo.trim()) return;
+    const hoje = new Date().toLocaleDateString('pt-BR');
     if (editing) {
-      setMaterias(prev => prev.map(m => m.id === editing.id ? { ...m, ...form } : m));
+      setMaterias(prev => prev.map(m => m.id === editing.id
+        ? { ...m, ...form, ultimaEdicao: hoje, ultimoEditor: 'Você' }
+        : m));
     } else {
       const nova: Materia = {
         id: 'a' + Date.now(),
         titulo: form.titulo,
-        categoria: form.categoria,
+        pagina: form.pagina,
         status: form.status,
-        data: new Date().toLocaleDateString('pt-BR'),
+        data: hoje,
         autor: 'Você',
+        ultimaEdicao: hoje,
+        ultimoEditor: 'Você',
       };
       setMaterias(prev => [nova, ...prev]);
     }
@@ -97,6 +106,10 @@ export default function MateriasPage() {
           <input className="mat-search" type="text" placeholder="Buscar matéria..." value={search}
             onChange={e => setSearch(e.target.value)} />
         </div>
+        <select className="mat-filter" value={filterPagina} onChange={e => setFilterPagina(e.target.value)}>
+          <option value="">Todas as páginas</option>
+          {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
         <select className="mat-filter" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
           <option value="">Todos os status</option>
           <option value="publicado">Publicados</option>
@@ -110,24 +123,31 @@ export default function MateriasPage() {
           <thead>
             <tr>
               <th>Título</th>
-              <th>Categoria</th>
+              <th>Página</th>
               <th>Status</th>
               <th>Data</th>
               <th>Autor</th>
+              <th>Última edição</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={6} className="table-empty">Nenhuma matéria encontrada.</td></tr>
+              <tr><td colSpan={7} className="table-empty">Nenhuma matéria encontrada.</td></tr>
             ) : (
               filtered.map(m => (
                 <tr key={m.id}>
                   <td className="table-cell--bold">{m.titulo}</td>
-                  <td className="table-cell--muted">{m.categoria}</td>
+                  <td className="table-cell--muted">{m.pagina}</td>
                   <td><span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span></td>
                   <td className="table-cell--muted">{m.data}</td>
                   <td className="table-cell--muted">{m.autor}</td>
+                  <td>
+                    <div className="mat-last-edit">
+                      <span className="mat-last-edit__date">{m.ultimaEdicao}</span>
+                      <span className="mat-last-edit__user">{m.ultimoEditor}</span>
+                    </div>
+                  </td>
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(m)}>Editar</button>
@@ -163,10 +183,10 @@ export default function MateriasPage() {
               placeholder="Ex: IMC reporta crescimento no 2T25" />
           </label>
           <label className="mat-form__label">
-            Categoria
-            <select className="mat-form__input mat-form__select" value={form.categoria}
-              onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-              {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+            Página
+            <select className="mat-form__input mat-form__select" value={form.pagina}
+              onChange={e => setForm(f => ({ ...f, pagina: e.target.value }))}>
+              {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </label>
           <label className="mat-form__label">
