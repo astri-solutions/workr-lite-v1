@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
@@ -24,44 +24,6 @@ const INITIAL: Empresa[] = [
 const TIPO_OPTIONS: Tipo[] = ['EMPRESA', 'FUNDO', 'OUTRO'];
 const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', OUTRO: 'Outro' };
 
-function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
-  onEdit: () => void;
-  onToggle: () => void;
-  onDelete: () => void;
-  ativo: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function onOut(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', onOut);
-    return () => document.removeEventListener('mousedown', onOut);
-  }, [open]);
-
-  return (
-    <div className="emp-kebab" ref={ref}>
-      <button className="emp-kebab__trigger" type="button" onClick={() => setOpen(v => !v)} aria-label="Opções">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-          <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-        </svg>
-      </button>
-      {open && (
-        <div className="emp-kebab__menu">
-          <button className="emp-kebab__item" type="button" onClick={() => { setOpen(false); onEdit(); }}>Editar</button>
-          <button className="emp-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>
-            {ativo ? 'Desativar' : 'Ativar'}
-          </button>
-          <button className="emp-kebab__item emp-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface EmpForm { nome: string; tipo: Tipo; cnpj: string; }
 const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '' };
@@ -192,12 +154,13 @@ export default function EmpresasPage() {
                     </span>
                   </td>
                   <td>
-                    <KebabMenu
-                      ativo={emp.ativo}
-                      onEdit={() => openEdit(emp)}
-                      onToggle={() => handleToggle(emp)}
-                      onDelete={() => setDeleteTarget(emp)}
-                    />
+                    <div className="table-actions">
+                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
+                      <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>
+                        {emp.ativo ? 'Desativar' : 'Ativar'}
+                      </button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
+                    </div>
                   </td>
                 </tr>
               ))
