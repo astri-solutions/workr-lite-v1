@@ -227,6 +227,12 @@
 }
 
 /* ─── Table actions ──────────────────────────────────────── */
+/* td containing .table-actions: shrink-wrap so buttons stay left */
+td:has(.table-actions) {
+  width: 1px;
+  white-space: nowrap;
+}
+
 .table-actions {
   display: flex;
   align-items: center;
