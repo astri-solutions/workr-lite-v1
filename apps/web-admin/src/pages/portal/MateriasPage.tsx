@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import '../admin/AdminPages.css';
@@ -33,6 +34,7 @@ interface MateriaForm { titulo: string; pagina: string; status: Status; }
 const EMPTY: MateriaForm = { titulo: '', pagina: PAGINAS[0], status: 'rascunho' };
 
 export default function MateriasPage() {
+  const navigate = useNavigate();
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<Status | ''>('');
@@ -48,7 +50,7 @@ export default function MateriasPage() {
     return true;
   });
 
-  function openCreate() { setEditing(null); setForm(EMPTY); setModalOpen(true); }
+
   function openEdit(m: Materia) {
     setEditing(m);
     setForm({ titulo: m.titulo, pagina: m.pagina, status: m.status });
@@ -89,7 +91,7 @@ export default function MateriasPage() {
         title="Matérias"
         description="Publique comunicados, notas e artigos de Relações com Investidores."
         action={
-          <button className="btn-primary" type="button" onClick={openCreate}>
+          <button className="btn-primary" type="button" onClick={() => navigate('/portal/materias/nova')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
