@@ -230,7 +230,7 @@ export default function DocumentosPage() {
             />
           </div>
           <select
-            className="docs-filter-select"
+            className="filter-select"
             value={filterTipo}
             onChange={(e) => setFilterTipo(e.target.value)}
           >
@@ -240,7 +240,7 @@ export default function DocumentosPage() {
             ))}
           </select>
           <select
-            className="docs-filter-select"
+            className="filter-select"
             value={filterAno}
             onChange={(e) => setFilterAno(e.target.value)}
           >
@@ -250,7 +250,7 @@ export default function DocumentosPage() {
             <option value="2024">2024</option>
           </select>
           <select
-            className="docs-filter-select"
+            className="filter-select"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >

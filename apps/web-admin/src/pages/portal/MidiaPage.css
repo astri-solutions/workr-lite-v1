@@ -30,19 +30,6 @@
 }
 .midia-search::placeholder { color: var(--color-gray-400); }
 
-.midia-filter {
-  padding: 9px var(--space-3);
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-lg);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-gray-700);
-  background: #fff;
-  outline: none;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  appearance: none;
-}
 
 .midia-delete-btn {
   padding: 9px var(--space-4);

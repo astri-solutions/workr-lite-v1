@@ -181,7 +181,7 @@ export default function CentralDeResultadosPage() {
       {/* Filters */}
       <div className="cdr-filters">
         <select
-          className="cdr-filter-select"
+          className="filter-select"
           value={filterYear}
           onChange={(e) => setFilterYear(e.target.value)}
         >
@@ -191,7 +191,7 @@ export default function CentralDeResultadosPage() {
           ))}
         </select>
         <select
-          className="cdr-filter-select"
+          className="filter-select"
           value={filterQuarter}
           onChange={(e) => setFilterQuarter(e.target.value)}
         >

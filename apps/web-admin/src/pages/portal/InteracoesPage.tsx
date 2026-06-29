@@ -79,12 +79,12 @@ export default function InteracoesPage() {
       </div>
 
       <div className="int-toolbar">
-        <select className="int-filter" value={filterTipo} onChange={e => setFilterTipo(e.target.value as Tipo | '')}>
+        <select className="filter-select" value={filterTipo} onChange={e => setFilterTipo(e.target.value as Tipo | '')}>
           <option value="">Todos os formulários</option>
           <option value="fale-ri">Fale com RI</option>
           <option value="mailing">Mailing</option>
         </select>
-        <select className="int-filter" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
+        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
           <option value="">Todos os status</option>
           <option value="novo">Novos</option>
           <option value="lido">Lidos</option>

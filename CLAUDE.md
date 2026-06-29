@@ -97,6 +97,10 @@ Session persisted in `localStorage` (key: `workr_auth`).
 | `/portal/banner` | BannerPage |
 | `/portal/informacoes` | InformacoesPortalPage |
 
+## UI conventions
+
+- **Filter selects**: Always use `className="filter-select"` on `<select>` elements in toolbars/filterbars. Never create page-specific filter classes (no `mat-filter`, `int-filter`, etc.). The shared rule lives in `AdminPages.css`.
+
 ## Architecture notes
 
 - **Empresas** = document repositories within a portal (e.g. Itaú BB, Itaú Negócios). Not separate sites — sub-entities sharing one portal. Users can be restricted to specific empresas.

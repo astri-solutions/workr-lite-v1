@@ -106,11 +106,11 @@ export default function MateriasPage() {
           <input className="mat-search" type="text" placeholder="Buscar matéria..." value={search}
             onChange={e => setSearch(e.target.value)} />
         </div>
-        <select className="mat-filter" value={filterPagina} onChange={e => setFilterPagina(e.target.value)}>
+        <select className="filter-select" value={filterPagina} onChange={e => setFilterPagina(e.target.value)}>
           <option value="">Todas as páginas</option>
           {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
-        <select className="mat-filter" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
+        <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
           <option value="">Todos os status</option>
           <option value="publicado">Publicados</option>
           <option value="rascunho">Rascunhos</option>
