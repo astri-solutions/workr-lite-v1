@@ -291,11 +291,17 @@ export default function CanaisPage() {
         title="Árvore de canais"
         description="Configure a navegação do portal — ative, renomeie e reorganize seções e páginas."
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved
-              ? <><span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>Salvo!</>
-              : 'Salvar alterações'}
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <button className="btn-action btn-action--secondary" type="button" onClick={addCanal}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+              Novo canal
+            </button>
+            <button className="btn-primary" type="button" onClick={handleSave}>
+              {saved
+                ? <><span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>Salvo!</>
+                : 'Salvar alterações'}
+            </button>
+          </div>
         }
       />
 
@@ -402,10 +408,6 @@ export default function CanaisPage() {
           </div>
         ))}
 
-        <button className="canais-add-section" type="button" onClick={addCanal}>
-          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-          Adicionar novo canal
-        </button>
       </div>
 
       <UnsavedModal
