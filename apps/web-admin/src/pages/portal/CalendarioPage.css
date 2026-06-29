@@ -1,0 +1,61 @@
+.cal-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.cal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Home toggle button */
+.cal-home-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-gray-50);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-gray-400);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cal-home-toggle:hover {
+  border-color: var(--color-primary-300);
+  color: var(--color-primary-500);
+}
+.cal-home-toggle--on {
+  background: var(--color-primary-50, #e8f5f7);
+  border-color: var(--color-primary-400);
+  color: var(--color-primary-600);
+}
+
+/* Home checkbox in modal */
+.cal-home-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+}
+.cal-home-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary-500);
+  flex-shrink: 0;
+  cursor: pointer;
+}

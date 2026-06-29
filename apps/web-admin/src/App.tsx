@@ -29,6 +29,7 @@ import FaviconPage from './pages/portal/FaviconPage';
 import BannerPage from './pages/portal/BannerPage';
 import DashboardPage from './pages/portal/DashboardPage';
 import NovaMateriaPage from './pages/portal/NovaMateriaPage';
+import CalendarioPage from './pages/portal/CalendarioPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -76,6 +77,7 @@ const router = createBrowserRouter([
       { path: 'canais', element: <CanaisPage /> },
       { path: 'materias', element: <MateriasPage /> },
       { path: 'materias/nova', element: <NovaMateriaPage /> },
+      { path: 'calendario', element: <CalendarioPage /> },
       { path: 'interacoes', element: <InteracoesPage /> },
       { path: 'layout', element: <LayoutPage /> },
       { path: 'cores', element: <CoresPage /> },

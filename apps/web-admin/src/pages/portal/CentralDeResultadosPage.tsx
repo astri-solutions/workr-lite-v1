@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
 import './CentralDeResultadosPage.css';
+import './CalendarioPage.css';
 
 interface Entity {
   id: string;
@@ -19,15 +20,16 @@ interface Quarter {
   period: string;
   totalDocs: number;
   publishedDocs: number;
+  exibirHome: boolean;
 }
 
 const QUARTERS_BY_ENTITY: Record<string, Quarter[]> = {
   imc: [
-    { id: '2t25', period: '2T25', totalDocs: 1, publishedDocs: 1 },
-    { id: '1t25', period: '1T25', totalDocs: 3, publishedDocs: 2 },
-    { id: '4t24', period: '4T24', totalDocs: 4, publishedDocs: 4 },
-    { id: '3t24', period: '3T24', totalDocs: 1, publishedDocs: 1 },
-    { id: '4t23', period: '4T23', totalDocs: 1, publishedDocs: 1 },
+    { id: '2t25', period: '2T25', totalDocs: 1, publishedDocs: 1, exibirHome: true },
+    { id: '1t25', period: '1T25', totalDocs: 3, publishedDocs: 2, exibirHome: false },
+    { id: '4t24', period: '4T24', totalDocs: 4, publishedDocs: 4, exibirHome: false },
+    { id: '3t24', period: '3T24', totalDocs: 1, publishedDocs: 1, exibirHome: false },
+    { id: '4t23', period: '4T23', totalDocs: 1, publishedDocs: 1, exibirHome: false },
   ],
   'imc-fii': [],
   'imc-ce': [],
@@ -95,11 +97,18 @@ export default function CentralDeResultadosPage() {
     setScheduleTime('');
   }
 
+  function toggleQuarterHome(id: string) {
+    setQuarters(prev => ({
+      ...prev,
+      [activeEntity]: (prev[activeEntity] ?? []).map(q => q.id === id ? { ...q, exibirHome: !q.exibirHome } : q),
+    }));
+  }
+
   function handlePublish() {
     if (!isFormValid()) return;
     const period = `${newQuarter}${newYear.slice(-2)}`;
     const id = `${period.toLowerCase()}-${newEntity}`;
-    const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0 };
+    const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0, exibirHome: false };
     setQuarters((prev) => ({
       ...prev,
       [newEntity]: [newQ, ...(prev[newEntity] ?? [])],
@@ -111,7 +120,7 @@ export default function CentralDeResultadosPage() {
     if (!isFormValid()) return;
     const period = `${newQuarter}${newYear.slice(-2)}`;
     const id = `${period.toLowerCase()}-${newEntity}-draft`;
-    const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0 };
+    const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0, exibirHome: false };
     setQuarters((prev) => ({
       ...prev,
       [newEntity]: [newQ, ...(prev[newEntity] ?? [])],
@@ -230,6 +239,15 @@ export default function CentralDeResultadosPage() {
                         {q.totalDocs} {q.totalDocs === 1 ? 'doc' : 'docs'} ·{' '}
                         {q.publishedDocs} publicado{q.publishedDocs !== 1 ? 's' : ''}
                       </span>
+                      <button
+                        type="button"
+                        className={`cal-home-toggle${q.exibirHome ? ' cal-home-toggle--on' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); toggleQuarterHome(q.id); }}
+                        title={q.exibirHome ? 'Remover da home' : 'Exibir na home'}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
+                        {q.exibirHome ? 'Na home' : 'Home'}
+                      </button>
                       <span
                         className={`cdr-accordion__chevron${expandedId === q.id ? ' cdr-accordion__chevron--open' : ''}`}
                       >

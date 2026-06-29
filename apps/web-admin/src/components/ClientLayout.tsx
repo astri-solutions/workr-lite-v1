@@ -78,6 +78,13 @@ const SECTIONS: NavSection[] = [
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>menu</span>
         ),
       },
+      {
+        to: '/portal/calendario',
+        label: 'Calendário',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>calendar_month</span>
+        ),
+      },
     ],
   },
   {
