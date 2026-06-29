@@ -26,8 +26,7 @@
 /* ─── Layout page: tipo cards ───────────────────────── */
 .pers-tipos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  max-width: calc(4 * 220px + 3 * var(--space-3));
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
 }
 
