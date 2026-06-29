@@ -106,7 +106,9 @@
 .canais-col--url     { width: 28%; }
 .canais-col--status  { width: 120px; }
 .canais-col--order   { width: 80px; }
-.canais-col--actions { width: auto; }
+.canais-col--actions { width: auto; text-align: right; }
+
+.canais-table td:last-child .table-actions { justify-content: flex-end; }
 
 .canais-href {
   font-size: var(--text-xs);
