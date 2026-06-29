@@ -65,7 +65,6 @@ function ColorPreview({ palette }: PreviewProps) {
   });
 
   const primaryText = isLight(palette.primary) ? '#141414' : '#ffffff';
-  const secondaryText = isLight(palette.secondary) ? '#141414' : '#ffffff';
 
   return (
     <div className="cores-preview-wrap" style={cssVars as React.CSSProperties}>
