@@ -22,26 +22,30 @@ const INITIAL: MediaFile[] = [
   { id: 'm5', name: 'foto-sede.jpg', type: 'image', size: '1.1 MB', url: null, uploadedAt: '20/03/2026' },
 ];
 
+const TYPE_LABEL: Record<FileType, string> = {
+  image: 'Imagem', pdf: 'PDF', video: 'Vídeo', other: 'Outro',
+};
+
 const TYPE_ICONS: Record<FileType, React.ReactNode> = {
   image: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
       <polyline points="21 15 16 10 5 21" />
     </svg>
   ),
   pdf: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
     </svg>
   ),
   video: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
     </svg>
   ),
   other: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
     </svg>
@@ -56,7 +60,6 @@ export default function MidiaPage() {
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<FileType | ''>('');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = files.filter(f => {
@@ -68,7 +71,7 @@ export default function MidiaPage() {
   function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const uploaded = Array.from(e.target.files ?? []);
     const newFiles: MediaFile[] = uploaded.map(file => ({
-      id: 'u' + Date.now() + Math.random(),
+      id: 'u' + Math.random().toString(36).slice(2),
       name: file.name,
       type: file.type.startsWith('image') ? 'image' : file.type === 'application/pdf' ? 'pdf' : file.type.startsWith('video') ? 'video' : 'other',
       size: file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
@@ -79,17 +82,8 @@ export default function MidiaPage() {
     if (e.target) e.target.value = '';
   }
 
-  function deleteSelected() {
-    setFiles(prev => prev.filter(f => !selected.has(f.id)));
-    setSelected(new Set());
-  }
-
-  function toggleSelect(id: string) {
-    setSelected(prev => {
-      const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
-      return s;
-    });
+  function deleteFile(id: string) {
+    setFiles(prev => prev.filter(f => f.id !== id));
   }
 
   return (
@@ -126,11 +120,6 @@ export default function MidiaPage() {
           <option value="pdf">PDFs</option>
           <option value="video">Vídeos</option>
         </select>
-        {selected.size > 0 && (
-          <button className="midia-delete-btn" type="button" onClick={deleteSelected}>
-            Excluir {selected.size} selecionado{selected.size !== 1 ? 's' : ''}
-          </button>
-        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -143,26 +132,42 @@ export default function MidiaPage() {
           <p>Envie imagens, PDFs ou vídeos para a biblioteca.</p>
         </div>
       ) : (
-        <div className="midia-grid">
-          {filtered.map(f => (
-            <div key={f.id} className={`midia-card${selected.has(f.id) ? ' midia-card--selected' : ''}`}
-              onClick={() => toggleSelect(f.id)}>
-              <div className="midia-card__thumb" style={{ color: TYPE_COLOR[f.type] }}>
-                {TYPE_ICONS[f.type]}
-              </div>
-              <div className="midia-card__info">
-                <span className="midia-card__name" title={f.name}>{f.name}</span>
-                <span className="midia-card__meta">{f.size} · {f.uploadedAt}</span>
-              </div>
-              {selected.has(f.id) && (
-                <span className="midia-card__check">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </span>
-              )}
-            </div>
-          ))}
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Arquivo</th>
+                <th>Tipo</th>
+                <th>Tamanho</th>
+                <th>Data de envio</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(f => (
+                <tr key={f.id}>
+                  <td>
+                    <div className="midia-file-name">
+                      <span className="midia-file-icon" style={{ color: TYPE_COLOR[f.type] }}>
+                        {TYPE_ICONS[f.type]}
+                      </span>
+                      <span className="table-cell--bold">{f.name}</span>
+                    </div>
+                  </td>
+                  <td className="table-cell--muted">{TYPE_LABEL[f.type]}</td>
+                  <td className="table-cell--muted">{f.size}</td>
+                  <td className="table-cell--muted">{f.uploadedAt}</td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)}>
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

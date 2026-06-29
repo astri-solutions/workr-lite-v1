@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useBlocker } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import { Canal, SubCanal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
@@ -19,25 +20,47 @@ interface EditState {
 
 export default function CanaisPage() {
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
+  const [isDirty, setIsDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [editModal, setEditModal] = useState<EditState | null>(null);
 
+  // Block in-app navigation when there are unsaved changes
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    isDirty && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Block browser refresh / tab close
+  useEffect(() => {
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (!isDirty) return;
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
+
+  const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => {
+    setCanais(fn);
+    setIsDirty(true);
+  }, []);
+
   function handleSave() {
+    setIsDirty(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
 
   // ── Canal-level actions ──────────────────────────────
   function toggleCanal(cid: string) {
-    setCanais(prev => prev.map(c => c.id === cid ? { ...c, enabled: !c.enabled } : c));
+    mutate(prev => prev.map(c => c.id === cid ? { ...c, enabled: !c.enabled } : c));
   }
 
   function removeCanal(cid: string) {
-    setCanais(prev => prev.filter(c => c.id !== cid));
+    mutate(prev => prev.filter(c => c.id !== cid));
   }
 
   function moveCanal(idx: number, dir: -1 | 1) {
-    setCanais(prev => {
+    mutate(prev => {
       const next = [...prev];
       const t = idx + dir;
       if (t < 0 || t >= next.length) return prev;
@@ -48,24 +71,24 @@ export default function CanaisPage() {
 
   function addCanal() {
     const c: Canal = { id: genId(), label: 'Nova seção', enabled: true, children: [] };
-    setCanais(prev => [...prev, c]);
+    mutate(prev => [...prev, c]);
   }
 
   // ── Page-level actions ───────────────────────────────
   function toggleSub(cid: string, sid: string) {
-    setCanais(prev => prev.map(c => c.id !== cid ? c : {
+    mutate(prev => prev.map(c => c.id !== cid ? c : {
       ...c, children: c.children.map(s => s.id === sid ? { ...s, enabled: !s.enabled } : s),
     }));
   }
 
   function removeSub(cid: string, sid: string) {
-    setCanais(prev => prev.map(c => c.id !== cid ? c : {
+    mutate(prev => prev.map(c => c.id !== cid ? c : {
       ...c, children: c.children.filter(s => s.id !== sid),
     }));
   }
 
   function moveSub(cid: string, idx: number, dir: -1 | 1) {
-    setCanais(prev => prev.map(c => {
+    mutate(prev => prev.map(c => {
       if (c.id !== cid) return c;
       const ch = [...c.children];
       const t = idx + dir;
@@ -77,7 +100,7 @@ export default function CanaisPage() {
 
   function addSub(cid: string) {
     const s: SubCanal = { id: genId(), label: 'Nova página', href: `/${genId()}.html`, enabled: true };
-    setCanais(prev => prev.map(c => c.id !== cid ? c : { ...c, children: [...c.children, s] }));
+    mutate(prev => prev.map(c => c.id !== cid ? c : { ...c, children: [...c.children, s] }));
   }
 
   function openEdit(cid: string, sub: SubCanal) {
@@ -222,9 +245,29 @@ export default function CanaisPage() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Adicionar seção
+          Adicionar novo canal
         </button>
       </div>
+
+      {/* Unsaved changes blocker modal */}
+      {blocker.state === 'blocked' && (
+        <Modal
+          open
+          onClose={() => blocker.reset?.()}
+          title="Alterações não salvas"
+          size="sm"
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' }}>
+              <button className="btn-action btn-action--secondary" type="button" onClick={() => blocker.reset?.()}>Continuar editando</button>
+              <button className="btn-action btn-action--danger" type="button" onClick={() => blocker.proceed?.()}>Sair sem salvar</button>
+            </div>
+          }
+        >
+          <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>
+            Você tem alterações que não foram salvas. Se sair agora, as alterações serão perdidas.
+          </p>
+        </Modal>
+      )}
 
       {/* Edit modal */}
       {editModal && (
