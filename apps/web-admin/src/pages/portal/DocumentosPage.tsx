@@ -261,6 +261,7 @@ export default function DocumentosPage() {
         </div>
 
         <div className="docs-filterbar__right">
+          <button type="button" className="btn-primary">+ Novo documento</button>
           <button type="button" className="docs-btn-outline">Despublicar</button>
           <button type="button" className="docs-btn-outline docs-btn-outline--success">Publicar</button>
           <button
