@@ -26,22 +26,13 @@ const PERFIS = [
     value: 'super_admin' as const,
     label: 'Admin',
     desc: 'Acesso completo a todos os portais.',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>shield</span>,
   },
   {
     value: 'client_user' as const,
     label: 'Cliente',
     desc: 'Acesso restrito ao portal associado.',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>,
   },
 ];
 
@@ -137,9 +128,7 @@ export default function EditUserModal({
                 <span className="mf__perfil-desc">{p.desc}</span>
                 <div className={`mf__perfil-check${active ? ' mf__perfil-check--active' : ''}`}>
                   {active && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
                   )}
                 </div>
               </button>
@@ -160,18 +149,12 @@ export default function EditUserModal({
         >
           {isSuspended ? (
             <>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 8 12 12 14 14" />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_circle</span>
               Ativar acesso
             </>
           ) : (
             <>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>pause_circle</span>
               Suspender acesso
             </>
           )}
@@ -184,22 +167,13 @@ export default function EditUserModal({
             className="eu-action-btn eu-action-btn--delete"
             onClick={() => setConfirmDelete(true)}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4h6v2" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
             Excluir usuário
           </button>
         ) : (
           <div className="eu-confirm">
             <div className="eu-confirm__alert">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
               <span>Tem certeza? Essa ação não pode ser desfeita.</span>
             </div>
             <div className="eu-confirm__btns">

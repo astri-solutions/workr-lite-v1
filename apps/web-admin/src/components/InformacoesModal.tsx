@@ -49,10 +49,7 @@ function SettingsRow({
           {renderValue ? renderValue(row.value) : row.value || '–'}
         </span>
         {!readOnly && !row.editing && (
-          <svg className="info-row__chevron" width="16" height="16" viewBox="0 0 24 24"
-            fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <span className="material-symbols-outlined info-row__chevron" style={{ fontSize: '18px' }}>chevron_right</span>
         )}
       </div>
 

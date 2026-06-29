@@ -72,13 +72,7 @@ function FerramentasDropdown() {
         onClick={() => setOpen((v) => !v)}
       >
         Ferramentas
-        <svg
-          width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2.5"
-          style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s' }}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <span className="material-symbols-outlined" style={{ fontSize: '15px', transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s', display: 'inline-block' }}>expand_more</span>
       </button>
       {open && (
         <div className="portais-dropdown__menu">

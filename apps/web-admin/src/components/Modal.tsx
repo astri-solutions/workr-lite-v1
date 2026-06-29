@@ -49,9 +49,7 @@ export default function Modal({
           <div className="modal__header-top">
             <h2 className="modal__title" id="modal-title">{title}</h2>
             <button className="modal__close" type="button" onClick={onClose} aria-label="Fechar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
             </button>
           </div>
           {description && <p className="modal__description">{description}</p>}

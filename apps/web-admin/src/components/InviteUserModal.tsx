@@ -26,22 +26,13 @@ const PERFIS = [
     value: 'super_admin' as const,
     label: 'Admin',
     desc: 'Acesso completo a todos os portais e configurações.',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>shield</span>,
   },
   {
     value: 'client_user' as const,
     label: 'Cliente',
     desc: 'Acesso restrito ao portal associado.',
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
+    icon: <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>,
   },
 ];
 
@@ -106,9 +97,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
       >
         <div className="invite-success">
           <div className="invite-success__icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>check_circle</span>
           </div>
           <h3 className="invite-success__title">Convite enviado!</h3>
           <p className="invite-success__desc">
@@ -138,9 +127,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
             Cancelar
           </button>
           <button className="modal-btn modal-btn--primary" type="button" onClick={handleSubmit}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M22 2L11 13" /><path d="M22 2L15 22l-4-9-9-4 20-7z" />
-            </svg>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>send</span>
             Enviar convite
           </button>
         </>
@@ -165,10 +152,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
       <div className="mf">
         <label className="mf__label">Email</label>
         <div className="mf__icon-wrap">
-          <svg className="mf__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <polyline points="22,6 12,13 2,6" />
-          </svg>
+          <span className="material-symbols-outlined mf__icon" style={{ fontSize: '16px' }}>mail</span>
           <input
             className={`mf__input mf__input--icon${errors.email ? ' mf__input--error' : ''}`}
             type="email"
@@ -203,9 +187,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
                 <span className="mf__perfil-desc">{p.desc}</span>
                 <div className={`mf__perfil-check${active ? ' mf__perfil-check--active' : ''}`}>
                   {active && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
                   )}
                 </div>
               </button>
@@ -229,9 +211,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
                 <option key={p.id} value={p.id}>{p.nome}</option>
               ))}
             </select>
-            <svg className="mf__select-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <span className="material-symbols-outlined mf__select-chevron" style={{ fontSize: '14px' }}>expand_more</span>
           </div>
           {errors.portalId && <span className="mf__error">{errors.portalId}</span>}
         </div>
