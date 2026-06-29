@@ -237,3 +237,189 @@
   filter: brightness(0) invert(1);
   opacity: 0.7;
 }
+
+/* ─── Forgot password button ─────────────────────── */
+.login-forgot-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary-500, #0B5B68);
+  font-family: var(--font-body);
+  font-size: inherit;
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.login-forgot-btn:hover { color: var(--color-primary-700, #094a56); }
+
+/* ─── Recovery: shared ───────────────────────────── */
+.rec-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: var(--space-5);
+  transition: color 0.15s;
+}
+.rec-back:hover { color: var(--color-gray-800); }
+
+.rec-desc {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  text-align: center;
+  margin: 0 0 var(--space-5);
+  line-height: 1.6;
+}
+.rec-desc--sm { font-size: var(--text-xs); margin-top: calc(-1 * var(--space-3)); }
+
+/* ─── Step: sent ─────────────────────────────────── */
+.rec-sent-icon {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.rec-email-highlight {
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-500, #0B5B68);
+  background: var(--color-primary-50, #e8f5f7);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-4);
+  word-break: break-all;
+}
+
+.rec-sent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.rec-btn-secondary {
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-xl);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rec-btn-secondary:hover { background: var(--color-gray-50); }
+
+/* ─── Step: code ─────────────────────────────────── */
+.rec-code-wrap {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-bottom: var(--space-5);
+}
+
+.rec-code-input {
+  width: 48px;
+  height: 56px;
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-xl);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: var(--font-bold);
+  text-align: center;
+  color: var(--color-gray-900);
+  background: var(--color-gray-50);
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  caret-color: var(--color-primary-500);
+}
+.rec-code-input:focus {
+  border-color: var(--color-primary-500);
+  background: #fff;
+}
+
+.rec-resend {
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin-top: var(--space-4);
+}
+.rec-resend-btn {
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-primary-500);
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─── Step: new password ─────────────────────────── */
+.rec-pass-wrap {
+  position: relative;
+}
+.rec-pass-wrap .login-input {
+  padding-right: 44px;
+}
+.rec-pass-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-400);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.rec-pass-eye:hover { color: var(--color-gray-700); }
+
+.rec-strength {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: calc(-1 * var(--space-2));
+}
+.rec-strength__bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.rec-strength__bar {
+  height: 4px;
+  flex: 1;
+  border-radius: 99px;
+  background: var(--color-gray-200);
+  transition: background 0.3s;
+}
+.rec-strength__bar--on { /* color set inline */ }
+.rec-strength__label {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  white-space: nowrap;
+}
+
+/* ─── Step: done ─────────────────────────────────── */
+.rec-done-icon {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-2) 0 var(--space-5);
+}

@@ -15,18 +15,18 @@ import AnalyticsPage from './pages/admin/AnalyticsPage';
 import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
 import DocumentosPage from './pages/portal/DocumentosPage';
 import InformacoesPortalPage from './pages/portal/InformacoesPortalPage';
-import {
-  MidiaPage,
-  CanaisPage,
-  MateriasPage,
-  InteracoesPage,
-  LayoutPage,
-  CoresPage,
-  FontesPage,
-  LogotipoPage,
-  FaviconPage,
-  BannerPage,
-} from './pages/portal/PlaceholderPages';
+import CanaisPage from './pages/portal/CanaisPage';
+import EmpresasPage from './pages/portal/EmpresasPage';
+import UsuariosPortalPage from './pages/portal/UsuariosPortalPage';
+import MidiaPage from './pages/portal/MidiaPage';
+import MateriasPage from './pages/portal/MateriasPage';
+import InteracoesPage from './pages/portal/InteracoesPage';
+import LayoutPage from './pages/portal/LayoutPage';
+import CoresPage from './pages/portal/CoresPage';
+import FontesPage from './pages/portal/FontesPage';
+import LogotipoPage from './pages/portal/LogotipoPage';
+import FaviconPage from './pages/portal/FaviconPage';
+import BannerPage from './pages/portal/BannerPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -70,6 +70,8 @@ export default function App() {
             }
           >
             <Route index element={<Navigate to="/portal/central-de-resultados" replace />} />
+            <Route path="empresas" element={<EmpresasPage />} />
+            <Route path="usuarios-portal" element={<UsuariosPortalPage />} />
             <Route path="central-de-resultados" element={<CentralDeResultadosPage />} />
             <Route path="documentos" element={<DocumentosPage />} />
             <Route path="midia" element={<MidiaPage />} />
