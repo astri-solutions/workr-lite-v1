@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
 
@@ -90,7 +91,7 @@ export default function MidiaPage() {
     <div className="page">
       <PageHeader
         title="Biblioteca de Mídia"
-        description="Gerencie arquivos de imagem, PDF e vídeo utilizados no portal."
+        description={<>Biblioteca de mídia do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={() => inputRef.current?.click()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

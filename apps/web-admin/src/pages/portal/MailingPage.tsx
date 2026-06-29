@@ -1,4 +1,5 @@
 import PageHeader from '../../components/PageHeader';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 
 export default function MailingPage() {
@@ -6,7 +7,7 @@ export default function MailingPage() {
     <div className="page">
       <PageHeader
         title="Mailing"
-        description="Gestão de listas de mailing e integração com IRM."
+        description={<>Mailing e IRM do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
       />
       <div className="page-placeholder">
         <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '48px' }}>contact_mail</span>

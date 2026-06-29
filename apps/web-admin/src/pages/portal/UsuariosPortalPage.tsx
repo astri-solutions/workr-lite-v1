@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './UsuariosPortalPage.css';
 
@@ -155,7 +156,7 @@ export default function UsuariosPortalPage() {
     <div className="page">
       <PageHeader
         title="Usuários do Portal"
-        description="Gerencie quem tem acesso a este portal e quais empresas cada usuário pode ver."
+        description={<>Usuários com acesso ao portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openCreate}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

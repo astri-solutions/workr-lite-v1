@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import LangTabs from '../../components/LangTabs';
+import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 
@@ -106,6 +108,7 @@ export default function SplashPage() {
   });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [activeLang, setActiveLang] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
 
   function patch<K extends keyof SplashConfig>(key: K, val: SplashConfig[K]) {
     setConfig(c => ({ ...c, [key]: val }));
@@ -135,7 +138,7 @@ export default function SplashPage() {
     <div className="page">
       <PageHeader
         title="Splash"
-        description="Configure o modal que aparece ao entrar no site. Ideal para comunicados urgentes ou avisos importantes."
+        description={<>Splash de entrada do portal <strong>{PORTAL_CONFIG.name}</strong>. Exibido automaticamente ao acessar o site.</>}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
             <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>
@@ -148,6 +151,8 @@ export default function SplashPage() {
           </div>
         }
       />
+
+      <LangTabs active={activeLang} onChange={setActiveLang} />
 
       <div className="splash-layout">
         {/* Left: editor */}

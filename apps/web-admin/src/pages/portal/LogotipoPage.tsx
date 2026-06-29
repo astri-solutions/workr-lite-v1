@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -32,7 +33,7 @@ export default function LogotipoPage() {
     <div className="page">
       <PageHeader
         title="Logotipo"
-        description="Gerencie os logotipos exibidos no portal público."
+        description={<>Logotipos exibidos no portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

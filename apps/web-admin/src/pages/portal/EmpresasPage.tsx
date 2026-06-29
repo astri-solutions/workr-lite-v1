@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './EmpresasPage.css';
 
@@ -122,7 +123,7 @@ export default function EmpresasPage() {
     <div className="page">
       <PageHeader
         title="Empresas"
-        description="Entidades e fundos deste portal. Cada empresa organiza seus próprios documentos."
+        description={<>Entidades e fundos de <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openCreate}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

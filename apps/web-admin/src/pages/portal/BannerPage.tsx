@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -68,7 +69,7 @@ export default function BannerPage() {
     <div className="page">
       <PageHeader
         title="Banner"
-        description="Configure os slides do banner hero exibido no topo do portal."
+        description={<>Banner hero do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

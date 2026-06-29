@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Modal from '../../components/Modal';
+import LangTabs from '../../components/LangTabs';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
+import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
@@ -85,11 +87,6 @@ const SECTION_LABEL: Record<SectionType, string> = {
   galeria: 'Galeria',
 };
 
-const LOCALES = [
-  { code: 'pt-BR', label: 'PT-BR', flag: '🇧🇷' },
-  { code: 'en', label: 'EN', flag: '🇺🇸' },
-  { code: 'es', label: 'ES', flag: '🇪🇸' },
-];
 
 
 /* ── Rich text editor (uncontrolled) ─────────────────────── */
@@ -512,7 +509,7 @@ export default function NovaMateriaPage() {
     isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()]
   );
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [locale, setLocale] = useState('pt-BR');
+  const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [page, setPage] = useState(editing?.pagina ?? '');
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
@@ -611,19 +608,7 @@ export default function NovaMateriaPage() {
       </div>
 
       {/* ── Locale tab bar ── */}
-      <div className="nm-locale-bar">
-        {LOCALES.map((l) => (
-          <button
-            key={l.code}
-            type="button"
-            className={`nm-locale-tab${locale === l.code ? ' nm-locale-tab--active' : ''}`}
-            onClick={() => setLocale(l.code)}
-          >
-            <span className="nm-locale-tab__flag">{l.flag}</span>
-            {l.label}
-          </button>
-        ))}
-      </div>
+      <LangTabs active={locale} onChange={setLocale} />
 
       {/* ── Body: 3 columns (show) or 2 columns (galeria) ── */}
       <div className={`nm-body${isGaleria ? ' nm-body--galeria' : ''}`}>

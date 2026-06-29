@@ -3,6 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { generateColorScale } from '../../utils/colorUtils';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
 
@@ -181,7 +182,7 @@ export default function CoresPage() {
     <div className="page">
       <PageHeader
         title="Cores"
-        description="Defina as 3 cores base — o sistema gera automaticamente as variações para botões, fundos, badges e estados."
+        description={<>Paleta de cores do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar e aplicar'}

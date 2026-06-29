@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import '../admin/InformacoesPage.css';
@@ -122,7 +123,7 @@ export default function InformacoesPortalPage() {
     <div className="page">
       <PageHeader
         title="Informações da conta"
-        description="Gerencie seus dados pessoais e configurações da conta."
+        description={<>Configurações e dados do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
       />
 
       <div className="info-section">

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -30,7 +31,7 @@ export default function FaviconPage() {
     <div className="page">
       <PageHeader
         title="Favicon"
-        description="O ícone exibido na aba do navegador e em bookmarks."
+        description={<>Ícone do portal <strong>{PORTAL_CONFIG.name}</strong> exibido nas abas do navegador.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

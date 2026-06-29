@@ -3,6 +3,7 @@ import PageHeader from '../../components/PageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { PORTAL_LAYOUT_KEY, PortalLayout } from '../../components/ClientLayout';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -92,7 +93,7 @@ export default function LayoutPage() {
     <div className="page">
       <PageHeader
         title="Layout"
-        description="Escolha o modelo de navegação do seu portal de Relações com Investidores."
+        description={<>Modelo de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

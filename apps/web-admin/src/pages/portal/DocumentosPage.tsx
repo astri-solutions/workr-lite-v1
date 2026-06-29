@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import PageHeader from '../../components/PageHeader';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -296,7 +297,7 @@ export default function DocumentosPage() {
     <div className="page docs-page">
       <PageHeader
         title="Documentos"
-        description="Gerencie os documentos publicados no portal de Relações com Investidores."
+        description={<>Documentos publicados no portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button type="button" className="btn-primary" onClick={openDrawer}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

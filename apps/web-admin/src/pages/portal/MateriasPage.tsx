@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
 
@@ -72,7 +73,7 @@ export default function MateriasPage() {
     <div className="page">
       <PageHeader
         title="Matérias"
-        description="Publique comunicados, notas e artigos de Relações com Investidores."
+        description={<>Comunicados e artigos do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={() => { setSelectedType('show'); setTypePickerOpen(true); }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -274,7 +275,7 @@ export default function CanaisPage() {
     <div className="page">
       <PageHeader
         title="Árvore de canais"
-        description="Configure a navegação do portal — ative, renomeie e reorganize seções e páginas."
+        description={<>Árvore de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={addCanal}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

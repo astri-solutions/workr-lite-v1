@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './InteracoesPage.css';
 
@@ -56,7 +57,7 @@ export default function InteracoesPage() {
     <div className="page">
       <PageHeader
         title="Interações"
-        description="Mensagens recebidas pelos formulários do portal de RI."
+        description={<>Mensagens recebidas pelo portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
       />
 
       <div className="stat-cards">

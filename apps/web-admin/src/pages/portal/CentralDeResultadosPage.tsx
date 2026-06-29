@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
+import PageHeader from '../../components/PageHeader';
+import PORTAL_CONFIG from '../../portalConfig';
+import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CalendarioPage.css';
 
@@ -130,30 +133,26 @@ export default function CentralDeResultadosPage() {
 
   return (
     <div className="page cdr-page">
-      {/* Header */}
-      <div className="cdr-header">
-        <div className="cdr-header__text">
-          <h1 className="cdr-header__title">Central de Resultados</h1>
-          <p className="cdr-header__description">
-            Resultados de <strong>IMC Investor Relations</strong> · organização{' '}
-            <strong>trimestral</strong>.
-          </p>
-        </div>
-        <button
-          className="btn-primary"
-          type="button"
-          onClick={() => {
-            setNewEntity(activeEntity);
-            setNewQuarter('');
-            setNewYear('');
-            setScheduleEnabled(false);
-            setModalOpen(true);
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-          Novo resultado
-        </button>
-      </div>
+      <PageHeader
+        title="Central de Resultados"
+        description={<>Resultados de <strong>{PORTAL_CONFIG.name}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
+        action={
+          <button
+            className="btn-primary"
+            type="button"
+            onClick={() => {
+              setNewEntity(activeEntity);
+              setNewQuarter('');
+              setNewYear('');
+              setScheduleEnabled(false);
+              setModalOpen(true);
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+            Novo resultado
+          </button>
+        }
+      />
 
       {/* Entity selector */}
       <div className="cdr-entities">

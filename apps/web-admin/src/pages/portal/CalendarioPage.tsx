@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
+import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CalendarioPage.css';
 
@@ -109,7 +110,7 @@ export default function CalendarioPage() {
     <div className="page">
       <PageHeader
         title="Calendário"
-        description="Eventos corporativos publicados na página Calendário de Eventos."
+        description={<>Eventos corporativos do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openNew}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
