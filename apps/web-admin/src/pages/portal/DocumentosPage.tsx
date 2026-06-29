@@ -321,11 +321,6 @@ export default function DocumentosPage() {
                   </td>
                   <td className="docs-cell-nome">
                     <span className="docs-nome-title">{doc.nome}</span>
-                    <div className="docs-nome-tags">
-                      {doc.tags.map((tag) => (
-                        <span key={tag} className="docs-tag docs-tag--dark">{tag}</span>
-                      ))}
-                    </div>
                   </td>
                   <td className="docs-cell-tipo table-cell--muted">{doc.tipo}</td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
