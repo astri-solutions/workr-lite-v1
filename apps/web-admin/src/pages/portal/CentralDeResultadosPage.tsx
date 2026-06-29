@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
 import PageHeader from '../../components/PageHeader';
-import PORTAL_CONFIG from '../../portalConfig';
+import LangTabs from '../../components/LangTabs';
+import PORTAL_CONFIG, { ALL_LOCALES, LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CalendarioPage.css';
@@ -45,13 +46,21 @@ function parsePeriod(period: string): { quarter: string; year: string } {
 }
 
 const QUARTER_OPTIONS = ['1T', '2T', '3T', '4T'];
-const IDIOMA_OPTIONS = [
-  { value: 'pt', label: 'Português' },
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Español' },
-];
 const CURRENT_YEAR = 2026;
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - i));
+
+const TIPO_OPTIONS = [
+  { value: 'earnings',      label: 'Earnings Release', icon: 'article' },
+  { value: 'apresentacao',  label: 'Apresentação',     icon: 'slideshow' },
+  { value: 'itr',           label: 'ITR',              icon: 'receipt_long' },
+  { value: 'dfp',           label: 'DFP',              icon: 'description' },
+  { value: 'press',         label: 'Press Release',    icon: 'campaign' },
+  { value: 'outros',        label: 'Outros',           icon: 'folder' },
+];
+
+const ENABLED_LANGS = ALL_LOCALES.filter(l =>
+  (PORTAL_CONFIG.languages as readonly string[]).includes(l.code)
+);
 
 export default function CentralDeResultadosPage() {
   const [activeEntity, setActiveEntity] = useState<string>('imc');
@@ -65,9 +74,15 @@ export default function CentralDeResultadosPage() {
 
   // Modal form state
   const [newEntity, setNewEntity] = useState('imc');
+  const [newTitles, setNewTitles] = useState<Record<string, string>>({});
+  const [newDate, setNewDate] = useState('');
+  const [newPeriodType, setNewPeriodType] = useState<'trimestral' | 'anual'>(
+    PORTAL_CONFIG.orgType === 'anual' ? 'anual' : 'trimestral'
+  );
   const [newQuarter, setNewQuarter] = useState('');
   const [newYear, setNewYear] = useState('');
-  const [newIdioma, setNewIdioma] = useState('pt');
+  const [newTipo, setNewTipo] = useState('');
+  const [modalLang, setModalLang] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
@@ -86,15 +101,21 @@ export default function CentralDeResultadosPage() {
   });
 
   function isFormValid() {
-    return newEntity && newQuarter && newYear;
+    const primaryTitle = newTitles[PORTAL_CONFIG.languages[0]] ?? '';
+    const quarterOk = newPeriodType === 'anual' || !!newQuarter;
+    return !!(newEntity && primaryTitle.trim() && newDate && newYear && quarterOk && newTipo);
   }
 
   function closeModal() {
     setModalOpen(false);
     setNewEntity(activeEntity);
+    setNewTitles({});
+    setNewDate('');
+    setNewPeriodType(PORTAL_CONFIG.orgType === 'anual' ? 'anual' : 'trimestral');
     setNewQuarter('');
     setNewYear('');
-    setNewIdioma('pt');
+    setNewTipo('');
+    setModalLang(PORTAL_CONFIG.languages[0]);
     setScheduleEnabled(false);
     setScheduleDate('');
     setScheduleTime('');
@@ -107,27 +128,25 @@ export default function CentralDeResultadosPage() {
     }));
   }
 
+  function buildPeriod() {
+    return newPeriodType === 'anual' ? newYear : `${newQuarter}${newYear.slice(-2)}`;
+  }
+
   function handlePublish() {
     if (!isFormValid()) return;
-    const period = `${newQuarter}${newYear.slice(-2)}`;
-    const id = `${period.toLowerCase()}-${newEntity}`;
+    const period = buildPeriod();
+    const id = `${period.toLowerCase()}-${newEntity}-${Date.now()}`;
     const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0, exibirHome: false };
-    setQuarters((prev) => ({
-      ...prev,
-      [newEntity]: [newQ, ...(prev[newEntity] ?? [])],
-    }));
+    setQuarters((prev) => ({ ...prev, [newEntity]: [newQ, ...(prev[newEntity] ?? [])] }));
     closeModal();
   }
 
   function handleSaveDraft() {
     if (!isFormValid()) return;
-    const period = `${newQuarter}${newYear.slice(-2)}`;
-    const id = `${period.toLowerCase()}-${newEntity}-draft`;
+    const period = buildPeriod();
+    const id = `${period.toLowerCase()}-${newEntity}-draft-${Date.now()}`;
     const newQ: Quarter = { id, period, totalDocs: 0, publishedDocs: 0, exibirHome: false };
-    setQuarters((prev) => ({
-      ...prev,
-      [newEntity]: [newQ, ...(prev[newEntity] ?? [])],
-    }));
+    setQuarters((prev) => ({ ...prev, [newEntity]: [newQ, ...(prev[newEntity] ?? [])] }));
     closeModal();
   }
 
@@ -272,90 +291,129 @@ export default function CentralDeResultadosPage() {
         size="sm"
         footer={
           <div className="modal-footer">
-            <button
-              type="button"
-              className="btn-outline"
-              onClick={handleSaveDraft}
-              disabled={!isFormValid()}
-            >
+            <button type="button" className="btn-outline" onClick={handleSaveDraft} disabled={!isFormValid()}>
               Salvar como Rascunho
             </button>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={handlePublish}
-              disabled={!isFormValid()}
-            >
+            <button type="button" className="btn-primary" onClick={handlePublish} disabled={!isFormValid()}>
               Publicar Resultado
             </button>
           </div>
         }
       >
+        {/* Language tabs */}
+        {ENABLED_LANGS.length > 1 && (
+          <LangTabs active={modalLang} onChange={setModalLang} />
+        )}
+
         <div className="cdr-modal-form">
-          {/* Entidade */}
-          <label className="cdr-modal-form__label">
-            Entidade
-            <select
-              className="cdr-modal-form__input cdr-modal-form__select"
-              value={newEntity}
-              onChange={(e) => setNewEntity(e.target.value)}
+          {/* Entidade — only if more than one */}
+          {ENTITIES.length > 1 && (
+            <label className="cdr-modal-form__label">
+              Entidade
+              <select
+                className="cdr-modal-form__input cdr-modal-form__select"
+                value={newEntity}
+                onChange={(e) => setNewEntity(e.target.value)}
+              >
+                {ENTITIES.map((e) => (
+                  <option key={e.id} value={e.id}>{e.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {/* Título (per language) */}
+          <label className="cdr-modal-form__label" key={modalLang}>
+            Título
+            <input
+              className="cdr-modal-form__input lang-fade"
+              type="text"
+              placeholder="Ex: Resultado do 2º Trimestre 2026"
+              value={newTitles[modalLang] ?? ''}
+              onChange={(e) => setNewTitles(prev => ({ ...prev, [modalLang]: e.target.value }))}
               autoFocus
-            >
-              {ENTITIES.map((e) => (
-                <option key={e.id} value={e.id}>{e.name}</option>
-              ))}
-            </select>
+            />
           </label>
 
-          {/* Trimestre */}
+          {/* Data */}
           <label className="cdr-modal-form__label">
-            Trimestre
-            <select
-              className="cdr-modal-form__input cdr-modal-form__select"
-              value={newQuarter}
-              onChange={(e) => setNewQuarter(e.target.value)}
-            >
-              <option value="">Selecionar trimestre</option>
-              {QUARTER_OPTIONS.map((q) => (
-                <option key={q} value={q}>{q}</option>
-              ))}
-            </select>
+            Data de divulgação
+            <input
+              className="cdr-modal-form__input"
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
           </label>
 
-          {/* Ano */}
-          <label className="cdr-modal-form__label">
-            Ano
-            <select
-              className="cdr-modal-form__input cdr-modal-form__select"
-              value={newYear}
-              onChange={(e) => setNewYear(e.target.value)}
-            >
-              <option value="">Selecionar ano</option>
-              {YEAR_OPTIONS.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </label>
+          {/* Período: trimestral / anual */}
+          <div className="cdr-modal-form__label">
+            Período
+            <div className="cdr-period-toggle">
+              <button
+                type="button"
+                className={`cdr-period-toggle__btn${newPeriodType === 'trimestral' ? ' cdr-period-toggle__btn--active' : ''}`}
+                onClick={() => setNewPeriodType('trimestral')}
+              >Trimestral</button>
+              <button
+                type="button"
+                className={`cdr-period-toggle__btn${newPeriodType === 'anual' ? ' cdr-period-toggle__btn--active' : ''}`}
+                onClick={() => setNewPeriodType('anual')}
+              >Anual</button>
+            </div>
+          </div>
 
-          {/* Idioma */}
-          <label className="cdr-modal-form__label">
-            Idioma
-            <select
-              className="cdr-modal-form__input cdr-modal-form__select"
-              value={newIdioma}
-              onChange={(e) => setNewIdioma(e.target.value)}
-            >
-              {IDIOMA_OPTIONS.map((l) => (
-                <option key={l.value} value={l.value}>{l.label}</option>
+          {/* Trimestre (só se trimestral) + Ano — inline */}
+          <div className="cdr-modal-form__row">
+            {newPeriodType === 'trimestral' && (
+              <label className="cdr-modal-form__label">
+                Trimestre
+                <select
+                  className="cdr-modal-form__input cdr-modal-form__select"
+                  value={newQuarter}
+                  onChange={(e) => setNewQuarter(e.target.value)}
+                >
+                  <option value="">Selecionar</option>
+                  {QUARTER_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="cdr-modal-form__label">
+              Ano
+              <select
+                className="cdr-modal-form__input cdr-modal-form__select"
+                value={newYear}
+                onChange={(e) => setNewYear(e.target.value)}
+              >
+                <option value="">Selecionar</option>
+                {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {/* Tipo */}
+          <div className="cdr-modal-form__label">
+            Tipo
+            <div className="cdr-tipo-grid">
+              {TIPO_OPTIONS.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  className={`cdr-tipo-btn${newTipo === t.value ? ' cdr-tipo-btn--active' : ''}`}
+                  onClick={() => setNewTipo(t.value)}
+                >
+                  <span className="material-symbols-outlined cdr-tipo-btn__icon">{t.icon}</span>
+                  <span className="cdr-tipo-btn__label">{t.label}</span>
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
           {/* Agendamento */}
           <div className="cdr-modal-schedule">
             <div className="cdr-modal-schedule__header">
               <div className="cdr-modal-schedule__title-group">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>calendar_today</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
                 <span className="cdr-modal-schedule__title">Agendamento</span>
               </div>
               <button
@@ -371,21 +429,11 @@ export default function CentralDeResultadosPage() {
               <div className="cdr-modal-schedule__fields">
                 <label className="cdr-modal-form__label">
                   Data
-                  <input
-                    className="cdr-modal-form__input"
-                    type="date"
-                    value={scheduleDate}
-                    onChange={(e) => setScheduleDate(e.target.value)}
-                  />
+                  <input className="cdr-modal-form__input" type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
                 </label>
                 <label className="cdr-modal-form__label">
                   Horário
-                  <input
-                    className="cdr-modal-form__input"
-                    type="time"
-                    value={scheduleTime}
-                    onChange={(e) => setScheduleTime(e.target.value)}
-                  />
+                  <input className="cdr-modal-form__input" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
                 </label>
               </div>
             )}
