@@ -149,7 +149,14 @@ export default function CanaisPage() {
 
             {/* Pages table */}
             <div className="table-wrapper canais-table-wrap">
-              <table className="data-table">
+              <table className="data-table canais-table">
+                <colgroup>
+                  <col className="canais-col--name" />
+                  <col className="canais-col--url" />
+                  <col className="canais-col--status" />
+                  <col className="canais-col--order" />
+                  <col className="canais-col--actions" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Página</th>
