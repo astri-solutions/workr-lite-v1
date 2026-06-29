@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -17,10 +19,15 @@ const FONTS = [
   { id: 'lora', label: 'Lora', family: "'Lora', serif", category: 'Serif' },
 ];
 
+const INITIAL_HEADING = 'plus-jakarta';
+const INITIAL_BODY = 'inter';
+
 export default function FontesPage() {
-  const [headingFont, setHeadingFont] = useState('plus-jakarta');
-  const [bodyFont, setBodyFont] = useState('inter');
+  const [headingFont, setHeadingFont] = useState(INITIAL_HEADING);
+  const [bodyFont, setBodyFont] = useState(INITIAL_BODY);
   const [saved, setSaved] = useState(false);
+  const isDirty = !saved && (headingFont !== INITIAL_HEADING || bodyFont !== INITIAL_BODY);
+  const blocker = useUnsavedChanges(isDirty);
 
   const heading = FONTS.find(f => f.id === headingFont);
   const body = FONTS.find(f => f.id === bodyFont);
@@ -65,7 +72,7 @@ export default function FontesPage() {
                 key={f.id}
                 type="button"
                 className={`fontes-option${headingFont === f.id ? ' fontes-option--active' : ''}`}
-                onClick={() => setHeadingFont(f.id)}
+                onClick={() => { setHeadingFont(f.id); setSaved(false); }}
               >
                 <span className="fontes-option__sample" style={{ fontFamily: f.family }}>Aa</span>
                 <span className="fontes-option__label">{f.label}</span>
@@ -84,7 +91,7 @@ export default function FontesPage() {
                 key={f.id}
                 type="button"
                 className={`fontes-option${bodyFont === f.id ? ' fontes-option--active' : ''}`}
-                onClick={() => setBodyFont(f.id)}
+                onClick={() => { setBodyFont(f.id); setSaved(false); }}
               >
                 <span className="fontes-option__sample" style={{ fontFamily: f.family }}>Aa</span>
                 <span className="fontes-option__label">{f.label}</span>
@@ -94,6 +101,12 @@ export default function FontesPage() {
           </div>
         </div>
       </div>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }

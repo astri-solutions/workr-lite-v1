@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -10,11 +12,14 @@ export default function LogotipoPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
 
+  const isDirty = !saved && (logo !== null || logoCollapsed !== null);
+  const blocker = useUnsavedChanges(isDirty);
+
   function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setter(ev.target?.result as string);
+    reader.onload = ev => { setter(ev.target?.result as string); setSaved(false); };
     reader.readAsDataURL(file);
   }
 
@@ -40,10 +45,10 @@ export default function LogotipoPage() {
           title="Logotipo principal"
           desc="Exibido no header do portal. Recomendado: SVG ou PNG transparente, 300×80px mínimo."
           value={logo}
-          onChange={v => setLogo(v)}
+          onChange={v => { setLogo(v); setSaved(false); }}
           inputRef={inputRef}
           onPickFile={() => inputRef.current?.click()}
-          onClear={() => setLogo(null)}
+          onClear={() => { setLogo(null); setSaved(false); }}
           inputEl={<input ref={inputRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={e => handleFile(e, setLogo)} />}
         />
@@ -51,14 +56,20 @@ export default function LogotipoPage() {
           title="Logo compacto (sidebar/favicon nav)"
           desc="Versão reduzida usada quando a sidebar está recolhida. Recomendado: ícone quadrado 80×80px."
           value={logoCollapsed}
-          onChange={v => setLogoCollapsed(v)}
+          onChange={v => { setLogoCollapsed(v); setSaved(false); }}
           inputRef={inputCollRef}
           onPickFile={() => inputCollRef.current?.click()}
-          onClear={() => setLogoCollapsed(null)}
+          onClear={() => { setLogoCollapsed(null); setSaved(false); }}
           inputEl={<input ref={inputCollRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={e => handleFile(e, setLogoCollapsed)} />}
         />
       </div>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }

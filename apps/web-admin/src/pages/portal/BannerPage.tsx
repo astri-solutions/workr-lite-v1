@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -19,25 +21,33 @@ export default function BannerPage() {
   const [slides, setSlides] = useState<BannerSlide[]>(INITIAL_SLIDES);
   const [activeId, setActiveId] = useState('b1');
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const blocker = useUnsavedChanges(dirty && !saved);
 
   const active = slides.find(s => s.id === activeId) ?? slides[0];
 
   function update(field: keyof BannerSlide, value: string | null) {
     setSlides(prev => prev.map(s => s.id === activeId ? { ...s, [field]: value } : s));
+    setDirty(true);
+    setSaved(false);
   }
 
   function addSlide() {
-    const id = 'b' + Date.now();
+    const id = 'b' + Math.random().toString(36).slice(2);
     const novo: BannerSlide = { id, titulo: 'Novo banner', subtitulo: '', cta: 'Saiba mais', imagem: null };
     setSlides(prev => [...prev, novo]);
     setActiveId(id);
+    setDirty(true);
+    setSaved(false);
   }
 
   function removeSlide(id: string) {
     if (slides.length === 1) return;
     setSlides(prev => prev.filter(s => s.id !== id));
     if (activeId === id) setActiveId(slides.find(s => s.id !== id)?.id ?? '');
+    setDirty(true);
+    setSaved(false);
   }
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -50,6 +60,7 @@ export default function BannerPage() {
 
   function handleSave() {
     setSaved(true);
+    setDirty(false);
     setTimeout(() => setSaved(false), 2500);
   }
 
@@ -104,7 +115,6 @@ export default function BannerPage() {
         <div className="pers-section banner-editor">
           <h2 className="pers-section__title">Editar slide</h2>
 
-          {/* Image */}
           <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={handleImage} />
           {active.imagem ? (
             <div className="banner-img-preview">
@@ -143,6 +153,12 @@ export default function BannerPage() {
           </div>
         </div>
       </div>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }

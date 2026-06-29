@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -8,11 +10,14 @@ export default function FaviconPage() {
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isDirty = !saved && favicon !== null;
+  const blocker = useUnsavedChanges(isDirty);
+
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setFavicon(ev.target?.result as string);
+    reader.onload = ev => { setFavicon(ev.target?.result as string); setSaved(false); };
     reader.readAsDataURL(file);
   }
 
@@ -52,7 +57,7 @@ export default function FaviconPage() {
             </div>
             <div className="fav-preview__actions">
               <button type="button" className="logo-btn logo-btn--replace" onClick={() => inputRef.current?.click()}>Substituir</button>
-              <button type="button" className="logo-btn logo-btn--remove" onClick={() => setFavicon(null)}>Remover</button>
+              <button type="button" className="logo-btn logo-btn--remove" onClick={() => { setFavicon(null); setSaved(false); }}>Remover</button>
             </div>
           </div>
         ) : (
@@ -85,6 +90,12 @@ export default function FaviconPage() {
           </div>
         </div>
       </div>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }

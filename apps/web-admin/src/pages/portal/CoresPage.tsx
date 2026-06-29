@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { generateColorScale } from '../../utils/colorUtils';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
@@ -157,6 +159,13 @@ export default function CoresPage() {
   const [preview, setPreview] = useState<Palette>(DEFAULT);
   const [saved, setSaved] = useState(false);
 
+  const isDirty = !saved && (
+    draft.primary !== DEFAULT.primary ||
+    draft.secondary !== DEFAULT.secondary ||
+    draft.tertiary !== DEFAULT.tertiary
+  );
+  const blocker = useUnsavedChanges(isDirty);
+
   function handleSave() {
     setPreview(draft);
     setSaved(true);
@@ -165,6 +174,7 @@ export default function CoresPage() {
 
   function setColor(key: keyof Palette, val: string) {
     setDraft(prev => ({ ...prev, [key]: val }));
+    setSaved(false);
   }
 
   return (
@@ -220,6 +230,12 @@ export default function CoresPage() {
         </div>
         <ColorPreview palette={preview} />
       </div>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }

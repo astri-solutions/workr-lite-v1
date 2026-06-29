@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
+
+const INITIAL = 'banner';
 
 const TIPOS = [
   {
@@ -70,8 +74,10 @@ const TIPOS = [
 ];
 
 export default function LayoutPage() {
-  const [selected, setSelected] = useState('banner');
+  const [selected, setSelected] = useState(INITIAL);
   const [saved, setSaved] = useState(false);
+  const isDirty = selected !== INITIAL && !saved;
+  const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
     setSaved(true);
@@ -117,6 +123,12 @@ export default function LayoutPage() {
           ))}
         </div>
       </div>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }
