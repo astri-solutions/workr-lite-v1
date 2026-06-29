@@ -586,17 +586,10 @@ export default function NovaMateriaPage() {
           </button>
           <button
             type="button"
-            className="btn-action btn-action--secondary"
-            onClick={() => handlePublish('scheduled')}
-          >
-            Agendar
-          </button>
-          <button
-            type="button"
             className="btn-primary"
-            onClick={() => handlePublish('published')}
+            onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
           >
-            {saved && status === 'published' ? 'Publicado!' : 'Publicar'}
+            {saved ? (status === 'scheduled' ? 'Agendado!' : 'Publicado!') : (scheduleDate ? 'Agendar' : 'Publicar')}
           </button>
         </div>
       </div>
