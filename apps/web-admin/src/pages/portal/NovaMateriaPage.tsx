@@ -118,8 +118,8 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
   const [empty, setEmpty] = useState(true);
 
   function exec(cmd: string, arg?: string) {
-    document.execCommand(cmd, false, arg);
     ref.current?.focus();
+    document.execCommand(cmd, false, arg);
     syncEmpty();
   }
 
@@ -127,69 +127,154 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
     setEmpty((ref.current?.innerText ?? '').trim() === '');
   }
 
-  function handleBlockFormat(val: string) {
-    document.execCommand('formatBlock', false, val);
-    ref.current?.focus();
+  function md(e: React.MouseEvent, cmd: string, arg?: string) {
+    e.preventDefault();
+    exec(cmd, arg);
   }
+
+  function handleBlockFormat(val: string) {
+    ref.current?.focus();
+    document.execCommand('formatBlock', false, val);
+  }
+
+  function handleLink(e: React.MouseEvent) {
+    e.preventDefault();
+    ref.current?.focus();
+    const url = window.prompt('URL do link:');
+    if (url) exec('createLink', url);
+  }
+
+  const Btn = ({ title, cmd, arg, children }: { title: string; cmd?: string; arg?: string; children: React.ReactNode; onClick?: (e: React.MouseEvent) => void }) => (
+    <button
+      type="button"
+      className="rte-btn"
+      title={title}
+      onMouseDown={cmd ? (e) => md(e, cmd, arg) : undefined}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <div className="rte">
+      {/* Row 1 */}
       <div className="rte-toolbar">
-        <select
-          className="rte-format"
-          defaultValue="p"
-          onChange={(e) => handleBlockFormat(e.target.value)}
-        >
+        <select className="rte-format" defaultValue="p" onChange={(e) => handleBlockFormat(e.target.value)}>
           <option value="p">Parágrafo</option>
           <option value="h1">Título 1</option>
           <option value="h2">Título 2</option>
           <option value="h3">Título 3</option>
           <option value="h4">Título 4</option>
+          <option value="blockquote">Citação</option>
+          <option value="pre">Código</option>
         </select>
+
         <div className="rte-sep" />
-        <button type="button" className="rte-btn" title="Negrito"
-          onMouseDown={(e) => { e.preventDefault(); exec('bold'); }}>
-          <strong>B</strong>
-        </button>
-        <button type="button" className="rte-btn rte-btn--italic" title="Itálico"
-          onMouseDown={(e) => { e.preventDefault(); exec('italic'); }}>
-          <em>I</em>
-        </button>
-        <button type="button" className="rte-btn rte-btn--underline" title="Sublinhado"
-          onMouseDown={(e) => { e.preventDefault(); exec('underline'); }}>
-          <u>U</u>
-        </button>
+
+        <button type="button" className="rte-btn rte-btn--bold" title="Negrito" onMouseDown={(e) => md(e, 'bold')}>B</button>
+        <button type="button" className="rte-btn rte-btn--italic" title="Itálico" onMouseDown={(e) => md(e, 'italic')}>I</button>
+        <button type="button" className="rte-btn rte-btn--underline" title="Sublinhado" onMouseDown={(e) => md(e, 'underline')}>U</button>
+        <button type="button" className="rte-btn rte-btn--strike" title="Tachado" onMouseDown={(e) => md(e, 'strikeThrough')}>S</button>
+
         <div className="rte-sep" />
-        <button type="button" className="rte-btn" title="Lista"
-          onMouseDown={(e) => { e.preventDefault(); exec('insertUnorderedList'); }}>
+
+        {/* Alignment */}
+        <button type="button" className="rte-btn" title="Alinhar à esquerda" onMouseDown={(e) => md(e, 'justifyLeft')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+        </button>
+        <button type="button" className="rte-btn" title="Centralizar" onMouseDown={(e) => md(e, 'justifyCenter')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        <button type="button" className="rte-btn" title="Alinhar à direita" onMouseDown={(e) => md(e, 'justifyRight')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button type="button" className="rte-btn" title="Justificar" onMouseDown={(e) => md(e, 'justifyFull')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+
+        <div className="rte-sep" />
+
+        {/* Lists */}
+        <button type="button" className="rte-btn" title="Lista" onMouseDown={(e) => md(e, 'insertUnorderedList')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/>
-            <line x1="9" y1="18" x2="20" y2="18"/>
-            <circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/>
-            <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/>
-            <circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>
+            <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+            <circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/>
+            <circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+            <circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none"/>
           </svg>
         </button>
-        <button type="button" className="rte-btn" title="Lista numerada"
-          onMouseDown={(e) => { e.preventDefault(); exec('insertOrderedList'); }}>
+        <button type="button" className="rte-btn" title="Lista numerada" onMouseDown={(e) => md(e, 'insertOrderedList')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/>
-            <line x1="10" y1="18" x2="21" y2="18"/>
+            <line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/>
             <path d="M4 6h1v4M4 10H6" strokeLinecap="round"/>
           </svg>
         </button>
-        <button type="button" className="rte-btn" title="Link"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            const url = window.prompt('URL:');
-            if (url) exec('createLink', url);
-          }}>
+
+        <div className="rte-sep" />
+
+        {/* Indent */}
+        <button type="button" className="rte-btn" title="Diminuir recuo" onMouseDown={(e) => md(e, 'outdent')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            <polyline points="7 9 4 12 7 15"/>
+          </svg>
+        </button>
+        <button type="button" className="rte-btn" title="Aumentar recuo" onMouseDown={(e) => md(e, 'indent')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            <polyline points="4 9 7 12 4 15"/>
+          </svg>
+        </button>
+
+        <div className="rte-sep" />
+
+        {/* Link */}
+        <button type="button" className="rte-btn" title="Inserir link" onMouseDown={handleLink}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
           </svg>
         </button>
+        <button type="button" className="rte-btn" title="Remover link" onMouseDown={(e) => md(e, 'unlink')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            <line x1="4" y1="4" x2="20" y2="20" strokeWidth="2"/>
+          </svg>
+        </button>
+
+        <div className="rte-sep" />
+
+        {/* Undo / Redo */}
+        <button type="button" className="rte-btn" title="Desfazer" onMouseDown={(e) => md(e, 'undo')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+          </svg>
+        </button>
+        <button type="button" className="rte-btn" title="Refazer" onMouseDown={(e) => md(e, 'redo')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.51"/>
+          </svg>
+        </button>
+
+        <div className="rte-sep" />
+
+        {/* HR */}
+        <button type="button" className="rte-btn" title="Linha horizontal" onMouseDown={(e) => md(e, 'insertHorizontalRule')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+          </svg>
+        </button>
+
+        {/* Remove formatting */}
+        <button type="button" className="rte-btn" title="Remover formatação" onMouseDown={(e) => md(e, 'removeFormat')}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 7h16M7 7l4 12M17 7l-4 12"/><line x1="4" y1="20" x2="9" y2="20"/>
+            <line x1="2" y1="2" x2="22" y2="22" strokeWidth="2"/>
+          </svg>
+        </button>
       </div>
+
       <div className="rte-body">
         {empty && <span className="rte-placeholder">{placeholder}</span>}
         <div
@@ -572,44 +657,46 @@ export default function NovaMateriaPage() {
 
         {/* Center: content editor */}
         <main className="nm-main">
-          {/* Global fields */}
-          <div className="nm-global">
-            <ImageUpload label="Imagem de header" ratio="21/5" />
-            <input
-              className="nm-field nm-field--title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Título..."
-            />
-            <input
-              className="nm-field nm-field--subtitle"
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              placeholder="Subtítulo..."
-            />
+          <div key={locale} className="nm-locale-fade nm-content-wrap">
+            {/* Global fields */}
+            <div className="nm-global">
+              <ImageUpload label="Imagem de header" ratio="21/5" />
+              <input
+                className="nm-field nm-field--title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Título..."
+              />
+              <input
+                className="nm-field nm-field--subtitle"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                placeholder="Subtítulo..."
+              />
+            </div>
+
+            {/* Section editors */}
+            {sections.map((s, i) => (
+              <SectionEditor
+                key={s.id}
+                section={s}
+                index={i}
+                onRemove={() => removeSection(s.id)}
+              />
+            ))}
+
+            {/* Add more */}
+            <button
+              type="button"
+              className="nm-add-inline"
+              onClick={() => setPickerOpen(true)}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Adicionar seção
+            </button>
           </div>
-
-          {/* Section editors */}
-          {sections.map((s, i) => (
-            <SectionEditor
-              key={s.id}
-              section={s}
-              index={i}
-              onRemove={() => removeSection(s.id)}
-            />
-          ))}
-
-          {/* Add more */}
-          <button
-            type="button"
-            className="nm-add-inline"
-            onClick={() => setPickerOpen(true)}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Adicionar seção
-          </button>
         </main>
 
         {/* Right: meta */}
