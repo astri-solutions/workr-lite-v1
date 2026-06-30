@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -304,37 +305,35 @@ export default function TransmisoesPage() {
 
   return (
     <div className="page">
-      <div className="trn-sticky-header">
-        <PageHeader
-          title={isDetail ? selectedCast?.name ?? '' : 'Nova transmissão'}
-          description={isDetail
-            ? <>Configurações e espectadores da transmissão.</>
-            : <>Preencha os dados para criar uma nova transmissão em <strong>{PORTAL_CONFIG.name}</strong>.</>
-          }
-          action={
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-outline" type="button" onClick={backToList}>
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
-                Voltar
-              </button>
-              {isDetail ? (
-                <>
-                  <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteConfirm(true)}>
-                    Excluir
-                  </button>
-                  <button className="btn-primary" type="button" onClick={handleSaveDetail}>
-                    {saved ? 'Salvo!' : 'Salvar alterações'}
-                  </button>
-                </>
-              ) : (
-                <button className="btn-primary" type="button" onClick={handleCreate} disabled={!isNewValid}>
-                  Criar transmissão
+      <StickyPageHeader
+        title={isDetail ? selectedCast?.name ?? '' : 'Nova transmissão'}
+        description={isDetail
+          ? <>Configurações e espectadores da transmissão.</>
+          : <>Preencha os dados para criar uma nova transmissão em <strong>{PORTAL_CONFIG.name}</strong>.</>
+        }
+        action={
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn-outline" type="button" onClick={backToList}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+              Voltar
+            </button>
+            {isDetail ? (
+              <>
+                <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteConfirm(true)}>
+                  Excluir
                 </button>
-              )}
-            </div>
-          }
-        />
-      </div>
+                <button className="btn-primary" type="button" onClick={handleSaveDetail}>
+                  {saved ? 'Salvo!' : 'Salvar alterações'}
+                </button>
+              </>
+            ) : (
+              <button className="btn-primary" type="button" onClick={handleCreate} disabled={!isNewValid}>
+                Criar transmissão
+              </button>
+            )}
+          </div>
+        }
+      />
 
       {/* Tab bar — detail only */}
       {isDetail && (
