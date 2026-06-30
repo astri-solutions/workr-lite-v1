@@ -112,6 +112,13 @@ const SECTIONS: NavSection[] = [
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>contact_mail</span>
         ),
       },
+      {
+        to: '/portal/transmissoes',
+        label: 'Transmissões',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>live_tv</span>
+        ),
+      },
     ],
   },
   {
