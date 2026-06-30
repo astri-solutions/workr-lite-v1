@@ -123,6 +123,19 @@
   border-radius: 0;
   border: none;
   box-shadow: none;
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.canais-table-wrap .data-table thead tr {
+  border-radius: var(--radius-md);
+}
+
+.canais-table-wrap .data-table thead th:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.canais-table-wrap .data-table thead th:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
 .canais-table {
