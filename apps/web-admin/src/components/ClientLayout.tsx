@@ -248,13 +248,13 @@ export default function ClientLayout() {
 
   return (
     <div className="admin-shell">
-      <AppTopbar />
-      <div className="admin-body">
-        <AppSidebar
-          sections={sections}
-          logoSrc={logoSrc}
-          logoAlt={logoAlt}
-        />
+      <AppSidebar
+        sections={sections}
+        logoSrc={logoSrc}
+        logoAlt={logoAlt}
+      />
+      <div className="admin-right">
+        <AppTopbar />
         <main className="admin-main">
           <div className="admin-content">
             <Outlet />

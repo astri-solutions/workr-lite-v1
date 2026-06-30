@@ -1,6 +1,6 @@
 .admin-shell {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100vh;
   overflow: hidden;
   background-color: var(--color-gray-100);
@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-6) 0 var(--space-4);
   height: 56px;
   background-color: transparent;
   flex-shrink: 0;
@@ -129,8 +129,9 @@
   background-color: var(--color-gray-200);
 }
 
-.admin-body {
+.admin-right {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
 }
@@ -360,7 +361,7 @@
   flex: 1;
   overflow-y: auto;
   background-color: transparent;
-  padding: 0 var(--space-4) var(--space-4) 0;
+  padding: 0 var(--space-4) var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
 }

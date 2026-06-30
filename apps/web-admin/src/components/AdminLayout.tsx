@@ -45,14 +45,14 @@ const SECTIONS: NavSection[] = [
 export default function AdminLayout() {
   return (
     <div className="admin-shell">
-      <AppTopbar />
-      <div className="admin-body">
-        <AppSidebar
-          sections={SECTIONS}
-          logoSrc="/logos/logotipo-original.svg"
-          logoCollapsedSrc="/logos/logo-original.svg"
-          logoAlt="Astri"
-        />
+      <AppSidebar
+        sections={SECTIONS}
+        logoSrc="/logos/logotipo-original.svg"
+        logoCollapsedSrc="/logos/logo-original.svg"
+        logoAlt="Astri"
+      />
+      <div className="admin-right">
+        <AppTopbar />
         <main className="admin-main">
           <div className="admin-content">
             <Outlet />
