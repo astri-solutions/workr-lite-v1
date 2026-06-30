@@ -15,15 +15,14 @@ export default function StickyPageHeader({ title, description, action }: Props) 
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
 
-    // Observe the sentinel — when it leaves the viewport, we're stuck
+    // Root must be the actual scroll container (.admin-main), not the viewport.
+    // With root:null the sentinel never leaves the viewport since .admin-main
+    // clips the content, so the observer would never fire.
+    const scrollRoot = sentinel.closest('.admin-main') as Element | null;
+
     const observer = new IntersectionObserver(
       ([entry]) => setStuck(!entry.isIntersecting),
-      {
-        // The scroll container is .admin-main; null = viewport (works because
-        // .admin-main is the scrolling ancestor)
-        threshold: 0,
-        rootMargin: '0px',
-      }
+      { root: scrollRoot, threshold: 0, rootMargin: '0px' }
     );
 
     observer.observe(sentinel);
