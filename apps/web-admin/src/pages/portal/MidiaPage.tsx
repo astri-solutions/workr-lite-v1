@@ -88,7 +88,7 @@ function DocThumb({ type }: { type: FileType }) {
   const c = cfg[type] ?? cfg.other;
   return (
     <div className="midia-thumb midia-thumb--doc" style={{ background: c.bg }}>
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         {type !== 'image' && (
           <>
             <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeWidth="1.5" fill={c.bg}/>
