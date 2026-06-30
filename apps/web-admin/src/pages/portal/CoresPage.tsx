@@ -78,6 +78,7 @@ function ColorPreview({ palette }: PreviewProps) {
           <div className="cores-prev-card__tags">
             <span className="cores-prev-tag" style={{ background: scaleVar('primary', 100), color: scaleVar('primary', 600) }}>Design</span>
             <span className="cores-prev-tag" style={{ background: scaleVar('secondary', 100), color: scaleVar('secondary', 700) }}>System</span>
+            <span className="cores-prev-tag" style={{ background: scaleVar('tertiary', 100), color: scaleVar('tertiary', 700) }}>Accent</span>
           </div>
         </div>
 
@@ -87,6 +88,9 @@ function ColorPreview({ palette }: PreviewProps) {
         <button className="cores-prev-btn cores-prev-btn--outline" style={{ color: scaleVar('primary', 500), borderColor: scaleVar('primary', 500), background: 'transparent' }}>
           Ação secundária
         </button>
+        <button className="cores-prev-btn cores-prev-btn--outline" style={{ color: scaleVar('tertiary', 600), borderColor: scaleVar('tertiary', 400), background: scaleVar('tertiary', 50) }}>
+          Ação terciária
+        </button>
 
         <div className="cores-prev-user" style={{ background: scaleVar('primary', 50) }}>
           <div className="cores-prev-avatar" style={{ background: scaleVar('primary', 500), color: primaryText }}>AB</div>
@@ -94,7 +98,7 @@ function ColorPreview({ palette }: PreviewProps) {
             <div className="cores-prev-user__name">Ana Beatriz</div>
             <div className="cores-prev-user__role">Product Designer</div>
           </div>
-          <span className="cores-prev-badge" style={{ background: scaleVar('primary', 100), color: scaleVar('primary', 700) }}>Ativo</span>
+          <span className="cores-prev-badge" style={{ background: scaleVar('tertiary', 100), color: scaleVar('tertiary', 700) }}>Ativo</span>
         </div>
       </div>
 
@@ -110,7 +114,8 @@ function ColorPreview({ palette }: PreviewProps) {
           <div className="cores-prev-card__sub" style={{ color: 'rgba(255,255,255,0.65)' }}>Texto de suporte com a paleta gerada.</div>
           <div className="cores-prev-card__tags">
             <span className="cores-prev-tag" style={{ background: `${scaleVar('primary', 800)}`, color: scaleVar('primary', 200) }}>Design</span>
-            <span className="cores-prev-tag" style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}>System</span>
+            <span className="cores-prev-tag" style={{ background: scaleVar('secondary', 800), color: scaleVar('secondary', 200) }}>System</span>
+            <span className="cores-prev-tag" style={{ background: scaleVar('tertiary', 800), color: scaleVar('tertiary', 200) }}>Accent</span>
           </div>
         </div>
 
@@ -120,6 +125,9 @@ function ColorPreview({ palette }: PreviewProps) {
         <button className="cores-prev-btn cores-prev-btn--outline" style={{ color: scaleVar('primary', 300), borderColor: scaleVar('primary', 400), background: 'transparent' }}>
           Ação secundária
         </button>
+        <button className="cores-prev-btn cores-prev-btn--outline" style={{ color: scaleVar('tertiary', 300), borderColor: scaleVar('tertiary', 500), background: 'rgba(255,255,255,0.05)' }}>
+          Ação terciária
+        </button>
 
         <div className="cores-prev-user" style={{ background: 'rgba(255,255,255,0.07)' }}>
           <div className="cores-prev-avatar" style={{ background: scaleVar('primary', 400), color: primaryText }}>AB</div>
@@ -127,7 +135,7 @@ function ColorPreview({ palette }: PreviewProps) {
             <div className="cores-prev-user__name" style={{ color: '#fff' }}>Ana Beatriz</div>
             <div className="cores-prev-user__role" style={{ color: 'rgba(255,255,255,0.5)' }}>Product Designer</div>
           </div>
-          <span className="cores-prev-badge" style={{ background: scaleVar('primary', 600), color: scaleVar('primary', 100) }}>Ativo</span>
+          <span className="cores-prev-badge" style={{ background: scaleVar('tertiary', 700), color: scaleVar('tertiary', 100) }}>Ativo</span>
         </div>
       </div>
     </div>
