@@ -1,3 +1,14 @@
+@keyframes canal-moved {
+  0%   { box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.35), var(--shadow-sm); }
+  60%  { box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.12), var(--shadow-sm); }
+  100% { box-shadow: var(--shadow-sm); }
+}
+
+@keyframes row-moved {
+  0%   { background-color: rgba(11, 91, 104, 0.07); }
+  100% { background-color: transparent; }
+}
+
 .canais-sections {
   display: flex;
   flex-direction: column;
@@ -11,6 +22,11 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s;
+}
+
+.canais-section--moved {
+  animation: canal-moved 700ms ease-out forwards;
 }
 
 .canais-section__head {
@@ -125,6 +141,7 @@
 }
 
 .canais-row--off td { opacity: 0.55; }
+.canais-row--moved { animation: row-moved 700ms ease-out forwards; }
 
 .canais-order { display: flex; gap: var(--space-1); }
 
