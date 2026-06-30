@@ -124,7 +124,6 @@
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   box-shadow: var(--shadow-sm);
-  max-width: 680px;
 }
 
 .trn-form-star-row {
