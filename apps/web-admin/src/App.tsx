@@ -33,6 +33,7 @@ import NovoFormularioPage from './pages/portal/NovoFormularioPage';
 import CalendarioPage from './pages/portal/CalendarioPage';
 import SplashPage from './pages/portal/SplashPage';
 import MailingPage from './pages/portal/MailingPage';
+import PlanilhaDinamicaPage from './pages/portal/PlanilhaDinamicaPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -84,6 +85,7 @@ const router = createBrowserRouter([
       { path: 'calendario', element: <CalendarioPage /> },
       { path: 'splash', element: <SplashPage /> },
       { path: 'mailing', element: <MailingPage /> },
+      { path: 'planilha-dinamica', element: <PlanilhaDinamicaPage /> },
       { path: 'interacoes', element: <InteracoesPage /> },
       { path: 'layout', element: <LayoutPage /> },
       { path: 'cores', element: <CoresPage /> },

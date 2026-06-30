@@ -85,6 +85,13 @@ const SECTIONS: NavSection[] = [
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>calendar_month</span>
         ),
       },
+      {
+        to: '/portal/planilha-dinamica',
+        label: 'Planilha Dinâmica',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>table_chart</span>
+        ),
+      },
     ],
   },
   {
