@@ -95,6 +95,8 @@ const ENABLED_LANGS = ALL_LOCALES.filter(l =>
   (PORTAL_CONFIG.languages as readonly string[]).includes(l.code)
 );
 
+type BulkAction = 'publicar' | 'despublicar' | 'excluir';
+
 export default function CentralDeResultadosPage() {
   const [activeEntity, setActiveEntity] = useState<string>('imc');
   const [search, setSearch] = useState('');
@@ -105,6 +107,8 @@ export default function CentralDeResultadosPage() {
   const [quarters, setQuarters] =
     useState<Record<string, Quarter[]>>(QUARTERS_BY_ENTITY);
   const [docs, setDocs] = useState<Record<string, CdrDoc[]>>(DOCS_BY_QUARTER);
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const [confirmAction, setConfirmAction] = useState<BulkAction | null>(null);
 
   // Modal form state
   const [newEntity, setNewEntity] = useState('imc');
@@ -191,6 +195,68 @@ export default function CentralDeResultadosPage() {
       [quarterId]: (prev[quarterId] ?? []).filter(d => d.id !== docId),
     }));
   }
+
+  function toggleSelectDoc(docId: string) {
+    setSelectedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(docId)) next.delete(docId); else next.add(docId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(_quarterId: string, allIds: string[]) {
+    const allSelected = allIds.every(id => selectedDocs.has(id));
+    setSelectedDocs(prev => {
+      const next = new Set(prev);
+      if (allSelected) allIds.forEach(id => next.delete(id));
+      else allIds.forEach(id => next.add(id));
+      return next;
+    });
+  }
+
+  function executeBulkAction(action: BulkAction) {
+    if (action === 'excluir') {
+      setDocs(prev => {
+        const next = { ...prev };
+        for (const qid of Object.keys(next)) {
+          next[qid] = next[qid].filter(d => !selectedDocs.has(d.id));
+        }
+        return next;
+      });
+    } else {
+      const targetStatus = action === 'publicar' ? 'published' : 'draft';
+      setDocs(prev => {
+        const next = { ...prev };
+        for (const qid of Object.keys(next)) {
+          next[qid] = next[qid].map(d => selectedDocs.has(d.id) ? { ...d, status: targetStatus } : d);
+        }
+        return next;
+      });
+    }
+    setSelectedDocs(new Set());
+    setConfirmAction(null);
+  }
+
+  const confirmLabels: Record<BulkAction, { title: string; body: string; btn: string; btnClass: string }> = {
+    publicar: {
+      title: 'Publicar documentos',
+      body: `Deseja publicar ${selectedDocs.size} documento${selectedDocs.size !== 1 ? 's' : ''} selecionado${selectedDocs.size !== 1 ? 's' : ''}?`,
+      btn: 'Publicar',
+      btnClass: 'btn-primary',
+    },
+    despublicar: {
+      title: 'Despublicar documentos',
+      body: `Deseja despublicar ${selectedDocs.size} documento${selectedDocs.size !== 1 ? 's' : ''} selecionado${selectedDocs.size !== 1 ? 's' : ''}? Eles ficarão como rascunho.`,
+      btn: 'Despublicar',
+      btnClass: 'btn-outline',
+    },
+    excluir: {
+      title: 'Excluir documentos',
+      body: `Deseja excluir ${selectedDocs.size} documento${selectedDocs.size !== 1 ? 's' : ''} selecionado${selectedDocs.size !== 1 ? 's' : ''}? Esta ação não pode ser desfeita.`,
+      btn: 'Excluir',
+      btnClass: 'btn-outline btn-outline--danger',
+    },
+  };
 
   function buildPeriod() {
     return newPeriodType === 'anual' ? newYear : `${newQuarter}${newYear.slice(-2)}`;
@@ -281,10 +347,10 @@ export default function CentralDeResultadosPage() {
           </div>
         </div>
         <div className="toolbar__actions">
-          <button className="btn-toolbar" type="button">Despublicar</button>
-          <button className="btn-toolbar btn-toolbar--success" type="button">Publicar</button>
-          <button className="btn-toolbar btn-toolbar--danger" type="button">Excluir</button>
-          <span className="toolbar__count">{currentQuarters.length} resultado{currentQuarters.length !== 1 ? 's' : ''}</span>
+          <button className="btn-toolbar" type="button" disabled={selectedDocs.size === 0} onClick={() => setConfirmAction('despublicar')}>Despublicar</button>
+          <button className="btn-toolbar btn-toolbar--success" type="button" disabled={selectedDocs.size === 0} onClick={() => setConfirmAction('publicar')}>Publicar</button>
+          <button className="btn-toolbar btn-toolbar--danger" type="button" disabled={selectedDocs.size === 0} onClick={() => setConfirmAction('excluir')}>Excluir</button>
+          <span className="toolbar__count">{selectedDocs.size > 0 ? `${selectedDocs.size} selecionado${selectedDocs.size !== 1 ? 's' : ''}` : `${currentQuarters.length} resultado${currentQuarters.length !== 1 ? 's' : ''}`}</span>
         </div>
       </div>
 
@@ -342,6 +408,14 @@ export default function CentralDeResultadosPage() {
                           <table className="cdr-doc-table">
                             <thead>
                               <tr>
+                                <th className="cdr-doc-table__th cdr-doc-table__th--check">
+                                  <input
+                                    type="checkbox"
+                                    className="cdr-checkbox"
+                                    checked={(docs[q.id] ?? []).length > 0 && (docs[q.id] ?? []).every(d => selectedDocs.has(d.id))}
+                                    onChange={() => toggleSelectAll(q.id, (docs[q.id] ?? []).map(d => d.id))}
+                                  />
+                                </th>
                                 <th className="cdr-doc-table__th">Documento</th>
                                 <th className="cdr-doc-table__th">Tipo</th>
                                 <th className="cdr-doc-table__th">Data</th>
@@ -352,7 +426,15 @@ export default function CentralDeResultadosPage() {
                             </thead>
                             <tbody>
                               {(docs[q.id] ?? []).map(doc => (
-                                <tr key={doc.id} className="cdr-doc-table__row">
+                                <tr key={doc.id} className={`cdr-doc-table__row${selectedDocs.has(doc.id) ? ' cdr-doc-table__row--selected' : ''}`}>
+                                  <td className="cdr-doc-table__td cdr-doc-table__td--check">
+                                    <input
+                                      type="checkbox"
+                                      className="cdr-checkbox"
+                                      checked={selectedDocs.has(doc.id)}
+                                      onChange={() => toggleSelectDoc(doc.id)}
+                                    />
+                                  </td>
                                   <td className="cdr-doc-table__td cdr-doc-table__td--title">
                                     <span className="material-symbols-outlined cdr-doc-item__icon">{tipoIcon(doc.tipo)}</span>
                                     {doc.titulo}
@@ -392,6 +474,30 @@ export default function CentralDeResultadosPage() {
           })()
         )}
       </div>
+
+      {/* Bulk action confirmation modal */}
+      <Modal
+        open={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        title={confirmAction ? confirmLabels[confirmAction].title : ''}
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setConfirmAction(null)}>Cancelar</button>
+            <button
+              type="button"
+              className={confirmAction ? confirmLabels[confirmAction].btnClass : 'btn-primary'}
+              onClick={() => confirmAction && executeBulkAction(confirmAction)}
+            >
+              {confirmAction ? confirmLabels[confirmAction].btn : ''}
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
+          {confirmAction ? confirmLabels[confirmAction].body : ''}
+        </p>
+      </Modal>
 
       {/* Modal */}
       <Modal
