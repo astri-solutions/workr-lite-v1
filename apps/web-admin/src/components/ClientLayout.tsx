@@ -123,43 +123,49 @@ const SECTIONS: NavSection[] = [
   },
   {
     label: 'Personalizar',
-    collapsible: true,
-    defaultCollapsed: true,
     items: [
       {
-        to: '/portal/layout',
         label: 'Layout',
         icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>dashboard</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>dashboard_customize</span>
         ),
-      },
-      {
-        to: '/portal/cores',
-        label: 'Cores',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>palette</span>
-        ),
-      },
-      {
-        to: '/portal/fontes',
-        label: 'Font-Family',
-        icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="4 7 4 4 20 4 20 7" />
-            <line x1="9" y1="20" x2="15" y2="20" />
-            <line x1="12" y1="4" x2="12" y2="20" />
-          </svg>
-        ),
-      },
-      {
-        to: '/portal/logotipo',
-        label: 'Logotipo',
-        icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
-          </svg>
-        ),
+        children: [
+          {
+            to: '/portal/layout',
+            label: 'Template',
+            icon: (
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>dashboard</span>
+            ),
+          },
+          {
+            to: '/portal/cores',
+            label: 'Cores',
+            icon: (
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>palette</span>
+            ),
+          },
+          {
+            to: '/portal/fontes',
+            label: 'Font-Family',
+            icon: (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" y1="20" x2="15" y2="20" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+              </svg>
+            ),
+          },
+          {
+            to: '/portal/logotipo',
+            label: 'Logotipo',
+            icon: (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                <line x1="7" y1="7" x2="7.01" y2="7" />
+              </svg>
+            ),
+          },
+        ],
       },
       {
         to: '/portal/favicon',
