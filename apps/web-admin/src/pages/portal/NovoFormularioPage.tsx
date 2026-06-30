@@ -151,7 +151,9 @@ export default function NovoFormularioPage() {
                 />
               </label>
               <label className="nm-meta-label">
-                Subtítulo <span className="nm-meta-optional">(opcional)</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Subtítulo <span className="nm-meta-optional">(opcional)</span>
+                </span>
                 <input
                   className="nm-meta-input lang-fade"
                   type="text"

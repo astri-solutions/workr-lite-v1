@@ -175,6 +175,14 @@
   flex-direction: column;
 }
 
+/* LangTabs flush to topbar inside nm-page */
+.nm-page > .lang-tabs {
+  position: sticky;
+  top: 56px;
+  z-index: 9;
+  margin-bottom: 0;
+}
+
 /* ─── Fields list ──────────────────────────────── */
 .nf-section-header {
   display: flex;
