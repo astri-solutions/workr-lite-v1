@@ -6,7 +6,7 @@ import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
 
-type FileType = 'image' | 'pdf' | 'video' | 'other';
+type FileType = 'image' | 'pdf' | 'doc' | 'xls' | 'ppt' | 'video' | 'other';
 
 interface MediaFile {
   id: string;
@@ -14,50 +14,95 @@ interface MediaFile {
   type: FileType;
   size: string;
   url: string | null;
+  previewUrl?: string;      // object URL for image previews
   uploadedAt: string;
 }
 
+function detectType(file: File): FileType {
+  if (file.type.startsWith('image/')) return 'image';
+  if (file.type === 'application/pdf') return 'pdf';
+  if (file.type.startsWith('video/')) return 'video';
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  if (['doc', 'docx'].includes(ext)) return 'doc';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'xls';
+  if (['ppt', 'pptx'].includes(ext)) return 'ppt';
+  return 'other';
+}
+
+function extType(name: string): FileType {
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  if (['jpg','jpeg','png','webp','svg','gif','bmp','avif'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc','docx'].includes(ext)) return 'doc';
+  if (['xls','xlsx','csv'].includes(ext)) return 'xls';
+  if (['ppt','pptx'].includes(ext)) return 'ppt';
+  if (['mp4','mov','avi','webm','mkv'].includes(ext)) return 'video';
+  return 'other';
+}
+
+/* SVG thumbs for document types */
+function DocThumb({ type }: { type: FileType }) {
+  const cfg: Record<string, { bg: string; label: string; icon: React.ReactNode }> = {
+    pdf: {
+      bg: '#fef2f2',
+      label: 'PDF',
+      icon: <path d="M9 12h6M9 16h4M14 3v5h5" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round"/>,
+    },
+    doc: {
+      bg: '#eff6ff',
+      label: 'DOC',
+      icon: <path d="M9 12h6M9 16h6M9 8h4M14 3v5h5" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round"/>,
+    },
+    xls: {
+      bg: '#f0fdf4',
+      label: 'XLS',
+      icon: <><path d="M9 9l6 6M15 9l-6 6" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/><path d="M14 3v5h5" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/></>,
+    },
+    ppt: {
+      bg: '#fff7ed',
+      label: 'PPT',
+      icon: <><ellipse cx="11" cy="12" rx="3" ry="3" stroke="#ea580c" strokeWidth="1.5"/><path d="M14 3v5h5" stroke="#ea580c" strokeWidth="1.5" strokeLinecap="round"/></>,
+    },
+    video: {
+      bg: '#faf5ff',
+      label: 'VID',
+      icon: <><polygon points="10,9 16,12 10,15" fill="#7c3aed"/><rect x="4" y="6" width="16" height="12" rx="2" stroke="#7c3aed" strokeWidth="1.5" fill="none"/></>,
+    },
+    other: {
+      bg: '#f9fafb',
+      label: 'ARQ',
+      icon: <path d="M14 3v5h5" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round"/>,
+    },
+  };
+  const c = cfg[type] ?? cfg.other;
+  return (
+    <div className="midia-thumb midia-thumb--doc" style={{ background: c.bg }}>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke={c.bg === '#f9fafb' ? '#6b7280' : undefined} strokeWidth="1.5" fill={c.bg}/>
+        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        {c.icon}
+      </svg>
+      <span className="midia-thumb__label">{c.label}</span>
+    </div>
+  );
+}
+
 const INITIAL: MediaFile[] = [
-  { id: 'm1', name: 'banner-principal.jpg', type: 'image', size: '842 KB', url: null, uploadedAt: '10/06/2026' },
-  { id: 'm2', name: 'logo-imc.svg', type: 'image', size: '14 KB', url: null, uploadedAt: '08/06/2026' },
-  { id: 'm3', name: 'apresentacao-2t25.pdf', type: 'pdf', size: '3.2 MB', url: null, uploadedAt: '05/06/2026' },
-  { id: 'm4', name: 'release-1t25.pdf', type: 'pdf', size: '1.8 MB', url: null, uploadedAt: '15/04/2026' },
-  { id: 'm5', name: 'foto-sede.jpg', type: 'image', size: '1.1 MB', url: null, uploadedAt: '20/03/2026' },
+  { id: 'm1', name: 'banner-principal.jpg', type: extType('banner-principal.jpg'), size: '842 KB', url: null, uploadedAt: '10/06/2026' },
+  { id: 'm2', name: 'logo-imc.svg', type: extType('logo-imc.svg'), size: '14 KB', url: null, uploadedAt: '08/06/2026' },
+  { id: 'm3', name: 'apresentacao-2t25.pdf', type: extType('apresentacao-2t25.pdf'), size: '3.2 MB', url: null, uploadedAt: '05/06/2026' },
+  { id: 'm4', name: 'release-1t25.pdf', type: extType('release-1t25.pdf'), size: '1.8 MB', url: null, uploadedAt: '15/04/2026' },
+  { id: 'm5', name: 'foto-sede.jpg', type: extType('foto-sede.jpg'), size: '1.1 MB', url: null, uploadedAt: '20/03/2026' },
+  { id: 'm6', name: 'dados-financeiros.xlsx', type: extType('dados-financeiros.xlsx'), size: '245 KB', url: null, uploadedAt: '01/06/2026' },
+  { id: 'm7', name: 'apresentacao-ri.pptx', type: extType('apresentacao-ri.pptx'), size: '4.7 MB', url: null, uploadedAt: '28/05/2026' },
+  { id: 'm8', name: 'relatorio-anual.docx', type: extType('relatorio-anual.docx'), size: '1.2 MB', url: null, uploadedAt: '10/05/2026' },
+  { id: 'm9', name: 'webcast-2t25.mp4', type: extType('webcast-2t25.mp4'), size: '82 MB', url: null, uploadedAt: '05/05/2026' },
 ];
 
 const TYPE_LABEL: Record<FileType, string> = {
-  image: 'Imagem', pdf: 'PDF', video: 'Vídeo', other: 'Outro',
+  image: 'Imagem', pdf: 'PDF', doc: 'Word', xls: 'Planilha', ppt: 'Apresentação', video: 'Vídeo', other: 'Outro',
 };
 
-const TYPE_ICONS: Record<FileType, React.ReactNode> = {
-  image: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" />
-      <polyline points="21 15 16 10 5 21" />
-    </svg>
-  ),
-  pdf: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-    </svg>
-  ),
-  video: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-    </svg>
-  ),
-  other: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-    </svg>
-  ),
-};
-
-const TYPE_COLOR: Record<FileType, string> = {
-  image: '#0B5B68', pdf: '#dc2626', video: '#7c3aed', other: '#6b7280',
-};
 
 export default function MidiaPage() {
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
@@ -74,12 +119,14 @@ export default function MidiaPage() {
   });
 
   function fileToMedia(file: File): MediaFile {
+    const type = detectType(file);
     return {
       id: 'u' + Math.random().toString(36).slice(2),
       name: file.name,
-      type: file.type.startsWith('image') ? 'image' : file.type === 'application/pdf' ? 'pdf' : file.type.startsWith('video') ? 'video' : 'other',
+      type,
       size: file.size >= 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
       url: null,
+      previewUrl: type === 'image' ? URL.createObjectURL(file) : undefined,
       uploadedAt: new Date().toLocaleDateString('pt-BR'),
     };
   }
@@ -155,6 +202,7 @@ export default function MidiaPage() {
           <table className="data-table">
             <thead>
               <tr>
+                <th style={{ width: 64 }}></th>
                 <th>Arquivo</th>
                 <th>Tipo</th>
                 <th>Tamanho</th>
@@ -165,13 +213,15 @@ export default function MidiaPage() {
             <tbody>
               {filtered.map(f => (
                 <tr key={f.id}>
+                  <td style={{ width: 64, padding: '8px 12px' }}>
+                    {f.type === 'image' && f.previewUrl ? (
+                      <img className="midia-thumb midia-thumb--img" src={f.previewUrl} alt={f.name} />
+                    ) : (
+                      <DocThumb type={f.type} />
+                    )}
+                  </td>
                   <td>
-                    <div className="midia-file-name">
-                      <span className="midia-file-icon" style={{ color: TYPE_COLOR[f.type] }}>
-                        {TYPE_ICONS[f.type]}
-                      </span>
-                      <span className="table-cell--bold">{f.name}</span>
-                    </div>
+                    <span className="table-cell--bold">{f.name}</span>
                   </td>
                   <td className="table-cell--muted">{TYPE_LABEL[f.type]}</td>
                   <td className="table-cell--muted">{f.size}</td>
@@ -212,8 +262,6 @@ export default function MidiaPage() {
         />
       </Modal>
 
-      <input ref={inputRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload}
-        accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.mp4,.mov" />
     </div>
   );
 }
