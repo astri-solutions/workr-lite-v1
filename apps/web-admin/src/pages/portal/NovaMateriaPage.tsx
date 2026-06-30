@@ -515,6 +515,9 @@ export default function NovaMateriaPage() {
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
   const [contentType, setContentType] = useState(isGaleria && !editing ? 'Notícia' : '');
+  const [dirty, setDirty] = useState(false);
+
+  function markDirty() { setDirty(true); }
 
   const dragIndex = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
@@ -557,6 +560,7 @@ export default function NovaMateriaPage() {
   function handlePublish(newStatus: PublishStatus) {
     setStatus(newStatus);
     setSaved(true);
+    setDirty(false);
     setTimeout(() => setSaved(false), 2500);
   }
 
@@ -584,18 +588,47 @@ export default function NovaMateriaPage() {
         <input
           className="nm-title-input"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => { setTitle(e.target.value); markDirty(); }}
           placeholder={editing ? '' : 'Título da matéria...'}
         />
 
         <div className="nm-topbar-actions">
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
-          >
-            {saved ? (status === 'scheduled' ? 'Agendado!' : 'Publicado!') : (scheduleDate ? 'Agendar' : 'Publicar')}
-          </button>
+          {editing ? (
+            <>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={() => handlePublish('draft')}
+              >
+                Salvar rascunho
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={!dirty}
+                onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
+              >
+                {saved ? 'Salvo!' : 'Salvar alterações'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={() => handlePublish('draft')}
+              >
+                {saved && status === 'draft' ? 'Salvo!' : 'Salvar como Rascunho'}
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
+              >
+                {saved && status !== 'draft' ? (status === 'scheduled' ? 'Agendado!' : 'Publicado!') : (scheduleDate ? 'Agendar' : 'Publicar')}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -648,13 +681,13 @@ export default function NovaMateriaPage() {
               <input
                 className="nm-field nm-field--title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { setTitle(e.target.value); markDirty(); }}
                 placeholder="Título..."
               />
               <input
                 className="nm-field nm-field--subtitle"
                 value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
+                onChange={(e) => { setSubtitle(e.target.value); markDirty(); }}
                 placeholder="Subtítulo..."
               />
             </div>
@@ -701,7 +734,7 @@ export default function NovaMateriaPage() {
               type="datetime-local"
               className="nm-date-input"
               value={scheduleDate}
-              onChange={(e) => setScheduleDate(e.target.value)}
+              onChange={(e) => { setScheduleDate(e.target.value); markDirty(); }}
             />
           </div>
 
@@ -711,7 +744,7 @@ export default function NovaMateriaPage() {
             <select
               className="filter-select nm-meta-select"
               value={page}
-              onChange={(e) => setPage(e.target.value)}
+              onChange={(e) => { setPage(e.target.value); markDirty(); }}
             >
               <option value="">Selecionar canal...</option>
               {(() => {
@@ -751,7 +784,7 @@ export default function NovaMateriaPage() {
                   key={t}
                   type="button"
                   className={`nm-type-chip${contentType === t ? ' nm-type-chip--active' : ''}`}
-                  onClick={() => setContentType(prev => prev === t ? '' : t)}
+                  onClick={() => { setContentType(prev => prev === t ? '' : t); markDirty(); }}
                 >
                   {t}
                 </button>
@@ -777,13 +810,6 @@ export default function NovaMateriaPage() {
             />
           </div>
 
-          <button
-            type="button"
-            className="btn-outline nm-draft-btn"
-            onClick={() => handlePublish('draft')}
-          >
-            Salvar rascunho
-          </button>
         </aside>
       </div>
 

@@ -26,6 +26,8 @@
   letter-spacing: 0.01em;
 }
 .btn-primary:hover { background: var(--color-primary-600); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary:disabled:hover { background: var(--color-primary-500); }
 
 /* ─── Standard toolbar pattern ─────────────────────────────
    Use on pages that have filters + bulk actions:
