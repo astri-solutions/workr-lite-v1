@@ -553,7 +553,14 @@ export default function CanaisPage() {
                   className="canais-edit-form__input"
                   type="text"
                   value={editModal.label}
-                  onChange={e => setEditModal(m => m ? { ...m, label: e.target.value } : m)}
+                  onChange={e => {
+                    const label = e.target.value;
+                    const slug = '/' + label.toLowerCase()
+                      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                      .replace(/[^a-z0-9\s-]/g, '')
+                      .trim().replace(/\s+/g, '-');
+                    setEditModal(m => m ? { ...m, label, href: slug } : m);
+                  }}
                   autoFocus
                 />
               </label>
@@ -565,16 +572,6 @@ export default function CanaisPage() {
                   value={editModal.href}
                   onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)}
                 />
-              </label>
-              <label className="canais-edit-form__label">
-                Mover para seção
-                <select
-                  className="canais-edit-form__input filter-select"
-                  value={editModal.targetCanalId}
-                  onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
-                >
-                  {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
               </label>
             </div>
 
@@ -600,6 +597,17 @@ export default function CanaisPage() {
                 </button>
               ))}
             </div>
+
+            <label className="canais-edit-form__label" style={{ marginTop: 'var(--space-4)' }}>
+              Mover para seção
+              <select
+                className="canais-edit-form__input filter-select"
+                value={editModal.targetCanalId}
+                onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
+              >
+                {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>
+            </label>
 
             {editModal.pageType === 'lista-agrupada' && (
               <div className="canais-agrupada-opts">
