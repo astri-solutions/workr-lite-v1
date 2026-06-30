@@ -339,38 +339,49 @@ export default function CentralDeResultadosPage() {
                             Documentos do período <strong>{q.period}</strong> aparecerão aqui.
                           </p>
                         ) : (
-                          <div className="cdr-doc-list">
-                            {(docs[q.id] ?? []).map(doc => (
-                              <div key={doc.id} className="cdr-doc-item">
-                                <span className={`material-symbols-outlined cdr-doc-item__icon`}>{tipoIcon(doc.tipo)}</span>
-                                <div className="cdr-doc-item__info">
-                                  <span className="cdr-doc-item__title">{doc.titulo}</span>
-                                  <span className="cdr-doc-item__meta">
-                                    <span className="cdr-doc-item__tipo">{tipoLabel(doc.tipo)}</span>
-                                    <span className="cdr-doc-item__sep">·</span>
-                                    <span>{fmtDate(doc.date)}</span>
-                                    <span className="cdr-doc-item__sep">·</span>
-                                    <span>Por {doc.publishedBy}</span>
-                                  </span>
-                                </div>
-                                <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'} cdr-doc-item__badge`}>
-                                  {doc.status === 'published' ? 'Publicado' : 'Rascunho'}
-                                </span>
-                                <div className="cdr-doc-item__divider" />
-                                <div className="table-actions">
-                                  <button className="btn-action btn-action--enter" type="button">Editar</button>
-                                  <button
-                                    className={`btn-action ${doc.status === 'published' ? 'btn-action--secondary' : 'btn-action--activate'}`}
-                                    type="button"
-                                    onClick={() => toggleDocStatus(q.id, doc.id)}
-                                  >
-                                    {doc.status === 'published' ? 'Despublicar' : 'Publicar'}
-                                  </button>
-                                  <button className="btn-action btn-action--danger" type="button" onClick={() => { if (window.confirm(`Excluir "${doc.titulo}"? Esta ação não pode ser desfeita.`)) removeDoc(q.id, doc.id); }}>Excluir</button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                          <table className="cdr-doc-table">
+                            <thead>
+                              <tr>
+                                <th className="cdr-doc-table__th">Documento</th>
+                                <th className="cdr-doc-table__th">Tipo</th>
+                                <th className="cdr-doc-table__th">Data</th>
+                                <th className="cdr-doc-table__th">Publicado por</th>
+                                <th className="cdr-doc-table__th">Status</th>
+                                <th className="cdr-doc-table__th cdr-doc-table__th--actions" />
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(docs[q.id] ?? []).map(doc => (
+                                <tr key={doc.id} className="cdr-doc-table__row">
+                                  <td className="cdr-doc-table__td cdr-doc-table__td--title">
+                                    <span className="material-symbols-outlined cdr-doc-item__icon">{tipoIcon(doc.tipo)}</span>
+                                    {doc.titulo}
+                                  </td>
+                                  <td className="cdr-doc-table__td cdr-doc-table__td--meta">{tipoLabel(doc.tipo)}</td>
+                                  <td className="cdr-doc-table__td cdr-doc-table__td--meta">{fmtDate(doc.date)}</td>
+                                  <td className="cdr-doc-table__td cdr-doc-table__td--meta">{doc.publishedBy}</td>
+                                  <td className="cdr-doc-table__td">
+                                    <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
+                                      {doc.status === 'published' ? 'Publicado' : 'Rascunho'}
+                                    </span>
+                                  </td>
+                                  <td className="cdr-doc-table__td cdr-doc-table__td--actions">
+                                    <div className="table-actions">
+                                      <button className="btn-action btn-action--enter" type="button">Editar</button>
+                                      <button
+                                        className={`btn-action ${doc.status === 'published' ? 'btn-action--secondary' : 'btn-action--activate'}`}
+                                        type="button"
+                                        onClick={() => toggleDocStatus(q.id, doc.id)}
+                                      >
+                                        {doc.status === 'published' ? 'Despublicar' : 'Publicar'}
+                                      </button>
+                                      <button className="btn-action btn-action--danger" type="button" onClick={() => { if (window.confirm(`Excluir "${doc.titulo}"? Esta ação não pode ser desfeita.`)) removeDoc(q.id, doc.id); }}>Excluir</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         )}
                       </div>
                     )}
