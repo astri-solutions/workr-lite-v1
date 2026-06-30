@@ -589,14 +589,6 @@ export default function NovaMateriaPage() {
         />
 
         <div className="nm-topbar-actions">
-          <span className={`badge ${badgeClass[status]}`}>{statusLabel[status]}</span>
-          <button
-            type="button"
-            className="btn-action btn-action--secondary"
-            onClick={() => handlePublish('draft')}
-          >
-            Salvar rascunho
-          </button>
           <button
             type="button"
             className="btn-primary"
@@ -784,6 +776,14 @@ export default function NovaMateriaPage() {
               rows={3}
             />
           </div>
+
+          <button
+            type="button"
+            className="btn-outline nm-draft-btn"
+            onClick={() => handlePublish('draft')}
+          >
+            Salvar rascunho
+          </button>
         </aside>
       </div>
 

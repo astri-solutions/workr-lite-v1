@@ -736,6 +736,13 @@
   padding-bottom: 0;
 }
 
+.nm-draft-btn {
+  width: 100%;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
 .nm-meta-block__title {
   font-family: var(--font-body);
   font-size: var(--text-xs);
