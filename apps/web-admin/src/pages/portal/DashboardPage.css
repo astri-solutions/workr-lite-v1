@@ -79,7 +79,7 @@
 /* ── Main grid ────────────────────────────────────── */
 .dash-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 280px;
   gap: var(--space-4);
 }
 
@@ -219,14 +219,6 @@
   color: var(--color-gray-400);
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-/* ── Bottom row (info + account) ─────────────────── */
-.dash-bottom-row {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: var(--space-4);
-  align-items: start;
 }
 
 /* ── Account manager card ─────────────────────────── */
