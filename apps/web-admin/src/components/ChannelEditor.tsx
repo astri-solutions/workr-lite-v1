@@ -15,6 +15,7 @@ export interface SubCanal {
   listaAgrupadaStyle?: ListaAgrupadaStyle;
   isExternalLink?: boolean;
   externalUrl?: string;
+  showInFooter?: boolean;
 }
 
 export interface Canal {
@@ -25,6 +26,7 @@ export interface Canal {
   children: SubCanal[];
   headerImage?: string;
   pageType?: PageType;
+  showInFooter?: boolean;
 }
 
 export const DEFAULT_CANAIS: Canal[] = [

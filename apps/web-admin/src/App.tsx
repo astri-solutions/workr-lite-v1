@@ -35,6 +35,7 @@ import SplashPage from './pages/portal/SplashPage';
 import MailingPage from './pages/portal/MailingPage';
 import PlanilhaDinamicaPage from './pages/portal/PlanilhaDinamicaPage';
 import TransmisoesPage from './pages/portal/TransmisoesPage';
+import FooterPage from './pages/portal/FooterPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -95,6 +96,7 @@ const router = createBrowserRouter([
       { path: 'logotipo', element: <LogotipoPage /> },
       { path: 'favicon', element: <FaviconPage /> },
       { path: 'banner', element: <BannerPage /> },
+      { path: 'footer', element: <FooterPage /> },
       { path: 'informacoes', element: <InformacoesPortalPage /> },
     ],
   },

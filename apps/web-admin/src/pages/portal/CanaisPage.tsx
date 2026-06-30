@@ -129,6 +129,7 @@ interface EditState {
   listaAgrupadaStyle: ListaAgrupadaStyle;
   isExternalLink: boolean;
   externalUrl: string;
+  showInFooter: boolean;
 }
 
 interface CanalEditState {
@@ -138,6 +139,7 @@ interface CanalEditState {
   headerImageUrl: string | null;
   applyHeaderToChildren: boolean;
   isLeaf: boolean; // no children → show page type picker
+  showInFooter: boolean;
 }
 
 type CanalType = 'pagina' | 'pai';
@@ -264,12 +266,13 @@ export default function CanaisPage() {
       headerImageUrl: canal.headerImage ?? null,
       applyHeaderToChildren: false,
       isLeaf: canal.children.length === 0,
+      showInFooter: canal.showInFooter ?? false,
     });
   }
 
   function commitCanalEdit() {
     if (!canalEditModal) return;
-    const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf } = canalEditModal;
+    const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter } = canalEditModal;
     setCanais(prev => {
       const next = prev.map(c => {
         if (c.id !== canalId) return c;
@@ -278,6 +281,7 @@ export default function CanaisPage() {
           label: label.trim() || c.label,
           pageType: isLeaf ? pageType : c.pageType,
           headerImage: headerImageUrl ?? undefined,
+          showInFooter,
         };
         if (applyHeaderToChildren && headerImageUrl) {
           updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl } as SubCanal & { headerImage?: string }));
@@ -297,12 +301,13 @@ export default function CanaisPage() {
       listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
       isExternalLink: sub.isExternalLink ?? false,
       externalUrl: sub.externalUrl ?? '',
+      showInFooter: sub.showInFooter ?? false,
     });
   }
 
   function commitEdit() {
     if (!editModal) return;
-    const { canalId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl } = editModal;
+    const { canalId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
     setCanais(prev => {
       let movingSub: SubCanal | null = null;
       const without = prev.map(c => {
@@ -316,6 +321,7 @@ export default function CanaisPage() {
           listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
           isExternalLink,
           externalUrl: isExternalLink ? externalUrl : undefined,
+          showInFooter,
         };
         return { ...c, children: c.children.filter(s => s.id !== subId) };
       });
@@ -533,6 +539,19 @@ export default function CanaisPage() {
               </label>
             </div>
 
+            <div className="canais-edit-divider" />
+
+            <label className="canal-apply-default">
+              <input
+                type="checkbox"
+                checked={canalEditModal.showInFooter}
+                onChange={e => setCanalEditModal(m => m ? { ...m, showInFooter: e.target.checked } : m)}
+              />
+              <span>
+                Exibir no footer <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(Footer completo com mapa do site)</span>
+              </span>
+            </label>
+
             {/* Page type — only for leaf canals */}
             {canalEditModal.isLeaf && (
               <>
@@ -661,6 +680,17 @@ export default function CanaisPage() {
               >
                 {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
+            </label>
+
+            <label className="canal-apply-default" style={{ marginTop: 'var(--space-4)' }}>
+              <input
+                type="checkbox"
+                checked={editModal.showInFooter}
+                onChange={e => setEditModal(m => m ? { ...m, showInFooter: e.target.checked } : m)}
+              />
+              <span>
+                Exibir no footer <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(Footer completo com mapa do site)</span>
+              </span>
             </label>
 
             {editModal.pageType === 'lista-agrupada' && (
