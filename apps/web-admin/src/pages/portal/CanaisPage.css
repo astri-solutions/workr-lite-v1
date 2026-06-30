@@ -431,14 +431,16 @@ select.canais-edit-form__input,
   align-items: center;
 }
 
-/* Section-header order buttons: match btn-toolbar height */
-.canais-section__actions .ce-icon-btn {
+/* All order/reorder buttons: uniform 36×36 size */
+.canais-section__actions .ce-icon-btn,
+.canais-order .ce-icon-btn {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
 }
 
-.canais-section__actions .ce-icon-btn .material-symbols-outlined {
+.canais-section__actions .ce-icon-btn .material-symbols-outlined,
+.canais-order .ce-icon-btn .material-symbols-outlined {
   font-size: 16px !important;
 }
 
