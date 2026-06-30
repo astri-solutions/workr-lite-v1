@@ -359,13 +359,15 @@ export default function CanaisPage() {
                 <span className="canais-section__name">{canal.label}</span>
                 <span className="canais-section__count">{canal.children.length} {canal.children.length === 1 ? 'página' : 'páginas'}</span>
               </div>
-              <div className="canais-section__actions">
+              <div className="canais-section__order">
                 <button className="ce-icon-btn" type="button" title="Mover seção para cima" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
                   <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_less</span>
                 </button>
                 <button className="ce-icon-btn" type="button" title="Mover seção para baixo" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
                   <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_more</span>
                 </button>
+              </div>
+              <div className="canais-section__actions">
                 <button className="btn-toolbar" type="button" onClick={() => openCanalEdit(canal)}>
                   <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit</span>
                   Editar canal
