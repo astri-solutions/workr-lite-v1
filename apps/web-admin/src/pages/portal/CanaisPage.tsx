@@ -234,7 +234,7 @@ export default function CanaisPage() {
   }
 
   function addSub(cid: string) {
-    const s: SubCanal = { id: genId(), label: 'Nova página', href: `/${genId()}.html`, enabled: true };
+    const s: SubCanal = { id: genId(), label: 'Nova página', href: `/${genId()}.html`, enabled: false };
     mutate(prev => prev.map(c => c.id !== cid ? c : { ...c, children: [...c.children, s] }));
   }
 
@@ -416,7 +416,7 @@ export default function CanaisPage() {
             </div>
 
             <button className="canais-add-page" type="button" onClick={() => addSub(canal.id)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
               Adicionar página
             </button>
           </div>
