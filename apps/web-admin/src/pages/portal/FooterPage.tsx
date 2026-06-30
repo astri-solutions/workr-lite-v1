@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useBlocker } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -132,10 +134,29 @@ const MODEL_THUMBNAILS: Record<FooterModel, React.ReactNode> = {
 export default function FooterPage() {
   const [config, setConfig] = useState<FooterConfig>(DEFAULT);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    dirty && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (!dirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  const markDirty = useCallback(() => {
+    setDirty(true);
+    setSaved(false);
+  }, []);
 
   function set<K extends keyof FooterConfig>(key: K, val: FooterConfig[K]) {
     setConfig(prev => ({ ...prev, [key]: val }));
-    setSaved(false);
+    markDirty();
   }
 
   function setLegal(id: string, field: 'label' | 'enabled', val: string | boolean) {
@@ -143,7 +164,7 @@ export default function FooterPage() {
       ...prev,
       legalLinks: prev.legalLinks.map(l => l.id === id ? { ...l, [field]: val } : l),
     }));
-    setSaved(false);
+    markDirty();
   }
 
   function setSocialUrl(platform: string, url: string) {
@@ -151,10 +172,11 @@ export default function FooterPage() {
       ...prev,
       socials: prev.socials.map(s => s.platform === platform ? { ...s, url } : s),
     }));
-    setSaved(false);
+    markDirty();
   }
 
   function handleSave() {
+    setDirty(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -165,7 +187,7 @@ export default function FooterPage() {
         title="Footer"
         description={<>Configuração do rodapé do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
+          <button className="btn-primary" type="button" onClick={handleSave} disabled={!dirty}>
             {saved ? 'Salvo!' : 'Salvar alterações'}
           </button>
         }
@@ -443,6 +465,25 @@ export default function FooterPage() {
           )}
         </div>
       </div>
+      <Modal
+        open={blocker.state === 'blocked'}
+        title="Alterações não salvas"
+        onClose={() => blocker.state === 'blocked' && blocker.reset()}
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => blocker.state === 'blocked' && blocker.reset()}>
+                Continuar editando
+              </button>
+              <button className="btn-outline btn-outline--danger" type="button" onClick={() => blocker.state === 'blocked' && blocker.proceed()}>
+                Sair sem salvar
+              </button>
+            </div>
+          }
+        >
+          <p style={{ margin: 0, color: 'var(--color-gray-600)', fontSize: 'var(--text-sm)' }}>
+            Você tem alterações não salvas no Footer. Se sair agora, as alterações serão perdidas.
+          </p>
+        </Modal>
     </div>
   );
 }
