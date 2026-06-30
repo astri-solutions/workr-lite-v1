@@ -6,7 +6,7 @@ import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 import './NovoFormularioPage.css';
 
-type FieldType = 'text' | 'email' | 'phone' | 'textarea' | 'select' | 'checkbox' | 'date';
+type FieldType = 'text' | 'email' | 'phone' | 'textarea' | 'select' | 'checkbox' | 'date' | 'company' | 'subject';
 type PublishStatus = 'draft' | 'published' | 'scheduled';
 
 interface FormField {
@@ -19,29 +19,36 @@ interface FormField {
 }
 
 const FIELD_DEFS: { type: FieldType; label: string; icon: string }[] = [
-  { type: 'text',     label: 'Texto curto',   icon: 'short_text' },
-  { type: 'email',    label: 'E-mail',         icon: 'alternate_email' },
-  { type: 'phone',    label: 'Telefone',       icon: 'phone' },
-  { type: 'textarea', label: 'Texto longo',    icon: 'notes' },
-  { type: 'select',   label: 'Seleção',        icon: 'list' },
-  { type: 'checkbox', label: 'Checkbox',       icon: 'check_box' },
-  { type: 'date',     label: 'Data',           icon: 'calendar_today' },
+  { type: 'text',     label: 'Texto curto',      icon: 'short_text' },
+  { type: 'subject',  label: 'Assunto',           icon: 'topic' },
+  { type: 'email',    label: 'E-mail',            icon: 'alternate_email' },
+  { type: 'phone',    label: 'Telefone',          icon: 'phone' },
+  { type: 'company',  label: 'Empresa / Perfil',  icon: 'business' },
+  { type: 'textarea', label: 'Texto longo',       icon: 'notes' },
+  { type: 'select',   label: 'Seleção',           icon: 'list' },
+  { type: 'checkbox', label: 'Checkbox',          icon: 'check_box' },
+  { type: 'date',     label: 'Data',              icon: 'calendar_today' },
 ];
 
 const FIELD_ICON: Record<FieldType, string> = {
   text: 'short_text', email: 'alternate_email', phone: 'phone',
   textarea: 'notes', select: 'list', checkbox: 'check_box', date: 'calendar_today',
+  company: 'business', subject: 'topic',
 };
+
+const DEFAULT_SUBJECT_OPTIONS = 'Dúvida sobre resultados, Pedido de reunião, Informações sobre dividendos, Sugestões, Outro';
 
 function newField(type: FieldType = 'text'): FormField {
   return { id: Math.random().toString(36).slice(2), type, label: '', placeholder: '', required: false, options: '' };
 }
 
 const DEFAULT_FIELDS: FormField[] = [
-  { id: 'f1', type: 'text',     label: 'Nome',      placeholder: 'Seu nome completo',     required: true,  options: '' },
-  { id: 'f2', type: 'email',    label: 'E-mail',    placeholder: 'seu@email.com',         required: true,  options: '' },
-  { id: 'f3', type: 'phone',    label: 'Telefone',  placeholder: '(11) 90000-0000',       required: false, options: '' },
-  { id: 'f4', type: 'textarea', label: 'Mensagem',  placeholder: 'Escreva sua mensagem…', required: true,  options: '' },
+  { id: 'f1', type: 'text',     label: 'Nome',             placeholder: 'Seu nome completo',                 required: true,  options: '' },
+  { id: 'f2', type: 'subject',  label: 'Assunto',          placeholder: 'Escolha o assunto',                 required: true,  options: DEFAULT_SUBJECT_OPTIONS },
+  { id: 'f3', type: 'email',    label: 'E-mail',           placeholder: 'seu@email.com',                     required: true,  options: '' },
+  { id: 'f4', type: 'phone',    label: 'Telefone',         placeholder: '(11) 90000-0000',                   required: false, options: '' },
+  { id: 'f5', type: 'company',  label: 'Empresa / Perfil', placeholder: 'Nome da empresa ou instituição',    required: false, options: '' },
+  { id: 'f6', type: 'textarea', label: 'Mensagem',         placeholder: 'Escreva sua mensagem…',             required: true,  options: '' },
 ];
 
 export default function NovoFormularioPage() {
@@ -159,39 +166,40 @@ export default function NovoFormularioPage() {
           {/* Fields list */}
           <div className="nf-section-header">
             <span>Campos do formulário</span>
-            <button type="button" className="btn-outline nf-add-field-btn" onClick={() => setPickerOpen(true)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add</span>
-              Adicionar campo
-            </button>
           </div>
 
-          <div className="nf-fields-list">
-            {fields.map((field, idx) => (
-              <div
-                key={field.id}
-                className={`nf-field-row${editingField === field.id ? ' nf-field-row--active' : ''}${dragOver === idx ? ' nf-field-row--drag-over' : ''}`}
-                draggable
-                onDragStart={() => { dragIndex.current = idx; }}
-                onDragOver={e => { e.preventDefault(); setDragOver(idx); }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={() => handleDrop(idx)}
-              >
-                <span className="nf-field-row__drag material-symbols-outlined">drag_indicator</span>
-                <span className="material-symbols-outlined nf-field-row__icon">{FIELD_ICON[field.type]}</span>
-                <div className="nf-field-row__body" onClick={() => setEditingField(editingField === field.id ? null : field.id)}>
-                  <span className="nf-field-row__label">{field.label || <em>Sem rótulo</em>}</span>
-                  <span className="nf-field-row__type">{FIELD_DEFS.find(d => d.type === field.type)?.label}</span>
+          <div className="nf-fields-card">
+            <div className="nf-fields-list">
+              {fields.length === 0 && (
+                <div className="nf-fields-empty">Nenhum campo adicionado ainda.</div>
+              )}
+              {fields.map((field, idx) => (
+                <div
+                  key={field.id}
+                  className={`nf-field-row${editingField === field.id ? ' nf-field-row--active' : ''}${dragOver === idx ? ' nf-field-row--drag-over' : ''}`}
+                  draggable
+                  onDragStart={() => { dragIndex.current = idx; }}
+                  onDragOver={e => { e.preventDefault(); setDragOver(idx); }}
+                  onDragLeave={() => setDragOver(null)}
+                  onDrop={() => handleDrop(idx)}
+                >
+                  <span className="nf-field-row__drag material-symbols-outlined">drag_indicator</span>
+                  <span className="material-symbols-outlined nf-field-row__icon">{FIELD_ICON[field.type]}</span>
+                  <div className="nf-field-row__body" onClick={() => setEditingField(editingField === field.id ? null : field.id)}>
+                    <span className="nf-field-row__label">{field.label || <em>Sem rótulo</em>}</span>
+                    <span className="nf-field-row__type">{FIELD_DEFS.find(d => d.type === field.type)?.label}</span>
+                  </div>
+                  {field.required && <span className="nf-field-row__required">Obrigatório</span>}
+                  <button type="button" className="nf-field-row__remove" onClick={() => removeField(field.id)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                  </button>
                 </div>
-                {field.required && <span className="nf-field-row__required">Obrigatório</span>}
-                <button type="button" className="nf-field-row__remove" onClick={() => removeField(field.id)}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
-                </button>
-              </div>
-            ))}
-
-            {fields.length === 0 && (
-              <div className="nf-fields-empty">Nenhum campo adicionado. Clique em "Adicionar campo" para começar.</div>
-            )}
+              ))}
+            </div>
+            <button type="button" className="nf-add-field-footer" onClick={() => setPickerOpen(true)}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
+              Adicionar campo
+            </button>
           </div>
 
           {/* Inline field editor */}
@@ -216,7 +224,7 @@ export default function NovoFormularioPage() {
                       onChange={e => updateField(activeField.id, { placeholder: e.target.value })} />
                   </label>
                 )}
-                {activeField.type === 'select' && (
+                {(activeField.type === 'select' || activeField.type === 'subject') && (
                   <label className="nm-meta-label nf-field-editor__full">
                     Opções <span className="nm-meta-optional">(separadas por vírgula)</span>
                     <input className="nm-meta-input" type="text" placeholder="Opção 1, Opção 2, Opção 3"
