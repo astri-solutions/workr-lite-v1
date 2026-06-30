@@ -1,3 +1,16 @@
+/* ─── Layout cards grid (override SplashPage column layout) ── */
+.ck-layouts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+@media (max-width: 540px) {
+  .ck-layouts-grid { grid-template-columns: 1fr; }
+}
+
+.ck-layouts-grid .splash-size-card { width: auto; }
+
 /* ─── Theme cards ────────────────────────────────────── */
 .ck-theme-grid {
   display: grid;

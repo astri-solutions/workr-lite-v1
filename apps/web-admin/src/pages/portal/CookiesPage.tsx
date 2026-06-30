@@ -251,7 +251,7 @@ export default function CookiesPage() {
           {/* Layout */}
           <div className="splash-card">
             <p className="splash-section-label">Modelo de exibição</p>
-            <div className="splash-sizes">
+            <div className="ck-layouts-grid">
               {LAYOUTS.map(opt => (
                 <button
                   key={opt.id}
