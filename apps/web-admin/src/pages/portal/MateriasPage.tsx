@@ -119,15 +119,16 @@ export default function MateriasPage() {
               <th>Título</th>
               <th>Página</th>
               <th>Status</th>
-              <th>Data</th>
+              <th>Publicado em</th>
               <th>Autor</th>
               <th>Última edição</th>
+              <th>Editado por último</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="table-empty">Nenhuma matéria encontrada.</td></tr>
+              <tr><td colSpan={8} className="table-empty">Nenhuma matéria encontrada.</td></tr>
             ) : (
               filtered.map(m => (
                 <tr key={m.id}>
@@ -136,12 +137,8 @@ export default function MateriasPage() {
                   <td><span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span></td>
                   <td className="table-cell--muted">{m.data}</td>
                   <td className="table-cell--muted">{m.autor}</td>
-                  <td>
-                    <div className="mat-last-edit">
-                      <span className="mat-last-edit__date">{m.ultimaEdicao}</span>
-                      <span className="mat-last-edit__user">{m.ultimoEditor}</span>
-                    </div>
-                  </td>
+                  <td className="table-cell--muted">{m.ultimaEdicao}</td>
+                  <td className="table-cell--muted">{m.ultimoEditor}</td>
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button"
