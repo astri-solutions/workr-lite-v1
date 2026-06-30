@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import PORTAL_CONFIG from '../../portalConfig';
@@ -121,7 +121,7 @@ export default function InformacoesPortalPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Informações da conta"
         description={<>Configurações e dados do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
       />

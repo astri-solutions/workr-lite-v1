@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminPages.css';
 import './PortaisPage.css';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 
 interface Site {
@@ -243,7 +243,7 @@ export default function PortaisPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Portais"
         description="Os sites de RI dos clientes. Cada portal é um tenant isolado."
         action={

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
 import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
@@ -336,7 +336,7 @@ export default function CanaisPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Árvore de canais"
         description={<>Árvore de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import '../admin/AdminPages.css';
@@ -111,7 +111,7 @@ export default function InformacoesPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Informações da conta"
         description="Gerencie seus dados pessoais e configurações da conta."
       />

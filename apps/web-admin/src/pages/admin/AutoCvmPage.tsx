@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './AdminPages.css';
 import './AutoCvmPage.css';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 
 type EntityStatus = 'ativo' | 'pausado' | 'erro';
 
@@ -163,7 +163,7 @@ export default function AutoCvmPage() {
     <div className="page cvm-page">
 
       {/* ── Header ── */}
-      <PageHeader
+      <StickyPageHeader
         title="Auto CVM"
         description={
           <>

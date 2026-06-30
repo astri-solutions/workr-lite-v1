@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { PORTAL_LAYOUT_KEY, PortalLayout } from '../../components/ClientLayout';
@@ -97,7 +97,7 @@ export default function LayoutPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Layout"
         description={<>Modelo de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

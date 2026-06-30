@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useBlocker } from 'react-router-dom';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -209,7 +209,7 @@ export default function FooterPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Footer"
         description={<>Configuração do rodapé do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

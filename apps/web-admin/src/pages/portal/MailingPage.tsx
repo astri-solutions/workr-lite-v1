@@ -1,11 +1,11 @@
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 
 export default function MailingPage() {
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Mailing"
         description={<>Mailing e IRM do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
       />

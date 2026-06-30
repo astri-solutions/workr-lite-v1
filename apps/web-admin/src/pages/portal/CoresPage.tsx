@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { generateColorScale } from '../../utils/colorUtils';
@@ -188,7 +188,7 @@ export default function CoresPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Cores"
         description={<>Paleta de cores do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

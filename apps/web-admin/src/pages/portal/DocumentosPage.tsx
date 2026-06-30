@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import FileDropzone from '../../components/FileDropzone';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -300,7 +300,7 @@ export default function DocumentosPage() {
 
   return (
     <div className="page docs-page">
-      <PageHeader
+      <StickyPageHeader
         title="Documentos"
         description={<>Documentos publicados no portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

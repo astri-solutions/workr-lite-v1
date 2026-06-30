@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -77,7 +77,7 @@ export default function MateriasPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Matérias"
         description={<>Comunicados e artigos do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

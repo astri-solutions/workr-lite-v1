@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -136,7 +136,7 @@ export default function SplashPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Splash"
         description={<>Splash de entrada do portal <strong>{PORTAL_CONFIG.name}</strong>. Exibido automaticamente ao acessar o site.</>}
         action={

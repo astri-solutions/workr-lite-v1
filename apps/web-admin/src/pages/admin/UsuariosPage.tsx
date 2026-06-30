@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './AdminPages.css';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
 import InviteUserModal, { InviteFormData } from '../../components/InviteUserModal';
 import EditUserModal, { EditableUser } from '../../components/EditUserModal';
@@ -90,7 +90,7 @@ export default function UsuariosPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Usuários"
         description="Gerencie usuários e convites da plataforma. Super admins têm acesso a todos os portais; clientes acessam apenas o seu portal."
         action={

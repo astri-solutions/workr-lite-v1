@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -108,7 +108,7 @@ export default function CalendarioPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Calendário"
         description={<>Eventos corporativos do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

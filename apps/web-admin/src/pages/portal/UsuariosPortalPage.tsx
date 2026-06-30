@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -154,7 +154,7 @@ export default function UsuariosPortalPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Usuários do Portal"
         description={<>Usuários com acesso ao portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

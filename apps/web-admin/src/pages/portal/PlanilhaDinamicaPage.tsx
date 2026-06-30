@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PlanilhaDinamicaPage.css';
@@ -113,7 +113,7 @@ export default function PlanilhaDinamicaPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Planilha Dinâmica"
         description={<>Arquivos Excel por trimestre do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

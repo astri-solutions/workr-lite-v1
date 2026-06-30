@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG from '../../portalConfig';
@@ -29,7 +29,7 @@ export default function FaviconPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Favicon"
         description={<>Ícone do portal <strong>{PORTAL_CONFIG.name}</strong> exibido nas abas do navegador.</>}
         action={

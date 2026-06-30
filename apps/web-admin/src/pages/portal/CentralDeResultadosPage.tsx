@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Modal from '../../components/Modal';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { ALL_LOCALES, LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
@@ -282,7 +282,7 @@ export default function CentralDeResultadosPage() {
 
   return (
     <div className="page cdr-page">
-      <PageHeader
+      <StickyPageHeader
         title="Central de Resultados"
         description={<>Resultados de <strong>{PORTAL_CONFIG.name}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
         action={

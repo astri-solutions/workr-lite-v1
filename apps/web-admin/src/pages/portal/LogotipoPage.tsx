@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG from '../../portalConfig';
@@ -31,7 +31,7 @@ export default function LogotipoPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Logotipo"
         description={<>Logotipos exibidos no portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={

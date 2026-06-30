@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import PageHeader from '../../components/PageHeader';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FileDropzone from '../../components/FileDropzone';
 import PORTAL_CONFIG from '../../portalConfig';
@@ -186,7 +186,7 @@ export default function MidiaPage() {
 
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Biblioteca de Mídia"
         description={<>Biblioteca de mídia do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
