@@ -1,12 +1,22 @@
-@keyframes canal-moved {
-  0%   { box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.35), var(--shadow-sm); }
-  60%  { box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.12), var(--shadow-sm); }
-  100% { box-shadow: var(--shadow-sm); }
+@keyframes canal-slide-up {
+  0%   { transform: translateY(14px); opacity: 0.65; }
+  65%  { transform: translateY(-3px); opacity: 1; }
+  100% { transform: translateY(0);    opacity: 1; }
 }
-
-@keyframes row-moved {
-  0%   { background-color: rgba(11, 91, 104, 0.07); }
-  100% { background-color: transparent; }
+@keyframes canal-slide-down {
+  0%   { transform: translateY(-14px); opacity: 0.65; }
+  65%  { transform: translateY(3px);   opacity: 1; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+@keyframes row-slide-up {
+  0%   { transform: translateY(10px); opacity: 0.5; }
+  65%  { transform: translateY(-2px); opacity: 1; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+@keyframes row-slide-down {
+  0%   { transform: translateY(-10px); opacity: 0.5; }
+  65%  { transform: translateY(2px);   opacity: 1; }
+  100% { transform: translateY(0);     opacity: 1; }
 }
 
 .canais-sections {
@@ -22,12 +32,10 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.15s;
 }
 
-.canais-section--moved {
-  animation: canal-moved 700ms ease-out forwards;
-}
+.canais-section--moved-up   { animation: canal-slide-up   500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.canais-section--moved-down { animation: canal-slide-down 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .canais-section__head {
   display: grid;
@@ -141,7 +149,8 @@
 }
 
 .canais-row--off td { opacity: 0.55; }
-.canais-row--moved { animation: row-moved 700ms ease-out forwards; }
+.canais-row--moved-up   { animation: row-slide-up   500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.canais-row--moved-down { animation: row-slide-down 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .canais-order { display: flex; gap: var(--space-1); }
 
