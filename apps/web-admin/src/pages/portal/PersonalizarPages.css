@@ -278,6 +278,67 @@
   color: var(--color-gray-400);
 }
 
+.fontes-option__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--color-gray-400);
+  cursor: pointer;
+  padding: 0;
+  margin-left: var(--space-1);
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+}
+.fontes-option__remove:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+/* ─── Custom font upload panel ───────────────────────── */
+.fontes-upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+}
+
+.fontes-upload__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fontes-upload__title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-800);
+}
+
+.fontes-upload__hint {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+}
+
+.fontes-upload__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ─── Logo / Favicon ─────────────────────────────────── */
 .logo-grid {
   display: grid;
