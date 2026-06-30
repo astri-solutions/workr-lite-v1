@@ -366,7 +366,7 @@ export default function CentralDeResultadosPage() {
                                   >
                                     {doc.status === 'published' ? 'Despublicar' : 'Publicar'}
                                   </button>
-                                  <button className="btn-action btn-action--danger" type="button" onClick={() => removeDoc(q.id, doc.id)}>Excluir</button>
+                                  <button className="btn-action btn-action--danger" type="button" onClick={() => { if (window.confirm(`Excluir "${doc.titulo}"? Esta ação não pode ser desfeita.`)) removeDoc(q.id, doc.id); }}>Excluir</button>
                                 </div>
                               </div>
                             ))}
