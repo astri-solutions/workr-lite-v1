@@ -431,6 +431,17 @@ select.canais-edit-form__input,
   align-items: center;
 }
 
+/* Section-header order buttons: match btn-toolbar height */
+.canais-section__actions .ce-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.canais-section__actions .ce-icon-btn .material-symbols-outlined {
+  font-size: 16px !important;
+}
+
 /* ── New canal modal ─────────────────────────────── */
 .canais-edit-form__label-group {
   display: flex;

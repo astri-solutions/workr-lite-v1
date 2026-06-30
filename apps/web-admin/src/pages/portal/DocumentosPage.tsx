@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
 import PageHeader from '../../components/PageHeader';
+import FileDropzone from '../../components/FileDropzone';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
@@ -217,10 +218,8 @@ export default function DocumentosPage() {
   const [dragActive, setDragActive] = useState(false);
   const [docLocale, setDocLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const replaceFileRef = useRef<HTMLInputElement>(null);
   const [replaceDoc, setReplaceDoc] = useState<DocRow | null>(null);
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
-  const [replaceDrag, setReplaceDrag] = useState(false);
 
   function patchForm<K extends keyof DocForm>(key: K, val: DocForm[K]) {
     setForm(f => ({ ...f, [key]: val }));
@@ -482,36 +481,12 @@ export default function DocumentosPage() {
         }
       >
         <p className="docs-replace-name">{replaceDoc?.nome}</p>
-
-        <div
-          className={`docs-replace-dropzone${replaceDrag ? ' docs-replace-dropzone--active' : ''}${replaceFile ? ' docs-replace-dropzone--has-file' : ''}`}
-          onDragOver={e => { e.preventDefault(); setReplaceDrag(true); }}
-          onDragLeave={() => setReplaceDrag(false)}
-          onDrop={e => { e.preventDefault(); setReplaceDrag(false); const f = e.dataTransfer.files[0]; if (f) setReplaceFile(f); }}
-          onClick={() => replaceFileRef.current?.click()}
-        >
-          <input
-            ref={replaceFileRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-            style={{ display: 'none' }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) setReplaceFile(f); }}
-          />
-          {replaceFile ? (
-            <>
-              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-primary-500)' }}>description</span>
-              <span className="docs-replace-filename">{replaceFile.name}</span>
-              <span className="docs-replace-filesize">{(replaceFile.size / 1024).toFixed(0)} KB</span>
-              <span className="docs-replace-change">Clique para trocar</span>
-            </>
-          ) : (
-            <>
-              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-gray-400)' }}>upload_file</span>
-              <span className="docs-replace-hint">Arraste o arquivo aqui ou <strong>clique para selecionar</strong></span>
-              <span className="docs-replace-formats">PDF, Word, Excel, PowerPoint</span>
-            </>
-          )}
-        </div>
+        <FileDropzone
+          file={replaceFile}
+          onChange={setReplaceFile}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          hint="PDF, Word, Excel, PowerPoint"
+        />
       </Modal>
 
       {/* ── New document modal ── */}

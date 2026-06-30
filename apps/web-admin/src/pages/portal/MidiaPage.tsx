@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
+import Modal from '../../components/Modal';
+import FileDropzone from '../../components/FileDropzone';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
@@ -62,6 +64,8 @@ export default function MidiaPage() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<FileType | ''>('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const filtered = files.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -69,18 +73,29 @@ export default function MidiaPage() {
     return true;
   });
 
-  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const uploaded = Array.from(e.target.files ?? []);
-    const newFiles: MediaFile[] = uploaded.map(file => ({
+  function fileToMedia(file: File): MediaFile {
+    return {
       id: 'u' + Math.random().toString(36).slice(2),
       name: file.name,
       type: file.type.startsWith('image') ? 'image' : file.type === 'application/pdf' ? 'pdf' : file.type.startsWith('video') ? 'video' : 'other',
-      size: file.size > 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
+      size: file.size >= 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
       url: null,
       uploadedAt: new Date().toLocaleDateString('pt-BR'),
-    }));
-    setFiles(prev => [...newFiles, ...prev]);
+    };
+  }
+
+  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const uploaded = Array.from(e.target.files ?? []);
+    setFiles(prev => [...uploaded.map(fileToMedia), ...prev]);
     if (e.target) e.target.value = '';
+  }
+
+  function confirmUpload() {
+    if (pendingFile) {
+      setFiles(prev => [fileToMedia(pendingFile), ...prev]);
+    }
+    setPendingFile(null);
+    setUploadModalOpen(false);
   }
 
   function deleteFile(id: string) {
@@ -93,7 +108,7 @@ export default function MidiaPage() {
         title="Biblioteca de Mídia"
         description={<>Biblioteca de mídia do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={() => inputRef.current?.click()}>
+          <button className="btn-primary" type="button" onClick={() => { setPendingFile(null); setUploadModalOpen(true); }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
@@ -174,6 +189,31 @@ export default function MidiaPage() {
           </table>
         </div>
       )}
+
+      <Modal
+        open={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        title="Enviar arquivo"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setUploadModalOpen(false)}>Cancelar</button>
+            <button type="button" className="btn-primary" disabled={!pendingFile} onClick={confirmUpload}>
+              Enviar
+            </button>
+          </div>
+        }
+      >
+        <FileDropzone
+          file={pendingFile}
+          onChange={setPendingFile}
+          accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov"
+          hint="Imagens (JPG, PNG, SVG, WebP), PDF, Vídeo (MP4, MOV)"
+        />
+      </Modal>
+
+      <input ref={inputRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload}
+        accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.mp4,.mov" />
     </div>
   );
 }
