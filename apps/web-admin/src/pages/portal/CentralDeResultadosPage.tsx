@@ -27,6 +27,16 @@ interface Quarter {
   exibirHome: boolean;
 }
 
+interface CdrDoc {
+  id: string;
+  quarterId: string;
+  titulo: string;
+  tipo: string;
+  date: string;
+  publishedBy: string;
+  status: 'published' | 'draft';
+}
+
 const QUARTERS_BY_ENTITY: Record<string, Quarter[]> = {
   imc: [
     { id: '2t25', period: '2T25', totalDocs: 1, publishedDocs: 1, exibirHome: true },
@@ -37,6 +47,29 @@ const QUARTERS_BY_ENTITY: Record<string, Quarter[]> = {
   ],
   'imc-fii': [],
   'imc-ce': [],
+};
+
+const DOCS_BY_QUARTER: Record<string, CdrDoc[]> = {
+  '2t25': [
+    { id: 'd1', quarterId: '2t25', titulo: 'Apresentação de Resultados 2T25', tipo: 'apresentacao', date: '2025-08-12', publishedBy: 'Admin', status: 'published' },
+  ],
+  '1t25': [
+    { id: 'd2', quarterId: '1t25', titulo: 'Earnings Release 1T25', tipo: 'earnings', date: '2025-05-14', publishedBy: 'Admin', status: 'published' },
+    { id: 'd3', quarterId: '1t25', titulo: 'Demonstrações Financeiras 1T25', tipo: 'dfp', date: '2025-05-14', publishedBy: 'Admin', status: 'published' },
+    { id: 'd4', quarterId: '1t25', titulo: 'Apresentação de Resultados 1T25', tipo: 'apresentacao', date: '2025-05-15', publishedBy: 'Admin', status: 'draft' },
+  ],
+  '4t24': [
+    { id: 'd5', quarterId: '4t24', titulo: 'Earnings Release 4T24', tipo: 'earnings', date: '2025-02-20', publishedBy: 'Admin', status: 'published' },
+    { id: 'd6', quarterId: '4t24', titulo: 'Apresentação de Resultados 4T24', tipo: 'apresentacao', date: '2025-02-20', publishedBy: 'Admin', status: 'published' },
+    { id: 'd7', quarterId: '4t24', titulo: 'DFP 2024', tipo: 'dfp', date: '2025-03-10', publishedBy: 'Admin', status: 'published' },
+    { id: 'd8', quarterId: '4t24', titulo: 'Press Release 4T24', tipo: 'press', date: '2025-02-20', publishedBy: 'Admin', status: 'published' },
+  ],
+  '3t24': [
+    { id: 'd9', quarterId: '3t24', titulo: 'Earnings Release 3T24', tipo: 'earnings', date: '2024-11-13', publishedBy: 'Admin', status: 'published' },
+  ],
+  '4t23': [
+    { id: 'd10', quarterId: '4t23', titulo: 'Earnings Release 4T23', tipo: 'earnings', date: '2024-02-15', publishedBy: 'Admin', status: 'published' },
+  ],
 };
 
 function parsePeriod(period: string): { quarter: string; year: string } {
@@ -71,6 +104,7 @@ export default function CentralDeResultadosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [quarters, setQuarters] =
     useState<Record<string, Quarter[]>>(QUARTERS_BY_ENTITY);
+  const [docs, setDocs] = useState<Record<string, CdrDoc[]>>(DOCS_BY_QUARTER);
 
   // Modal form state
   const [newEntity, setNewEntity] = useState('imc');
@@ -125,6 +159,36 @@ export default function CentralDeResultadosPage() {
     setQuarters(prev => ({
       ...prev,
       [activeEntity]: (prev[activeEntity] ?? []).map(q => q.id === id ? { ...q, exibirHome: !q.exibirHome } : q),
+    }));
+  }
+
+  function fmtDate(iso: string) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function tipoIcon(tipo: string) {
+    return TIPO_OPTIONS.find(t => t.value === tipo)?.icon ?? 'description';
+  }
+
+  function tipoLabel(tipo: string) {
+    return TIPO_OPTIONS.find(t => t.value === tipo)?.label ?? tipo;
+  }
+
+  function toggleDocStatus(quarterId: string, docId: string) {
+    setDocs(prev => ({
+      ...prev,
+      [quarterId]: (prev[quarterId] ?? []).map(d =>
+        d.id === docId ? { ...d, status: d.status === 'published' ? 'draft' : 'published' } : d
+      ),
+    }));
+  }
+
+  function removeDoc(quarterId: string, docId: string) {
+    setDocs(prev => ({
+      ...prev,
+      [quarterId]: (prev[quarterId] ?? []).filter(d => d.id !== docId),
     }));
   }
 
@@ -270,9 +334,47 @@ export default function CentralDeResultadosPage() {
                     </button>
                     {expandedId === q.id && (
                       <div className="cdr-accordion__body">
-                        <p className="cdr-accordion__placeholder">
-                          Documentos do período <strong>{q.period}</strong> aparecerão aqui.
-                        </p>
+                        {(docs[q.id] ?? []).length === 0 ? (
+                          <p className="cdr-accordion__placeholder">
+                            Documentos do período <strong>{q.period}</strong> aparecerão aqui.
+                          </p>
+                        ) : (
+                          <div className="cdr-doc-list">
+                            {(docs[q.id] ?? []).map(doc => (
+                              <div key={doc.id} className="cdr-doc-item">
+                                <span className={`material-symbols-outlined cdr-doc-item__icon`}>{tipoIcon(doc.tipo)}</span>
+                                <div className="cdr-doc-item__info">
+                                  <span className="cdr-doc-item__title">{doc.titulo}</span>
+                                  <span className="cdr-doc-item__meta">
+                                    <span className="cdr-doc-item__tipo">{tipoLabel(doc.tipo)}</span>
+                                    <span className="cdr-doc-item__sep">·</span>
+                                    <span>{fmtDate(doc.date)}</span>
+                                    <span className="cdr-doc-item__sep">·</span>
+                                    <span>Por {doc.publishedBy}</span>
+                                  </span>
+                                </div>
+                                <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
+                                  {doc.status === 'published' ? 'Publicado' : 'Rascunho'}
+                                </span>
+                                <div className="table-actions">
+                                  <button className="btn-action btn-action--enter" type="button">Editar</button>
+                                  <button
+                                    className={`btn-action ${doc.status === 'published' ? 'btn-action--secondary' : 'btn-action--activate'}`}
+                                    type="button"
+                                    onClick={() => toggleDocStatus(q.id, doc.id)}
+                                  >
+                                    {doc.status === 'published' ? 'Despublicar' : 'Publicar'}
+                                  </button>
+                                  <button className="btn-action btn-action--danger" type="button" onClick={() => removeDoc(q.id, doc.id)}>Excluir</button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <button className="cdr-add-doc" type="button">
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
+                          Adicionar documento
+                        </button>
                       </div>
                     )}
                   </div>

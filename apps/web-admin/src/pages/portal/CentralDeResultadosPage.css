@@ -186,6 +186,93 @@
   font-style: italic;
 }
 
+/* ─── Document list inside accordion ────────────────── */
+.cdr-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: var(--space-3);
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cdr-doc-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-gray-100);
+  transition: background 0.1s;
+}
+
+.cdr-doc-item:last-child { border-bottom: none; }
+.cdr-doc-item:hover { background: var(--color-gray-50); }
+
+.cdr-doc-item__icon {
+  font-size: 20px;
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+}
+
+.cdr-doc-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cdr-doc-item__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cdr-doc-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+}
+
+.cdr-doc-item__sep { color: var(--color-gray-300); }
+
+.cdr-doc-item__tipo {
+  font-weight: var(--font-medium);
+  color: var(--color-primary-600);
+}
+
+/* ─── Add document button ────────────────────────────── */
+.cdr-add-doc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-primary-50, #e8f5f7);
+  border: 1.5px dashed var(--color-primary-400);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-600);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.cdr-add-doc:hover {
+  background: var(--color-primary-100, #d0eef2);
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-700);
+}
+
 /* ─── Modal ─────────────────────────────────────────── */
 
 /* Row: trimestre + ano side by side */
