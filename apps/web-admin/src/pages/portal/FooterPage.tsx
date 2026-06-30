@@ -7,7 +7,7 @@ import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 import './FooterPage.css';
 
-type FooterModel = 'completo' | 'reduzido';
+type FooterModel = 'completo' | 'reduzido' | 'mapa';
 
 interface SocialLink { platform: string; url: string; icon: React.ReactNode }
 interface LegalLink  { id: string; label: string; enabled: boolean }
@@ -92,6 +92,32 @@ const DEFAULT: FooterConfig = {
 };
 
 const MODEL_THUMBNAILS: Record<FooterModel, React.ReactNode> = {
+  mapa: (
+    <svg width="100%" height="80" viewBox="0 0 280 80" fill="none">
+      <rect width="280" height="80" fill="#0b5b68"/>
+      {/* Logo row */}
+      <rect x="10" y="8" width="28" height="8" rx="2" fill="rgba(255,255,255,0.7)"/>
+      {/* Divider */}
+      <line x1="10" y1="22" x2="270" y2="22" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+      {/* 5 sitemap columns */}
+      {[10, 65, 120, 175, 225].map((x, i) => (
+        <g key={i}>
+          <rect x={x} y="28" width="38" height="3" rx="1" fill="rgba(255,255,255,0.55)"/>
+          <rect x={x} y="34" width="28" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x={x} y="39" width="32" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x={x} y="44" width="24" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x={x} y="49" width="30" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+        </g>
+      ))}
+      {/* Divider */}
+      <line x1="10" y1="58" x2="270" y2="58" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+      {/* Bottom bar */}
+      <rect x="10" y="63" width="60" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="80" y="63" width="50" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="200" y="63" width="40" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="10" y="70" width="100" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+    </svg>
+  ),
   completo: (
     <svg width="100%" height="80" viewBox="0 0 280 80" fill="none">
       <rect width="280" height="80" fill="#0b5b68"/>
@@ -198,7 +224,7 @@ export default function FooterPage() {
         <h2 className="pers-section__title">Modelo do footer</h2>
         <p className="pers-section__desc">Escolha o estilo de rodapé que será exibido no portal.</p>
         <div className="footer-models">
-          {(['completo', 'reduzido'] as FooterModel[]).map(m => (
+          {(['completo', 'reduzido', 'mapa'] as FooterModel[]).map(m => (
             <button
               key={m}
               type="button"
@@ -207,7 +233,7 @@ export default function FooterPage() {
             >
               <div className="footer-model-card__thumb">{MODEL_THUMBNAILS[m]}</div>
               <div className="footer-model-card__label">
-                {m === 'completo' ? 'Completo' : 'Reduzido'}
+                {m === 'completo' ? 'Completo' : m === 'reduzido' ? 'Reduzido' : 'Mapa do site'}
                 {config.model === m && (
                   <span className="footer-model-card__check">
                     <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
@@ -217,15 +243,17 @@ export default function FooterPage() {
               <div className="footer-model-card__desc">
                 {m === 'completo'
                   ? 'Logo, colunas de navegação, endereço, contato, redes sociais e rodapé inferior.'
-                  : 'Barra única com links legais, copyright e selo Powered by.'}
+                  : m === 'reduzido'
+                  ? 'Barra única com links legais, copyright e selo Powered by.'
+                  : 'Mapa completo do site com todas as seções e páginas organizadas em colunas.'}
               </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Completo-only: contact & social */}
-      {config.model === 'completo' && (
+      {/* Completo/Mapa: contact & social */}
+      {(config.model === 'completo' || config.model === 'mapa') && (
         <>
           <div className="pers-section">
             <h2 className="pers-section__title">Endereço e contato</h2>
@@ -361,7 +389,51 @@ export default function FooterPage() {
       <div className="pers-section">
         <h2 className="pers-section__title">Pré-visualização</h2>
         <div className="footer-preview">
-          {config.model === 'completo' ? (
+          {config.model === 'mapa' ? (
+            <div className="fp fp--completo">
+              <div className="fp__top">
+                <svg width="72" height="20" viewBox="0 0 72 20" fill="none">
+                  <rect width="16" height="16" rx="2" fill="rgba(255,255,255,0.9)"/>
+                  <rect x="20" y="4" width="52" height="6" rx="2" fill="rgba(255,255,255,0.8)"/>
+                  <rect x="20" y="12" width="36" height="4" rx="1" fill="rgba(255,255,255,0.4)"/>
+                </svg>
+              </div>
+              <div className="fp__divider"/>
+              <div className="fp__nav fp__nav--mapa">
+                {[
+                  { title: 'A COMPANHIA', links: ['A Companhia'] },
+                  { title: 'GOVERNANÇA', links: ['Composição Acionária', 'Atas e Assembleias', 'Documentos CVM'] },
+                  { title: 'INVESTIDORES', links: ['Central de Resultados', 'Calendário de Eventos', 'Ratings'] },
+                  { title: 'CONTATO', links: ['Fale com RI', 'Mailing'] },
+                ].map(col => (
+                  <div key={col.title} className="fp__nav-col">
+                    <div className="fp__nav-title">{col.title}</div>
+                    {col.links.map(l => <div key={l} className="fp__nav-link">{l}</div>)}
+                  </div>
+                ))}
+              </div>
+              <div className="fp__divider"/>
+              <div className="fp__bottom">
+                <div className="fp__bottom-left">
+                  {config.legalLinks.filter(l => l.enabled).map((l, i) => (
+                    <span key={l.id}>
+                      {i > 0 && <span className="fp__sep">·</span>}
+                      {l.label}
+                    </span>
+                  ))}
+                </div>
+                <div className="fp__bottom-right">
+                  <span>{config.copyright}</span>
+                  {config.poweredBy && (
+                    <span className="fp__powered">
+                      Powered by <svg width="36" height="10" viewBox="0 0 72 20" fill="none"><rect width="12" height="12" rx="1" fill="rgba(255,255,255,0.6)"/><rect x="16" y="3" width="40" height="5" rx="1" fill="rgba(255,255,255,0.6)"/></svg>
+                    </span>
+                  )}
+                </div>
+              </div>
+              {config.disclaimer && <div className="fp__disclaimer">{config.disclaimer}</div>}
+            </div>
+          ) : config.model === 'completo' ? (
             <div className="fp fp--completo">
               <div className="fp__top">
                 <svg width="72" height="20" viewBox="0 0 72 20" fill="none">

@@ -1,11 +1,12 @@
 /* ── Model selector ─────────────────────────────── */
 .footer-models {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-4);
 }
 
-@media (max-width: 600px) { .footer-models { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .footer-models { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 500px) { .footer-models { grid-template-columns: 1fr; } }
 
 .footer-model-card {
   display: flex;
