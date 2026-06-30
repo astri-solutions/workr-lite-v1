@@ -29,7 +29,6 @@ interface CookieConfig {
   showReject: boolean;
   showCustomize: boolean;
   customizeLabel: string;
-  radius: number;
   buttons: CkBtn[];
 }
 
@@ -46,7 +45,6 @@ const DEFAULT: CookieConfig = {
   showReject: true,
   showCustomize: true,
   customizeLabel: 'Personalizar',
-  radius: 8,
   buttons: [],
 };
 
@@ -125,14 +123,12 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
   const acceptBg = '#0B5B68';
   const rejectBg = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.07)';
   const rejectText = isDark ? '#fff' : '#0B5B68';
-  const br = cfg.radius;
-
   const isCompact = cfg.layout !== 'full';
 
   const bannerStyle: React.CSSProperties = {
     background: bg,
     color: text,
-    borderRadius: isCompact ? br : 0,
+    borderRadius: isCompact ? 8 : 0,
     boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
     padding: isCompact ? '10px 12px' : '8px 12px',
     display: 'flex',
@@ -145,26 +141,29 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
 
   const content = (
     <div style={bannerStyle}>
-      {cfg.title && (
-        <strong style={{ fontSize: 8, display: 'block', lineHeight: 1.3, color: isDark ? '#fff' : '#111' }}>
-          {cfg.title}
-        </strong>
-      )}
-      <span style={{ fontSize: 7, lineHeight: 1.4, opacity: 0.75, flex: 1, minWidth: 0 }}>
-        {cfg.description.slice(0, 60)}…
-      </span>
+      {/* For full-width: wrap title+desc together so buttons stay on the opposite side */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: isCompact ? undefined : 1, minWidth: 0 }}>
+        {cfg.title && (
+          <strong style={{ fontSize: 8, display: 'block', lineHeight: 1.3, color: isDark ? '#fff' : '#111' }}>
+            {cfg.title}
+          </strong>
+        )}
+        <span style={{ fontSize: 7, lineHeight: 1.4, opacity: 0.75 }}>
+          {cfg.description.slice(0, isCompact ? 60 : 100)}…
+        </span>
+      </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
         {cfg.showCustomize && (
-          <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: br / 2, background: rejectBg, color: rejectText }}>
+          <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: rejectBg, color: rejectText }}>
             {cfg.customizeLabel}
           </span>
         )}
         {cfg.showReject && (
-          <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: br / 2, background: rejectBg, color: rejectText }}>
+          <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: rejectBg, color: rejectText }}>
             {cfg.rejectLabel}
           </span>
         )}
-        <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: br / 2, background: acceptBg, color: '#fff' }}>
+        <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: acceptBg, color: '#fff' }}>
           {cfg.acceptLabel}
         </span>
       </div>
@@ -303,18 +302,6 @@ export default function CookiesPage() {
               ))}
             </div>
 
-            {/* Radius */}
-            <div className="ck-field-group" style={{ marginTop: 4 }}>
-              <label className="ck-label">Arredondamento das bordas</label>
-              <div className="ck-radius-row">
-                <input
-                  type="range" min={0} max={24} value={cfg.radius}
-                  onChange={e => set('radius', Number(e.target.value))}
-                  className="ck-range"
-                />
-                <span className="ck-range-val">{cfg.radius}px</span>
-              </div>
-            </div>
           </div>
 
           {/* Textos */}
