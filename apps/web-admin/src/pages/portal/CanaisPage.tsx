@@ -187,13 +187,13 @@ export default function CanaisPage() {
   function animateCanal(id: string, dir: -1 | 1) {
     if (movedCanalTimer.current) clearTimeout(movedCanalTimer.current);
     setMovedCanal({ id, dir });
-    movedCanalTimer.current = setTimeout(() => setMovedCanal(null), 500);
+    movedCanalTimer.current = setTimeout(() => setMovedCanal(null), 800);
   }
 
   function animateSub(canalId: string, subId: string, dir: -1 | 1) {
     if (movedSubTimer.current) clearTimeout(movedSubTimer.current);
     setMovedSub({ key: `${canalId}:${subId}`, dir });
-    movedSubTimer.current = setTimeout(() => setMovedSub(null), 500);
+    movedSubTimer.current = setTimeout(() => setMovedSub(null), 800);
   }
 
   const orderChanged = orderKey(canais) !== savedOrderKey;
