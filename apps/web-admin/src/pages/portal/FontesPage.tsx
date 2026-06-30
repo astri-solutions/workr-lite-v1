@@ -107,29 +107,6 @@ export default function FontesPage() {
   function FontList({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
     return (
       <div className="fontes-list">
-        {allFonts.map(f => (
-          <button
-            key={f.id}
-            type="button"
-            className={`fontes-option${active === f.id ? ' fontes-option--active' : ''}`}
-            onClick={() => { onSelect(f.id); setSaved(false); }}
-          >
-            <span className="fontes-option__sample" style={{ fontFamily: f.family }}>Aa</span>
-            <span className="fontes-option__label" style={f.custom ? { fontFamily: f.family } : undefined}>{f.label}</span>
-            <span className="fontes-option__cat">{f.category}</span>
-            {f.custom && (
-              <button
-                type="button"
-                className="fontes-option__remove"
-                title="Remover fonte"
-                onClick={ev => { ev.stopPropagation(); removeCustomFont(f.id); }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-              </button>
-            )}
-          </button>
-        ))}
-
         {/* Upload area */}
         <div className="fontes-upload">
           <div className="fontes-upload__info">
@@ -157,6 +134,29 @@ export default function FontesPage() {
             {uploading ? 'Carregando…' : 'Fazer upload de fonte'}
           </button>
         </div>
+
+        {allFonts.map(f => (
+          <button
+            key={f.id}
+            type="button"
+            className={`fontes-option${active === f.id ? ' fontes-option--active' : ''}`}
+            onClick={() => { onSelect(f.id); setSaved(false); }}
+          >
+            <span className="fontes-option__sample" style={{ fontFamily: f.family }}>Aa</span>
+            <span className="fontes-option__label" style={f.custom ? { fontFamily: f.family } : undefined}>{f.label}</span>
+            <span className="fontes-option__cat">{f.category}</span>
+            {f.custom && (
+              <button
+                type="button"
+                className="fontes-option__remove"
+                title="Remover fonte"
+                onClick={ev => { ev.stopPropagation(); removeCustomFont(f.id); }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+              </button>
+            )}
+          </button>
+        ))}
       </div>
     );
   }
