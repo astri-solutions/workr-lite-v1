@@ -7,7 +7,7 @@ import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 import './FooterPage.css';
 
-type FooterModel = 'completo' | 'reduzido' | 'mapa';
+type FooterModel = 'completo' | 'compacto' | 'reduzido';
 
 interface SocialLink { platform: string; url: string; icon: React.ReactNode }
 interface LegalLink  { id: string; label: string; enabled: boolean }
@@ -92,61 +92,61 @@ const DEFAULT: FooterConfig = {
 };
 
 const MODEL_THUMBNAILS: Record<FooterModel, React.ReactNode> = {
-  mapa: (
+  completo: (
+    /* Logo + mapa do site (colunas nav) + contato/sociais + barra inferior */
     <svg width="100%" height="80" viewBox="0 0 280 80" fill="none">
       <rect width="280" height="80" fill="#0b5b68"/>
-      {/* Logo row */}
-      <rect x="10" y="8" width="28" height="8" rx="2" fill="rgba(255,255,255,0.7)"/>
-      {/* Divider */}
-      <line x1="10" y1="22" x2="270" y2="22" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
-      {/* 5 sitemap columns */}
-      {[10, 65, 120, 175, 225].map((x, i) => (
+      <rect x="10" y="6" width="24" height="7" rx="2" fill="rgba(255,255,255,0.7)"/>
+      <line x1="10" y1="18" x2="270" y2="18" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+      {/* Nav columns (mapa) */}
+      {[10, 70, 135, 195].map((x, i) => (
         <g key={i}>
-          <rect x={x} y="28" width="38" height="3" rx="1" fill="rgba(255,255,255,0.55)"/>
-          <rect x={x} y="34" width="28" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x={x} y="39" width="32" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x={x} y="44" width="24" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x={x} y="49" width="30" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+          <rect x={x} y="22" width="36" height="3" rx="1" fill="rgba(255,255,255,0.55)"/>
+          <rect x={x} y="28" width="26" height="2" rx="1" fill="rgba(255,255,255,0.28)"/>
+          <rect x={x} y="32" width="30" height="2" rx="1" fill="rgba(255,255,255,0.28)"/>
+          <rect x={x} y="36" width="22" height="2" rx="1" fill="rgba(255,255,255,0.28)"/>
         </g>
       ))}
-      {/* Divider */}
+      <line x1="10" y1="43" x2="270" y2="43" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+      {/* Contact + social row */}
+      <rect x="10" y="47" width="50" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
+      <rect x="10" y="51" width="70" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+      {[200,212,224,236,248].map(x => <circle key={x} cx={x} cy={50} r="4" fill="rgba(255,255,255,0.25)"/>)}
       <line x1="10" y1="58" x2="270" y2="58" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
       {/* Bottom bar */}
-      <rect x="10" y="63" width="60" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
-      <rect x="80" y="63" width="50" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
-      <rect x="200" y="63" width="40" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
-      <rect x="10" y="70" width="100" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+      <rect x="10" y="62" width="55" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="75" y="62" width="45" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="195" y="62" width="40" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+      <rect x="10" y="68" width="90" height="2" rx="1" fill="rgba(255,255,255,0.12)"/>
     </svg>
   ),
-  completo: (
+  compacto: (
+    /* Logo + contato/sociais (sem mapa do site) + barra inferior */
     <svg width="100%" height="80" viewBox="0 0 280 80" fill="none">
       <rect width="280" height="80" fill="#0b5b68"/>
-      {/* Logo */}
-      <rect x="10" y="8" width="28" height="8" rx="2" fill="rgba(255,255,255,0.7)"/>
-      {/* Divider */}
+      <rect x="10" y="8" width="24" height="7" rx="2" fill="rgba(255,255,255,0.7)"/>
       <line x1="10" y1="22" x2="270" y2="22" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
-      {/* 4 nav columns */}
-      {[10,80,150,210].map((x, i) => (
-        <g key={i}>
-          <rect x={x} y="28" width="40" height="4" rx="1" fill="rgba(255,255,255,0.55)"/>
-          <rect x={x} y="36" width="30" height="3" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x={x} y="42" width="35" height="3" rx="1" fill="rgba(255,255,255,0.3)"/>
-          <rect x={x} y="48" width="25" height="3" rx="1" fill="rgba(255,255,255,0.3)"/>
-        </g>
-      ))}
-      {/* Divider */}
-      <line x1="10" y1="58" x2="270" y2="58" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+      {/* 3 info blocks (address, contact, social) */}
+      <rect x="10" y="28" width="36" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <rect x="10" y="34" width="70" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="10" y="38" width="55" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="105" y="28" width="36" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+      <rect x="105" y="34" width="55" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="105" y="38" width="40" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="200" y="28" width="36" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+      {[204,216,228,240].map(x => <circle key={x} cx={x} cy={38} r="4" fill="rgba(255,255,255,0.25)"/>)}
+      <line x1="10" y1="48" x2="270" y2="48" stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
       {/* Bottom bar */}
-      <rect x="10" y="63" width="60" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
-      <rect x="80" y="63" width="50" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
-      <rect x="200" y="63" width="40" height="3" rx="1" fill="rgba(255,255,255,0.25)"/>
-      <rect x="10" y="70" width="100" height="2" rx="1" fill="rgba(255,255,255,0.15)"/>
+      <rect x="10" y="53" width="55" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="75" y="53" width="45" height="2" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="195" y="53" width="40" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
+      <rect x="10" y="60" width="90" height="2" rx="1" fill="rgba(255,255,255,0.12)"/>
     </svg>
   ),
   reduzido: (
+    /* Só barra inferior: links + copyright + selo */
     <svg width="100%" height="80" viewBox="0 0 280 80" fill="none">
       <rect width="280" height="80" fill="#0b5b68"/>
-      {/* Single bar */}
       <rect x="10" y="32" width="50" height="3" rx="1" fill="rgba(255,255,255,0.4)"/>
       <rect x="70" y="32" width="55" height="3" rx="1" fill="rgba(255,255,255,0.4)"/>
       <rect x="135" y="32" width="50" height="3" rx="1" fill="rgba(255,255,255,0.4)"/>
@@ -224,7 +224,7 @@ export default function FooterPage() {
         <h2 className="pers-section__title">Modelo do footer</h2>
         <p className="pers-section__desc">Escolha o estilo de rodapé que será exibido no portal.</p>
         <div className="footer-models">
-          {(['completo', 'reduzido', 'mapa'] as FooterModel[]).map(m => (
+          {(['completo', 'compacto', 'reduzido'] as FooterModel[]).map(m => (
             <button
               key={m}
               type="button"
@@ -233,7 +233,7 @@ export default function FooterPage() {
             >
               <div className="footer-model-card__thumb">{MODEL_THUMBNAILS[m]}</div>
               <div className="footer-model-card__label">
-                {m === 'completo' ? 'Completo' : m === 'reduzido' ? 'Reduzido' : 'Mapa do site'}
+                {m === 'completo' ? 'Completo' : m === 'compacto' ? 'Compacto' : 'Reduzido'}
                 {config.model === m && (
                   <span className="footer-model-card__check">
                     <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
@@ -242,18 +242,18 @@ export default function FooterPage() {
               </div>
               <div className="footer-model-card__desc">
                 {m === 'completo'
-                  ? 'Logo, colunas de navegação, endereço, contato, redes sociais e rodapé inferior.'
-                  : m === 'reduzido'
-                  ? 'Barra única com links legais, copyright e selo Powered by.'
-                  : 'Mapa completo do site com todas as seções e páginas organizadas em colunas.'}
+                  ? 'Mapa do site, endereço, contato, redes sociais, links legais, copyright e selo.'
+                  : m === 'compacto'
+                  ? 'Endereço, contato e redes sociais sem mapa do site, com links legais e copyright.'
+                  : 'Barra única com links legais, copyright e selo Powered by.'}
               </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Completo/Mapa: contact & social */}
-      {(config.model === 'completo' || config.model === 'mapa') && (
+      {/* Completo/Compacto: contact & social */}
+      {(config.model === 'completo' || config.model === 'compacto') && (
         <>
           <div className="pers-section">
             <h2 className="pers-section__title">Endereço e contato</h2>
@@ -389,7 +389,8 @@ export default function FooterPage() {
       <div className="pers-section">
         <h2 className="pers-section__title">Pré-visualização</h2>
         <div className="footer-preview">
-          {config.model === 'mapa' ? (
+          {config.model === 'completo' ? (
+            /* Completo: mapa do site + contato/sociais + barra inferior */
             <div className="fp fp--completo">
               <div className="fp__top">
                 <svg width="72" height="20" viewBox="0 0 72 20" fill="none">
@@ -399,7 +400,7 @@ export default function FooterPage() {
                 </svg>
               </div>
               <div className="fp__divider"/>
-              <div className="fp__nav fp__nav--mapa">
+              <div className="fp__nav">
                 {[
                   { title: 'A COMPANHIA', links: ['A Companhia'] },
                   { title: 'GOVERNANÇA', links: ['Composição Acionária', 'Atas e Assembleias', 'Documentos CVM'] },
@@ -411,6 +412,34 @@ export default function FooterPage() {
                     {col.links.map(l => <div key={l} className="fp__nav-link">{l}</div>)}
                   </div>
                 ))}
+              </div>
+              <div className="fp__divider"/>
+              <div className="fp__contact">
+                {config.address && (
+                  <div className="fp__contact-group">
+                    <div className="fp__contact-title">ENDEREÇO</div>
+                    <div className="fp__contact-text">{config.address}</div>
+                  </div>
+                )}
+                {(config.email || config.phone || config.hours) && (
+                  <div className="fp__contact-group">
+                    <div className="fp__contact-title">ENTRE EM CONTATO</div>
+                    {config.email && <div className="fp__contact-text">{config.email}</div>}
+                    {config.phone && <div className="fp__contact-text">{config.phone}</div>}
+                    {config.hours && <div className="fp__contact-text">{config.hours}</div>}
+                  </div>
+                )}
+                {config.socials.some(s => s.url) && (
+                  <div className="fp__contact-group">
+                    <div className="fp__contact-title">REDES SOCIAIS</div>
+                    <div className="fp__socials">
+                      {config.socials.filter(s => s.url).map(s => {
+                        const def = SOCIAL_PLATFORMS.find(p => p.platform === s.platform);
+                        return <span key={s.platform} className="fp__social-icon">{def?.icon}</span>;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="fp__divider"/>
               <div className="fp__bottom">
@@ -433,7 +462,8 @@ export default function FooterPage() {
               </div>
               {config.disclaimer && <div className="fp__disclaimer">{config.disclaimer}</div>}
             </div>
-          ) : config.model === 'completo' ? (
+          ) : config.model === 'compacto' ? (
+            /* Compacto: sem mapa do site, com contato/sociais + barra inferior */
             <div className="fp fp--completo">
               <div className="fp__top">
                 <svg width="72" height="20" viewBox="0 0 72 20" fill="none">
@@ -441,28 +471,6 @@ export default function FooterPage() {
                   <rect x="20" y="4" width="52" height="6" rx="2" fill="rgba(255,255,255,0.8)"/>
                   <rect x="20" y="12" width="36" height="4" rx="1" fill="rgba(255,255,255,0.4)"/>
                 </svg>
-              </div>
-              <div className="fp__divider"/>
-              <div className="fp__nav">
-                <div className="fp__nav-col">
-                  <div className="fp__nav-title">A COMPANHIA</div>
-                  <div className="fp__nav-link">A Companhia</div>
-                </div>
-                <div className="fp__nav-col">
-                  <div className="fp__nav-title">GOVERNANÇA</div>
-                  <div className="fp__nav-link">Composição Acionária</div>
-                  <div className="fp__nav-link">Atas e Assembleias</div>
-                </div>
-                <div className="fp__nav-col">
-                  <div className="fp__nav-title">INVESTIDORES</div>
-                  <div className="fp__nav-link">Central de Resultados</div>
-                  <div className="fp__nav-link">Calendário de Eventos</div>
-                </div>
-                <div className="fp__nav-col">
-                  <div className="fp__nav-title">CONTATO</div>
-                  <div className="fp__nav-link">Fale com RI</div>
-                  <div className="fp__nav-link">Mailing</div>
-                </div>
               </div>
               <div className="fp__divider"/>
               <div className="fp__contact">
@@ -514,6 +522,7 @@ export default function FooterPage() {
               {config.disclaimer && <div className="fp__disclaimer">{config.disclaimer}</div>}
             </div>
           ) : (
+            /* Reduzido: só barra inferior */
             <div className="fp fp--reduzido">
               <div className="fp__bottom">
                 <div className="fp__bottom-left">
