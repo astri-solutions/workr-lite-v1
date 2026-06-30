@@ -382,9 +382,8 @@ export default function LoginPage() {
 
         <div className="login-right__content">
           <h2 className="login-right__headline">
-            A Gestão da<br />
-            Comunicação em uma<br />
-            única plataforma.
+            <span className="login-right__headline--white">A Gestão da Comunicação em </span>
+            <span className="login-right__headline--green">uma única plataforma.</span>
           </h2>
           <p className="login-right__subtitle">
             A Gestão da Comunicação em uma única plataforma.
