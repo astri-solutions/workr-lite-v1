@@ -310,14 +310,14 @@ td:has(.table-actions) {
 }
 
 .btn-action--danger {
-  background: #fff;
-  border-color: var(--color-gray-300);
-  color: var(--color-gray-700);
+  background: var(--color-error-50, #fef2f2);
+  border-color: var(--color-error-300);
+  color: var(--color-error-500);
 }
 .btn-action--danger:hover {
+  background: var(--color-error-100);
   border-color: var(--color-error-400);
-  color: var(--color-error-500);
-  background: var(--color-error-50, #fef2f2);
+  color: var(--color-error-600, #dc2626);
 }
 
 .btn-action--activate {

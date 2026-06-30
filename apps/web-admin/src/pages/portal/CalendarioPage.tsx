@@ -178,7 +178,7 @@ export default function CalendarioPage() {
                 <td>
                   <div className="table-actions">
                     <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
-                    <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                    <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
                   </div>
                 </td>
               </tr>
@@ -225,7 +225,7 @@ export default function CalendarioPage() {
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
-                      <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
                     </div>
                   </td>
                 </tr>

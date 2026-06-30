@@ -148,7 +148,7 @@ export default function MateriasPage() {
                         onClick={() => navigate('/portal/materias/nova', { state: { editing: m } })}>
                         Editar
                       </button>
-                      <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>
                     </div>
                   </td>
                 </tr>
