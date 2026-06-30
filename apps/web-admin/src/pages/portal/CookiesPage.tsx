@@ -2,166 +2,191 @@ import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
-import './PersonalizarPages.css';
+import './SplashPage.css';
 import './CookiesPage.css';
 
 /* ─── Types ──────────────────────────────────────────── */
-type Position = 'bottom' | 'top' | 'left' | 'right' | 'center';
-type Layout   = 'bar' | 'box' | 'floating';
+type CkLayout  = 'left' | 'right' | 'center' | 'full';
+type CkTheme   = 'light' | 'dark';
+type BtnVariant = 'primary' | 'outline';
+
+interface CkBtn {
+  label: string;
+  url: string;
+  variant: BtnVariant;
+}
 
 interface CookieConfig {
   enabled: boolean;
-  position: Position;
-  layout: Layout;
-  // Texts
+  layout: CkLayout;
+  theme: CkTheme;
   title: string;
   description: string;
   linkText: string;
   linkUrl: string;
-  // Buttons
   acceptLabel: string;
   rejectLabel: string;
-  customizeLabel: string;
   showReject: boolean;
   showCustomize: boolean;
-  // Colors
-  bgColor: string;
-  textColor: string;
-  acceptBg: string;
-  acceptText: string;
-  rejectBg: string;
-  rejectText: string;
-  // Border radius
+  customizeLabel: string;
   radius: number;
+  buttons: CkBtn[];
 }
 
 const DEFAULT: CookieConfig = {
   enabled: true,
-  position: 'bottom' as Position,
-  layout: 'bar',
+  layout: 'full',
+  theme: 'light',
   title: 'Utilizamos cookies',
-  description: 'Usamos cookies para melhorar sua experiência, personalizar conteúdos e analisar o tráfego do nosso site. Ao continuar navegando, você concorda com nossa política de privacidade.',
+  description: 'Usamos cookies para melhorar sua experiência, personalizar conteúdos e analisar o tráfego do nosso site.',
   linkText: 'Política de Privacidade',
   linkUrl: '/politica-de-privacidade',
   acceptLabel: 'Aceitar todos',
   rejectLabel: 'Rejeitar',
-  customizeLabel: 'Personalizar',
   showReject: true,
   showCustomize: true,
-  acceptBg: '#0B5B68',
-  acceptText: '#ffffff',
-  rejectBg: 'transparent',
-  rejectText: '#0B5B68',
-  bgColor: '#ffffff',
-  textColor: '#374151',
+  customizeLabel: 'Personalizar',
   radius: 8,
+  buttons: [],
 };
 
-const POSITIONS: { value: Position; label: string }[] = [
-  { value: 'bottom', label: 'Inferior (largura total)' },
-  { value: 'top', label: 'Superior (largura total)' },
-  { value: 'left', label: 'Compacto à esquerda' },
-  { value: 'right', label: 'Compacto à direita' },
-  { value: 'center', label: 'Compacto centralizado' },
+/* ─── Layout options ─────────────────────────────────── */
+const LAYOUTS: { id: CkLayout; label: string; desc: string; thumb: React.ReactNode }[] = [
+  {
+    id: 'left',
+    label: 'Bloco à esquerda',
+    desc: 'Card fixo no canto inferior esquerdo',
+    thumb: (
+      <svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" className="splash-thumb-svg">
+        <rect width="160" height="100" fill="#e5e7eb" rx="4" />
+        <rect x="6" y="54" width="62" height="40" rx="4" fill="#fff" stroke="#d1d5db" strokeWidth="1" />
+        <rect x="12" y="60" width="40" height="5" rx="2" fill="#0B5B68" opacity="0.7" />
+        <rect x="12" y="69" width="50" height="3" rx="2" fill="#d1d5db" />
+        <rect x="12" y="75" width="44" height="3" rx="2" fill="#d1d5db" />
+        <rect x="12" y="83" width="24" height="7" rx="3" fill="#0B5B68" />
+        <rect x="40" y="83" width="20" height="7" rx="3" fill="#e5e7eb" />
+      </svg>
+    ),
+  },
+  {
+    id: 'right',
+    label: 'Bloco à direita',
+    desc: 'Card fixo no canto inferior direito',
+    thumb: (
+      <svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" className="splash-thumb-svg">
+        <rect width="160" height="100" fill="#e5e7eb" rx="4" />
+        <rect x="92" y="54" width="62" height="40" rx="4" fill="#fff" stroke="#d1d5db" strokeWidth="1" />
+        <rect x="98" y="60" width="40" height="5" rx="2" fill="#0B5B68" opacity="0.7" />
+        <rect x="98" y="69" width="50" height="3" rx="2" fill="#d1d5db" />
+        <rect x="98" y="75" width="44" height="3" rx="2" fill="#d1d5db" />
+        <rect x="98" y="83" width="24" height="7" rx="3" fill="#0B5B68" />
+        <rect x="126" y="83" width="20" height="7" rx="3" fill="#e5e7eb" />
+      </svg>
+    ),
+  },
+  {
+    id: 'center',
+    label: 'Bloco centralizado',
+    desc: 'Card compacto centralizado na base',
+    thumb: (
+      <svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" className="splash-thumb-svg">
+        <rect width="160" height="100" fill="#e5e7eb" rx="4" />
+        <rect x="40" y="54" width="80" height="40" rx="4" fill="#fff" stroke="#d1d5db" strokeWidth="1" />
+        <rect x="48" y="60" width="44" height="5" rx="2" fill="#0B5B68" opacity="0.7" />
+        <rect x="48" y="69" width="64" height="3" rx="2" fill="#d1d5db" />
+        <rect x="48" y="75" width="56" height="3" rx="2" fill="#d1d5db" />
+        <rect x="52" y="83" width="28" height="7" rx="3" fill="#0B5B68" />
+        <rect x="84" y="83" width="24" height="7" rx="3" fill="#e5e7eb" />
+      </svg>
+    ),
+  },
+  {
+    id: 'full',
+    label: 'Largura completa',
+    desc: 'Faixa que preenche toda a largura da tela',
+    thumb: (
+      <svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" className="splash-thumb-svg">
+        <rect width="160" height="100" fill="#e5e7eb" rx="4" />
+        <rect x="0" y="72" width="160" height="28" rx="0" fill="#fff" stroke="#d1d5db" strokeWidth="1" />
+        <rect x="10" y="78" width="50" height="5" rx="2" fill="#0B5B68" opacity="0.7" />
+        <rect x="10" y="87" width="70" height="3" rx="2" fill="#d1d5db" />
+        <rect x="110" y="78" width="30" height="8" rx="3" fill="#0B5B68" />
+        <rect x="144" y="78" width="8" height="8" rx="2" fill="#e5e7eb" />
+      </svg>
+    ),
+  },
 ];
 
-const LAYOUTS: { value: Layout; label: string; desc: string }[] = [
-  { value: 'bar', label: 'Barra', desc: 'Faixa horizontal completa' },
-  { value: 'box', label: 'Caixa', desc: 'Card com modal centralizado' },
-  { value: 'floating', label: 'Flutuante', desc: 'Card compacto posicionado' },
-];
+/* ─── Mini preview ───────────────────────────────────── */
+function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
+  const isDark = cfg.theme === 'dark';
+  const bg = isDark ? '#141414' : '#ffffff';
+  const text = isDark ? '#ffffff' : '#374151';
+  const acceptBg = '#0B5B68';
+  const rejectBg = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.07)';
+  const rejectText = isDark ? '#fff' : '#0B5B68';
+  const br = cfg.radius;
 
-/* ─── Live preview ───────────────────────────────────── */
-function CookiePreview({ cfg }: { cfg: CookieConfig }) {
-  const isCompact = cfg.layout === 'floating' || cfg.position === 'left' || cfg.position === 'right' || cfg.position === 'center';
+  const isCompact = cfg.layout !== 'full';
 
-  function bannerClass() {
-    if (cfg.layout === 'floating' || cfg.position === 'left') return 'left';
-    if (cfg.position === 'right') return 'right';
-    if (cfg.position === 'center') return 'center';
-    if (cfg.position === 'top') return 'top';
-    return 'bottom';
-  }
+  const bannerStyle: React.CSSProperties = {
+    background: bg,
+    color: text,
+    borderRadius: isCompact ? br : 0,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+    padding: isCompact ? '10px 12px' : '8px 12px',
+    display: 'flex',
+    flexDirection: isCompact ? 'column' : 'row',
+    alignItems: isCompact ? 'flex-start' : 'center',
+    gap: 8,
+    width: isCompact ? 130 : '100%',
+    boxSizing: 'border-box' as const,
+  };
 
-  return (
-    <div className="ck-preview">
-      {/* Simulated browser window */}
-      <div className="ck-preview__browser">
-        <div className="ck-preview__bar">
-          <span className="ck-preview__dot" style={{ background: '#ff5f57' }}/>
-          <span className="ck-preview__dot" style={{ background: '#febc2e' }}/>
-          <span className="ck-preview__dot" style={{ background: '#28c840' }}/>
-          <span className="ck-preview__url">workr.com.br</span>
-        </div>
-        <div className="ck-preview__page">
-          {/* Page content placeholder */}
-          <div className="ck-preview__content">
-            <div className="ck-preview__line" style={{ width: '60%' }} />
-            <div className="ck-preview__line" style={{ width: '80%' }} />
-            <div className="ck-preview__line" style={{ width: '45%' }} />
-            <div className="ck-preview__line" style={{ width: '70%' }} />
-            <div className="ck-preview__line" style={{ width: '55%' }} />
-          </div>
-
-          {/* Cookie bar */}
-          {cfg.enabled && (
-            <div
-              className={`ck-preview__banner ck-preview__banner--${bannerClass()}`}
-              style={{
-                background: cfg.bgColor,
-                color: cfg.textColor,
-                borderRadius: isCompact ? cfg.radius : cfg.layout === 'bar' ? 0 : cfg.radius,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.14)',
-                flexDirection: isCompact || cfg.layout !== 'bar' ? 'column' : 'row',
-              }}
-            >
-              <div className="ck-preview__text">
-                {cfg.title && <strong className="ck-preview__title">{cfg.title}</strong>}
-                <span className="ck-preview__desc">{cfg.description.slice(0, 80)}…</span>
-              </div>
-              <div className="ck-preview__btns">
-                {cfg.showCustomize && (
-                  <button className="ck-preview__btn" style={{ background: cfg.rejectBg === 'transparent' ? 'rgba(0,0,0,0.06)' : cfg.rejectBg, color: cfg.rejectText, borderRadius: cfg.radius / 2 }}>
-                    {cfg.customizeLabel}
-                  </button>
-                )}
-                {cfg.showReject && (
-                  <button className="ck-preview__btn" style={{ background: cfg.rejectBg === 'transparent' ? 'rgba(0,0,0,0.06)' : cfg.rejectBg, color: cfg.rejectText, borderRadius: cfg.radius / 2 }}>
-                    {cfg.rejectLabel}
-                  </button>
-                )}
-                <button className="ck-preview__btn ck-preview__btn--accept" style={{ background: cfg.acceptBg, color: cfg.acceptText, borderRadius: cfg.radius / 2 }}>
-                  {cfg.acceptLabel}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+  const content = (
+    <div style={bannerStyle}>
+      {cfg.title && (
+        <strong style={{ fontSize: 8, display: 'block', lineHeight: 1.3, color: isDark ? '#fff' : '#111' }}>
+          {cfg.title}
+        </strong>
+      )}
+      <span style={{ fontSize: 7, lineHeight: 1.4, opacity: 0.75, flex: 1, minWidth: 0 }}>
+        {cfg.description.slice(0, 60)}…
+      </span>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
+        {cfg.showCustomize && (
+          <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: br / 2, background: rejectBg, color: rejectText }}>
+            {cfg.customizeLabel}
+          </span>
+        )}
+        {cfg.showReject && (
+          <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: br / 2, background: rejectBg, color: rejectText }}>
+            {cfg.rejectLabel}
+          </span>
+        )}
+        <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: br / 2, background: acceptBg, color: '#fff' }}>
+          {cfg.acceptLabel}
+        </span>
       </div>
     </div>
   );
-}
 
-/* ─── Section wrapper ────────────────────────────────── */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="pers-section">
-      <h2 className="pers-section__title">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-/* ─── Color field ────────────────────────────────────── */
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <label className="ck-color-field">
-      <span className="ck-color-field__label">{label}</span>
-      <div className="ck-color-field__row">
-        <input type="color" className="ck-color-input" value={value === 'transparent' ? '#ffffff' : value} onChange={e => onChange(e.target.value)} />
-        <input type="text" className="ck-text-input" value={value} onChange={e => onChange(e.target.value)} />
+    <div className="ck-mini-preview">
+      <div className="ck-mini-preview__page">
+        <div className="ck-mini-preview__lines">
+          {[60, 80, 50, 70, 40].map((w, i) => (
+            <div key={i} className="ck-mini-preview__line" style={{ width: `${w}%` }} />
+          ))}
+        </div>
+        <div className={`ck-mini-preview__banner ck-mini-preview__banner--${cfg.layout}`}>
+          {content}
+        </div>
       </div>
-    </label>
+      <p className="splash-mini-preview__badge" style={{ textAlign: 'center', marginTop: 8 }}>
+        {LAYOUTS.find(l => l.id === cfg.layout)?.label}
+      </p>
+    </div>
   );
 }
 
@@ -175,6 +200,19 @@ export default function CookiesPage() {
     setSaved(false);
   }
 
+  function addBtn() {
+    if (cfg.buttons.length >= 2) return;
+    set('buttons', [...cfg.buttons, { label: '', url: '', variant: 'primary' }]);
+  }
+
+  function removeBtn(i: number) {
+    set('buttons', cfg.buttons.filter((_, idx) => idx !== i));
+  }
+
+  function patchBtn(i: number, field: keyof CkBtn, val: string) {
+    set('buttons', cfg.buttons.map((b, idx) => idx === i ? { ...b, [field]: val } : b));
+  }
+
   function handleSave() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -184,7 +222,7 @@ export default function CookiesPage() {
     <div className="page">
       <StickyPageHeader
         title="Cookies"
-        description={<>Configure a barra de consentimento de cookies do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Configure o banner de consentimento de cookies do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}
@@ -192,167 +230,238 @@ export default function CookiesPage() {
         }
       />
 
-      {/* Preview */}
-      <Section title="Pré-visualização">
-        <CookiePreview cfg={cfg} />
-      </Section>
+      <div className="splash-layout">
+        {/* ── Editor ── */}
+        <div className="splash-editor">
 
-      {/* Enable toggle */}
-      <Section title="Ativação">
-        <div className="ck-card">
-          <div className="ck-toggle-row">
-            <div>
-              <p className="ck-toggle-row__label">Exibir banner de cookies</p>
-              <p className="ck-toggle-row__hint">Quando desativado, nenhum banner será exibido no portal.</p>
+          {/* Ativação */}
+          <div className="splash-card">
+            <div className="splash-card__head">
+              <span className="material-symbols-outlined splash-card__icon">cookie</span>
+              <div>
+                <p className="splash-card__title">Ativação</p>
+                <p className="splash-card__desc">Quando desativado, nenhum banner de cookies será exibido no portal.</p>
+              </div>
+              <label className="splash-switch">
+                <input type="checkbox" checked={cfg.enabled} onChange={e => set('enabled', e.target.checked)} />
+                <span className="splash-switch__track" />
+              </label>
             </div>
-            <button
-              type="button"
-              className={`ck-toggle${cfg.enabled ? ' ck-toggle--on' : ''}`}
-              onClick={() => set('enabled', !cfg.enabled)}
-            >
-              <span className="ck-toggle__knob" />
-            </button>
           </div>
-        </div>
-      </Section>
 
-      {/* Layout & position */}
-      <Section title="Estilo e posição">
-        <div className="ck-card">
-          <div className="ck-field-group">
-            <label className="ck-label">Modelo</label>
-            <div className="ck-layout-grid">
-              {LAYOUTS.map(l => (
+          {/* Layout */}
+          <div className="splash-card">
+            <p className="splash-section-label">Modelo de exibição</p>
+            <div className="splash-sizes">
+              {LAYOUTS.map(opt => (
                 <button
-                  key={l.value}
+                  key={opt.id}
                   type="button"
-                  className={`ck-layout-btn${cfg.layout === l.value ? ' ck-layout-btn--active' : ''}`}
-                  onClick={() => set('layout', l.value)}
+                  className={`splash-size-card${cfg.layout === opt.id ? ' splash-size-card--active' : ''}`}
+                  onClick={() => set('layout', opt.id)}
                 >
-                  <span className="ck-layout-btn__name">{l.label}</span>
-                  <span className="ck-layout-btn__desc">{l.desc}</span>
+                  <div className="splash-size-card__thumb">{opt.thumb}</div>
+                  <div className="splash-size-card__info">
+                    <span className="splash-size-card__label">{opt.label}</span>
+                    <span className="splash-size-card__desc">{opt.desc}</span>
+                  </div>
+                  {cfg.layout === opt.id && (
+                    <span className="splash-size-card__check">
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="ck-field-group">
-            <label className="ck-label" htmlFor="ck-position">Posição</label>
-            <div className="filter-wrap" style={{ maxWidth: 320 }}>
-              <select id="ck-position" className="filter-select" value={cfg.position} onChange={e => set('position', e.target.value as Position)}>
-                {POSITIONS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-              <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+          {/* Tema */}
+          <div className="splash-card">
+            <p className="splash-section-label">Tema</p>
+            <div className="ck-theme-grid">
+              {([
+                { id: 'light' as CkTheme, label: 'Claro', desc: 'Fundo branco com texto escuro' },
+                { id: 'dark' as CkTheme,  label: 'Escuro', desc: 'Fundo escuro com texto claro' },
+              ]).map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`ck-theme-card${cfg.theme === t.id ? ' ck-theme-card--active' : ''}`}
+                  onClick={() => set('theme', t.id)}
+                >
+                  <div className={`ck-theme-card__swatch ck-theme-card__swatch--${t.id}`} />
+                  <div>
+                    <span className="ck-theme-card__label">{t.label}</span>
+                    <span className="ck-theme-card__desc">{t.desc}</span>
+                  </div>
+                  {cfg.theme === t.id && (
+                    <span className="splash-size-card__check">
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Radius */}
+            <div className="ck-field-group" style={{ marginTop: 4 }}>
+              <label className="ck-label">Arredondamento das bordas</label>
+              <div className="ck-radius-row">
+                <input
+                  type="range" min={0} max={24} value={cfg.radius}
+                  onChange={e => set('radius', Number(e.target.value))}
+                  className="ck-range"
+                />
+                <span className="ck-range-val">{cfg.radius}px</span>
+              </div>
             </div>
           </div>
 
-          <div className="ck-field-group">
-            <label className="ck-label">Arredondamento das bordas</label>
-            <div className="ck-radius-row">
-              <input
-                type="range" min={0} max={24} value={cfg.radius}
-                onChange={e => set('radius', Number(e.target.value))}
-                className="ck-range"
-              />
-              <span className="ck-range-val">{cfg.radius}px</span>
+          {/* Textos */}
+          <div className="splash-card">
+            <p className="splash-section-label">Textos</p>
+
+            <div className="splash-field">
+              <label className="splash-field__label">Título</label>
+              <input className="splash-field__input" type="text"
+                placeholder="Ex: Utilizamos cookies"
+                value={cfg.title} onChange={e => set('title', e.target.value)} />
+            </div>
+
+            <div className="splash-field">
+              <label className="splash-field__label">Descrição</label>
+              <textarea className="splash-field__input splash-field__textarea" rows={3}
+                value={cfg.description} onChange={e => set('description', e.target.value)} />
+            </div>
+
+            <div className="ck-two-col">
+              <div className="splash-field">
+                <label className="splash-field__label">Texto do link de política</label>
+                <input className="splash-field__input" type="text"
+                  value={cfg.linkText} onChange={e => set('linkText', e.target.value)} />
+              </div>
+              <div className="splash-field">
+                <label className="splash-field__label">URL da política</label>
+                <input className="splash-field__input" type="text"
+                  placeholder="/politica-de-privacidade"
+                  value={cfg.linkUrl} onChange={e => set('linkUrl', e.target.value)} />
+              </div>
             </div>
           </div>
-        </div>
-      </Section>
 
-      {/* Colors */}
-      <Section title="Cores">
-        <div className="ck-card">
-          <div className="ck-color-grid">
-            <ColorField label="Fundo do banner" value={cfg.bgColor} onChange={v => set('bgColor', v)} />
-            <ColorField label="Cor do texto" value={cfg.textColor} onChange={v => set('textColor', v)} />
-            <ColorField label="Fundo botão aceitar" value={cfg.acceptBg} onChange={v => set('acceptBg', v)} />
-            <ColorField label="Texto botão aceitar" value={cfg.acceptText} onChange={v => set('acceptText', v)} />
-            <ColorField label="Fundo botão rejeitar" value={cfg.rejectBg} onChange={v => set('rejectBg', v)} />
-            <ColorField label="Texto botão rejeitar" value={cfg.rejectText} onChange={v => set('rejectText', v)} />
-          </div>
-        </div>
-      </Section>
+          {/* Botões de consentimento */}
+          <div className="splash-card">
+            <p className="splash-section-label">Botões de consentimento</p>
 
-      {/* Texts */}
-      <Section title="Textos">
-        <div className="ck-card">
-          <div className="ck-field-group">
-            <label className="ck-label" htmlFor="ck-title">Título</label>
-            <input id="ck-title" className="ck-text-input ck-text-input--full" type="text"
-              value={cfg.title} onChange={e => set('title', e.target.value)}
-              placeholder="Ex: Utilizamos cookies" />
-          </div>
-          <div className="ck-field-group">
-            <label className="ck-label" htmlFor="ck-desc">Descrição</label>
-            <textarea id="ck-desc" className="ck-text-input ck-text-input--full ck-textarea"
-              rows={4} value={cfg.description}
-              onChange={e => set('description', e.target.value)} />
-          </div>
-          <div className="ck-two-col">
-            <div className="ck-field-group">
-              <label className="ck-label" htmlFor="ck-link-text">Texto do link de política</label>
-              <input id="ck-link-text" className="ck-text-input ck-text-input--full" type="text"
-                value={cfg.linkText} onChange={e => set('linkText', e.target.value)} />
+            <div className="splash-field">
+              <label className="splash-field__label">Rótulo do botão Aceitar</label>
+              <input className="splash-field__input" type="text"
+                value={cfg.acceptLabel} onChange={e => set('acceptLabel', e.target.value)} />
             </div>
-            <div className="ck-field-group">
-              <label className="ck-label" htmlFor="ck-link-url">URL da política</label>
-              <input id="ck-link-url" className="ck-text-input ck-text-input--full" type="text"
-                value={cfg.linkUrl} onChange={e => set('linkUrl', e.target.value)}
-                placeholder="/politica-de-privacidade" />
+
+            <div className="ck-consent-btn-row">
+              <div className="ck-consent-toggle">
+                <div>
+                  <p className="splash-card__title" style={{ fontSize: 'var(--text-sm)' }}>Mostrar botão Rejeitar</p>
+                </div>
+                <label className="splash-switch">
+                  <input type="checkbox" checked={cfg.showReject} onChange={e => set('showReject', e.target.checked)} />
+                  <span className="splash-switch__track" />
+                </label>
+              </div>
+              {cfg.showReject && (
+                <div className="splash-field">
+                  <label className="splash-field__label">Rótulo do botão Rejeitar</label>
+                  <input className="splash-field__input" type="text"
+                    value={cfg.rejectLabel} onChange={e => set('rejectLabel', e.target.value)} />
+                </div>
+              )}
+            </div>
+
+            <div className="ck-consent-btn-row">
+              <div className="ck-consent-toggle">
+                <div>
+                  <p className="splash-card__title" style={{ fontSize: 'var(--text-sm)' }}>Mostrar botão Personalizar</p>
+                </div>
+                <label className="splash-switch">
+                  <input type="checkbox" checked={cfg.showCustomize} onChange={e => set('showCustomize', e.target.checked)} />
+                  <span className="splash-switch__track" />
+                </label>
+              </div>
+              {cfg.showCustomize && (
+                <div className="splash-field">
+                  <label className="splash-field__label">Rótulo do botão Personalizar</label>
+                  <input className="splash-field__input" type="text"
+                    value={cfg.customizeLabel} onChange={e => set('customizeLabel', e.target.value)} />
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </Section>
 
-      {/* Buttons */}
-      <Section title="Botões">
-        <div className="ck-card">
-          <div className="ck-field-group">
-            <label className="ck-label" htmlFor="ck-accept-label">Rótulo do botão Aceitar</label>
-            <input id="ck-accept-label" className="ck-text-input" type="text"
-              value={cfg.acceptLabel} onChange={e => set('acceptLabel', e.target.value)} />
-          </div>
-
-          <div className="ck-btn-row">
-            <div className="ck-toggle-row ck-toggle-row--inline">
+          {/* Botões de ação extras (estilo SplashPage) */}
+          <div className="splash-card">
+            <div className="splash-btns-head">
               <div>
-                <p className="ck-toggle-row__label">Mostrar botão Rejeitar</p>
+                <p className="splash-section-label" style={{ margin: 0 }}>Botões de ação</p>
+                <p className="splash-card__desc" style={{ marginTop: 4 }}>Adicione até 2 botões para direcionar o visitante.</p>
               </div>
-              <button type="button" className={`ck-toggle${cfg.showReject ? ' ck-toggle--on' : ''}`}
-                onClick={() => set('showReject', !cfg.showReject)}>
-                <span className="ck-toggle__knob" />
-              </button>
+              {cfg.buttons.length < 2 && (
+                <button type="button" className="btn-action btn-action--enter" onClick={addBtn}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>add</span>
+                  Adicionar botão
+                </button>
+              )}
             </div>
-            {cfg.showReject && (
-              <div className="ck-field-group">
-                <label className="ck-label" htmlFor="ck-reject-label">Rótulo do botão Rejeitar</label>
-                <input id="ck-reject-label" className="ck-text-input" type="text"
-                  value={cfg.rejectLabel} onChange={e => set('rejectLabel', e.target.value)} />
-              </div>
+
+            {cfg.buttons.length === 0 && (
+              <p className="splash-no-btns">Nenhum botão de ação adicionado.</p>
             )}
+
+            {cfg.buttons.map((btn, i) => (
+              <div key={i} className="splash-btn-editor">
+                <div className="splash-btn-editor__head">
+                  <span className="splash-btn-editor__num">Botão {i + 1}</span>
+                  <button type="button" className="btn-action btn-action--danger" style={{ padding: '4px 8px' }}
+                    onClick={() => removeBtn(i)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+                  </button>
+                </div>
+                <div className="splash-btn-editor__fields">
+                  <div className="splash-field">
+                    <label className="splash-field__label">Texto do botão</label>
+                    <input className="splash-field__input" type="text" placeholder="Ex: Saiba mais"
+                      value={btn.label} onChange={e => patchBtn(i, 'label', e.target.value)} />
+                  </div>
+                  <div className="splash-field">
+                    <label className="splash-field__label">URL de destino</label>
+                    <input className="splash-field__input" type="text" placeholder="/pagina ou https://..."
+                      value={btn.url} onChange={e => patchBtn(i, 'url', e.target.value)} />
+                  </div>
+                  <div className="splash-field">
+                    <label className="splash-field__label">Estilo</label>
+                    <div className="splash-variant-pick">
+                      {(['primary', 'outline'] as const).map(v => (
+                        <button key={v} type="button"
+                          className={`splash-variant-chip${btn.variant === v ? ' splash-variant-chip--active' : ''}`}
+                          onClick={() => patchBtn(i, 'variant', v)}>
+                          {v === 'primary' ? 'Preenchido' : 'Contorno'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div className="ck-btn-row">
-            <div className="ck-toggle-row ck-toggle-row--inline">
-              <div>
-                <p className="ck-toggle-row__label">Mostrar botão Personalizar</p>
-              </div>
-              <button type="button" className={`ck-toggle${cfg.showCustomize ? ' ck-toggle--on' : ''}`}
-                onClick={() => set('showCustomize', !cfg.showCustomize)}>
-                <span className="ck-toggle__knob" />
-              </button>
-            </div>
-            {cfg.showCustomize && (
-              <div className="ck-field-group">
-                <label className="ck-label" htmlFor="ck-custom-label">Rótulo do botão Personalizar</label>
-                <input id="ck-custom-label" className="ck-text-input" type="text"
-                  value={cfg.customizeLabel} onChange={e => set('customizeLabel', e.target.value)} />
-              </div>
-            )}
-          </div>
         </div>
-      </Section>
+
+        {/* ── Preview sidebar ── */}
+        <aside className="splash-preview-aside">
+          <p className="splash-section-label">Pré-visualização</p>
+          <CookieMiniPreview cfg={cfg} />
+        </aside>
+      </div>
     </div>
   );
 }
