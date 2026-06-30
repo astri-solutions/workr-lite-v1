@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background-color: var(--color-gray-100);
 }
 
 .admin-topbar {
@@ -11,7 +12,7 @@
   justify-content: space-between;
   padding: 0 var(--space-6);
   height: 56px;
-  background-color: var(--color-gray-900);
+  background-color: transparent;
   flex-shrink: 0;
   gap: var(--space-4);
 }
@@ -24,15 +25,16 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background-color: var(--color-gray-800);
-  border: 1px solid var(--color-gray-700);
+  background-color: #fff;
+  border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   max-width: 320px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 
 .admin-search__icon {
-  color: var(--color-gray-500);
+  color: var(--color-gray-400);
   flex-shrink: 0;
 }
 
@@ -40,13 +42,13 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--color-gray-200);
+  color: var(--color-gray-800);
   font-size: var(--text-sm);
   width: 100%;
 }
 
 .admin-search__input::placeholder {
-  color: var(--color-gray-500);
+  color: var(--color-gray-400);
 }
 
 .admin-topbar__right {
@@ -58,7 +60,7 @@
 .admin-topbar__separator {
   width: 1px;
   height: 20px;
-  background: var(--color-gray-700);
+  background: var(--color-gray-200);
   flex-shrink: 0;
 }
 
@@ -68,16 +70,17 @@
   gap: var(--space-2);
   background: transparent;
   border: none;
-  color: var(--color-gray-400);
+  color: var(--color-gray-500);
   font-size: var(--text-sm);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   transition: color 0.15s, background-color 0.15s;
+  cursor: pointer;
 }
 
 .admin-topbar__alert-btn:hover {
-  color: var(--color-gray-200);
-  background-color: var(--color-gray-800);
+  color: var(--color-gray-800);
+  background-color: var(--color-gray-200);
 }
 
 .admin-topbar__user {
@@ -102,7 +105,7 @@
 }
 
 .admin-topbar__email {
-  color: var(--color-gray-300);
+  color: var(--color-gray-600);
   font-size: var(--text-sm);
 }
 
@@ -111,18 +114,19 @@
   align-items: center;
   gap: var(--space-2);
   background: transparent;
-  border: 1px solid var(--color-gray-700);
-  color: var(--color-gray-400);
+  border: 1px solid var(--color-gray-200);
+  color: var(--color-gray-500);
   font-size: var(--text-sm);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+  cursor: pointer;
 }
 
 .admin-topbar__logout:hover {
-  color: var(--color-gray-100);
-  border-color: var(--color-gray-500);
-  background-color: var(--color-gray-800);
+  color: var(--color-gray-800);
+  border-color: var(--color-gray-300);
+  background-color: var(--color-gray-200);
 }
 
 .admin-body {
@@ -134,8 +138,8 @@
 .admin-sidebar {
   width: 220px;
   flex-shrink: 0;
-  background-color: white;
-  border-right: 1px solid var(--color-gray-200);
+  background-color: transparent;
+  border-right: none;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -156,7 +160,7 @@
 .admin-sidebar__footer {
   flex-shrink: 0;
   padding: var(--space-3) var(--space-4) var(--space-4);
-  border-top: 1px solid var(--color-gray-100);
+  border-top: 1px solid var(--color-gray-200);
 }
 
 .admin-sidebar--collapsed {
@@ -171,9 +175,9 @@
   overflow: hidden;
   position: sticky;
   top: 0;
-  background: white;
+  background: transparent;
   z-index: 1;
-  border-bottom: 1px solid var(--color-gray-100);
+  border-bottom: none;
   flex-shrink: 0;
 }
 
@@ -355,5 +359,5 @@
 .admin-main {
   flex: 1;
   overflow-y: auto;
-  background-color: var(--color-gray-100);
+  background-color: transparent;
 }

@@ -21,9 +21,9 @@
 }
 
 .sticky-page-header--stuck {
-  background: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border-bottom: 1px solid var(--color-gray-200);
+  background: var(--color-gray-100);
+  box-shadow: 0 1px 0 var(--color-gray-200);
+  border-bottom: none;
 }
 
 .sticky-page-header--stuck .page-header {

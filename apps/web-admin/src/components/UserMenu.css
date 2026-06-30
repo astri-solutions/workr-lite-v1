@@ -17,8 +17,8 @@
 
 .user-menu__trigger:hover,
 .user-menu__trigger--open {
-  background: var(--color-gray-800);
-  border-color: var(--color-gray-700);
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-300);
 }
 
 .user-menu__avatar {
@@ -40,7 +40,7 @@
 .user-menu__email {
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  color: var(--color-gray-300);
+  color: var(--color-gray-600);
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -48,7 +48,7 @@
 }
 
 .user-menu__caret {
-  color: var(--color-gray-500);
+  color: var(--color-gray-400);
   transition: transform 0.18s;
   flex-shrink: 0;
 }
