@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
@@ -179,6 +179,22 @@ export default function CanaisPage() {
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
   const [newCanalOpen, setNewCanalOpen] = useState(false);
   const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
+  const [movedCanalId, setMovedCanalId] = useState<string | null>(null);
+  const [movedSubKey, setMovedSubKey] = useState<string | null>(null);
+  const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const movedSubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function animateCanal(id: string) {
+    if (movedCanalTimer.current) clearTimeout(movedCanalTimer.current);
+    setMovedCanalId(id);
+    movedCanalTimer.current = setTimeout(() => setMovedCanalId(null), 700);
+  }
+
+  function animateSub(canalId: string, subId: string) {
+    if (movedSubTimer.current) clearTimeout(movedSubTimer.current);
+    setMovedSubKey(`${canalId}:${subId}`);
+    movedSubTimer.current = setTimeout(() => setMovedSubKey(null), 700);
+  }
 
   const orderChanged = orderKey(canais) !== savedOrderKey;
 
@@ -209,6 +225,7 @@ export default function CanaisPage() {
       const next = [...prev];
       const t = idx + dir;
       if (t < 0 || t >= next.length) return prev;
+      animateCanal(next[idx].id);
       [next[idx], next[t]] = [next[t], next[idx]];
       return next;
     });
@@ -248,6 +265,7 @@ export default function CanaisPage() {
       const ch = [...c.children];
       const t = idx + dir;
       if (t < 0 || t >= ch.length) return c;
+      animateSub(cid, ch[idx].id);
       [ch[idx], ch[t]] = [ch[t], ch[idx]];
       return { ...c, children: ch };
     }));
@@ -357,7 +375,7 @@ export default function CanaisPage() {
 
       <div className="canais-sections">
         {canais.map((canal, ci) => (
-          <div key={canal.id} className="canais-section">
+          <div key={canal.id} className={`canais-section${movedCanalId === canal.id ? ' canais-section--moved' : ''}`}>
             {/* Section header */}
             <div className="canais-section__head">
               <div className="canais-section__left">
@@ -415,7 +433,7 @@ export default function CanaisPage() {
                     <tr><td colSpan={5} className="table-empty">Nenhuma página nesta seção.</td></tr>
                   ) : (
                     canal.children.map((sub, si) => (
-                      <tr key={sub.id} className={sub.enabled ? '' : 'canais-row--off'}>
+                      <tr key={sub.id} className={[!sub.enabled && 'canais-row--off', movedSubKey === `${canal.id}:${sub.id}` && 'canais-row--moved'].filter(Boolean).join(' ')}>
                         <td className="table-cell--bold">{sub.label}</td>
                         <td className="table-cell--muted canais-href">{sub.href}</td>
                         <td>
