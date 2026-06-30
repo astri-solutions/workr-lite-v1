@@ -119,6 +119,13 @@ const SECTIONS: NavSection[] = [
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>live_tv</span>
         ),
       },
+      {
+        to: '/portal/atendimento',
+        label: 'Atendimento',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>support_agent</span>
+        ),
+      },
     ],
   },
   {

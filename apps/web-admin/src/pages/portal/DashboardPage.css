@@ -221,6 +221,102 @@
   flex-shrink: 0;
 }
 
+/* ── Bottom row (info + account) ─────────────────── */
+.dash-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/* ── Account manager card ─────────────────────────── */
+.dash-account {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dash-account__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dash-account__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-500);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.dash-account__name {
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-gray-900);
+  margin: 0 0 2px;
+}
+
+.dash-account__role {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin: 0;
+}
+
+.dash-account__contacts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-top: 1px solid var(--color-gray-100);
+  padding-top: var(--space-3);
+}
+
+.dash-account__contact-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+}
+
+.dash-account__contact-item .material-symbols-outlined {
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+.dash-account__contact-item a {
+  color: var(--color-gray-700);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-account__contact-item a:hover {
+  color: var(--color-primary-500);
+  text-decoration: underline;
+}
+
+.dash-account__btn {
+  text-decoration: none;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* ── Info table ───────────────────────────────────── */
 .dash-info-table {
   width: 100%;

@@ -37,6 +37,7 @@ import PlanilhaDinamicaPage from './pages/portal/PlanilhaDinamicaPage';
 import TransmisoesPage from './pages/portal/TransmisoesPage';
 import FooterPage from './pages/portal/FooterPage';
 import CookiesPage from './pages/portal/CookiesPage';
+import AtendimentoPage from './pages/portal/AtendimentoPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -99,6 +100,7 @@ const router = createBrowserRouter([
       { path: 'banner', element: <BannerPage /> },
       { path: 'footer', element: <FooterPage /> },
       { path: 'cookies', element: <CookiesPage /> },
+      { path: 'atendimento', element: <AtendimentoPage /> },
       { path: 'informacoes', element: <InformacoesPortalPage /> },
     ],
   },
