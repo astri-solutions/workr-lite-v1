@@ -27,6 +27,12 @@
   padding-top: var(--space-4);
 }
 
+.sticky-page-header--stuck .page-header {
+  margin-bottom: 0;
+  padding-bottom: var(--space-4);
+  border-bottom: none;
+}
+
 /* ─── Buttons ──────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
