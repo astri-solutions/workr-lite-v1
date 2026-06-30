@@ -160,12 +160,19 @@ function emptyNewCanalForm(): NewCanalForm {
   };
 }
 
+function orderKey(list: Canal[]): string {
+  return list.map(c => c.id + ':' + c.children.map(s => s.id).join(',')).join('|');
+}
+
 export default function CanaisPage() {
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
+  const [savedOrderKey, setSavedOrderKey] = useState(() => orderKey(DEFAULT_CANAIS));
   const [editModal, setEditModal] = useState<EditState | null>(null);
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
   const [newCanalOpen, setNewCanalOpen] = useState(false);
   const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
+
+  const orderChanged = orderKey(canais) !== savedOrderKey;
 
   const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => {
     setCanais(fn);
@@ -173,6 +180,11 @@ export default function CanaisPage() {
 
   function saveToStorage(updated: Canal[]) {
     localStorage.setItem(CANAIS_KEY, JSON.stringify(updated));
+  }
+
+  function handleSaveOrder() {
+    saveToStorage(canais);
+    setSavedOrderKey(orderKey(canais));
   }
 
   // ── Canal-level actions ──────────────────────────────
@@ -312,10 +324,18 @@ export default function CanaisPage() {
         title="Árvore de canais"
         description={<>Árvore de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm()); setNewCanalOpen(true); }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-            Novo canal
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            {orderChanged && (
+              <button className="btn-outline" type="button" onClick={handleSaveOrder}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>save</span>
+                Salvar ordem
+              </button>
+            )}
+            <button className="btn-primary" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm()); setNewCanalOpen(true); }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+              Novo canal
+            </button>
+          </div>
         }
       />
 
