@@ -262,11 +262,11 @@ export default function NovoFormularioPage() {
           )}
 
           {/* Submit label + success message (per language) */}
-          <div className="nf-section-header" style={{ marginTop: 'var(--space-4)' }}>Textos do formulário</div>
+          <div className="nf-section-header">Textos do formulário</div>
           <div className="nm-meta-card" key={`texts-${locale}`}>
             <div className="nm-meta-card__row">
               <label className="nm-meta-label">
-                Texto do botão de envio
+                Botão de envio
                 <input className="nm-meta-input lang-fade" type="text" placeholder="Ex: Enviar mensagem"
                   value={submitLabels[locale] ?? ''}
                   onChange={e => setSubmitLabels(p => ({ ...p, [locale]: e.target.value }))} />
@@ -287,43 +287,47 @@ export default function NovoFormularioPage() {
           {/* Publicação */}
           <div className="nm-sidebar-card">
             <div className="nm-sidebar-card__title">Publicação</div>
-            <label className="nm-meta-label">
-              Página destino
-              <select className="nm-meta-select" value={page} onChange={e => setPage(e.target.value)}>
-                <option value="">Selecionar página</option>
-                {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </label>
-            <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>
-              Status
-              <select className="nm-meta-select" value={status} onChange={e => setStatus(e.target.value as PublishStatus)}>
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-                <option value="scheduled">Agendado</option>
-              </select>
-            </label>
-            {status === 'scheduled' && (
-              <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>
-                Data de publicação
-                <input className="nm-meta-input" type="datetime-local" value={scheduleDate}
-                  onChange={e => setScheduleDate(e.target.value)} />
+            <div className="nm-sidebar-card__body">
+              <label className="nm-meta-label">
+                Página destino
+                <select className="nm-meta-select" value={page} onChange={e => setPage(e.target.value)}>
+                  <option value="">Selecionar página</option>
+                  {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
               </label>
-            )}
+              <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>
+                Status
+                <select className="nm-meta-select" value={status} onChange={e => setStatus(e.target.value as PublishStatus)}>
+                  <option value="draft">Rascunho</option>
+                  <option value="published">Publicado</option>
+                  <option value="scheduled">Agendado</option>
+                </select>
+              </label>
+              {status === 'scheduled' && (
+                <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>
+                  Data de publicação
+                  <input className="nm-meta-input" type="datetime-local" value={scheduleDate}
+                    onChange={e => setScheduleDate(e.target.value)} />
+                </label>
+              )}
+            </div>
           </div>
 
           {/* Recebimento */}
           <div className="nm-sidebar-card">
             <div className="nm-sidebar-card__title">Recebimento de respostas</div>
-            <label className="nm-meta-label">
-              E-mail de recebimento
-              <input className="nm-meta-input" type="email" placeholder="contato@empresa.com.br"
-                value={receiverEmail}
-                onChange={e => setReceiverEmail(e.target.value)} />
-            </label>
-            <label className="nf-field-editor__check" style={{ marginTop: 'var(--space-3)' }}>
-              <input type="checkbox" checked={replyTo} onChange={e => setReplyTo(e.target.checked)} />
-              <span>Responder para o e-mail do remetente <span className="nm-meta-optional">(se o formulário tiver campo e-mail)</span></span>
-            </label>
+            <div className="nm-sidebar-card__body">
+              <label className="nm-meta-label">
+                E-mail de recebimento
+                <input className="nm-meta-input" type="email" placeholder="contato@empresa.com.br"
+                  value={receiverEmail}
+                  onChange={e => setReceiverEmail(e.target.value)} />
+              </label>
+              <label className="nf-field-editor__check" style={{ marginTop: 'var(--space-3)' }}>
+                <input type="checkbox" checked={replyTo} onChange={e => setReplyTo(e.target.checked)} />
+                <span>Responder para o e-mail do remetente <span className="nm-meta-optional">(se o formulário tiver campo e-mail)</span></span>
+              </label>
+            </div>
           </div>
 
         </aside>
