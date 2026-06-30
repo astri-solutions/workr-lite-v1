@@ -17,7 +17,6 @@
   cursor: pointer;
   text-align: left;
   padding: 0;
-  overflow: hidden;
   transition: border-color 0.15s;
   position: relative;
 }
@@ -28,7 +27,15 @@
   width: 100%;
   line-height: 0;
   overflow: hidden;
-  border-radius: 0;
+  padding: var(--space-3) var(--space-3) 0;
+  border-radius: var(--radius-lg);
+}
+
+.footer-model-card__thumb > svg,
+.footer-model-card__thumb > * {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: block;
 }
 
 .footer-model-card__label {
