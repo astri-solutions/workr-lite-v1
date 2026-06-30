@@ -466,39 +466,41 @@ export default function TransmisoesPage() {
               </label>
             </div>
 
-            <label className="trn-field">
-              <span className="trn-field__label"><span className="trn-required">*</span> Template</span>
-              <div className="filter-wrap trn-select-wrap">
-                <select
-                  className="filter-select trn-field__select"
-                  value={form.template}
-                  onChange={e => setField('template', e.target.value)}
-                >
-                  <option value="">Selecione...</option>
-                  {TEMPLATES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-              </div>
-            </label>
+            <div className="trn-two-col">
+              <label className="trn-field">
+                <span className="trn-field__label"><span className="trn-required">*</span> Template</span>
+                <div className="filter-wrap trn-select-wrap">
+                  <select
+                    className="filter-select trn-field__select"
+                    value={form.template}
+                    onChange={e => setField('template', e.target.value)}
+                  >
+                    <option value="">Selecione...</option>
+                    {TEMPLATES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+                </div>
+              </label>
 
-            <label className="trn-field">
-              <span className="trn-field__label"><span className="trn-required">*</span> Diagramas</span>
-              <div className="filter-wrap trn-select-wrap">
-                <select
-                  className="filter-select trn-field__select"
-                  value={form.diagrams}
-                  onChange={e => setField('diagrams', e.target.value)}
-                >
-                  <option value="">Selecione...</option>
-                  {DIAGRAMS_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-              </div>
-            </label>
+              <label className="trn-field">
+                <span className="trn-field__label"><span className="trn-required">*</span> Diagramas</span>
+                <div className="filter-wrap trn-select-wrap">
+                  <select
+                    className="filter-select trn-field__select"
+                    value={form.diagrams}
+                    onChange={e => setField('diagrams', e.target.value)}
+                  >
+                    <option value="">Selecione...</option>
+                    {DIAGRAMS_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+                </div>
+              </label>
+            </div>
 
             {/* File uploads — only on new */}
             {!isDetail && (
-              <>
+              <div className="trn-two-col">
                 <div className="trn-field">
                   <span className="trn-field__label">Arquivo</span>
                   <div className="trn-upload">
@@ -528,7 +530,7 @@ export default function TransmisoesPage() {
                     </div>
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Export buttons — detail only */}

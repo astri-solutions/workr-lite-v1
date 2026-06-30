@@ -265,5 +265,18 @@
   border-top: 1px solid var(--color-gray-100);
 }
 
+/* ─── Two-column field grid ──────────────────────────── */
+.trn-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+@media (max-width: 640px) {
+  .trn-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── Spectators section ─────────────────────────────── */
 .trn-spec-section { }
