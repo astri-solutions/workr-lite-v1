@@ -14,7 +14,7 @@ interface MediaFile {
   type: FileType;
   size: string;
   url: string | null;
-  previewUrl?: string;      // object URL for image previews
+  previewUrl?: string;
   uploadedAt: string;
 }
 
@@ -38,6 +38,12 @@ function extType(name: string): FileType {
   if (['ppt','pptx'].includes(ext)) return 'ppt';
   if (['mp4','mov','avi','webm','mkv'].includes(ext)) return 'video';
   return 'other';
+}
+
+function fmtSize(bytes: number) {
+  return bytes >= 1024 * 1024
+    ? (bytes / 1024 / 1024).toFixed(1) + ' MB'
+    : Math.round(bytes / 1024) + ' KB';
 }
 
 /* SVG thumbs for document types */
@@ -68,6 +74,11 @@ function DocThumb({ type }: { type: FileType }) {
       label: 'VID',
       icon: <><polygon points="10,9 16,12 10,15" fill="#7c3aed"/><rect x="4" y="6" width="16" height="12" rx="2" stroke="#7c3aed" strokeWidth="1.5" fill="none"/></>,
     },
+    image: {
+      bg: '#f0f9ff',
+      label: 'IMG',
+      icon: <><rect x="4" y="4" width="16" height="16" rx="1" stroke="#0284c7" strokeWidth="1.5" fill="none"/><circle cx="8.5" cy="8.5" r="1.5" fill="#0284c7"/><path d="M4 15l5-5 3 3 2-2 5 5" stroke="#0284c7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></>,
+    },
     other: {
       bg: '#f9fafb',
       label: 'ARQ',
@@ -77,9 +88,13 @@ function DocThumb({ type }: { type: FileType }) {
   const c = cfg[type] ?? cfg.other;
   return (
     <div className="midia-thumb midia-thumb--doc" style={{ background: c.bg }}>
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke={c.bg === '#f9fafb' ? '#6b7280' : undefined} strokeWidth="1.5" fill={c.bg}/>
-        <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+        {type !== 'image' && (
+          <>
+            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeWidth="1.5" fill={c.bg}/>
+            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+          </>
+        )}
         {c.icon}
       </svg>
       <span className="midia-thumb__label">{c.label}</span>
@@ -103,14 +118,21 @@ const TYPE_LABEL: Record<FileType, string> = {
   image: 'Imagem', pdf: 'PDF', doc: 'Word', xls: 'Planilha', ppt: 'Apresentação', video: 'Vídeo', other: 'Outro',
 };
 
-
 export default function MidiaPage() {
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<FileType | ''>('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Upload modal
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // Replace modal
+  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+  const [replacePendingFile, setReplacePendingFile] = useState<File | null>(null);
+
+  const replaceTarget = files.find(f => f.id === replaceTargetId) ?? null;
 
   const filtered = files.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -118,13 +140,13 @@ export default function MidiaPage() {
     return true;
   });
 
-  function fileToMedia(file: File): MediaFile {
+  function fileToMedia(file: File, existingId?: string): MediaFile {
     const type = detectType(file);
     return {
-      id: 'u' + Math.random().toString(36).slice(2),
+      id: existingId ?? ('u' + Math.random().toString(36).slice(2)),
       name: file.name,
       type,
-      size: file.size >= 1024 * 1024 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB',
+      size: fmtSize(file.size),
       url: null,
       previewUrl: type === 'image' ? URL.createObjectURL(file) : undefined,
       uploadedAt: new Date().toLocaleDateString('pt-BR'),
@@ -133,8 +155,8 @@ export default function MidiaPage() {
 
   function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const uploaded = Array.from(e.target.files ?? []);
-    setFiles(prev => [...uploaded.map(fileToMedia), ...prev]);
-    if (e.target) e.target.value = '';
+    setFiles(prev => [...uploaded.map(f => fileToMedia(f)), ...prev]);
+    e.target.value = '';
   }
 
   function confirmUpload() {
@@ -143,6 +165,19 @@ export default function MidiaPage() {
     }
     setPendingFile(null);
     setUploadModalOpen(false);
+  }
+
+  function openReplaceModal(id: string) {
+    setReplacePendingFile(null);
+    setReplaceTargetId(id);
+  }
+
+  function confirmReplace() {
+    if (!replacePendingFile || !replaceTargetId) return;
+    const updated = fileToMedia(replacePendingFile, replaceTargetId);
+    setFiles(prev => prev.map(f => f.id === replaceTargetId ? updated : f));
+    setReplaceTargetId(null);
+    setReplacePendingFile(null);
   }
 
   function deleteFile(id: string) {
@@ -182,6 +217,9 @@ export default function MidiaPage() {
             <option value="">Todos os tipos</option>
             <option value="image">Imagens</option>
             <option value="pdf">PDFs</option>
+            <option value="doc">Word</option>
+            <option value="xls">Planilhas</option>
+            <option value="ppt">Apresentações</option>
             <option value="video">Vídeos</option>
           </select>
           <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
@@ -202,7 +240,7 @@ export default function MidiaPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: 64 }}></th>
+                <th className="midia-col-thumb"></th>
                 <th>Arquivo</th>
                 <th>Tipo</th>
                 <th>Tamanho</th>
@@ -213,7 +251,7 @@ export default function MidiaPage() {
             <tbody>
               {filtered.map(f => (
                 <tr key={f.id}>
-                  <td style={{ width: 64, padding: '8px 12px' }}>
+                  <td className="midia-col-thumb">
                     {f.type === 'image' && f.previewUrl ? (
                       <img className="midia-thumb midia-thumb--img" src={f.previewUrl} alt={f.name} />
                     ) : (
@@ -228,6 +266,9 @@ export default function MidiaPage() {
                   <td className="table-cell--muted">{f.uploadedAt}</td>
                   <td>
                     <div className="table-actions">
+                      <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(f.id)}>
+                        Substituir
+                      </button>
                       <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)}>
                         Excluir
                       </button>
@@ -240,6 +281,7 @@ export default function MidiaPage() {
         </div>
       )}
 
+      {/* Upload modal */}
       <Modal
         open={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
@@ -257,11 +299,38 @@ export default function MidiaPage() {
         <FileDropzone
           file={pendingFile}
           onChange={setPendingFile}
-          accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov"
-          hint="Imagens (JPG, PNG, SVG, WebP), PDF, Vídeo (MP4, MOV)"
+          accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          hint="Imagens, PDF, Word, Planilha, Apresentação, Vídeo"
         />
       </Modal>
 
+      {/* Replace modal */}
+      <Modal
+        open={!!replaceTargetId}
+        onClose={() => setReplaceTargetId(null)}
+        title="Substituir arquivo"
+        size="sm"
+        footer={
+          <>
+            <button type="button" className="btn-outline" onClick={() => setReplaceTargetId(null)}>Cancelar</button>
+            <button type="button" className="btn-primary" disabled={!replacePendingFile} onClick={confirmReplace}>
+              Substituir
+            </button>
+          </>
+        }
+      >
+        {replaceTarget && (
+          <p className="midia-replace-info">
+            Substituindo: <strong>{replaceTarget.name}</strong>
+          </p>
+        )}
+        <FileDropzone
+          file={replacePendingFile}
+          onChange={setReplacePendingFile}
+          accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          hint="Selecione o novo arquivo que substituirá o atual"
+        />
+      </Modal>
     </div>
   );
 }
