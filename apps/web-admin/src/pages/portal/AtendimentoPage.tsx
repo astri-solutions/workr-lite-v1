@@ -56,14 +56,10 @@ export default function AtendimentoPage() {
 
   return (
     <div className="page">
-      <StickyPageHeader>
-        <div className="page-header">
-          <div>
-            <h1 className="page-title">Atendimento</h1>
-            <p className="page-subtitle">Envie uma mensagem para a equipe da Astri</p>
-          </div>
-        </div>
-      </StickyPageHeader>
+      <StickyPageHeader
+        title="Atendimento"
+        description="Envie uma mensagem para a equipe da Astri"
+      />
 
       <div className="atend-layout">
         {/* ── Formulário ── */}
