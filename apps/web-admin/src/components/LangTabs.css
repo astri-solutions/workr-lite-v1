@@ -42,6 +42,15 @@
 
 .lang-tab__flag { font-size: 15px; line-height: 1; }
 
+.lang-tab__flag-img {
+  width: 18px;
+  height: 13px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
 /* Shared dissolve animation — apply to any content that should fade on lang change */
 @keyframes lang-dissolve {
   from { opacity: 0; transform: translateY(4px); }

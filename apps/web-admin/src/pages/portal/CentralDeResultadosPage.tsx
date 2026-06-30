@@ -353,9 +353,10 @@ export default function CentralDeResultadosPage() {
                                     <span>Por {doc.publishedBy}</span>
                                   </span>
                                 </div>
-                                <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
+                                <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'} cdr-doc-item__badge`}>
                                   {doc.status === 'published' ? 'Publicado' : 'Rascunho'}
                                 </span>
+                                <div className="cdr-doc-item__divider" />
                                 <div className="table-actions">
                                   <button className="btn-action btn-action--enter" type="button">Editar</button>
                                   <button
@@ -371,10 +372,6 @@ export default function CentralDeResultadosPage() {
                             ))}
                           </div>
                         )}
-                        <button className="cdr-add-doc" type="button">
-                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
-                          Adicionar documento
-                        </button>
                       </div>
                     )}
                   </div>

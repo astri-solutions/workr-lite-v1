@@ -648,7 +648,6 @@ export default function CanaisPage() {
         open={newCanalOpen}
         onClose={() => setNewCanalOpen(false)}
         title="Novo canal"
-        description="Configure o canal que será exibido na navegação do portal."
         size="md"
         footer={
           <div className="modal-footer">

@@ -243,6 +243,14 @@
 
 .cdr-doc-item__sep { color: var(--color-gray-300); }
 
+.cdr-doc-item__divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-gray-200);
+  flex-shrink: 0;
+  margin: 0 var(--space-2);
+}
+
 .cdr-doc-item__tipo {
   font-weight: var(--font-medium);
   color: var(--color-primary-600);
