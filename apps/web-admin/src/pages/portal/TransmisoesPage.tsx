@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import PageHeader from '../../components/PageHeader';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
@@ -200,7 +199,7 @@ export default function TransmisoesPage() {
   if (view === 'list') {
     return (
       <div className="page">
-        <PageHeader
+        <StickyPageHeader
           title="Transmissões"
           description={<>Webcasts e transmissões ao vivo do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
           action={
