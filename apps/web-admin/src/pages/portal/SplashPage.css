@@ -103,9 +103,13 @@
 
 /* ── Size picker ─────────────────────────────────────── */
 .splash-sizes {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+}
+
+@media (max-width: 540px) {
+  .splash-sizes { grid-template-columns: 1fr; }
 }
 
 .splash-size-card {
