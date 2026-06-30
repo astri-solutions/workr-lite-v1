@@ -13,6 +13,8 @@ export interface SubCanal {
   enabled: boolean;
   pageType?: PageType;
   listaAgrupadaStyle?: ListaAgrupadaStyle;
+  isExternalLink?: boolean;
+  externalUrl?: string;
 }
 
 export interface Canal {

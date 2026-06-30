@@ -127,6 +127,8 @@ interface EditState {
   targetCanalId: string;
   pageType: PageType;
   listaAgrupadaStyle: ListaAgrupadaStyle;
+  isExternalLink: boolean;
+  externalUrl: string;
 }
 
 interface CanalEditState {
@@ -147,6 +149,8 @@ interface NewCanalForm {
   tipo: CanalType;
   draft: boolean;
   locale: LocaleCode;
+  isExternalLink: boolean;
+  externalUrl: string;
 }
 
 function emptyNewCanalForm(): NewCanalForm {
@@ -157,6 +161,8 @@ function emptyNewCanalForm(): NewCanalForm {
     tipo: 'pai',
     draft: false,
     locale: PORTAL_CONFIG.languages[0],
+    isExternalLink: false,
+    externalUrl: '',
   };
 }
 
@@ -289,12 +295,14 @@ export default function CanaisPage() {
       canalId: cid, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
       pageType: sub.pageType ?? 'show',
       listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
+      isExternalLink: sub.isExternalLink ?? false,
+      externalUrl: sub.externalUrl ?? '',
     });
   }
 
   function commitEdit() {
     if (!editModal) return;
-    const { canalId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle } = editModal;
+    const { canalId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl } = editModal;
     setCanais(prev => {
       let movingSub: SubCanal | null = null;
       const without = prev.map(c => {
@@ -306,6 +314,8 @@ export default function CanaisPage() {
           href: href.trim() || sub.href,
           pageType,
           listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
+          isExternalLink,
+          externalUrl: isExternalLink ? externalUrl : undefined,
         };
         return { ...c, children: c.children.filter(s => s.id !== subId) };
       });
@@ -566,6 +576,28 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
+            {/* External link */}
+            <label className="canais-new-draft-check" style={{ marginBottom: 'var(--space-3)' }}>
+              <input
+                type="checkbox"
+                checked={editModal.isExternalLink}
+                onChange={e => setEditModal(m => m ? { ...m, isExternalLink: e.target.checked, externalUrl: '' } : m)}
+              />
+              <span>Link externo</span>
+            </label>
+            {editModal.isExternalLink && (
+              <label className="canais-edit-form__label" style={{ marginBottom: 'var(--space-4)' }}>
+                URL externa
+                <input
+                  className="canais-edit-form__input"
+                  type="url"
+                  placeholder="https://..."
+                  value={editModal.externalUrl}
+                  onChange={e => setEditModal(m => m ? { ...m, externalUrl: e.target.value } : m)}
+                />
+              </label>
+            )}
+
             <div className="canais-edit-row">
               <label className="canais-edit-form__label">
                 Nome da página
@@ -693,6 +725,28 @@ export default function CanaisPage() {
           </div>
         }
       >
+        {/* External link */}
+        <label className="canais-new-draft-check">
+          <input
+            type="checkbox"
+            checked={newCanalForm.isExternalLink}
+            onChange={e => setNewCanalForm(p => ({ ...p, isExternalLink: e.target.checked, externalUrl: '' }))}
+          />
+          <span>Link externo</span>
+        </label>
+        {newCanalForm.isExternalLink && (
+          <label className="canais-edit-form__label" style={{ marginTop: 'var(--space-3)' }}>
+            URL externa
+            <input
+              className="canais-edit-form__input"
+              type="url"
+              placeholder="https://..."
+              value={newCanalForm.externalUrl}
+              onChange={e => setNewCanalForm(p => ({ ...p, externalUrl: e.target.value }))}
+            />
+          </label>
+        )}
+
         <LangTabs active={newCanalForm.locale} onChange={l => setNewCanalForm(f => ({ ...f, locale: l }))} />
 
         {/* Header image */}
