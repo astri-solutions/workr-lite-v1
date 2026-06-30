@@ -196,12 +196,12 @@ export default function MidiaPage() {
         title="Enviar arquivo"
         size="sm"
         footer={
-          <div className="modal-footer">
+          <>
             <button type="button" className="btn-outline" onClick={() => setUploadModalOpen(false)}>Cancelar</button>
             <button type="button" className="btn-primary" disabled={!pendingFile} onClick={confirmUpload}>
               Enviar
             </button>
-          </div>
+          </>
         }
       >
         <FileDropzone
