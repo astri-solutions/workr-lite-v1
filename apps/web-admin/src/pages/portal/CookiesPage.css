@@ -54,6 +54,8 @@
 
 .ck-theme-card--active .ck-theme-card__label { color: var(--color-primary-600); }
 
+.ck-theme-card .splash-size-card__check { margin-left: auto; }
+
 .ck-theme-card__desc {
   display: block;
   font-size: var(--text-xs);
