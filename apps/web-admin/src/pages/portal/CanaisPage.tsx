@@ -415,10 +415,12 @@ export default function CanaisPage() {
               </table>
             </div>
 
-            <button className="canais-add-page" type="button" onClick={() => addSub(canal.id)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
-              Adicionar página
-            </button>
+            <div className="canais-add-page-wrap">
+              <button className="canais-add-page" type="button" onClick={() => addSub(canal.id)}>
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
+                Adicionar página
+              </button>
+            </div>
           </div>
         ))}
 
