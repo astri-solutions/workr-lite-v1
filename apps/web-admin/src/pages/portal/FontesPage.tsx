@@ -75,7 +75,7 @@ export default function FontesPage() {
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!e.target) e.target.value = '';
+    e.target.value = '';
     if (!file) return;
 
     setUploading(true);
