@@ -78,19 +78,22 @@ export default function AtendimentoPage() {
               <div className="atend-form__row atend-form__row--two">
                 <div className="atend-field">
                   <label className="atend-label" htmlFor="assunto">Assunto</label>
-                  <select
-                    id="assunto"
-                    className="filter-select atend-select"
-                    value={assunto}
-                    onChange={(e) => setAssunto(e.target.value as Assunto)}
-                    required
-                  >
-                    {(Object.keys(ASSUNTO_LABEL) as Assunto[]).map((k) => (
-                      <option key={k} value={k} disabled={k === ''}>
-                        {ASSUNTO_LABEL[k]}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="filter-wrap">
+                    <select
+                      id="assunto"
+                      className="filter-select atend-select"
+                      value={assunto}
+                      onChange={(e) => setAssunto(e.target.value as Assunto)}
+                      required
+                    >
+                      {(Object.keys(ASSUNTO_LABEL) as Assunto[]).map((k) => (
+                        <option key={k} value={k} disabled={k === ''}>
+                          {ASSUNTO_LABEL[k]}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+                  </div>
                 </div>
 
                 <div className="atend-field">
