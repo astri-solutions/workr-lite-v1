@@ -11,6 +11,10 @@ export interface NavItem {
 export interface NavSection {
   label: string;
   items: NavItem[];
+  /** If true, the section header becomes a toggle that collapses the items */
+  collapsible?: boolean;
+  /** Initial collapsed state when collapsible is true */
+  defaultCollapsed?: boolean;
 }
 
 interface AppSidebarProps {
@@ -31,6 +35,16 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
+  const initialGroupCollapsed: Record<string, boolean> = {};
+  sections.forEach((s) => {
+    if (s.collapsible) initialGroupCollapsed[s.label] = s.defaultCollapsed ?? false;
+  });
+  const [groupCollapsed, setGroupCollapsed] = useState<Record<string, boolean>>(initialGroupCollapsed);
+
+  const toggleGroup = (label: string) => {
+    setGroupCollapsed((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
   const currentLogo = collapsed ? (logoCollapsedSrc ?? logoSrc) : logoSrc;
 
   return (
@@ -45,33 +59,52 @@ export default function AppSidebar({
 
       <div className="admin-sidebar__scroll">
         <nav className="admin-sidebar__nav">
-          {sections.map((section) => (
-            <div key={section.label} className="admin-sidebar__section">
-              {!collapsed && (
-                <p className="admin-sidebar__section-label">{section.label}</p>
-              )}
-              {section.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  title={collapsed ? item.label : undefined}
-                  className={({ isActive }) =>
-                    `admin-nav-item${isActive ? ' admin-nav-item--active' : ''}`
-                  }
-                >
-                  <span className="admin-nav-item__icon">{item.icon}</span>
-                  {!collapsed && (
-                    <>
-                      <span className="admin-nav-item__label">{item.label}</span>
-                      {item.badge !== undefined && (
-                        <span className="nav-badge">{item.badge}</span>
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </div>
-          ))}
+          {sections.map((section) => {
+            const isGroupCollapsed = section.collapsible ? (groupCollapsed[section.label] ?? false) : false;
+
+            return (
+              <div key={section.label} className="admin-sidebar__section">
+                {!collapsed && section.collapsible ? (
+                  <button
+                    type="button"
+                    className="admin-sidebar__group-toggle"
+                    onClick={() => toggleGroup(section.label)}
+                  >
+                    <span className="admin-sidebar__section-label" style={{ padding: 0 }}>{section.label}</span>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '14px', color: 'var(--color-gray-400)', transition: 'transform 0.2s', transform: isGroupCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', display: 'inline-block' }}
+                    >
+                      expand_more
+                    </span>
+                  </button>
+                ) : !collapsed ? (
+                  <p className="admin-sidebar__section-label">{section.label}</p>
+                ) : null}
+
+                {!isGroupCollapsed && section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    title={collapsed ? item.label : undefined}
+                    className={({ isActive }) =>
+                      `admin-nav-item${isActive ? ' admin-nav-item--active' : ''}`
+                    }
+                  >
+                    <span className="admin-nav-item__icon">{item.icon}</span>
+                    {!collapsed && (
+                      <>
+                        <span className="admin-nav-item__label">{item.label}</span>
+                        {item.badge !== undefined && (
+                          <span className="nav-badge">{item.badge}</span>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
       </div>
 

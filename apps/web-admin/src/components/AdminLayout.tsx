@@ -54,7 +54,9 @@ export default function AdminLayout() {
           logoAlt="Astri"
         />
         <main className="admin-main">
-          <Outlet />
+          <div className="admin-content">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

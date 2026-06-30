@@ -123,6 +123,8 @@ const SECTIONS: NavSection[] = [
   },
   {
     label: 'Personalizar',
+    collapsible: true,
+    defaultCollapsed: true,
     items: [
       {
         to: '/portal/layout',
@@ -248,7 +250,9 @@ export default function ClientLayout() {
           logoAlt={logoAlt}
         />
         <main className="admin-main">
-          <Outlet />
+          <div className="admin-content">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
