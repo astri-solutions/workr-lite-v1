@@ -1,0 +1,88 @@
+/*
+  BACKUP — Sidebar nav item styles (versão com preenchimento teal-100)
+  Para restaurar: copie as regras abaixo de volta para AdminLayout.css,
+  substituindo o bloco "Nav item" correspondente.
+  Gerado em: 2026-06-30
+*/
+
+/* ─── Nav item: card style ───────────────────────────── */
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px var(--space-3);
+  border-radius: 8px;
+  background-color: var(--color-primary-100);
+  color: var(--color-primary-700);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.18s, color 0.18s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.admin-sidebar--collapsed .admin-nav-item {
+  justify-content: center;
+  padding: 9px;
+  gap: 0;
+  width: 38px;
+  height: 38px;
+  margin: 0 auto;
+}
+
+.admin-nav-item__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-nav-item__icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* hover */
+.admin-nav-item:hover {
+  background-color: var(--color-primary-200);
+  color: var(--color-primary-800);
+  text-decoration: none;
+}
+
+/* active / current page */
+.admin-nav-item--active {
+  background-color: var(--color-primary-500);
+  color: #ffffff;
+}
+
+.admin-nav-item--active .admin-nav-item__icon {
+  opacity: 1;
+}
+
+.admin-nav-item--active:hover {
+  background-color: var(--color-primary-600);
+  color: #ffffff;
+}
+
+/* ─── Nav badge ──────────────────────────────────────── */
+.nav-badge {
+  background: var(--color-primary-500);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.admin-nav-item--active .nav-badge {
+  background: rgba(255, 255, 255, 0.25);
+}
