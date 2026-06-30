@@ -119,10 +119,10 @@ export default function MateriasPage() {
               <th>Título</th>
               <th>Página</th>
               <th>Status</th>
-              <th>Publicado em</th>
+              <th>Publicação</th>
               <th>Autor</th>
-              <th>Última edição</th>
-              <th>Editado por último</th>
+              <th>Editado em</th>
+              <th>Editor</th>
               <th></th>
             </tr>
           </thead>
