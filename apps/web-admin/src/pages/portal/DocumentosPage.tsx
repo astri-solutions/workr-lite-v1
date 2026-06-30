@@ -217,6 +217,10 @@ export default function DocumentosPage() {
   const [dragActive, setDragActive] = useState(false);
   const [docLocale, setDocLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceFileRef = useRef<HTMLInputElement>(null);
+  const [replaceDoc, setReplaceDoc] = useState<DocRow | null>(null);
+  const [replaceFile, setReplaceFile] = useState<File | null>(null);
+  const [replaceDrag, setReplaceDrag] = useState(false);
 
   function patchForm<K extends keyof DocForm>(key: K, val: DocForm[K]) {
     setForm(f => ({ ...f, [key]: val }));
@@ -445,7 +449,7 @@ export default function DocumentosPage() {
                   </td>
                   <td className="table-cell--muted">{doc.ultimaEdicao}</td>
                   <td>
-                    <button type="button" className="btn-action btn-action--enter">Editar</button>
+                    <button type="button" className="btn-action btn-action--enter" onClick={() => { setReplaceDoc(doc); setReplaceFile(null); }}>Editar</button>
                   </td>
                 </tr>
               ))
@@ -453,6 +457,62 @@ export default function DocumentosPage() {
           </tbody>
         </table>
       </div>
+
+      {/* ── Replace file modal ── */}
+      <Modal
+        open={!!replaceDoc}
+        onClose={() => setReplaceDoc(null)}
+        title="Substituir arquivo"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setReplaceDoc(null)}>Cancelar</button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!replaceFile}
+              onClick={() => {
+                setDocs(prev => prev.map(d => d.id === replaceDoc!.id ? { ...d, ultimaEdicao: new Date().toLocaleDateString('pt-BR') } : d));
+                setReplaceDoc(null);
+              }}
+            >
+              Salvar alterações
+            </button>
+          </div>
+        }
+      >
+        <p className="docs-replace-name">{replaceDoc?.nome}</p>
+
+        <div
+          className={`docs-replace-dropzone${replaceDrag ? ' docs-replace-dropzone--active' : ''}${replaceFile ? ' docs-replace-dropzone--has-file' : ''}`}
+          onDragOver={e => { e.preventDefault(); setReplaceDrag(true); }}
+          onDragLeave={() => setReplaceDrag(false)}
+          onDrop={e => { e.preventDefault(); setReplaceDrag(false); const f = e.dataTransfer.files[0]; if (f) setReplaceFile(f); }}
+          onClick={() => replaceFileRef.current?.click()}
+        >
+          <input
+            ref={replaceFileRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) setReplaceFile(f); }}
+          />
+          {replaceFile ? (
+            <>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-primary-500)' }}>description</span>
+              <span className="docs-replace-filename">{replaceFile.name}</span>
+              <span className="docs-replace-filesize">{(replaceFile.size / 1024).toFixed(0)} KB</span>
+              <span className="docs-replace-change">Clique para trocar</span>
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-gray-400)' }}>upload_file</span>
+              <span className="docs-replace-hint">Arraste o arquivo aqui ou <strong>clique para selecionar</strong></span>
+              <span className="docs-replace-formats">PDF, Word, Excel, PowerPoint</span>
+            </>
+          )}
+        </div>
+      </Modal>
 
       {/* ── New document modal ── */}
       <Modal
