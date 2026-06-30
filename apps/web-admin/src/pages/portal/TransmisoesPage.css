@@ -1,3 +1,45 @@
+/* ─── Sticky detail header ───────────────────────────── */
+.trn-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-gray-200);
+  margin: 0 calc(var(--space-6) * -1);
+  padding: 0 var(--space-6);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Link cards (horizontal) ────────────────────────── */
+.trn-link-cards {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.trn-link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 180px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+}
+
+.trn-link-card__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 /* ─── Table ──────────────────────────────────────────── */
 .trn-table { table-layout: auto; }
 

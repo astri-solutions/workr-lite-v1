@@ -304,35 +304,37 @@ export default function TransmisoesPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title={isDetail ? selectedCast?.name ?? '' : 'Nova transmissão'}
-        description={isDetail
-          ? <>Configurações e espectadores da transmissão.</>
-          : <>Preencha os dados para criar uma nova transmissão em <strong>{PORTAL_CONFIG.name}</strong>.</>
-        }
-        action={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn-outline" type="button" onClick={backToList}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
-              Voltar
-            </button>
-            {isDetail ? (
-              <>
-                <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteConfirm(true)}>
-                  Excluir
-                </button>
-                <button className="btn-primary" type="button" onClick={handleSaveDetail}>
-                  {saved ? 'Salvo!' : 'Salvar alterações'}
-                </button>
-              </>
-            ) : (
-              <button className="btn-primary" type="button" onClick={handleCreate} disabled={!isNewValid}>
-                Criar transmissão
+      <div className="trn-sticky-header">
+        <PageHeader
+          title={isDetail ? selectedCast?.name ?? '' : 'Nova transmissão'}
+          description={isDetail
+            ? <>Configurações e espectadores da transmissão.</>
+            : <>Preencha os dados para criar uma nova transmissão em <strong>{PORTAL_CONFIG.name}</strong>.</>
+          }
+          action={
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-outline" type="button" onClick={backToList}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                Voltar
               </button>
-            )}
-          </div>
-        }
-      />
+              {isDetail ? (
+                <>
+                  <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteConfirm(true)}>
+                    Excluir
+                  </button>
+                  <button className="btn-primary" type="button" onClick={handleSaveDetail}>
+                    {saved ? 'Salvo!' : 'Salvar alterações'}
+                  </button>
+                </>
+              ) : (
+                <button className="btn-primary" type="button" onClick={handleCreate} disabled={!isNewValid}>
+                  Criar transmissão
+                </button>
+              )}
+            </div>
+          }
+        />
+      </div>
 
       {/* Tab bar — detail only */}
       {isDetail && (
@@ -363,28 +365,18 @@ export default function TransmisoesPage() {
       {(!isDetail || detailTab === 'config') && (
         <div className="trn-form-card">
           {isDetail && (
-            <div className="trn-form-star-row">
-              <button
-                type="button"
-                className={`trn-star trn-star--lg${form.featured ? ' trn-star--on' : ''}`}
-                onClick={() => { toggleFeatured(selectedId!); setField('featured', !form.featured); }}
-                title={form.featured ? 'Remover destaque' : 'Destacar'}
-              >
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: form.featured ? "'FILL' 1" : "'FILL' 0" }}>star</span>
-              </button>
-              <div className="trn-cast-links">
-                <div className="trn-link-row">
-                  <span className="trn-link-label">Link</span>
-                  <a href="#" className="trn-link">{castLink(form.slug)}</a>
-                </div>
-                <div className="trn-link-row">
-                  <span className="trn-link-label">Link Especial</span>
-                  <a href="#" className="trn-link trn-link--sm">{castLinkEspecial(form.slug)}</a>
-                </div>
-                <div className="trn-link-row">
-                  <span className="trn-link-label">History casts link</span>
-                  <a href="#" className="trn-link">{historyCastsLink()}</a>
-                </div>
+            <div className="trn-link-cards">
+              <div className="trn-link-card">
+                <span className="trn-link-card__label">Link</span>
+                <a href="#" className="trn-link">{castLink(form.slug)}</a>
+              </div>
+              <div className="trn-link-card">
+                <span className="trn-link-card__label">Link Especial</span>
+                <a href="#" className="trn-link trn-link--sm">{castLinkEspecial(form.slug)}</a>
+              </div>
+              <div className="trn-link-card">
+                <span className="trn-link-card__label">History casts link</span>
+                <a href="#" className="trn-link">{historyCastsLink()}</a>
               </div>
             </div>
           )}
