@@ -147,7 +147,7 @@ export default function BackupPage() {
             <div key={b.id} className="bk-list-row">
               <span className="bk-list-row__date">{b.date}</span>
               <span className="bk-list-row__size">{b.size}</span>
-              <span className={`bk-badge ${b.type === 'auto' ? 'bk-badge--info' : 'bk-badge--manual'}`}>
+              <span className={`badge ${b.type === 'auto' ? 'badge--info' : 'badge--gray'}`}>
                 {b.type === 'auto' ? 'Automático' : 'Manual'}
               </span>
               <div className="bk-list-row__actions">
