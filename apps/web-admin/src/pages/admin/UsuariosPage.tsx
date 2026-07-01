@@ -4,6 +4,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
 import InviteUserModal, { InviteFormData } from '../../components/InviteUserModal';
 import EditUserModal, { EditableUser } from '../../components/EditUserModal';
+import Modal from '../../components/Modal';
 
 interface UsuarioItem {
   id: string;
@@ -73,6 +74,8 @@ export default function UsuariosPage() {
   const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', portal: 'all', status: 'all' });
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
+  const [desativarTarget, setDesativarTarget] = useState<UsuarioItem | null>(null);
+  const [removerTarget, setRemoverTarget] = useState<UsuarioItem | null>(null);
 
   function handleFilter(key: string, value: string) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -90,6 +93,18 @@ export default function UsuariosPage() {
     setUsuarios((list) =>
       list.map((u) => u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Suspenso' : 'Ativo' } : u)
     );
+  }
+
+  function confirmDesativar() {
+    if (!desativarTarget) return;
+    handleToggleStatus(desativarTarget.id);
+    setDesativarTarget(null);
+  }
+
+  function confirmRemover() {
+    if (!removerTarget) return;
+    handleDelete(removerTarget.id);
+    setRemoverTarget(null);
   }
 
   function handleDelete(id: string) {
@@ -135,6 +150,44 @@ export default function UsuariosPage() {
         onToggleStatus={handleToggleStatus}
         onDelete={handleDelete}
       />
+
+      {desativarTarget && (
+        <Modal
+          open
+          onClose={() => setDesativarTarget(null)}
+          title="Desativar usuário"
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setDesativarTarget(null)}>Cancelar</button>
+              <button className="btn-action btn-action--danger" type="button" onClick={confirmDesativar}>Desativar</button>
+            </div>
+          }
+        >
+          <p className="ae-confirm-text">
+            <strong>{desativarTarget.nome}</strong> perderá acesso imediato a todos os conteúdos do portal. Deseja continuar?
+          </p>
+        </Modal>
+      )}
+
+      {removerTarget && (
+        <Modal
+          open
+          onClose={() => setRemoverTarget(null)}
+          title="Remover usuário"
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setRemoverTarget(null)}>Cancelar</button>
+              <button className="btn-action btn-action--danger" type="button" onClick={confirmRemover}>Remover</button>
+            </div>
+          }
+        >
+          <p className="ae-confirm-text">
+            <strong>{removerTarget.nome}</strong> será removido permanentemente e perderá acesso a todos os conteúdos do portal. Essa ação não pode ser desfeita.
+          </p>
+        </Modal>
+      )}
 
       <div className="table-wrapper">
         <table className="data-table">
@@ -190,7 +243,7 @@ export default function UsuariosPage() {
                       <button
                         className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--secondary'}`}
                         type="button"
-                        onClick={() => handleToggleStatus(u.id)}
+                        onClick={() => u.status === 'Ativo' ? setDesativarTarget(u) : handleToggleStatus(u.id)}
                       >
                         {u.status === 'Suspenso' ? 'Ativar' : 'Desativar'}
                       </button>
@@ -201,7 +254,7 @@ export default function UsuariosPage() {
                       <button
                         className="btn-action btn-action--danger"
                         type="button"
-                        onClick={() => handleDelete(u.id)}
+                        onClick={() => setRemoverTarget(u)}
                       >
                         Remover
                       </button>
