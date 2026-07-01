@@ -715,6 +715,54 @@ function StepIdentidade({
 }
 
 /* ─── Step: Idioma ────────────────────────────────────────────────────────── */
+function FlagBR() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 27" width="36" height="27" style={{ borderRadius: 3, flexShrink: 0 }}>
+      <rect width="36" height="27" fill="#009c3b" />
+      <polygon points="18,3 33,13.5 18,24 3,13.5" fill="#ffdf00" />
+      <circle cx="18" cy="13.5" r="6" fill="#002776" />
+      <path d="M12.5,11.5 Q18,9.5 23.5,11.5" stroke="#fff" strokeWidth="1.2" fill="none" />
+    </svg>
+  );
+}
+function FlagUS() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 27" width="36" height="27" style={{ borderRadius: 3, flexShrink: 0 }}>
+      {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i => (
+        <rect key={i} x="0" y={i*2.077} width="36" height="2.077" fill={i % 2 === 0 ? '#B22234' : '#fff'} />
+      ))}
+      <rect x="0" y="0" width="15" height="14.5" fill="#3C3B6E" />
+      {[0,1,2,3,4].map(row => [0,1,2,3,4,5].map(col => (
+        <circle key={`${row}-${col}`} cx={1.3 + col * 2.5 + (row % 2 === 0 ? 0 : 1.25)} cy={1.5 + row * 2.8} r="0.8" fill="#fff" />
+      )))}
+    </svg>
+  );
+}
+function FlagES() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 27" width="36" height="27" style={{ borderRadius: 3, flexShrink: 0 }}>
+      <rect width="36" height="27" fill="#c60b1e" />
+      <rect y="6.75" width="36" height="13.5" fill="#ffc400" />
+    </svg>
+  );
+}
+function FlagGeneric({ code }: { code: string }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 27, borderRadius: 3, background: '#e5e7eb', fontSize: 11, fontWeight: 700, color: '#374151', letterSpacing: '0.04em', flexShrink: 0 }}>
+      {code.toUpperCase()}
+    </span>
+  );
+}
+const FLAG_COMPONENTS: Record<string, React.ReactNode> = {
+  pt: <FlagBR />,
+  en: <FlagUS />,
+  es: <FlagES />,
+  fr: <FlagGeneric code="FR" />,
+  de: <FlagGeneric code="DE" />,
+  it: <FlagGeneric code="IT" />,
+  zh: <FlagGeneric code="ZH" />,
+  ja: <FlagGeneric code="JA" />,
+};
 const ALL_LANGS = [
   { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
   { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
@@ -763,7 +811,7 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
                 className={`np-idioma-card${selected ? ' np-idioma-card--selected' : ''}`}
                 onClick={() => toggleIdioma(lang.id)}
               >
-                <span className="np-idioma-card__flag">{lang.flag}</span>
+                <span className="np-idioma-card__flag">{FLAG_COMPONENTS[lang.id] ?? <FlagGeneric code={lang.id} />}</span>
                 <div className="np-idioma-card__info">
                   <span className="np-idioma-card__label">{lang.label}</span>
                   <span className="np-idioma-card__desc">{lang.desc}</span>
@@ -788,7 +836,7 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
                 className="np-idioma-card np-idioma-card--selected"
                 onClick={() => toggleIdioma(lang.id)}
               >
-                <span className="np-idioma-card__flag">{lang.flag}</span>
+                <span className="np-idioma-card__flag">{FLAG_COMPONENTS[lang.id] ?? <FlagGeneric code={lang.id} />}</span>
                 <div className="np-idioma-card__info">
                   <span className="np-idioma-card__label">{lang.label}</span>
                   <span className="np-idioma-card__desc">{lang.desc}</span>
