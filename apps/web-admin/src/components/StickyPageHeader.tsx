@@ -8,34 +8,28 @@ interface Props {
 }
 
 export default function StickyPageHeader({ title, description, action }: Props) {
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const el = headerRef.current;
+    if (!el) return;
+    const scrollRoot = el.closest('.admin-main') as HTMLElement | null;
+    const target = scrollRoot ?? window;
 
-    // Root must be the actual scroll container (.admin-main), not the viewport.
-    // With root:null the sentinel never leaves the viewport since .admin-main
-    // clips the content, so the observer would never fire.
-    const scrollRoot = sentinel.closest('.admin-main') as Element | null;
+    function onScroll() {
+      const scrollTop = scrollRoot ? scrollRoot.scrollTop : window.scrollY;
+      setStuck(scrollTop > 4);
+    }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setStuck(!entry.isIntersecting),
-      { root: scrollRoot, threshold: 0, rootMargin: '0px' }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    target.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => target.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
-    <>
-      {/* 1px sentinel sits just above the sticky bar */}
-      <div ref={sentinelRef} style={{ height: 1, marginBottom: -1, pointerEvents: 'none' }} />
-      <div className={`sticky-page-header${stuck ? ' sticky-page-header--stuck' : ''}`}>
-        <PageHeader title={title} description={description} action={action} />
-      </div>
-    </>
+    <div ref={headerRef} className={`sticky-page-header${stuck ? ' sticky-page-header--stuck' : ''}`}>
+      <PageHeader title={title} description={description} action={action} />
+    </div>
   );
 }
