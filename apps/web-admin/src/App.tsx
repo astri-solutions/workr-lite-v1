@@ -104,6 +104,7 @@ const router = createBrowserRouter([
       { path: 'cookies', element: <CookiesPage /> },
       { path: 'atendimento', element: <AtendimentoPage /> },
       { path: 'informacoes', element: <InformacoesPortalPage /> },
+      { path: 'auto-cvm', element: <AutoCvmPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
