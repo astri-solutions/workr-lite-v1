@@ -4,6 +4,20 @@
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
+.ae-card__header--accordion {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ae-card__header--accordion:hover {
+  background: var(--color-gray-50, #fafafa);
+}
+
+.ae-accordion-chevron {
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
 /* Card */
 .ae-card {
   background: #fff;

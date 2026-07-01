@@ -97,6 +97,7 @@ function EmpresaKebabMenu({ onEditar, onEncerrar }: { onEditar: () => void; onEn
 export default function AdminEmpresasPage() {
   const [empresas, setEmpresas] = useState<AdminEmpresa[]>(EMPRESAS_DATA);
   const [search, setSearch] = useState('');
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set(['aurora']));
   const [suspendTarget, setSuspendTarget] = useState<AdminEmpresa | null>(null);
   const [suspendPortalTarget, setSuspendPortalTarget] = useState<{ empresa: AdminEmpresa; portal: Portal } | null>(null);
   const [encerrarTarget, setEncerrarTarget] = useState<AdminEmpresa | null>(null);
@@ -184,7 +185,10 @@ export default function AdminEmpresasPage() {
           <div key={empresa.id} className={`ae-card${empresa.status === 'encerrada' ? ' ae-card--encerrada' : ''}`}>
 
             {/* Card header — same 3-col grid as portal rows */}
-            <div className="ae-card__header ae-portal-row ae-portal-row--empresa-header">
+            <div
+              className="ae-card__header ae-portal-row ae-portal-row--empresa-header ae-card__header--accordion"
+              onClick={() => setOpenIds(prev => { const s = new Set(prev); s.has(empresa.id) ? s.delete(empresa.id) : s.add(empresa.id); return s; })}
+            >
               <div className="portal-card__info">
                 <span className="portal-card__name">{empresa.nome}</span>
                 <div className="ae-empresa-meta">
@@ -198,7 +202,7 @@ export default function AdminEmpresasPage() {
                 </div>
               </div>
               <span className={`badge ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
-              <div className="ae-portal-row__action">
+              <div className="ae-portal-row__action" onClick={e => e.stopPropagation()}>
                 {empresa.status !== 'encerrada' && (
                   <button
                     className={`ae-toggle-btn ae-toggle-btn--sm${empresa.status === 'suspensa' ? ' ae-toggle-btn--ativar' : ''}`}
@@ -212,11 +216,17 @@ export default function AdminEmpresasPage() {
                   onEditar={() => {}}
                   onEncerrar={() => setEncerrarTarget(empresa)}
                 />
+                <span
+                  className="material-symbols-outlined ae-accordion-chevron"
+                  style={{ fontSize: '18px', transform: openIds.has(empresa.id) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                >
+                  expand_more
+                </span>
               </div>
             </div>
 
             {/* Portais vinculados */}
-            <div className="portal-card__sites">
+            {openIds.has(empresa.id) && <div className="portal-card__sites">
               {empresa.portais.length > 0 && (
                 <div className="ae-portal-row ae-portal-row--header">
                   <span>Domínio</span>
@@ -256,7 +266,7 @@ export default function AdminEmpresasPage() {
               {empresa.portais.length === 0 && (
                 <p className="ae-no-portais">Nenhum portal configurado.</p>
               )}
-            </div>
+            </div>}
           </div>
         ))}
 
