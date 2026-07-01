@@ -17,6 +17,7 @@ import DocumentosPage from './pages/portal/DocumentosPage';
 import InformacoesPortalPage from './pages/portal/InformacoesPortalPage';
 import CanaisPage from './pages/portal/CanaisPage';
 import EmpresasPage from './pages/portal/EmpresasPage';
+import AdminEmpresasPage from './pages/admin/AdminEmpresasPage';
 import UsuariosPortalPage from './pages/portal/UsuariosPortalPage';
 import MidiaPage from './pages/portal/MidiaPage';
 import MateriasPage from './pages/portal/MateriasPage';
@@ -65,7 +66,7 @@ const router = createBrowserRouter([
       { path: 'informacoes', element: <InformacoesPage /> },
       { path: 'portais/:siteId/painel', element: <PainelControlePage /> },
       { path: 'portais/:siteId/analytics', element: <AnalyticsPage /> },
-      { path: 'empresas', element: <EmpresasPage /> },
+      { path: 'empresas', element: <AdminEmpresasPage /> },
       { path: 'usuarios-portal', element: <UsuariosPortalPage /> },
     ],
   },
