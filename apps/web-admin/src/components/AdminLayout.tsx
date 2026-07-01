@@ -5,25 +5,6 @@ import './AdminLayout.css';
 
 const SECTIONS: NavSection[] = [
   {
-    label: 'Gestão',
-    items: [
-      {
-        to: '/admin/empresas',
-        label: 'Empresas',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
-        ),
-      },
-      {
-        to: '/admin/usuarios-portal',
-        label: 'Usuários do Portal',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
-        ),
-      },
-    ],
-  },
-  {
     label: 'Plataforma',
     items: [
       {
@@ -55,6 +36,25 @@ const SECTIONS: NavSection[] = [
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: 'Gestão',
+    items: [
+      {
+        to: '/admin/empresas',
+        label: 'Empresas',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
+        ),
+      },
+      {
+        to: '/admin/usuarios-portal',
+        label: 'Usuários do Portal',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
         ),
       },
     ],
