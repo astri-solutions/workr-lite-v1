@@ -157,7 +157,7 @@ function EntityCard({ entity }: { entity: CvmEntity }) {
 }
 
 function PortalAccordion({ portal }: { portal: Portal }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   function handleSync(e: React.MouseEvent) {
