@@ -367,3 +367,66 @@
   padding: var(--space-2) 0;
 }
 
+/* ─── Mobile responsive ──────────────────────────────────── */
+@media (max-width: 720px) {
+  /* Entity card fields: stack to single column */
+  .cvm-entity-card__fields {
+    grid-template-columns: 1fr;
+  }
+
+  /* Card header: stack name/badge and shrink padding */
+  .cvm-entity-card {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .cvm-entity-card__header {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* Accordion header: allow title to wrap, shrink actions */
+  .cvm-accordion__header {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .cvm-accordion__title-group {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cvm-accordion__actions {
+    gap: var(--space-2);
+  }
+
+  .cvm-accordion__body {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Card footer: stack sync info above button */
+  .cvm-entity-card__footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .cvm-entity-card__footer .btn-outline-sm {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .cvm-group__name {
+    font-size: var(--text-sm);
+  }
+
+  .cvm-accordion__actions .btn-outline-sm span:last-child {
+    display: none;
+  }
+}
+

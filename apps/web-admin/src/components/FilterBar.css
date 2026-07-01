@@ -11,6 +11,20 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  flex: 1;
+  min-width: 140px;
+}
+
+@media (max-width: 720px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar__group {
+    width: 100%;
+    min-width: unset;
+  }
 }
 
 .filter-bar__label {
@@ -24,8 +38,9 @@
 /* ─── Select wrapper ─────────────────────────────────────── */
 .filter-select-wrap {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .filter-select {
@@ -44,6 +59,7 @@
   transition: border-color 0.15s, box-shadow 0.15s;
   box-shadow: var(--shadow-sm);
   min-width: 130px;
+  width: 100%;
 }
 
 .filter-select:hover {
