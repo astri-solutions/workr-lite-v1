@@ -36,16 +36,6 @@ const INITIAL_USERS: PortalUser[] = [
 
 const ROLE_LABEL: Record<Role, string> = { editor: 'Editor', viewer: 'Visualizador' };
 
-function EmpresasTags({ ids }: { ids: string[] }) {
-  const names = ids.map(id => EMPRESAS.find(e => e.id === id)?.nome ?? id);
-  if (names.length === 0) return <span className="up-all-tag">Todas</span>;
-  return (
-    <div className="up-tags">
-      {names.map(n => <span key={n} className="up-tag">{n}</span>)}
-    </div>
-  );
-}
-
 function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
   onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean;
 }) {
@@ -79,6 +69,117 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
 interface UserForm { nome: string; email: string; role: Role; empresaIds: string[]; allEmpresas: boolean; }
 const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'viewer', empresaIds: [], allEmpresas: true };
 
+function usersForEmpresa(users: PortalUser[], empresaId: string) {
+  return users.filter(u => u.empresaIds.length === 0 || u.empresaIds.includes(empresaId));
+}
+
+interface EmpresaSectionProps {
+  empresa: Empresa;
+  users: PortalUser[];
+  search: string;
+  onEdit: (u: PortalUser) => void;
+  onToggle: (id: string) => void;
+  onDelete: (u: PortalUser) => void;
+  onInvite: (empresaId: string) => void;
+}
+
+function EmpresaSection({ empresa, users, search, onEdit, onToggle, onDelete, onInvite }: EmpresaSectionProps) {
+  const [open, setOpen] = useState(true);
+
+  const filtered = users.filter(u =>
+    u.nome.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const ativos = filtered.filter(u => u.ativo).length;
+
+  return (
+    <div className="up-empresa-block">
+      <button type="button" className="up-empresa-header" onClick={() => setOpen(o => !o)}>
+        <div className="up-empresa-header__left">
+          <span className="material-symbols-outlined up-empresa-header__icon" style={{ fontSize: '18px' }}>business</span>
+          <span className="up-empresa-header__name">{empresa.nome}</span>
+          <span className="up-empresa-header__count">
+            {filtered.length} {filtered.length === 1 ? 'usuário' : 'usuários'}
+          </span>
+          <span className="up-empresa-header__ativos">{ativos} ativo{ativos !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="up-empresa-header__right">
+          <button
+            type="button"
+            className="up-empresa-invite"
+            onClick={e => { e.stopPropagation(); onInvite(empresa.id); }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Convidar
+          </button>
+          <span
+            className="material-symbols-outlined up-empresa-header__chevron"
+            style={{ fontSize: '18px', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+          >
+            expand_more
+          </span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="up-empresa-body">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Status</th>
+                <th>Criado em</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={6} className="table-empty">Nenhum usuário encontrado.</td></tr>
+              ) : filtered.map(u => (
+                <tr key={u.id}>
+                  <td>
+                    <div className="up-user-name-cell">
+                      <span className="table-cell--bold">{u.nome}</span>
+                      {u.empresaIds.length === 0 && (
+                        <span className="up-all-badge">Acesso total</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="table-cell--muted">{u.email}</td>
+                  <td>
+                    <span className={`badge ${u.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
+                      {ROLE_LABEL[u.role]}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`badge ${u.ativo ? 'badge--success' : 'badge--error'}`}>
+                      {u.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                  <td className="table-cell--muted">{u.criadoEm}</td>
+                  <td>
+                    <KebabMenu
+                      ativo={u.ativo}
+                      onEdit={() => onEdit(u)}
+                      onToggle={() => onToggle(u.id)}
+                      onDelete={() => onDelete(u)}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function UsuariosPortalPage() {
   const [users, setUsers] = useState<PortalUser[]>(INITIAL_USERS);
   const [search, setSearch] = useState('');
@@ -88,14 +189,12 @@ export default function UsuariosPortalPage() {
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
   const [invited, setInvited] = useState(false);
 
-  const filtered = users.filter(u =>
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
-
-  function openCreate() {
+  function openCreate(empresaId?: string) {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    setForm(empresaId
+      ? { ...EMPTY_FORM, allEmpresas: false, empresaIds: [empresaId] }
+      : EMPTY_FORM
+    );
     setInvited(false);
     setModalOpen(true);
   }
@@ -124,6 +223,7 @@ export default function UsuariosPortalPage() {
     const empIds = form.allEmpresas ? [] : form.empresaIds;
     if (editing) {
       setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, ...form, empresaIds: empIds } : u));
+      closeModal();
     } else {
       const newUser: PortalUser = {
         id: 'u' + Date.now(),
@@ -136,9 +236,7 @@ export default function UsuariosPortalPage() {
       };
       setUsers(prev => [...prev, newUser]);
       setInvited(true);
-      return;
     }
-    closeModal();
   }
 
   function toggleEmpresa(id: string) {
@@ -158,7 +256,7 @@ export default function UsuariosPortalPage() {
         title="Usuários do Portal"
         description={<>Usuários com acesso ao portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={openCreate}>
+          <button className="btn-primary" type="button" onClick={() => openCreate()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -180,6 +278,10 @@ export default function UsuariosPortalPage() {
           <span className="stat-card__number">{users.filter(u => u.role === 'editor').length}</span>
           <span className="stat-card__label">Editores</span>
         </div>
+        <div className="stat-card">
+          <span className="stat-card__number">{EMPRESAS.length}</span>
+          <span className="stat-card__label">Empresas</span>
+        </div>
       </div>
 
       <div className="up-search-wrap">
@@ -195,52 +297,19 @@ export default function UsuariosPortalPage() {
         />
       </div>
 
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Perfil</th>
-              <th>Acesso às empresas</th>
-              <th>Status</th>
-              <th>Criado em</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="table-empty">Nenhum usuário encontrado.</td></tr>
-            ) : (
-              filtered.map(u => (
-                <tr key={u.id}>
-                  <td className="table-cell--bold">{u.nome}</td>
-                  <td className="table-cell--muted">{u.email}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
-                      {ROLE_LABEL[u.role]}
-                    </span>
-                  </td>
-                  <td><EmpresasTags ids={u.empresaIds} /></td>
-                  <td>
-                    <span className={`badge ${u.ativo ? 'badge--success' : 'badge--error'}`}>
-                      {u.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="table-cell--muted">{u.criadoEm}</td>
-                  <td>
-                    <KebabMenu
-                      ativo={u.ativo}
-                      onEdit={() => openEdit(u)}
-                      onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
-                      onDelete={() => setDeleteTarget(u)}
-                    />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="up-empresas-list">
+        {EMPRESAS.map(emp => (
+          <EmpresaSection
+            key={emp.id}
+            empresa={emp}
+            users={usersForEmpresa(users, emp.id)}
+            search={search}
+            onEdit={openEdit}
+            onToggle={id => setUsers(prev => prev.map(u => u.id === id ? { ...u, ativo: !u.ativo } : u))}
+            onDelete={u => setDeleteTarget(u)}
+            onInvite={openCreate}
+          />
+        ))}
       </div>
 
       {/* Create / Edit modal */}
