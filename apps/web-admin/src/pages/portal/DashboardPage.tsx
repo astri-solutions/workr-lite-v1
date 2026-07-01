@@ -160,12 +160,12 @@ export default function DashboardPage() {
           </thead>
           <tbody>
             <tr>
-              <td>IMC S.A.</td>
-              <td>ri.imc.com.br</td>
-              <td>Banner com menu</td>
-              <td><span className="badge badge--success">Publicado</span></td>
-              <td>29/06/2026</td>
-              <td>Workr Lite Pro</td>
+              <td data-label="Empresa">IMC S.A.</td>
+              <td data-label="Domínio">ri.imc.com.br</td>
+              <td data-label="Layout">Banner com menu</td>
+              <td data-label="Status"><span className="badge badge--success">Publicado</span></td>
+              <td data-label="Última atualização">29/06/2026</td>
+              <td data-label="Plano">Workr Lite Pro</td>
             </tr>
           </tbody>
         </table></div>
