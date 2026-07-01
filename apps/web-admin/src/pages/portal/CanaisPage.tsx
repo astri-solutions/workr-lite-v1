@@ -179,21 +179,24 @@ export default function CanaisPage() {
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
   const [newCanalOpen, setNewCanalOpen] = useState(false);
   const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
-  const [movedCanal, setMovedCanal] = useState<{ id: string; dir: -1 | 1 } | null>(null);
-  const [movedSub, setMovedSub] = useState<{ key: string; dir: -1 | 1 } | null>(null);
+  const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
+  const [movedSubs, setMovedSubs] = useState<{ key: string; dir: -1 | 1 }[]>([]);
   const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movedSubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function animateCanal(id: string, dir: -1 | 1) {
+  function animateCanal(idA: string, idB: string, dir: -1 | 1) {
     if (movedCanalTimer.current) clearTimeout(movedCanalTimer.current);
-    setMovedCanal({ id, dir });
-    movedCanalTimer.current = setTimeout(() => setMovedCanal(null), 800);
+    setMovedCanals([{ id: idA, dir }, { id: idB, dir: (dir * -1) as -1 | 1 }]);
+    movedCanalTimer.current = setTimeout(() => setMovedCanals([]), 500);
   }
 
-  function animateSub(canalId: string, subId: string, dir: -1 | 1) {
+  function animateSub(canalId: string, subIdA: string, subIdB: string, dir: -1 | 1) {
     if (movedSubTimer.current) clearTimeout(movedSubTimer.current);
-    setMovedSub({ key: `${canalId}:${subId}`, dir });
-    movedSubTimer.current = setTimeout(() => setMovedSub(null), 800);
+    setMovedSubs([
+      { key: `${canalId}:${subIdA}`, dir },
+      { key: `${canalId}:${subIdB}`, dir: (dir * -1) as -1 | 1 },
+    ]);
+    movedSubTimer.current = setTimeout(() => setMovedSubs([]), 500);
   }
 
   const orderChanged = orderKey(canais) !== savedOrderKey;
@@ -225,7 +228,7 @@ export default function CanaisPage() {
       const next = [...prev];
       const t = idx + dir;
       if (t < 0 || t >= next.length) return prev;
-      animateCanal(next[idx].id, dir);
+      animateCanal(next[idx].id, next[t].id, dir);
       [next[idx], next[t]] = [next[t], next[idx]];
       return next;
     });
@@ -265,7 +268,7 @@ export default function CanaisPage() {
       const ch = [...c.children];
       const t = idx + dir;
       if (t < 0 || t >= ch.length) return c;
-      animateSub(cid, ch[idx].id, dir);
+      animateSub(cid, ch[idx].id, ch[t].id, dir);
       [ch[idx], ch[t]] = [ch[t], ch[idx]];
       return { ...c, children: ch };
     }));
@@ -375,7 +378,7 @@ export default function CanaisPage() {
 
       <div className="canais-sections">
         {canais.map((canal, ci) => (
-          <div key={canal.id} className={`canais-section${movedCanal?.id === canal.id ? ` canais-section--moved-${movedCanal.dir === -1 ? 'up' : 'down'}` : ''}`}>
+          <div key={canal.id} className={`canais-section${(() => { const m = movedCanals.find(x => x.id === canal.id); return m ? ` canais-section--moved-${m.dir === -1 ? 'up' : 'down'}` : ''; })()}`}>
             {/* Section header */}
             <div className="canais-section__head">
               <div className="canais-section__left">
@@ -433,7 +436,7 @@ export default function CanaisPage() {
                     <tr><td colSpan={5} className="table-empty">Nenhuma página nesta seção.</td></tr>
                   ) : (
                     canal.children.map((sub, si) => (
-                      <tr key={sub.id} className={[!sub.enabled && 'canais-row--off', movedSub?.key === `${canal.id}:${sub.id}` && `canais-row--moved-${movedSub.dir === -1 ? 'up' : 'down'}`].filter(Boolean).join(' ')}>
+                      <tr key={sub.id} className={[!sub.enabled && 'canais-row--off', (() => { const m = movedSubs.find(x => x.key === `${canal.id}:${sub.id}`); return m ? `canais-row--moved-${m.dir === -1 ? 'up' : 'down'}` : ''; })()].filter(Boolean).join(' ')}>
                         <td className="table-cell--bold">{sub.label}</td>
                         <td className="table-cell--muted canais-href">{sub.href}</td>
                         <td>
