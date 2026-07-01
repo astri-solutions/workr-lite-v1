@@ -12,21 +12,32 @@ interface Empresa {
   nome: string;
   tipo: Tipo;
   cnpj: string;
+  cvmCodigo: string;
+  autoCvm: boolean;
   ativo: boolean;
 }
 
 const INITIAL: Empresa[] = [
-  { id: 'imc', nome: 'International Meal Company', tipo: 'EMPRESA', cnpj: '10.629.105/0001-68', ativo: true },
-  { id: 'imc-fii', nome: 'IMC Recebíveis FII', tipo: 'FUNDO', cnpj: '37.412.300/0001-55', ativo: true },
-  { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII', tipo: 'FUNDO', cnpj: '44.891.220/0001-12', ativo: false },
+  { id: 'imc', nome: 'International Meal Company', tipo: 'EMPRESA', cnpj: '10.629.105/0001-68', cvmCodigo: '23574', autoCvm: true, ativo: true },
+  { id: 'imc-fii', nome: 'IMC Recebíveis FII', tipo: 'FUNDO', cnpj: '37.412.300/0001-55', cvmCodigo: '', autoCvm: false, ativo: true },
+  { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII', tipo: 'FUNDO', cnpj: '44.891.220/0001-12', cvmCodigo: '', autoCvm: false, ativo: false },
 ];
 
 const TIPO_OPTIONS: Tipo[] = ['EMPRESA', 'FUNDO', 'OUTRO'];
 const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', OUTRO: 'Outro' };
 
+interface EmpForm { nome: string; tipo: Tipo; cnpj: string; cvmCodigo: string; autoCvm: boolean; }
+const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '', cvmCodigo: '', autoCvm: false };
 
-interface EmpForm { nome: string; tipo: Tipo; cnpj: string; }
-const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '' };
+function SyncIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  );
+}
 
 export default function EmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>(INITIAL);
@@ -35,6 +46,7 @@ export default function EmpresasPage() {
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [form, setForm] = useState<EmpForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const filtered = empresas.filter(e =>
     e.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,7 +61,7 @@ export default function EmpresasPage() {
 
   function openEdit(emp: Empresa) {
     setEditing(emp);
-    setForm({ nome: emp.nome, tipo: emp.tipo, cnpj: emp.cnpj });
+    setForm({ nome: emp.nome, tipo: emp.tipo, cnpj: emp.cnpj, cvmCodigo: emp.cvmCodigo, autoCvm: emp.autoCvm });
     setModalOpen(true);
   }
 
@@ -79,7 +91,13 @@ export default function EmpresasPage() {
     setDeleteTarget(null);
   }
 
+  function handleSync(id: string) {
+    setSyncingId(id);
+    setTimeout(() => setSyncingId(null), 1500);
+  }
+
   const ativos = empresas.filter(e => e.ativo).length;
+  const comAutoCvm = empresas.filter(e => e.autoCvm).length;
 
   return (
     <div className="page">
@@ -109,6 +127,10 @@ export default function EmpresasPage() {
           <span className="stat-card__number">{empresas.filter(e => e.tipo === 'FUNDO').length}</span>
           <span className="stat-card__label">Fundos</span>
         </div>
+        <div className="stat-card">
+          <span className="stat-card__number">{comAutoCvm}</span>
+          <span className="stat-card__label">Auto CVM</span>
+        </div>
       </div>
 
       <div className="emp-search-wrap">
@@ -131,13 +153,14 @@ export default function EmpresasPage() {
               <th>Nome</th>
               <th>Tipo</th>
               <th>CNPJ</th>
+              <th>CVM</th>
               <th>Status</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={5} className="table-empty">Nenhuma entidade encontrada.</td></tr>
+              <tr><td colSpan={6} className="table-empty">Nenhuma entidade encontrada.</td></tr>
             ) : (
               filtered.map(emp => (
                 <tr key={emp.id}>
@@ -149,12 +172,30 @@ export default function EmpresasPage() {
                   </td>
                   <td className="table-cell--muted">{emp.cnpj || '—'}</td>
                   <td>
+                    {emp.autoCvm ? (
+                      <span className="badge badge--cvm">Auto CVM</span>
+                    ) : (
+                      <span className="table-cell--muted">—</span>
+                    )}
+                  </td>
+                  <td>
                     <span className={`badge ${emp.ativo ? 'badge--success' : 'badge--error'}`}>
                       {emp.ativo ? 'Ativa' : 'Inativa'}
                     </span>
                   </td>
                   <td>
                     <div className="table-actions">
+                      {emp.autoCvm && (
+                        <button
+                          className={`btn-action btn-action--secondary emp-sync-btn${syncingId === emp.id ? ' emp-sync-btn--loading' : ''}`}
+                          type="button"
+                          onClick={() => handleSync(emp.id)}
+                          title="Sincronizar agora"
+                        >
+                          <SyncIcon />
+                          {syncingId === emp.id ? 'Sincronizando…' : 'Sincronizar'}
+                        </button>
+                      )}
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
                       <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>
                         {emp.ativo ? 'Desativar' : 'Ativar'}
@@ -196,28 +237,76 @@ export default function EmpresasPage() {
               autoFocus
             />
           </label>
+
           <label className="emp-form__label">
             Tipo
-            <select
-              className="emp-form__input emp-form__select"
-              value={form.tipo}
-              onChange={e => setForm(f => ({ ...f, tipo: e.target.value as Tipo }))}
-            >
-              {TIPO_OPTIONS.map(t => (
-                <option key={t} value={t}>{TIPO_LABEL[t]}</option>
-              ))}
-            </select>
+            <div className="filter-wrap">
+              <select
+                className="filter-select emp-form__select-full"
+                value={form.tipo}
+                onChange={e => setForm(f => ({ ...f, tipo: e.target.value as Tipo }))}
+              >
+                {TIPO_OPTIONS.map(t => (
+                  <option key={t} value={t}>{TIPO_LABEL[t]}</option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+            </div>
           </label>
+
           <label className="emp-form__label">
             CNPJ <span className="emp-form__optional">(opcional)</span>
             <input
-              className="emp-form__input"
+              className={`emp-form__input${editing ? ' emp-form__input--readonly' : ''}`}
               type="text"
               placeholder="00.000.000/0001-00"
               value={form.cnpj}
-              onChange={e => setForm(f => ({ ...f, cnpj: e.target.value }))}
+              onChange={e => !editing && setForm(f => ({ ...f, cnpj: e.target.value }))}
+              readOnly={!!editing}
+            />
+            {editing && (
+              <span className="emp-form__hint">O CNPJ não pode ser alterado após o cadastro.</span>
+            )}
+          </label>
+
+          <label className="emp-form__label">
+            Código CVM <span className="emp-form__optional">(opcional)</span>
+            <input
+              className="emp-form__input"
+              type="text"
+              placeholder="Ex: 23574"
+              value={form.cvmCodigo}
+              onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
             />
           </label>
+
+          <div className="emp-form__section">
+            <span className="emp-form__label">Auto CVM</span>
+            <div className="emp-cvm-radio-group">
+              <label className="emp-cvm-radio">
+                <input
+                  type="radio"
+                  name="autoCvm"
+                  checked={form.autoCvm}
+                  onChange={() => setForm(f => ({ ...f, autoCvm: true }))}
+                />
+                <span className="emp-cvm-radio__dot" />
+                <span>Ativado</span>
+                <span className="emp-cvm-radio__desc">Importa documentos da CVM automaticamente via CNPJ</span>
+              </label>
+              <label className="emp-cvm-radio">
+                <input
+                  type="radio"
+                  name="autoCvm"
+                  checked={!form.autoCvm}
+                  onChange={() => setForm(f => ({ ...f, autoCvm: false }))}
+                />
+                <span className="emp-cvm-radio__dot" />
+                <span>Desativado</span>
+                <span className="emp-cvm-radio__desc">Sem importação automática</span>
+              </label>
+            </div>
+          </div>
         </div>
       </Modal>
 
