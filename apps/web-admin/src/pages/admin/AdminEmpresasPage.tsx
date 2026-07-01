@@ -216,13 +216,20 @@ export default function AdminEmpresasPage() {
                   onEditar={() => {}}
                   onEncerrar={() => setEncerrarTarget(empresa)}
                 />
+              </div>
+              <button
+                type="button"
+                className="ae-accordion-chevron-btn"
+                onClick={e => { e.stopPropagation(); setOpenIds(prev => { const s = new Set(prev); s.has(empresa.id) ? s.delete(empresa.id) : s.add(empresa.id); return s; }); }}
+                aria-label={openIds.has(empresa.id) ? 'Recolher' : 'Expandir'}
+              >
                 <span
                   className="material-symbols-outlined ae-accordion-chevron"
                   style={{ fontSize: '18px', transform: openIds.has(empresa.id) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                 >
                   expand_more
                 </span>
-              </div>
+              </button>
             </div>
 
             {/* Portais vinculados */}

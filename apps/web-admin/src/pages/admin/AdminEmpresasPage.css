@@ -126,9 +126,28 @@
 }
 
 .ae-portal-row--empresa-header {
+  grid-template-columns: 1fr 110px 160px 32px;
   border-top: none;
   padding: var(--space-4) var(--space-5);
   align-items: center;
+}
+
+.ae-accordion-chevron-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  color: var(--color-gray-400);
+  transition: background 0.15s, color 0.15s;
+}
+
+.ae-accordion-chevron-btn:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
 }
 
 .ae-portal-row--header {
@@ -147,12 +166,11 @@
   justify-content: flex-end;
   align-items: center;
   gap: var(--space-2);
-  padding-right: var(--space-2);
 }
 
-/* Reserve kebab width so portal-row buttons align with empresa-header buttons */
+/* Reserve chevron-column width so portal-row buttons align with empresa-header buttons */
 .ae-portal-row:not(.ae-portal-row--empresa-header) .ae-portal-row__action {
-  padding-right: 34px;
+  padding-right: 48px;
 }
 
 /* Disabled link for suspended portals */
