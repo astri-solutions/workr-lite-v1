@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
+import FilterBar from '../../components/FilterBar';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PlanilhaDinamicaPage.css';
@@ -46,11 +47,37 @@ function emptyForm(): UploadForm {
   return { titulo: '', quarter: '2T', ano: String(CURRENT_YEAR), file: null, draft: false };
 }
 
+const PLD_FILTERS = [
+  {
+    key: 'trimestre',
+    label: 'Trimestre',
+    options: [
+      { value: '', label: 'Todos os trimestres', shortLabel: 'Todos' },
+      ...QUARTER_OPTIONS.map(q => ({ value: q, label: q })),
+    ],
+  },
+  {
+    key: 'ano',
+    label: 'Ano',
+    options: [
+      { value: '', label: 'Todos os anos', shortLabel: 'Todos' },
+      ...YEAR_OPTIONS.map(y => ({ value: y, label: y })),
+    ],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { value: '', label: 'Todos os status', shortLabel: 'Todos' },
+      { value: 'Publicado', label: 'Publicado' },
+      { value: 'Rascunho', label: 'Rascunho' },
+    ],
+  },
+];
+
 export default function PlanilhaDinamicaPage() {
   const [rows, setRows] = useState<SpreadsheetRow[]>(MOCK);
-  const [filterQuarter, setFilterQuarter] = useState('');
-  const [filterYear, setFilterYear] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ trimestre: '', ano: '', status: '' });
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -60,9 +87,9 @@ export default function PlanilhaDinamicaPage() {
 
   const filtered = rows.filter(r => {
     if (search && !r.titulo.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterQuarter && !r.periodo.startsWith(filterQuarter)) return false;
-    if (filterYear && r.ano !== filterYear) return false;
-    if (filterStatus && r.status !== filterStatus) return false;
+    if (filters.trimestre && !r.periodo.startsWith(filters.trimestre)) return false;
+    if (filters.ano && r.ano !== filters.ano) return false;
+    if (filters.status && r.status !== filters.status) return false;
     return true;
   });
 
@@ -132,28 +159,7 @@ export default function PlanilhaDinamicaPage() {
             <input className="mat-search" type="text" placeholder="Buscar planilha..."
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <div className="filter-wrap">
-            <select className="filter-select" value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}>
-              <option value="">Todos os trimestres</option>
-              {QUARTER_OPTIONS.map(q => <option key={q} value={q}>{q}</option>)}
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
-          <div className="filter-wrap">
-            <select className="filter-select" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-              <option value="">Todos os anos</option>
-              {YEAR_OPTIONS.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
-          <div className="filter-wrap">
-            <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="">Todos os status</option>
-              <option value="Publicado">Publicado</option>
-              <option value="Rascunho">Rascunho</option>
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
+          <FilterBar groups={PLD_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
         <div className="toolbar__actions">
           <span className="toolbar__count">{filtered.length} planilha{filtered.length !== 1 ? 's' : ''}</span>

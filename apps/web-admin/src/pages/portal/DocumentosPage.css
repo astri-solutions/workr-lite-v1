@@ -23,7 +23,7 @@
 /* ─── Filter bar ────────────────────────────────────── */
 .docs-filterbar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
@@ -31,7 +31,7 @@
 
 .docs-filterbar__left {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-2);
   flex-wrap: wrap;
 }

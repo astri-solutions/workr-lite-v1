@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import FilterBar from '../../components/FilterBar';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CalendarioPage.css';
@@ -47,11 +48,31 @@ function emptyForm() {
   return { titulo: '', data: '', hora: '', local: '', tipo: '', status: 'rascunho' as EventStatus, exibirHome: false };
 }
 
+const CAL_FILTERS = [
+  {
+    key: 'tipo',
+    label: 'Tipo',
+    options: [
+      { value: '', label: 'Todos os tipos', shortLabel: 'Todos' },
+      ...TIPOS.map(t => ({ value: t, label: t })),
+    ],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { value: '', label: 'Todos os status', shortLabel: 'Todos' },
+      { value: 'publicado', label: 'Publicados' },
+      { value: 'rascunho', label: 'Rascunhos' },
+      { value: 'agendado', label: 'Agendados' },
+    ],
+  },
+];
+
 export default function CalendarioPage() {
   const [events, setEvents] = useState<CalEvent[]>(INITIAL);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<EventStatus | ''>('');
-  const [filterTipo, setFilterTipo] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -63,15 +84,15 @@ export default function CalendarioPage() {
   const { upcoming, past } = useMemo(() => {
     const all = events.filter(e => {
       if (search && !e.titulo.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterStatus && e.status !== filterStatus) return false;
-      if (filterTipo && e.tipo !== filterTipo) return false;
+      if (filters.status && e.status !== filters.status) return false;
+      if (filters.tipo && e.tipo !== filters.tipo) return false;
       return true;
     });
     return {
       upcoming: all.filter(e => e.data >= TODAY).sort((a, b) => a.data.localeCompare(b.data)),
       past: all.filter(e => e.data < TODAY).sort((a, b) => b.data.localeCompare(a.data)),
     };
-  }, [events, search, filterStatus, filterTipo]);
+  }, [events, search, filters]);
 
   function openNew() {
     setEditingId(null);
@@ -126,22 +147,7 @@ export default function CalendarioPage() {
           <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
           <input className="mat-search" type="text" placeholder="Buscar evento..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterTipo} onChange={e => setFilterTipo(e.target.value)}>
-            <option value="">Todos os tipos</option>
-            {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value as EventStatus | '')}>
-            <option value="">Todos os status</option>
-            <option value="publicado">Publicados</option>
-            <option value="rascunho">Rascunhos</option>
-            <option value="agendado">Agendados</option>
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
+        <FilterBar groups={CAL_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       {/* Upcoming events table */}

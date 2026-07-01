@@ -3,6 +3,7 @@ import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FileDropzone from '../../components/FileDropzone';
+import FilterBar from '../../components/FilterBar';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
@@ -205,11 +206,8 @@ function emptyDocForm(): DocForm {
 }
 
 export default function DocumentosPage() {
-  const [filterEmpresa, setFilterEmpresa] = useState('');
   const [search, setSearch] = useState('');
-  const [filterTipo, setFilterTipo] = useState('');
-  const [filterAno, setFilterAno] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [docFilters, setDocFilters] = useState<Record<string, string>>({ empresa: '', tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [docs, setDocs] = useState<DocRow[]>(MOCK_DOCS);
@@ -267,9 +265,9 @@ export default function DocumentosPage() {
 
   const filtered = docs.filter((d) => {
     if (search && !d.nome.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterTipo && d.tipo !== filterTipo) return false;
-    if (filterAno && !d.dataPub.includes(filterAno)) return false;
-    if (filterStatus && d.status !== filterStatus) return false;
+    if (docFilters.tipo && d.tipo !== docFilters.tipo) return false;
+    if (docFilters.ano && !d.dataPub.includes(docFilters.ano)) return false;
+    if (docFilters.status && d.status !== docFilters.status) return false;
     return true;
   });
 
@@ -298,6 +296,49 @@ export default function DocumentosPage() {
 
   const tipoOptions = Array.from(new Set(docs.map((d) => d.tipo)));
 
+  const DOC_FILTERS = [
+    {
+      key: 'empresa',
+      label: 'Empresa',
+      options: [
+        { value: '', label: 'Todas as empresas', shortLabel: 'Todas' },
+        ...ENTITIES.map(e => ({ value: e.id, label: e.name })),
+      ],
+    },
+    {
+      key: 'tipo',
+      label: 'Tipo',
+      options: [
+        { value: '', label: 'Todos os tipos', shortLabel: 'Todos' },
+        ...tipoOptions.map(t => ({ value: t, label: t })),
+      ],
+    },
+    {
+      key: 'ano',
+      label: 'Ano',
+      options: [
+        { value: '', label: 'Todos os anos', shortLabel: 'Todos' },
+        { value: '2026', label: '2026' },
+        { value: '2025', label: '2025' },
+        { value: '2024', label: '2024' },
+      ],
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: '', label: 'Todos os status', shortLabel: 'Todos' },
+        { value: 'Publicado', label: 'Publicado' },
+        { value: 'Rascunho', label: 'Rascunho' },
+      ],
+    },
+  ];
+
+  function handleDocFilter(key: string, value: string) {
+    setDocFilters(f => ({ ...f, [key]: value }));
+    if (key === 'empresa') setSelected(new Set());
+  }
+
   return (
     <div className="page docs-page">
       <StickyPageHeader
@@ -323,57 +364,7 @@ export default function DocumentosPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="filter-wrap">
-            <select
-              className="filter-select"
-              value={filterEmpresa}
-              onChange={(e) => { setFilterEmpresa(e.target.value); setSelected(new Set()); }}
-            >
-              <option value="">Empresa</option>
-              {ENTITIES.map((e) => (
-                <option key={e.id} value={e.id}>{e.name}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
-          <div className="filter-wrap">
-            <select
-              className="filter-select"
-              value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-            >
-              <option value="">Tipo</option>
-              {tipoOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
-          <div className="filter-wrap">
-            <select
-              className="filter-select"
-              value={filterAno}
-              onChange={(e) => setFilterAno(e.target.value)}
-            >
-              <option value="">Ano</option>
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
-          <div className="filter-wrap">
-            <select
-              className="filter-select"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">Status</option>
-              <option value="Publicado">Publicado</option>
-              <option value="Rascunho">Rascunho</option>
-            </select>
-            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-          </div>
+          <FilterBar groups={DOC_FILTERS} value={docFilters} onChange={handleDocFilter} />
         </div>
 
         <div className="docs-filterbar__right">

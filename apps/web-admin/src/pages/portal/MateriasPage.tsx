@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import FilterBar from '../../components/FilterBar';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
@@ -52,20 +53,40 @@ const PAGE_TYPES = [
   },
 ];
 
+const MAT_FILTERS = [
+  {
+    key: 'pagina',
+    label: 'Página',
+    options: [
+      { value: '', label: 'Todas as páginas', shortLabel: 'Todas' },
+      ...PAGINAS.map(p => ({ value: p, label: p })),
+    ],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { value: '', label: 'Todos os status', shortLabel: 'Todos' },
+      { value: 'publicado', label: 'Publicados' },
+      { value: 'rascunho', label: 'Rascunhos' },
+      { value: 'agendado', label: 'Agendados' },
+    ],
+  },
+];
+
 export default function MateriasPage() {
   const navigate = useNavigate();
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState<Status | ''>('');
-  const [filterPagina, setFilterPagina] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({ pagina: '', status: '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'formulario'>('show');
 
   const filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterStatus && m.status !== filterStatus) return false;
-    if (filterPagina && m.pagina !== filterPagina) return false;
+    if (filters.status && m.status !== filters.status) return false;
+    if (filters.pagina && m.pagina !== filters.pagina) return false;
     return true;
   });
 
@@ -94,22 +115,7 @@ export default function MateriasPage() {
           <input className="mat-search" type="text" placeholder="Buscar matéria..." value={search}
             onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterPagina} onChange={e => setFilterPagina(e.target.value)}>
-            <option value="">Todas as páginas</option>
-            {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
-            <option value="">Todos os status</option>
-            <option value="publicado">Publicados</option>
-            <option value="rascunho">Rascunhos</option>
-            <option value="agendado">Agendados</option>
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
+        <FilterBar groups={MAT_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       <div className="table-wrapper">

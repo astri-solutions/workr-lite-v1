@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FileDropzone from '../../components/FileDropzone';
+import FilterBar from '../../components/FilterBar';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
@@ -118,10 +119,26 @@ const TYPE_LABEL: Record<FileType, string> = {
   image: 'Imagem', pdf: 'PDF', doc: 'Word', xls: 'Planilha', ppt: 'Apresentação', video: 'Vídeo', other: 'Outro',
 };
 
+const MIDIA_FILTERS = [
+  {
+    key: 'tipo',
+    label: 'Tipo',
+    options: [
+      { value: '', label: 'Todos os tipos', shortLabel: 'Todos' },
+      { value: 'image', label: 'Imagens' },
+      { value: 'pdf', label: 'PDFs' },
+      { value: 'doc', label: 'Word' },
+      { value: 'xls', label: 'Planilhas' },
+      { value: 'ppt', label: 'Apresentações' },
+      { value: 'video', label: 'Vídeos' },
+    ],
+  },
+];
+
 export default function MidiaPage() {
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<FileType | ''>('');
+  const [filters, setFilters] = useState<Record<string, string>>({ tipo: '' });
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Upload modal
@@ -136,7 +153,7 @@ export default function MidiaPage() {
 
   const filtered = files.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterType && f.type !== filterType) return false;
+    if (filters.tipo && f.type !== filters.tipo) return false;
     return true;
   });
 
@@ -212,18 +229,7 @@ export default function MidiaPage() {
           <input className="midia-search" type="text" placeholder="Buscar arquivo..." value={search}
             onChange={e => setSearch(e.target.value)} />
         </div>
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value as FileType | '')}>
-            <option value="">Todos os tipos</option>
-            <option value="image">Imagens</option>
-            <option value="pdf">PDFs</option>
-            <option value="doc">Word</option>
-            <option value="xls">Planilhas</option>
-            <option value="ppt">Apresentações</option>
-            <option value="video">Vídeos</option>
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
+        <FilterBar groups={MIDIA_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       {filtered.length === 0 ? (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import FilterBar from '../../components/FilterBar';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './InteracoesPage.css';
@@ -30,15 +31,36 @@ const STATUS_LABEL: Record<Status, string> = { novo: 'Novo', lido: 'Lido', respo
 const STATUS_BADGE: Record<Status, string> = { novo: 'badge--warning', lido: 'badge--gray', respondido: 'badge--success' };
 const TIPO_LABEL: Record<Tipo, string> = { 'fale-ri': 'Fale com RI', mailing: 'Mailing' };
 
+const INT_FILTERS = [
+  {
+    key: 'tipo',
+    label: 'Formulário',
+    options: [
+      { value: '', label: 'Todos os formulários', shortLabel: 'Todos' },
+      { value: 'fale-ri', label: 'Fale com RI' },
+      { value: 'mailing', label: 'Mailing' },
+    ],
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    options: [
+      { value: '', label: 'Todos os status', shortLabel: 'Todos' },
+      { value: 'novo', label: 'Novos' },
+      { value: 'lido', label: 'Lidos' },
+      { value: 'respondido', label: 'Respondidos' },
+    ],
+  },
+];
+
 export default function InteracoesPage() {
   const [items, setItems] = useState<Interacao[]>(INITIAL);
-  const [filterTipo, setFilterTipo] = useState<Tipo | ''>('');
-  const [filterStatus, setFilterStatus] = useState<Status | ''>('');
+  const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [selected, setSelected] = useState<Interacao | null>(null);
 
   const filtered = items.filter(i => {
-    if (filterTipo && i.tipo !== filterTipo) return false;
-    if (filterStatus && i.status !== filterStatus) return false;
+    if (filters.tipo && i.tipo !== filters.tipo) return false;
+    if (filters.status && i.status !== filters.status) return false;
     return true;
   });
 
@@ -80,23 +102,7 @@ export default function InteracoesPage() {
       </div>
 
       <div className="int-toolbar">
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterTipo} onChange={e => setFilterTipo(e.target.value as Tipo | '')}>
-            <option value="">Todos os formulários</option>
-            <option value="fale-ri">Fale com RI</option>
-            <option value="mailing">Mailing</option>
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
-        <div className="filter-wrap">
-          <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | '')}>
-            <option value="">Todos os status</option>
-            <option value="novo">Novos</option>
-            <option value="lido">Lidos</option>
-            <option value="respondido">Respondidos</option>
-          </select>
-          <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
-        </div>
+        <FilterBar groups={INT_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       <div className="table-wrapper">
