@@ -234,6 +234,11 @@
   color: #92620a;
 }
 
+/* Badge mobile: hidden on desktop, shown on mobile inside action row */
+.ae-badge-mobile {
+  display: none;
+}
+
 /* ─── Mobile responsive ────────────────────────────────────── */
 @media (max-width: 720px) {
   /* Empresa header: stack vertically */
@@ -248,6 +253,10 @@
   /* Hide desktop badge column — badge-mobile shows inside action row */
   .ae-badge-col {
     display: none;
+  }
+
+  .ae-badge-mobile {
+    display: inline-flex;
   }
 
   /* Action row: badge + buttons inline */

@@ -323,7 +323,7 @@ export default function PortaisPage() {
                 <span className="portal-card__meta">Criado em: {portal.criadoEm}</span>
               </div>
               <div className="portal-card__actions">
-                <button className="portais-btn portais-btn--add" type="button">
+                <button className="portais-btn portais-btn--add" type="button" onClick={() => navigate('/admin/portais/novo', { state: { empresaNome: portal.cliente, portalId: portal.id } })}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                   Adicionar site
                 </button>

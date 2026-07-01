@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import './AdminPages.css';
 import './NovoPortalPage.css';
@@ -1003,9 +1003,13 @@ function StepEmail({ value, onChange }: { value: string; onChange: (v: string) =
 /* ─── Main ──────────────────────────────────────────────────────────── */
 export default function NovoPortalPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { empresaNome?: string; portalId?: string } | null;
+  const isAddingSite = !!locationState?.empresaNome;
+
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({
-    nome: '',
+    nome: locationState?.empresaNome ?? '',
     url: '',
     cnpj: '',
     cvmCode: '',
@@ -1081,7 +1085,9 @@ export default function NovoPortalPage() {
   return (
     <div className="page novo-portal-page">
       <div className="np-header">
-        <span className="np-header__title">Novo Portal</span>
+        <span className="np-header__title">
+          {isAddingSite ? `Adicionar site — ${locationState?.empresaNome}` : 'Novo Portal'}
+        </span>
       </div>
 
       <Stepper steps={steps} current={step} />
