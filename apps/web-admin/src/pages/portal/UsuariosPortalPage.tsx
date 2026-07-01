@@ -16,7 +16,7 @@ const EMPRESAS: Empresa[] = [
   { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII' },
 ];
 
-type Role = 'editor' | 'viewer';
+type Role = 'admin' | 'editor' | 'viewer';
 
 interface PortalUser {
   id: string;
@@ -29,19 +29,19 @@ interface PortalUser {
 }
 
 const INITIAL_USERS: PortalUser[] = [
-  { id: 'u1', nome: 'Carlos Souza', email: 'carlos@imc.com.br', role: 'editor', empresaIds: ['imc', 'imc-fii'], ativo: true, criadoEm: '10/03/2026' },
+  { id: 'u1', nome: 'Carlos Souza', email: 'carlos@imc.com.br', role: 'admin', empresaIds: [], ativo: true, criadoEm: '10/03/2026' },
   { id: 'u2', nome: 'Ana Lima', email: 'ana@imc.com.br', role: 'viewer', empresaIds: ['imc'], ativo: true, criadoEm: '15/03/2026' },
   { id: 'u3', nome: 'Fernanda Costa', email: 'fernanda@imc.com.br', role: 'viewer', empresaIds: ['imc-fii', 'imc-ce'], ativo: false, criadoEm: '20/03/2026' },
 ];
 
-const ROLE_LABEL: Record<Role, string> = { editor: 'Editor', viewer: 'Visualizador' };
+const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Visualizador' };
 
 function initials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
-function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
-  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean;
+function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin }: {
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean; isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -62,8 +62,8 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
       {open && (
         <div className="up-kebab__menu">
           <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onEdit(); }}>Editar acesso</button>
-          <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>
-          <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>
+          {!isAdmin && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>}
+          {!isAdmin && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
         </div>
       )}
     </div>
@@ -94,7 +94,7 @@ function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
           <span className="up-user-card__email">{user.email}</span>
         </div>
         <div className="up-user-card__badges">
-          <span className={`badge ${user.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
+          <span className={`badge ${user.role === 'admin' ? 'badge--admin' : user.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
             {ROLE_LABEL[user.role]}
           </span>
           <span className={`badge ${user.ativo ? 'badge--success' : 'badge--error'}`}>
@@ -102,7 +102,7 @@ function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
           </span>
           <span className="up-user-card__date">{user.criadoEm}</span>
         </div>
-        <KebabMenu ativo={user.ativo} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
+        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
       </div>
       <div className="up-user-card__footer">
         <span className="up-user-card__footer-label">
@@ -209,6 +209,10 @@ export default function UsuariosPortalPage() {
         <div className="stat-card">
           <span className="stat-card__number">{users.filter(u => u.role === 'editor').length}</span>
           <span className="stat-card__label">Editores</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-card__number">{users.filter(u => u.role === 'admin').length}</span>
+          <span className="stat-card__label">Admins</span>
         </div>
       </div>
 
