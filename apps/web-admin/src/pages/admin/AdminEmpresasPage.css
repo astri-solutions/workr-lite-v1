@@ -135,6 +135,11 @@
   gap: var(--space-2);
 }
 
+/* Reserve kebab width so portal-row buttons align with empresa-header buttons */
+.ae-portal-row:not(.ae-portal-row--empresa-header) .ae-portal-row__action {
+  padding-right: 34px;
+}
+
 /* Disabled link for suspended portals */
 .portal-site-row__link--disabled {
   color: var(--color-gray-400);
