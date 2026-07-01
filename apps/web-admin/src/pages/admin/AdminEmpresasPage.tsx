@@ -181,21 +181,19 @@ export default function AdminEmpresasPage() {
         {filtered.map(empresa => (
           <div key={empresa.id} className={`ae-card${empresa.status === 'encerrada' ? ' ae-card--encerrada' : ''}`}>
 
-            {/* Card header */}
-            <div className="ae-card__header">
+            {/* Card header — same 3-col grid as portal rows */}
+            <div className="ae-card__header ae-portal-row ae-portal-row--empresa-header">
               <div className="portal-card__info">
-                <div className="ae-card__name-row">
-                  <span className="portal-card__name">{empresa.nome}</span>
-                  <span className={`badge ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
-                </div>
+                <span className="portal-card__name">{empresa.nome}</span>
                 <span className="portal-card__meta">
                   CNPJ {empresa.cnpj} · Responsável: {empresa.responsavel} · {empresa.email} · Cadastro: {empresa.criadoEm}
                 </span>
               </div>
-              <div className="ae-card__header-actions">
+              <span className={`badge ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
+              <div className="ae-portal-row__action">
                 {empresa.status !== 'encerrada' && (
                   <button
-                    className={`ae-toggle-btn${empresa.status === 'suspensa' ? ' ae-toggle-btn--ativar' : ''}`}
+                    className={`ae-toggle-btn ae-toggle-btn--sm${empresa.status === 'suspensa' ? ' ae-toggle-btn--ativar' : ''}`}
                     type="button"
                     onClick={() => setSuspendTarget(empresa)}
                   >
