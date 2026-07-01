@@ -4,6 +4,16 @@ import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { useAuth } from '../../contexts/AuthContext';
 
+const ChevronIcon = ({ open }: { open: boolean }) => (
+  <svg
+    width="16" height="16" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2.5"
+    style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 type EntityStatus = 'ativo' | 'pausado' | 'erro';
 
 interface CvmEntity {
@@ -146,16 +156,61 @@ function EntityCard({ entity }: { entity: CvmEntity }) {
   );
 }
 
+function PortalAccordion({ portal }: { portal: Portal }) {
+  const [open, setOpen] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  function handleSync(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSyncing(true);
+    setTimeout(() => setSyncing(false), 2200);
+  }
+
+  return (
+    <div className="cvm-accordion">
+      <button className="cvm-accordion__header" type="button" onClick={() => setOpen(v => !v)}>
+        <div className="cvm-accordion__title-group">
+          <span className="cvm-group__name">{portal.nome}</span>
+          <span className="cvm-group__count">
+            {portal.entidades.length} entidade{portal.entidades.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="cvm-accordion__actions">
+          <button
+            className="btn-outline-sm"
+            type="button"
+            onClick={handleSync}
+            disabled={syncing}
+          >
+            {syncing ? <><span className="cvm-spin" />Sincronizando…</> : 'Sincronizar'}
+          </button>
+          <ChevronIcon open={open} />
+        </div>
+      </button>
+      {open && (
+        <div className="cvm-accordion__body">
+          {portal.entidades.length === 0 ? (
+            <p className="cvm-group__empty">Nenhuma entidade conectada.</p>
+          ) : (
+            <div className="cvm-entity-list cvm-entity-list--ingroup">
+              {portal.entidades.map((entity) => (
+                <EntityCard key={entity.id} entity={entity} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AutoCvmPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'super_admin';
 
   const [portalId, setPortalId] = useState('');
-  const [syncing, setSyncing] = useState(false);
 
-  // Client sees only their own portal (first portal = IMC in demo data)
   const clientPortal = PORTAIS[0];
-
   const selectedPortal = isAdmin
     ? (portalId ? PORTAIS.find((p) => p.id === portalId) : null)
     : clientPortal;
@@ -163,11 +218,6 @@ export default function AutoCvmPage() {
   const visibleEntidades = selectedPortal
     ? selectedPortal.entidades
     : PORTAIS.flatMap((p) => p.entidades);
-
-  function handleSync() {
-    setSyncing(true);
-    setTimeout(() => setSyncing(false), 2200);
-  }
 
   return (
     <div className="page cvm-page">
@@ -191,23 +241,7 @@ export default function AutoCvmPage() {
             </>
           )
         }
-        action={
-          <button
-            className="btn-outline-dark"
-            type="button"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            {syncing ? (
-              <>
-                <span className="cvm-spin" />
-                Sincronizando…
-              </>
-            ) : (
-              'Sincronizar agora'
-            )}
-          </button>
-        }
+        action={undefined}
       />
 
       {/* ── Portal selector (admin only) ── */}
@@ -239,7 +273,7 @@ export default function AutoCvmPage() {
         </button>
       </div>
 
-      {visibleEntidades.length === 0 ? (
+      {visibleEntidades.length === 0 && selectedPortal ? (
         <div className="cvm-empty">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -255,26 +289,10 @@ export default function AutoCvmPage() {
           ))}
         </div>
       ) : (
-        /* ── All portals (admin only): grouped by portal ── */
+        /* ── All portals (admin): accordion per portal ── */
         <div className="cvm-groups">
           {PORTAIS.map((portal) => (
-            <div key={portal.id} className="cvm-group">
-              <div className="cvm-group__header">
-                <span className="cvm-group__name">{portal.nome}</span>
-                <span className="cvm-group__count">
-                  {portal.entidades.length} entidade{portal.entidades.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              {portal.entidades.length === 0 ? (
-                <p className="cvm-group__empty">Nenhuma entidade conectada.</p>
-              ) : (
-                <div className="cvm-entity-list cvm-entity-list--ingroup">
-                  {portal.entidades.map((entity) => (
-                    <EntityCard key={entity.id} entity={entity} />
-                  ))}
-                </div>
-              )}
-            </div>
+            <PortalAccordion key={portal.id} portal={portal} />
           ))}
         </div>
       )}
