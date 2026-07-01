@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { applyColorScale, removeColorScale } from '../../utils/colorUtils';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import './AdminPages.css';
 import './NovoPortalPage.css';
