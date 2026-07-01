@@ -174,8 +174,19 @@
   background: #fff;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-shadow: var(--shadow-sm);
+}
+
+.data-table th,
+.data-table td {
+  min-width: 100px;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  min-width: 36px;
 }
 
 .data-table {

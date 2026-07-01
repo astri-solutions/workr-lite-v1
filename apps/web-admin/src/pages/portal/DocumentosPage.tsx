@@ -205,7 +205,7 @@ function emptyDocForm(): DocForm {
 }
 
 export default function DocumentosPage() {
-  const [activeEntity, setActiveEntity] = useState('imc');
+  const [filterEmpresa, setFilterEmpresa] = useState('');
   const [search, setSearch] = useState('');
   const [filterTipo, setFilterTipo] = useState('');
   const [filterAno, setFilterAno] = useState('');
@@ -311,21 +311,6 @@ export default function DocumentosPage() {
         }
       />
 
-      {/* Entity selector */}
-      <div className="docs-entities">
-        {ENTITIES.map((e) => (
-          <button
-            key={e.id}
-            type="button"
-            className={`cdr-entity-card${activeEntity === e.id ? ' cdr-entity-card--active' : ''}`}
-            onClick={() => { setActiveEntity(e.id); setSelected(new Set()); }}
-          >
-            <span className="cdr-entity-card__name">{e.name}</span>
-            <span className="cdr-entity-card__tipo">{e.tipo}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Filter bar */}
       <div className="docs-filterbar">
         <div className="docs-filterbar__left">
@@ -337,6 +322,19 @@ export default function DocumentosPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+          </div>
+          <div className="filter-wrap">
+            <select
+              className="filter-select"
+              value={filterEmpresa}
+              onChange={(e) => { setFilterEmpresa(e.target.value); setSelected(new Set()); }}
+            >
+              <option value="">Empresa</option>
+              {ENTITIES.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
           </div>
           <div className="filter-wrap">
             <select

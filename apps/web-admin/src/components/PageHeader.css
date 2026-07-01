@@ -41,3 +41,25 @@
   align-items: flex-start;
   padding-top: var(--space-1);
 }
+
+@media (max-width: 600px) {
+  .page-header {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .page-header__content {
+    flex: none;
+    max-width: 100%;
+  }
+
+  .page-header__action {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .page-header__action > * {
+    width: 100%;
+    justify-content: center;
+  }
+}

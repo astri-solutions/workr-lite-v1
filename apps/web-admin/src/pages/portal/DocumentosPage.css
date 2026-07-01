@@ -68,6 +68,32 @@
   color: var(--color-gray-400);
 }
 
+@media (max-width: 720px) {
+  .docs-filterbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .docs-filterbar__left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .docs-filterbar__left .docs-search,
+  .docs-filterbar__left .filter-wrap {
+    width: 100%;
+  }
+
+  .docs-search input {
+    width: 100%;
+    flex: 1;
+  }
+
+  .docs-filterbar__right {
+    justify-content: flex-end;
+  }
+}
+
 
 /* ─── Outline buttons ───────────────────────────────── */
 
