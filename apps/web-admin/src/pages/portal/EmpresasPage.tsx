@@ -229,7 +229,7 @@ export default function EmpresasPage() {
           </label>
 
           <label className="emp-form__label">
-            CNPJ <span className="emp-form__optional">(opcional)</span>
+            CNPJ
             <input
               className={`emp-form__input${editing ? ' emp-form__input--readonly' : ''}`}
               type="text"
@@ -244,7 +244,7 @@ export default function EmpresasPage() {
           </label>
 
           <label className="emp-form__label">
-            Código CVM <span className="emp-form__optional">(opcional)</span>
+            Código CVM
             <input
               className="emp-form__input"
               type="text"
