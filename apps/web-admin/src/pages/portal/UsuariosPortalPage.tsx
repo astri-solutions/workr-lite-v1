@@ -289,11 +289,14 @@ export default function UsuariosPortalPage() {
             </label>
             <label className="up-form__label">
               Perfil de acesso
-              <select className="up-form__input up-form__select" value={form.role}
-                onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
-                <option value="viewer">Visualizador — apenas leitura</option>
-                <option value="editor">Editor — pode publicar e editar</option>
-              </select>
+              <div className="filter-wrap">
+                <select className="filter-select up-form__select" value={form.role}
+                  onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
+                  <option value="viewer">Visualizador — apenas leitura</option>
+                  <option value="editor">Editor — pode publicar e editar</option>
+                </select>
+                <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+              </div>
             </label>
 
             <div className="up-form__section">
