@@ -395,6 +395,8 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   flex-shrink: 0;
+  overflow: visible;
+  padding: 0;
   transition: background 0.15s;
 }
 .admin-topbar__hamburger:hover {
