@@ -387,20 +387,21 @@
   display: none;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: var(--color-primary-500);
   border: none;
-  color: var(--color-gray-600);
-  padding: var(--space-2);
+  color: #ffffff;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
 .admin-topbar__hamburger:hover {
-  background: var(--color-gray-100);
-  color: var(--color-gray-900);
+  background: var(--color-primary-600);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1024px) {
   .admin-sidebar {
     position: fixed;
     top: 0;
