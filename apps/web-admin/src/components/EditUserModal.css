@@ -38,6 +38,40 @@
   margin-top: 2px;
 }
 
+/* ─── Portais checkboxes ─────────────────────────────────── */
+.eu-portais-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.eu-portal-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.eu-portal-check:hover {
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-300);
+}
+
+.eu-portal-check input[type="checkbox"] {
+  accent-color: var(--color-primary-500);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 /* ─── Divider ────────────────────────────────────────────── */
 .eu-divider {
   height: 1px;

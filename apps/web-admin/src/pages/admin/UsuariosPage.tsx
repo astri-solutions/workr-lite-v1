@@ -10,16 +10,22 @@ interface UsuarioItem {
   nome: string;
   email: string;
   role: 'super_admin' | 'client_user';
-  portal: string;
+  portais: string[];
   status: 'Ativo' | 'Suspenso';
 }
 
+const PORTAIS_MAP: Record<string, string> = {
+  '1': 'Construtora Aurora',
+  '2': 'International Meal Company',
+  '3': 'Vetra Energia',
+};
+
 const INITIAL_USUARIOS: UsuarioItem[] = [
-  { id: '1', nome: 'G. Santos', email: 'g.santos@astri.solutions', role: 'super_admin', portal: '—', status: 'Ativo' },
-  { id: '2', nome: 'Rafael Lima', email: 'rafael@astri.solutions', role: 'super_admin', portal: '—', status: 'Ativo' },
-  { id: '3', nome: 'Ana Souza', email: 'ana@construtoraaurora.com', role: 'client_user', portal: 'Construtora Aurora', status: 'Ativo' },
-  { id: '4', nome: 'Carlos Melo', email: 'carlos@imc.com.br', role: 'client_user', portal: 'International Meal Company', status: 'Ativo' },
-  { id: '5', nome: 'Fernanda Costa', email: 'fcosta@vetraenergia.com', role: 'client_user', portal: 'Vetra Energia', status: 'Suspenso' },
+  { id: '1', nome: 'G. Santos', email: 'g.santos@astri.solutions', role: 'super_admin', portais: [], status: 'Ativo' },
+  { id: '2', nome: 'Rafael Lima', email: 'rafael@astri.solutions', role: 'super_admin', portais: [], status: 'Ativo' },
+  { id: '3', nome: 'Ana Souza', email: 'ana@construtoraaurora.com', role: 'client_user', portais: ['1'], status: 'Ativo' },
+  { id: '4', nome: 'Carlos Melo', email: 'carlos@imc.com.br', role: 'client_user', portais: ['2'], status: 'Ativo' },
+  { id: '5', nome: 'Fernanda Costa', email: 'fcosta@vetraenergia.com', role: 'client_user', portais: ['3'], status: 'Suspenso' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -68,8 +74,8 @@ export default function UsuariosPage() {
     console.log('Convidar usuário:', data);
   }
 
-  function handleSaveRole(id: string, role: 'super_admin' | 'client_user') {
-    setUsuarios((list) => list.map((u) => u.id === id ? { ...u, role } : u));
+  function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portais: string[]) {
+    setUsuarios((list) => list.map((u) => u.id === id ? { ...u, role, portais } : u));
   }
 
   function handleToggleStatus(id: string) {
@@ -144,7 +150,19 @@ export default function UsuariosPage() {
                       {ROLE_LABELS[u.role]}
                     </span>
                   </td>
-                  <td className="table-cell--muted">{u.portal}</td>
+                  <td>
+                    {u.role === 'super_admin' ? (
+                      <span className="table-cell--muted">Todos</span>
+                    ) : u.portais.length === 0 ? (
+                      <span className="table-cell--muted">—</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {u.portais.map(pid => (
+                          <span key={pid} className="badge badge--gray" style={{ fontSize: '11px' }}>{PORTAIS_MAP[pid] ?? pid}</span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td>
                     <span className={`badge ${u.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
                       {u.status}
@@ -155,7 +173,7 @@ export default function UsuariosPage() {
                       <button
                         className="btn-action btn-action--enter"
                         type="button"
-                        onClick={() => setEditTarget(u)}
+                        onClick={() => setEditTarget({ id: u.id, nome: u.nome, email: u.email, role: u.role, portais: u.portais, status: u.status })}
                       >
                         Editar
                       </button>

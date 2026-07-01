@@ -5,11 +5,14 @@ import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 
+type SiteTipo = 'RI' | 'Institucional' | 'Fundo' | 'Landing Page';
+
 interface Site {
   id: string;
   link: string;
   status: 'Ativo' | 'Suspenso';
   ip: string;
+  tipo: SiteTipo;
 }
 
 interface Portal {
@@ -24,24 +27,33 @@ const PORTAIS: Portal[] = [
     id: '1',
     cliente: 'Construtora Aurora',
     criadoEm: '03/03/2026',
-    sites: [{ id: 's1', link: 'aurora.workr.com.br', status: 'Ativo', ip: '177.71.142.53' }],
+    sites: [{ id: 's1', link: 'aurora.workr.com.br', status: 'Ativo', ip: '177.71.142.53', tipo: 'RI' }],
   },
   {
     id: '2',
     cliente: 'International Meal Company',
     criadoEm: '12/02/2026',
     sites: [
-      { id: 's2', link: 'imc.workr.com.br', status: 'Ativo', ip: '177.71.142.54' },
-      { id: 's3', link: 'imc-en.workr.com.br', status: 'Ativo', ip: '177.71.142.55' },
+      { id: 's2', link: 'imc.workr.com.br', status: 'Ativo', ip: '177.71.142.54', tipo: 'RI' },
+      { id: 's3', link: 'imc-en.workr.com.br', status: 'Ativo', ip: '177.71.142.55', tipo: 'Institucional' },
     ],
   },
   {
     id: '3',
     cliente: 'Vetra Energia',
     criadoEm: '21/01/2026',
-    sites: [{ id: 's4', link: 'vetra.workr.com.br', status: 'Suspenso', ip: '177.71.142.56' }],
+    sites: [{ id: 's4', link: 'vetra.workr.com.br', status: 'Suspenso', ip: '177.71.142.56', tipo: 'RI' }],
   },
 ];
+
+const SITE_TIPOS: SiteTipo[] = ['RI', 'Institucional', 'Fundo', 'Landing Page'];
+
+const TIPO_BADGE: Record<SiteTipo, string> = {
+  'RI': 'badge--info',
+  'Institucional': 'badge--gray',
+  'Fundo': 'badge--warning',
+  'Landing Page': 'badge--purple',
+};
 
 const FERRAMENTAS = [
   'Gerenciador de arquivos',
@@ -90,9 +102,11 @@ function FerramentasDropdown() {
 function SiteKebabMenu({
   onDetalhes,
   onAlterarDominio,
+  onAlterarTipo,
 }: {
   onDetalhes: () => void;
   onAlterarDominio: () => void;
+  onAlterarTipo: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -122,6 +136,9 @@ function SiteKebabMenu({
           </button>
           <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onAlterarDominio(); }}>
             Alterar domínio
+          </button>
+          <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onAlterarTipo(); }}>
+            Alterar tipo de site
           </button>
         </div>
       )}
@@ -228,15 +245,32 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
 
 export default function PortaisPage() {
   const navigate = useNavigate();
+  const [portais, setPortais] = useState(PORTAIS);
   const [search, setSearch] = useState('');
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
+  const [tipoTarget, setTipoTarget] = useState<{ portalId: string; site: Site } | null>(null);
+  const [tipoEdit, setTipoEdit] = useState<SiteTipo>('RI');
 
-  const totalPortais = PORTAIS.length;
-  const ativos = PORTAIS.filter((p) => p.sites.some((s) => s.status === 'Ativo')).length;
-  const totalSites = PORTAIS.reduce((sum, p) => sum + p.sites.length, 0);
+  function openTipo(portalId: string, site: Site) {
+    setTipoTarget({ portalId, site });
+    setTipoEdit(site.tipo);
+  }
 
-  const filtered = PORTAIS.filter((p) =>
+  function saveTipo() {
+    if (!tipoTarget) return;
+    setPortais(prev => prev.map(p => p.id !== tipoTarget.portalId ? p : {
+      ...p,
+      sites: p.sites.map(s => s.id !== tipoTarget.site.id ? s : { ...s, tipo: tipoEdit }),
+    }));
+    setTipoTarget(null);
+  }
+
+  const totalPortais = portais.length;
+  const ativos = portais.filter((p) => p.sites.some((s) => s.status === 'Ativo')).length;
+  const totalSites = portais.reduce((sum, p) => sum + p.sites.length, 0);
+
+  const filtered = portais.filter((p) =>
     p.cliente.toLowerCase().includes(search.toLowerCase()) ||
     p.sites.some((s) => s.link.toLowerCase().includes(search.toLowerCase()))
   );
@@ -303,6 +337,7 @@ export default function PortaisPage() {
                     <span className={`badge ${site.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
                       {site.status}
                     </span>
+                    <span className={`badge ${TIPO_BADGE[site.tipo]}`}>{site.tipo}</span>
                     <a
                       className="portal-site-row__link"
                       href={`https://${site.link}`}
@@ -322,6 +357,7 @@ export default function PortaisPage() {
                     <SiteKebabMenu
                       onDetalhes={() => setDetalhesSite(site)}
                       onAlterarDominio={() => setAlterarSite(site)}
+                      onAlterarTipo={() => openTipo(portal.id, site)}
                     />
                   </div>
                 </div>
@@ -344,6 +380,41 @@ export default function PortaisPage() {
       )}
       {alterarSite && (
         <AlterarDominioModal onClose={() => setAlterarSite(null)} />
+      )}
+
+      {tipoTarget && (
+        <Modal
+          open
+          onClose={() => setTipoTarget(null)}
+          title="Alterar tipo de site"
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setTipoTarget(null)}>Cancelar</button>
+              <button className="btn-primary" type="button" onClick={saveTipo}>Salvar</button>
+            </div>
+          }
+        >
+          <div className="portais-tipo-list">
+            {SITE_TIPOS.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`portais-tipo-option${tipoEdit === t ? ' portais-tipo-option--selected' : ''}`}
+                onClick={() => setTipoEdit(t)}
+              >
+                <span className={`badge ${TIPO_BADGE[t]}`}>{t}</span>
+                <div className={`portais-tipo-option__check${tipoEdit === t ? ' portais-tipo-option__check--active' : ''}`}>
+                  {tipoEdit === t && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Modal>
       )}
     </div>
   );

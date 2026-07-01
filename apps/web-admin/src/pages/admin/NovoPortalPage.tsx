@@ -124,7 +124,8 @@ interface FormData {
   cvmCode: string;
   autoCvm: boolean;
   tipo: string;
-  fonte: string;
+  fonteTitulo: string;
+  fonteTexto: string;
   corPrimaria: string;
   corSecundaria: string;
   corTerciaria: string;
@@ -354,8 +355,9 @@ function StepCanais({ value, onChange }: { value: Canal[]; onChange: (v: Canal[]
 
 /* ─── Step: Fonte ─────────────────────────────────────────────────────── */
 function StepFonte({
-  value, onChange, customFontFile, customFontName, onCustomFont,
+  role, value, onChange, customFontFile, customFontName, onCustomFont,
 }: {
+  role: 'titulo' | 'texto';
   value: string; onChange: (v: string) => void;
   customFontFile: File | null; customFontName: string;
   onCustomFont: (file: File | null, name: string) => void;
@@ -424,8 +426,8 @@ function StepFonte({
   return (
     <div className="np-step">
       <div className="np-step__head">
-        <h2 className="np-step__title">Escolha a tipografia</h2>
-        <p className="np-step__desc">Fonte principal usada em títulos e textos do portal.</p>
+        <h2 className="np-step__title">{role === 'titulo' ? 'Fonte dos títulos' : 'Fonte do corpo de texto'}</h2>
+        <p className="np-step__desc">{role === 'titulo' ? 'Usada em cabeçalhos, títulos de seção e destaques.' : 'Usada em parágrafos, descrições e conteúdo geral.'}</p>
       </div>
       <div className="np-step__body">
         {selected && (
@@ -518,6 +520,7 @@ function StepCores({
     label: string; value: string; onChange: (v: string) => void; hint: string;
   }) {
     const [hex, setHex] = useState(value);
+    const colorRef = useRef<HTMLInputElement>(null);
 
     function handleHex(raw: string) {
       setHex(raw);
@@ -531,9 +534,10 @@ function StepCores({
         <label className="np-color-item__label">{label}</label>
         <p className="np-color-item__hint">{hint}</p>
         <div className="np-color-item__row">
-          <div className="np-color-swatch-wrap">
+          <div className="np-color-swatch-wrap" onClick={() => colorRef.current?.click()} style={{ cursor: 'pointer' }}>
             <div className="np-color-swatch" style={{ background: value }} />
             <input
+              ref={colorRef}
               type="color"
               className="np-color-native"
               value={value}
@@ -712,21 +716,36 @@ function StepIdentidade({
 }
 
 /* ─── Step: Idioma ────────────────────────────────────────────────────────── */
+const ALL_LANGS = [
+  { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
+  { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
+  { id: 'es', label: 'Espanhol', flag: '🇪🇸', desc: 'Conteúdo em espanhol' },
+  { id: 'fr', label: 'Francês', flag: '🇫🇷', desc: 'Conteúdo em francês' },
+  { id: 'de', label: 'Alemão', flag: '🇩🇪', desc: 'Conteúdo em alemão' },
+  { id: 'it', label: 'Italiano', flag: '🇮🇹', desc: 'Conteúdo em italiano' },
+  { id: 'zh', label: 'Chinês', flag: '🇨🇳', desc: 'Conteúdo em chinês simplificado' },
+  { id: 'ja', label: 'Japonês', flag: '🇯🇵', desc: 'Conteúdo em japonês' },
+];
+
 function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: string[]) => void }) {
-  const langs = [
-    { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
-    { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
-    { id: 'es', label: 'Espanhol', flag: '🇪🇸', desc: 'Conteúdo em espanhol' },
-  ];
+  const primaryLangs = ALL_LANGS.filter((l) => ['pt', 'en', 'es'].includes(l.id));
+  const extraLangs = ALL_LANGS.filter((l) => !['pt', 'en', 'es'].includes(l.id) && !idiomas.includes(l.id));
 
   function toggleIdioma(id: string) {
     if (idiomas.includes(id)) {
-      if (idiomas.length === 1) return; // always keep at least one
+      if (idiomas.length === 1) return;
       onIdiomas(idiomas.filter((v) => v !== id));
     } else {
       onIdiomas([...idiomas, id]);
     }
   }
+
+  function addExtra(id: string) {
+    if (!id || idiomas.includes(id)) return;
+    onIdiomas([...idiomas, id]);
+  }
+
+  const extraAdded = idiomas.filter((id) => !['pt', 'en', 'es'].includes(id));
 
   return (
     <div className="np-step">
@@ -736,7 +755,7 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
       </div>
       <div className="np-step__body">
         <div className="np-idioma-list">
-          {langs.map((lang) => {
+          {primaryLangs.map((lang) => {
             const selected = idiomas.includes(lang.id);
             return (
               <button
@@ -760,7 +779,45 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
               </button>
             );
           })}
+          {extraAdded.map((id) => {
+            const lang = ALL_LANGS.find((l) => l.id === id);
+            if (!lang) return null;
+            return (
+              <button
+                key={lang.id}
+                type="button"
+                className="np-idioma-card np-idioma-card--selected"
+                onClick={() => toggleIdioma(lang.id)}
+              >
+                <span className="np-idioma-card__flag">{lang.flag}</span>
+                <div className="np-idioma-card__info">
+                  <span className="np-idioma-card__label">{lang.label}</span>
+                  <span className="np-idioma-card__desc">{lang.desc}</span>
+                </div>
+                <div className="np-idioma-card__check np-idioma-card__check--active">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              </button>
+            );
+          })}
         </div>
+        {extraLangs.length > 0 && (
+          <div className="np-idioma-add">
+            <label className="np-label">Adicionar outro idioma</label>
+            <select
+              className="np-input np-idioma-select"
+              defaultValue=""
+              onChange={(e) => { addExtra(e.target.value); e.target.value = ''; }}
+            >
+              <option value="" disabled>Selecionar idioma…</option>
+              {extraLangs.map((l) => (
+                <option key={l.id} value={l.id}>{l.flag} {l.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -879,7 +936,8 @@ export default function NovoPortalPage() {
     cvmCode: '',
     autoCvm: true,
     tipo: '',
-    fonte: 'inter',
+    fonteTitulo: 'inter',
+    fonteTexto: 'inter',
     customFontFile: null,
     customFontName: '',
     corPrimaria: '#0B5B68',
@@ -889,7 +947,7 @@ export default function NovoPortalPage() {
     logoPreview: null,
     faviconFile: null,
     faviconPreview: null,
-    idiomas: ['pt'],
+    idiomas: ['pt', 'en', 'es'],
     metaTitulo: '',
     metaDescricao: '',
     analyticsId: '',
@@ -899,16 +957,7 @@ export default function NovoPortalPage() {
 
   const steps = getSteps(form.tipo);
   const currentLabel = steps[step - 1]?.label ?? '';
-
-  useEffect(() => {
-    applyColorScale('primary', form.corPrimaria);
-    return () => { removeColorScale('primary'); };
-  }, [form.corPrimaria]);
-
-  useEffect(() => {
-    applyColorScale('secondary', form.corSecundaria);
-    return () => { removeColorScale('secondary'); };
-  }, [form.corSecundaria]);
+  const [fonteFase, setFonteFase] = useState<'titulo' | 'texto'>('titulo');
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -931,9 +980,19 @@ export default function NovoPortalPage() {
 
   function next() {
     if (!canProceed()) return;
+    if (currentLabel === 'Fonte' && fonteFase === 'titulo') {
+      setFonteFase('texto');
+      return;
+    }
+    if (currentLabel === 'Fonte') setFonteFase('titulo');
     setStep((s) => Math.min(s + 1, steps.length));
   }
   function back() {
+    if (currentLabel === 'Fonte' && fonteFase === 'texto') {
+      setFonteFase('titulo');
+      return;
+    }
+    if (currentLabel === 'Fonte') setFonteFase('titulo');
     setStep((s) => Math.max(s - 1, 1));
   }
 
@@ -972,8 +1031,9 @@ export default function NovoPortalPage() {
         )}
         {currentLabel === 'Fonte' && (
           <StepFonte
-            value={form.fonte}
-            onChange={(v) => setForm((f) => ({ ...f, fonte: v }))}
+            role={fonteFase}
+            value={fonteFase === 'titulo' ? form.fonteTitulo : form.fonteTexto}
+            onChange={(v) => setForm((f) => ({ ...f, [fonteFase === 'titulo' ? 'fonteTitulo' : 'fonteTexto']: v }))}
             customFontFile={form.customFontFile}
             customFontName={form.customFontName}
             onCustomFont={(file, name) => setForm((f) => ({ ...f, customFontFile: file, customFontName: name }))}

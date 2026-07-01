@@ -8,15 +8,21 @@ export interface EditableUser {
   nome: string;
   email: string;
   role: 'super_admin' | 'client_user';
-  portal: string;
+  portais: string[];
   status: 'Ativo' | 'Suspenso';
 }
+
+const PORTAIS_LIST = [
+  { id: '1', nome: 'Construtora Aurora' },
+  { id: '2', nome: 'International Meal Company' },
+  { id: '3', nome: 'Vetra Energia' },
+];
 
 interface EditUserModalProps {
   user: EditableUser | null;
   open: boolean;
   onClose: () => void;
-  onSave: (id: string, role: 'super_admin' | 'client_user') => void;
+  onSave: (id: string, role: 'super_admin' | 'client_user', portais: string[]) => void;
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
 }
@@ -40,11 +46,16 @@ export default function EditUserModal({
   user, open, onClose, onSave, onToggleStatus, onDelete,
 }: EditUserModalProps) {
   const [role, setRole] = useState<'super_admin' | 'client_user'>('client_user');
+  const [portais, setPortais] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (user) { setRole(user.role); setConfirmDelete(false); }
+    if (user) { setRole(user.role); setPortais(user.portais); setConfirmDelete(false); }
   }, [user]);
+
+  function togglePortal(id: string) {
+    setPortais(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
+  }
 
   function handleClose() {
     onClose();
@@ -53,7 +64,7 @@ export default function EditUserModal({
 
   function handleSave() {
     if (!user) return;
-    onSave(user.id, role);
+    onSave(user.id, role, role === 'super_admin' ? [] : portais);
     handleClose();
   }
 
@@ -72,7 +83,8 @@ export default function EditUserModal({
   if (!user) return null;
 
   const isSuspended = user.status === 'Suspenso';
-  const hasChanges = role !== user.role;
+  const portaisChanged = role === 'client_user' && JSON.stringify([...portais].sort()) !== JSON.stringify([...user.portais].sort());
+  const hasChanges = role !== user.role || portaisChanged;
 
   return (
     <Modal
@@ -136,6 +148,25 @@ export default function EditUserModal({
           })}
         </div>
       </div>
+
+      {/* Portais — only for client_user */}
+      {role === 'client_user' && (
+        <div className="mf">
+          <label className="mf__label">Portais com acesso</label>
+          <div className="eu-portais-list">
+            {PORTAIS_LIST.map((p) => (
+              <label key={p.id} className="eu-portal-check">
+                <input
+                  type="checkbox"
+                  checked={portais.includes(p.id)}
+                  onChange={() => togglePortal(p.id)}
+                />
+                {p.nome}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="eu-divider" />

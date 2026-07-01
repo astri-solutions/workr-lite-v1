@@ -265,12 +265,6 @@ export default function AutoCvmPage() {
       {/* ── Entities ── */}
       <div className="cvm-entities-header">
         <h2 className="cvm-entities-title">Entidades conectadas (por CNPJ)</h2>
-        <button className="btn-link" type="button">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
-          </svg>
-          Buscar e adicionar entidade
-        </button>
       </div>
 
       {visibleEntidades.length === 0 && selectedPortal ? (
@@ -279,7 +273,6 @@ export default function AutoCvmPage() {
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
           <p>Nenhuma entidade conectada neste portal.</p>
-          <p className="cvm-empty__hint">Clique em "+ Buscar e adicionar entidade" para conectar pelo CNPJ.</p>
         </div>
       ) : (!isAdmin || selectedPortal) ? (
         /* ── Single portal view: flat list ── */
