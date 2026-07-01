@@ -137,6 +137,7 @@ export default function UsuariosPage() {
               <th>Portal</th>
               <th>Status</th>
               <th>Ações</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -178,19 +179,30 @@ export default function UsuariosPage() {
                         Editar
                       </button>
                       <button
-                        className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--danger'}`}
+                        className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--secondary'}`}
                         type="button"
                         onClick={() => handleToggleStatus(u.id)}
                       >
-                        {u.status === 'Suspenso' ? 'Ativar' : 'Suspender'}
+                        {u.status === 'Suspenso' ? 'Ativar' : 'Desativar'}
                       </button>
                     </div>
+                  </td>
+                  <td>
+                    {u.role !== 'super_admin' && (
+                      <button
+                        className="btn-action btn-action--danger"
+                        type="button"
+                        onClick={() => handleDelete(u.id)}
+                      >
+                        Remover
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="table-empty">Nenhum usuário encontrado para os filtros selecionados.</td>
+                <td colSpan={7} className="table-empty">Nenhum usuário encontrado para os filtros selecionados.</td>
               </tr>
             )}
           </tbody>
