@@ -44,7 +44,7 @@ const FILTER_GROUPS = [
     key: 'role',
     label: 'Tipo',
     options: [
-      { value: 'all', label: 'Todos' },
+      { value: 'all', label: 'Todos os tipos', shortLabel: 'Todos' },
       { value: 'super_admin', label: 'Admin' },
       { value: 'client_user', label: 'Cliente' },
     ],
@@ -53,7 +53,7 @@ const FILTER_GROUPS = [
     key: 'portal',
     label: 'Portal',
     options: [
-      { value: 'all', label: 'Todos' },
+      { value: 'all', label: 'Todos os portais', shortLabel: 'Todos' },
       ...PORTAIS.map((p) => ({ value: p.id, label: p.nome })),
     ],
   },
@@ -61,7 +61,7 @@ const FILTER_GROUPS = [
     key: 'status',
     label: 'Status',
     options: [
-      { value: 'all', label: 'Todos' },
+      { value: 'all', label: 'Todos os status', shortLabel: 'Todos' },
       { value: 'Ativo', label: 'Ativo' },
       { value: 'Suspenso', label: 'Suspenso' },
     ],

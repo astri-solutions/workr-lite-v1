@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import './FilterBar.css';
 
 export interface FilterOption {
   value: string;
   label: string;
+  shortLabel?: string;
 }
 
 export interface FilterGroup {
@@ -17,7 +19,20 @@ interface FilterBarProps {
   onChange: (key: string, value: string) => void;
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 720px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 720px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
+
 export default function FilterBar({ groups, value, onChange }: FilterBarProps) {
+  const isMobile = useIsMobile();
+
   return (
     <div className="filter-bar">
       {groups.map((group) => {
@@ -33,9 +48,9 @@ export default function FilterBar({ groups, value, onChange }: FilterBarProps) {
                 value={selected}
                 onChange={(e) => onChange(group.key, e.target.value)}
               >
-                {group.options.map((opt) => (
+                {group.options.map((opt, i) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {isMobile && i === 0 && opt.shortLabel ? opt.shortLabel : opt.label}
                   </option>
                 ))}
               </select>
