@@ -50,6 +50,14 @@ const FILTER_GROUPS = [
     ],
   },
   {
+    key: 'portal',
+    label: 'Portal',
+    options: [
+      { value: 'all', label: 'Todos' },
+      ...PORTAIS.map((p) => ({ value: p.id, label: p.nome })),
+    ],
+  },
+  {
     key: 'status',
     label: 'Status',
     options: [
@@ -62,7 +70,7 @@ const FILTER_GROUPS = [
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>(INITIAL_USUARIOS);
-  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', status: 'all' });
+  const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', portal: 'all', status: 'all' });
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
 
@@ -90,6 +98,7 @@ export default function UsuariosPage() {
 
   const filtered = usuarios.filter((u) => {
     if (filters.role !== 'all' && u.role !== filters.role) return false;
+    if (filters.portal !== 'all' && !u.portais.includes(filters.portal)) return false;
     if (filters.status !== 'all' && u.status !== filters.status) return false;
     return true;
   });
