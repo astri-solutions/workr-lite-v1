@@ -14,20 +14,21 @@ interface Empresa {
   cnpj: string;
   cvmCodigo: string;
   autoCvm: boolean;
+  importarDesde: string;
   ativo: boolean;
 }
 
 const INITIAL: Empresa[] = [
-  { id: 'imc', nome: 'International Meal Company', tipo: 'EMPRESA', cnpj: '10.629.105/0001-68', cvmCodigo: '23574', autoCvm: true, ativo: true },
-  { id: 'imc-fii', nome: 'IMC Recebíveis FII', tipo: 'FUNDO', cnpj: '37.412.300/0001-55', cvmCodigo: '', autoCvm: false, ativo: true },
-  { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII', tipo: 'FUNDO', cnpj: '44.891.220/0001-12', cvmCodigo: '', autoCvm: false, ativo: false },
+  { id: 'imc', nome: 'International Meal Company', tipo: 'EMPRESA', cnpj: '10.629.105/0001-68', cvmCodigo: '23574', autoCvm: true, importarDesde: '', ativo: true },
+  { id: 'imc-fii', nome: 'IMC Recebíveis FII', tipo: 'FUNDO', cnpj: '37.412.300/0001-55', cvmCodigo: '', autoCvm: false, importarDesde: '', ativo: true },
+  { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII', tipo: 'FUNDO', cnpj: '44.891.220/0001-12', cvmCodigo: '', autoCvm: false, importarDesde: '', ativo: false },
 ];
 
 const TIPO_OPTIONS: Tipo[] = ['EMPRESA', 'FUNDO', 'OUTRO'];
 const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', OUTRO: 'Outro' };
 
-interface EmpForm { nome: string; tipo: Tipo; cnpj: string; cvmCodigo: string; autoCvm: boolean; }
-const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '', cvmCodigo: '', autoCvm: false };
+interface EmpForm { nome: string; tipo: Tipo; cnpj: string; cvmCodigo: string; autoCvm: boolean; importarDesde: string; }
+const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '', cvmCodigo: '', autoCvm: false, importarDesde: '' };
 
 
 export default function EmpresasPage() {
@@ -51,7 +52,7 @@ export default function EmpresasPage() {
 
   function openEdit(emp: Empresa) {
     setEditing(emp);
-    setForm({ nome: emp.nome, tipo: emp.tipo, cnpj: emp.cnpj, cvmCodigo: emp.cvmCodigo, autoCvm: emp.autoCvm });
+    setForm({ nome: emp.nome, tipo: emp.tipo, cnpj: emp.cnpj, cvmCodigo: emp.cvmCodigo, autoCvm: emp.autoCvm, importarDesde: emp.importarDesde ?? '' });
     setModalOpen(true);
   }
 
@@ -251,6 +252,16 @@ export default function EmpresasPage() {
               placeholder="Ex: 23574"
               value={form.cvmCodigo}
               onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
+            />
+          </label>
+
+          <label className="emp-form__label">
+            Importar desde (retroativo)
+            <input
+              className="emp-form__input"
+              type="date"
+              value={form.importarDesde}
+              onChange={e => setForm(f => ({ ...f, importarDesde: e.target.value }))}
             />
           </label>
 
