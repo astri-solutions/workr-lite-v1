@@ -981,10 +981,12 @@ export default function NovoPortalPage() {
     if (!canProceed()) return;
     if (currentLabel === 'Fonte' && fonteFase === 'titulo') {
       setFonteFase('texto');
+      document.querySelector('.admin-main')?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (currentLabel === 'Fonte') setFonteFase('titulo');
     setStep((s) => Math.min(s + 1, steps.length));
+    document.querySelector('.admin-main')?.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function back() {
     if (currentLabel === 'Fonte' && fonteFase === 'texto') {
