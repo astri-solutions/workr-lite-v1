@@ -98,6 +98,7 @@ export default function AdminEmpresasPage() {
   const [empresas, setEmpresas] = useState<AdminEmpresa[]>(EMPRESAS_DATA);
   const [search, setSearch] = useState('');
   const [suspendTarget, setSuspendTarget] = useState<AdminEmpresa | null>(null);
+  const [suspendPortalTarget, setSuspendPortalTarget] = useState<{ empresa: AdminEmpresa; portal: Portal } | null>(null);
   const [encerrarTarget, setEncerrarTarget] = useState<AdminEmpresa | null>(null);
 
   const filtered = empresas.filter(e =>
@@ -124,6 +125,7 @@ export default function AdminEmpresasPage() {
       if (e.id !== empresaId) return e;
       return { ...e, portais: e.portais.map(p => p.id !== portalId ? p : { ...p, ativo: !p.ativo }) };
     }));
+    setSuspendPortalTarget(null);
   }
 
   function encerrarConta(empresa: AdminEmpresa) {
@@ -237,7 +239,7 @@ export default function AdminEmpresasPage() {
                       <button
                         className={`ae-toggle-btn ae-toggle-btn--sm${!portal.ativo ? ' ae-toggle-btn--ativar' : ''}`}
                         type="button"
-                        onClick={() => togglePortal(empresa.id, portal.id)}
+                        onClick={() => setSuspendPortalTarget({ empresa, portal })}
                       >
                         {portal.ativo ? 'Suspender' : 'Reativar'}
                       </button>
@@ -290,6 +292,38 @@ export default function AdminEmpresasPage() {
           ) : (
             <p className="ae-confirm-text">
               Reativar <strong>{suspendTarget.nome}</strong> restaurará o acesso a todos os portais vinculados.
+            </p>
+          )}
+        </Modal>
+      )}
+
+      {/* Confirmar suspender / reativar portal */}
+      {suspendPortalTarget && (
+        <Modal
+          open
+          onClose={() => setSuspendPortalTarget(null)}
+          title={suspendPortalTarget.portal.ativo ? 'Suspender portal' : 'Reativar portal'}
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setSuspendPortalTarget(null)}>Cancelar</button>
+              <button
+                className={suspendPortalTarget.portal.ativo ? 'btn-outline btn-outline--danger' : 'btn-primary'}
+                type="button"
+                onClick={() => togglePortal(suspendPortalTarget.empresa.id, suspendPortalTarget.portal.id)}
+              >
+                {suspendPortalTarget.portal.ativo ? 'Suspender' : 'Reativar'}
+              </button>
+            </div>
+          }
+        >
+          {suspendPortalTarget.portal.ativo ? (
+            <p className="ae-confirm-text">
+              Suspender o portal <strong>{suspendPortalTarget.portal.link}</strong> bloqueará o acesso imediatamente.
+            </p>
+          ) : (
+            <p className="ae-confirm-text">
+              Reativar o portal <strong>{suspendPortalTarget.portal.link}</strong> restaurará o acesso dos usuários.
             </p>
           )}
         </Modal>
