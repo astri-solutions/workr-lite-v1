@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
@@ -62,16 +63,24 @@ const SECTIONS: NavSection[] = [
 ];
 
 export default function AdminLayout() {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
     <div className="admin-shell">
+      <div
+        className={`admin-sidebar-backdrop${mobileNavOpen ? ' admin-sidebar-backdrop--visible' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+      />
       <AppSidebar
         sections={SECTIONS}
         logoSrc="/logos/logotipo-original.svg"
         logoCollapsedSrc="/logos/logo-original.svg"
         logoAlt="Astri"
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
       />
       <div className="admin-right">
-        <AppTopbar />
+        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} />
         <main className="admin-main">
           <div className="admin-content">
             <Outlet />
