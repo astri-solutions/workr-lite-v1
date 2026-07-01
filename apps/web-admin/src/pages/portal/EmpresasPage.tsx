@@ -29,15 +29,6 @@ const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', O
 interface EmpForm { nome: string; tipo: Tipo; cnpj: string; cvmCodigo: string; autoCvm: boolean; }
 const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '', cvmCodigo: '', autoCvm: false };
 
-function SyncIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-    </svg>
-  );
-}
 
 export default function EmpresasPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>(INITIAL);
@@ -46,7 +37,6 @@ export default function EmpresasPage() {
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [form, setForm] = useState<EmpForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const filtered = empresas.filter(e =>
     e.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -89,11 +79,6 @@ export default function EmpresasPage() {
   function handleDelete(emp: Empresa) {
     setEmpresas(prev => prev.filter(e => e.id !== emp.id));
     setDeleteTarget(null);
-  }
-
-  function handleSync(id: string) {
-    setSyncingId(id);
-    setTimeout(() => setSyncingId(null), 1500);
   }
 
   const ativos = empresas.filter(e => e.ativo).length;
@@ -185,17 +170,6 @@ export default function EmpresasPage() {
                   </td>
                   <td>
                     <div className="table-actions">
-                      {emp.autoCvm && (
-                        <button
-                          className={`btn-action btn-action--secondary emp-sync-btn${syncingId === emp.id ? ' emp-sync-btn--loading' : ''}`}
-                          type="button"
-                          onClick={() => handleSync(emp.id)}
-                          title="Sincronizar agora"
-                        >
-                          <SyncIcon />
-                          {syncingId === emp.id ? 'Sincronizando…' : 'Sincronizar'}
-                        </button>
-                      )}
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
                       <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>
                         {emp.ativo ? 'Desativar' : 'Ativar'}
