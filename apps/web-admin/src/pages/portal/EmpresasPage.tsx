@@ -2,6 +2,7 @@ import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
+import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
 import './EmpresasPage.css';
 
@@ -82,8 +83,14 @@ export default function EmpresasPage() {
     setDeleteTarget(null);
   }
 
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'super_admin';
+
   const ativos = empresas.filter(e => e.ativo).length;
   const comAutoCvm = empresas.filter(e => e.autoCvm).length;
+
+  const principal = empresas[0];
+  const subsidiarias = empresas.slice(1);
 
   return (
     <div className="page">
@@ -141,43 +148,86 @@ export default function EmpresasPage() {
               <th>CNPJ</th>
               <th>CVM</th>
               <th>Status</th>
-              <th></th>
+              <th>Ações</th>
+              {isAdmin && <th className="emp-col-excluir">Excluir</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={6} className="table-empty">Nenhuma entidade encontrada.</td></tr>
+              <tr><td colSpan={isAdmin ? 7 : 6} className="table-empty">Nenhuma entidade encontrada.</td></tr>
+            ) : isAdmin ? (
+              <>
+                {/* Empresa principal */}
+                <tr className="emp-group-header">
+                  <td colSpan={7}>Empresa principal</td>
+                </tr>
+                {[principal].filter(e =>
+                  e.nome.toLowerCase().includes(search.toLowerCase()) || e.cnpj.includes(search)
+                ).map(emp => (
+                  <tr key={emp.id}>
+                    <td className="table-cell--bold">
+                      {emp.nome}
+                      <span className="emp-principal-badge">Principal</span>
+                    </td>
+                    <td><span className={`badge ${emp.tipo === 'FUNDO' ? 'badge--gray' : 'badge--success'}`}>{TIPO_LABEL[emp.tipo]}</span></td>
+                    <td className="table-cell--muted">{emp.cnpj || '—'}</td>
+                    <td>{emp.autoCvm ? <span className="badge badge--cvm">Auto CVM</span> : <span className="table-cell--muted">—</span>}</td>
+                    <td><span className={`badge ${emp.ativo ? 'badge--success' : 'badge--error'}`}>{emp.ativo ? 'Ativa' : 'Inativa'}</span></td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
+                      </div>
+                    </td>
+                    <td />
+                  </tr>
+                ))}
+
+                {/* Subsidiárias */}
+                {subsidiarias.filter(e =>
+                  e.nome.toLowerCase().includes(search.toLowerCase()) || e.cnpj.includes(search)
+                ).length > 0 && (
+                  <tr className="emp-group-header">
+                    <td colSpan={7}>Subsidiárias e fundos</td>
+                  </tr>
+                )}
+                {subsidiarias.filter(e =>
+                  e.nome.toLowerCase().includes(search.toLowerCase()) || e.cnpj.includes(search)
+                ).map(emp => (
+                  <tr key={emp.id}>
+                    <td className="table-cell--bold">{emp.nome}</td>
+                    <td><span className={`badge ${emp.tipo === 'FUNDO' ? 'badge--gray' : 'badge--success'}`}>{TIPO_LABEL[emp.tipo]}</span></td>
+                    <td className="table-cell--muted">{emp.cnpj || '—'}</td>
+                    <td>{emp.autoCvm ? <span className="badge badge--cvm">Auto CVM</span> : <span className="table-cell--muted">—</span>}</td>
+                    <td><span className={`badge ${emp.ativo ? 'badge--success' : 'badge--error'}`}>{emp.ativo ? 'Ativa' : 'Inativa'}</span></td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
+                      </div>
+                    </td>
+                    <td className="emp-col-excluir">
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
+                    </td>
+                  </tr>
+                ))}
+              </>
             ) : (
+              /* Portal (client) view — flat list, no remove for principal */
               filtered.map(emp => (
                 <tr key={emp.id}>
                   <td className="table-cell--bold">{emp.nome}</td>
-                  <td>
-                    <span className={`badge ${emp.tipo === 'FUNDO' ? 'badge--gray' : 'badge--success'}`}>
-                      {TIPO_LABEL[emp.tipo]}
-                    </span>
-                  </td>
+                  <td><span className={`badge ${emp.tipo === 'FUNDO' ? 'badge--gray' : 'badge--success'}`}>{TIPO_LABEL[emp.tipo]}</span></td>
                   <td className="table-cell--muted">{emp.cnpj || '—'}</td>
-                  <td>
-                    {emp.autoCvm ? (
-                      <span className="badge badge--cvm">Auto CVM</span>
-                    ) : (
-                      <span className="table-cell--muted">—</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`badge ${emp.ativo ? 'badge--success' : 'badge--error'}`}>
-                      {emp.ativo ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </td>
+                  <td>{emp.autoCvm ? <span className="badge badge--cvm">Auto CVM</span> : <span className="table-cell--muted">—</span>}</td>
+                  <td><span className={`badge ${emp.ativo ? 'badge--success' : 'badge--error'}`}>{emp.ativo ? 'Ativa' : 'Inativa'}</span></td>
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>
-                        {emp.ativo ? 'Desativar' : 'Ativar'}
-                      </button>
+                      <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
                       {emp.id !== empresas[0].id && (
                         <>
-                          <span className="table-actions__sep" title="Excluir empresa" />
+                          <span className="table-actions__sep" />
                           <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
                         </>
                       )}
