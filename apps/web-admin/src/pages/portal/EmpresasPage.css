@@ -92,7 +92,7 @@
 }
 
 /* Excluir column alignment */
-.emp-col-excluir { text-align: right; white-space: nowrap; }
+.emp-col-excluir { width: 1px; white-space: nowrap; text-align: center; }
 
 /* Separator between primary and danger actions */
 .table-actions__sep {
