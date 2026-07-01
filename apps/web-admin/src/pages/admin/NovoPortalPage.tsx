@@ -220,16 +220,21 @@ function StepIdentificacao({
 
         <div className="np-field">
           <label className="np-label">Tipo de site</label>
-          <select
-            className="np-input np-select"
-            value={tipoSite}
-            onChange={(e) => onTipoSite(e.target.value)}
-          >
-            <option value="" disabled>Selecionar tipo…</option>
-            {TIPO_SITE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          <div className="np-select-wrap">
+            <select
+              className="np-input np-select"
+              value={tipoSite}
+              onChange={(e) => onTipoSite(e.target.value)}
+            >
+              <option value="" disabled>Selecionar tipo…</option>
+              {TIPO_SITE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <svg className="np-select-wrap__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
         </div>
 
         <div className="np-field">
