@@ -54,6 +54,11 @@
   color: var(--color-error-600, #dc2626);
   background: var(--color-error-50, #fef2f2);
 }
+.ae-toggle-btn--sm {
+  padding: 4px var(--space-3);
+  font-size: var(--text-xs);
+}
+
 .ae-toggle-btn--ativar {
   border-color: var(--color-primary-300);
   color: var(--color-primary-700, #0a4e5a);
@@ -106,6 +111,32 @@
 .ae-kebab__item:hover { background: var(--color-gray-50); }
 .ae-kebab__item--danger { color: var(--color-error-500); }
 .ae-kebab__item--danger:hover { background: var(--color-error-50, #fef2f2); }
+
+/* Portal rows with columns */
+.ae-portal-row {
+  display: grid;
+  grid-template-columns: 1fr 110px 160px;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.ae-portal-row--header {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  background: var(--color-gray-50);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+
+.ae-portal-row__action {
+  display: flex;
+  justify-content: flex-end;
+}
 
 /* Disabled link for suspended portals */
 .portal-site-row__link--disabled {

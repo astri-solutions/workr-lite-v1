@@ -119,6 +119,13 @@ export default function AdminEmpresasPage() {
     setSuspendTarget(null);
   }
 
+  function togglePortal(empresaId: string, portalId: string) {
+    setEmpresas(prev => prev.map(e => {
+      if (e.id !== empresaId) return e;
+      return { ...e, portais: e.portais.map(p => p.id !== portalId ? p : { ...p, ativo: !p.ativo }) };
+    }));
+  }
+
   function encerrarConta(empresa: AdminEmpresa) {
     setEmpresas(prev => prev.map(e => e.id !== empresa.id ? e : {
       ...e,
@@ -204,28 +211,39 @@ export default function AdminEmpresasPage() {
 
             {/* Portais vinculados */}
             <div className="portal-card__sites">
+              {empresa.portais.length > 0 && (
+                <div className="ae-portal-row ae-portal-row--header">
+                  <span>Domínio</span>
+                  <span>Status</span>
+                  <span />
+                </div>
+              )}
               {empresa.portais.map(portal => (
-                <div key={portal.id} className="portal-site-row">
-                  <div className="portal-site-row__left">
-                    <span className={`badge ${portal.ativo ? 'badge--success' : 'badge--error'}`}>
-                      {portal.ativo ? 'Ativo' : 'Suspenso'}
-                    </span>
-                    <a
-                      className={`portal-site-row__link${!portal.ativo ? ' portal-site-row__link--disabled' : ''}`}
-                      href={portal.ativo ? `https://${portal.link}` : undefined}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {portal.link}
-                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>open_in_new</span>
-                    </a>
-                  </div>
-                  <div className="portal-site-row__right">
-                    <span className="ae-portal-hint">
-                      {empresa.status !== 'ativa'
-                        ? 'Portal suspenso junto com a conta'
-                        : 'Portal ativo'}
-                    </span>
+                <div key={portal.id} className="ae-portal-row">
+                  <a
+                    className={`portal-site-row__link${!portal.ativo ? ' portal-site-row__link--disabled' : ''}`}
+                    href={portal.ativo ? `https://${portal.link}` : undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {portal.link}
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>open_in_new</span>
+                  </a>
+                  <span className={`badge ${portal.ativo ? 'badge--success' : 'badge--error'}`}>
+                    {portal.ativo ? 'Ativo' : 'Suspenso'}
+                  </span>
+                  <div className="ae-portal-row__action">
+                    {empresa.status !== 'ativa' ? (
+                      <span className="ae-portal-hint">Suspenso com a conta</span>
+                    ) : (
+                      <button
+                        className={`ae-toggle-btn ae-toggle-btn--sm${!portal.ativo ? ' ae-toggle-btn--ativar' : ''}`}
+                        type="button"
+                        onClick={() => togglePortal(empresa.id, portal.id)}
+                      >
+                        {portal.ativo ? 'Suspender' : 'Reativar'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
