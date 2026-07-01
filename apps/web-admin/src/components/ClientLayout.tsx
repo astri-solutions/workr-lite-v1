@@ -22,25 +22,6 @@ function useTenantLogo() {
 
 const SECTIONS: NavSection[] = [
   {
-    label: 'Gestão',
-    items: [
-      {
-        to: '/portal/empresas',
-        label: 'Empresas',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
-        ),
-      },
-      {
-        to: '/portal/usuarios-portal',
-        label: 'Usuários',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
-        ),
-      },
-    ],
-  },
-  {
     label: 'Conteúdo',
     items: [
       {

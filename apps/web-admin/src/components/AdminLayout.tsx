@@ -5,6 +5,25 @@ import './AdminLayout.css';
 
 const SECTIONS: NavSection[] = [
   {
+    label: 'Gestão',
+    items: [
+      {
+        to: '/admin/empresas',
+        label: 'Empresas',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
+        ),
+      },
+      {
+        to: '/admin/usuarios-portal',
+        label: 'Usuários do Portal',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
+        ),
+      },
+    ],
+  },
+  {
     label: 'Plataforma',
     items: [
       {

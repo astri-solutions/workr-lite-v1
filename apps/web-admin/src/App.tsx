@@ -65,6 +65,8 @@ const router = createBrowserRouter([
       { path: 'informacoes', element: <InformacoesPage /> },
       { path: 'portais/:siteId/painel', element: <PainelControlePage /> },
       { path: 'portais/:siteId/analytics', element: <AnalyticsPage /> },
+      { path: 'empresas', element: <EmpresasPage /> },
+      { path: 'usuarios-portal', element: <UsuariosPortalPage /> },
     ],
   },
   {
