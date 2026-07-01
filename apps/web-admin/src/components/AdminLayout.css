@@ -19,6 +19,9 @@
 
 .admin-topbar__left {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .admin-search {
