@@ -64,6 +64,17 @@
 .emp-kebab__item--danger { color: var(--color-error-500); }
 .emp-kebab__item--danger:hover { background: var(--color-error-50, #fef2f2); }
 
+/* Separator between primary and danger actions */
+.table-actions__sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: var(--color-gray-200);
+  margin: 0 2px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 /* Auto CVM badge in table */
 .badge--cvm {
   background: var(--color-primary-50, #e8f5f7);

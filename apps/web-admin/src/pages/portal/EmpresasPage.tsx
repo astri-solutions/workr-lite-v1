@@ -175,7 +175,12 @@ export default function EmpresasPage() {
                       <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>
                         {emp.ativo ? 'Desativar' : 'Ativar'}
                       </button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
+                      {emp.id !== empresas[0].id && (
+                        <>
+                          <span className="table-actions__sep" title="Excluir empresa" />
+                          <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
