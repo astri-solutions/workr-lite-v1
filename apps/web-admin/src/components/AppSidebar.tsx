@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface NavItem {
   to?: string;
@@ -119,11 +120,39 @@ export default function AppSidebar({
   onMobileClose,
 }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
 
   const currentLogo = collapsed ? (logoCollapsedSrc ?? logoSrc) : logoSrc;
 
+  const initials = user?.name
+    ? user.name.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase()
+    : '?';
+
   return (
     <aside className={`admin-sidebar${collapsed ? ' admin-sidebar--collapsed' : ''}${mobileOpen ? ' admin-sidebar--mobile-open' : ''}`}>
+
+      {/* Mobile-only header: user profile + close */}
+      <div className="admin-sidebar__mobile-header">
+        <div className="admin-sidebar__mobile-user">
+          <div className="admin-sidebar__mobile-avatar">{initials}</div>
+          <div className="admin-sidebar__mobile-info">
+            <span className="admin-sidebar__mobile-name">{user?.name ?? 'Usuário'}</span>
+            <span className="admin-sidebar__mobile-email">{user?.email ?? ''}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="admin-sidebar__mobile-close"
+          onClick={onMobileClose}
+          aria-label="Fechar menu"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Desktop logo */}
       <NavLink to="/portal/dashboard" className="admin-sidebar__logo">
         <img src={currentLogo} alt={logoAlt} className="admin-sidebar__logo-img" />
       </NavLink>
