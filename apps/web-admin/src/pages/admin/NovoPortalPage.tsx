@@ -122,6 +122,7 @@ interface FormData {
   cnpj: string;
   cvmCode: string;
   autoCvm: boolean;
+  tipoSite: string;
   tipo: string;
   fonteTitulo: string;
   fonteTexto: string;
@@ -172,13 +173,21 @@ function Stepper({ steps, current }: { steps: { id: number; label: string }[]; c
 }
 
 /* ─── Step 1: Identificação ──────────────────────────────────────────── */
+const TIPO_SITE_OPTIONS = [
+  { value: 'ri', label: 'RI — Relações com Investidores' },
+  { value: 'institucional', label: 'Institucional' },
+  { value: 'landing', label: 'Landing Page' },
+  { value: 'fundo', label: 'Fundo' },
+];
+
 function StepIdentificacao({
-  nome, url, cnpj, cvmCode, autoCvm,
-  onNome, onUrl, onCnpj, onCvmCode, onAutoCvm,
+  nome, url, cnpj, cvmCode, autoCvm, tipoSite,
+  onNome, onUrl, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
 }: {
-  nome: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean;
+  nome: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean; tipoSite: string;
   onNome: (v: string) => void; onUrl: (v: string) => void;
   onCnpj: (v: string) => void; onCvmCode: (v: string) => void; onAutoCvm: (v: boolean) => void;
+  onTipoSite: (v: string) => void;
 }) {
   const slug = url.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
 
@@ -207,6 +216,20 @@ function StepIdentificacao({
             maxLength={80}
           />
           {nome && <span className="np-input__hint">{nome.length}/80 caracteres</span>}
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Tipo de site</label>
+          <select
+            className="np-input np-select"
+            value={tipoSite}
+            onChange={(e) => onTipoSite(e.target.value)}
+          >
+            <option value="" disabled>Selecionar tipo…</option>
+            {TIPO_SITE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="np-field">
@@ -982,6 +1005,7 @@ export default function NovoPortalPage() {
     cnpj: '',
     cvmCode: '',
     autoCvm: true,
+    tipoSite: '',
     tipo: '',
     fonteTitulo: 'inter',
     fonteTexto: 'inter',
@@ -1065,11 +1089,13 @@ export default function NovoPortalPage() {
             cnpj={form.cnpj}
             cvmCode={form.cvmCode}
             autoCvm={form.autoCvm}
+            tipoSite={form.tipoSite}
             onNome={(v) => setForm((f) => ({ ...f, nome: v }))}
             onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
             onCnpj={(v) => setForm((f) => ({ ...f, cnpj: v }))}
             onCvmCode={(v) => setForm((f) => ({ ...f, cvmCode: v }))}
             onAutoCvm={(v) => setForm((f) => ({ ...f, autoCvm: v }))}
+            onTipoSite={(v) => setForm((f) => ({ ...f, tipoSite: v }))}
           />
         )}
         {currentLabel === 'Tipo' && (
