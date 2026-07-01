@@ -25,6 +25,7 @@ export default function FilterBar({ groups, value, onChange }: FilterBarProps) {
         const isFiltered = selected !== group.options[0].value;
         return (
           <div key={group.key} className="filter-bar__group">
+            <label className="filter-bar__label" htmlFor={`filter-${group.key}`}>{group.label}</label>
             <div className={`filter-select-wrap${isFiltered ? ' filter-select-wrap--active' : ''}`}>
               <select
                 id={`filter-${group.key}`}
@@ -32,9 +33,9 @@ export default function FilterBar({ groups, value, onChange }: FilterBarProps) {
                 value={selected}
                 onChange={(e) => onChange(group.key, e.target.value)}
               >
-                {group.options.map((opt, i) => (
+                {group.options.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {i === 0 ? `${group.label}: ${opt.label}` : opt.label}
+                    {opt.label}
                   </option>
                 ))}
               </select>

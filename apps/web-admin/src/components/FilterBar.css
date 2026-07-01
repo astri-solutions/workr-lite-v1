@@ -25,6 +25,10 @@
     width: 100%;
     min-width: unset;
   }
+
+  .filter-bar__label {
+    display: none;
+  }
 }
 
 .filter-bar__label {
