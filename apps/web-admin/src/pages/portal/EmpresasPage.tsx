@@ -149,12 +149,12 @@ export default function EmpresasPage() {
               <th>CVM</th>
               <th>Status</th>
               <th>Ações</th>
-              {isAdmin && <th className="emp-col-excluir">Excluir</th>}
+              <th className="emp-col-excluir">Excluir empresa</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={isAdmin ? 7 : 6} className="table-empty">Nenhuma entidade encontrada.</td></tr>
+              <tr><td colSpan={7} className="table-empty">Nenhuma entidade encontrada.</td></tr>
             ) : isAdmin ? (
               <>
                 {/* Empresa principal */}
@@ -207,7 +207,7 @@ export default function EmpresasPage() {
                       </div>
                     </td>
                     <td className="emp-col-excluir">
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Excluir</button>
                     </td>
                   </tr>
                 ))}
@@ -224,14 +224,13 @@ export default function EmpresasPage() {
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
-                      {emp.id !== empresas[0].id && (
-                        <>
-                          <span className="table-actions__sep" />
-                          <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Remover</button>
-                        </>
-                      )}
+                      <button className="btn-action btn-action--secondary" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
                     </div>
+                  </td>
+                  <td className="emp-col-excluir">
+                    {emp.id !== empresas[0].id && (
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Excluir</button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -355,12 +354,12 @@ export default function EmpresasPage() {
         <Modal
           open
           onClose={() => setDeleteTarget(null)}
-          title="Remover empresa"
+          title="Excluir empresa"
           size="sm"
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
-              <button className="btn-outline btn-outline--danger" type="button" onClick={() => handleDelete(deleteTarget)}>Remover</button>
+              <button className="btn-outline btn-outline--danger" type="button" onClick={() => handleDelete(deleteTarget)}>Excluir</button>
             </div>
           }
         >
