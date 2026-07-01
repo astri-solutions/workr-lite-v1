@@ -201,8 +201,9 @@ export default function AdminEmpresasPage() {
                   <span><span className="ae-empresa-meta__label">Cadastro</span> {empresa.criadoEm}</span>
                 </div>
               </div>
-              <span className={`badge ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
+              <span className={`badge ae-badge-col ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
               <div className="ae-portal-row__action" onClick={e => e.stopPropagation()}>
+                <span className={`badge ae-badge-mobile ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
                 {empresa.status !== 'encerrada' && (
                   <button
                     className={`ae-toggle-btn ae-toggle-btn--sm${empresa.status === 'suspensa' ? ' ae-toggle-btn--ativar' : ''}`}

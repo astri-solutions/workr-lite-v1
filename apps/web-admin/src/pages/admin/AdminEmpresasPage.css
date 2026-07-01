@@ -233,3 +233,83 @@
   background: #fef9ec;
   color: #92620a;
 }
+
+/* ─── Mobile responsive ────────────────────────────────────── */
+@media (max-width: 720px) {
+  /* Empresa header: stack vertically */
+  .ae-portal-row--empresa-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-right: 48px; /* space for absolute chevron */
+  }
+
+  /* Hide desktop badge column — badge-mobile shows inside action row */
+  .ae-badge-col {
+    display: none;
+  }
+
+  /* Action row: badge + buttons inline */
+  .ae-portal-row__action {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  /* Chevron: absolute top-right */
+  .ae-accordion-chevron-btn {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-3);
+  }
+
+  .ae-card {
+    position: relative;
+  }
+
+  /* Portal sub-rows: 2-col (link fills, actions auto) */
+  .ae-portal-row:not(.ae-portal-row--empresa-header) {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+  }
+
+  /* Hide badge and header row on mobile */
+  .ae-portal-row:not(.ae-portal-row--empresa-header) .badge {
+    display: none;
+  }
+
+  .ae-portal-row--header {
+    display: none;
+  }
+
+  .ae-portal-row:not(.ae-portal-row--empresa-header) .ae-portal-row__action {
+    padding-right: 0;
+  }
+
+  /* Domain link: truncate cleanly */
+  .portal-site-row__link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  /* Meta info: stack per line */
+  .ae-empresa-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .ae-empresa-meta__sep {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .ae-toggle-btn {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+}
