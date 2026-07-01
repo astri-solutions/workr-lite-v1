@@ -187,9 +187,15 @@ export default function AdminEmpresasPage() {
             <div className="ae-card__header ae-portal-row ae-portal-row--empresa-header">
               <div className="portal-card__info">
                 <span className="portal-card__name">{empresa.nome}</span>
-                <span className="portal-card__meta">
-                  CNPJ {empresa.cnpj} · Responsável: {empresa.responsavel} · {empresa.email} · Cadastro: {empresa.criadoEm}
-                </span>
+                <div className="ae-empresa-meta">
+                  <span><span className="ae-empresa-meta__label">CNPJ</span> {empresa.cnpj}</span>
+                  <span className="ae-empresa-meta__sep">·</span>
+                  <span><span className="ae-empresa-meta__label">Responsável</span> {empresa.responsavel}</span>
+                  <span className="ae-empresa-meta__sep">·</span>
+                  <span>{empresa.email}</span>
+                  <span className="ae-empresa-meta__sep">·</span>
+                  <span><span className="ae-empresa-meta__label">Cadastro</span> {empresa.criadoEm}</span>
+                </div>
               </div>
               <span className={`badge ${STATUS_BADGE[empresa.status]}`}>{STATUS_LABEL[empresa.status]}</span>
               <div className="ae-portal-row__action">

@@ -173,6 +173,28 @@
   margin: 0;
 }
 
+/* Empresa meta row */
+.ae-empresa-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: var(--text-xs);
+  color: var(--color-gray-600);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.ae-empresa-meta__label {
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-500);
+}
+
+.ae-empresa-meta__sep {
+  color: var(--color-gray-300);
+  user-select: none;
+}
+
 /* badge--warning for suspended */
 .badge--warning {
   background: #fef9ec;
