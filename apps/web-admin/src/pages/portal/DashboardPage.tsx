@@ -147,7 +147,7 @@ export default function DashboardPage() {
       {/* Site info */}
       <div className="dash-block dash-info-block">
         <h2 className="dash-block__title">Informações do portal</h2>
-        <table className="dash-info-table">
+        <div className="dash-info-scroll"><table className="dash-info-table">
           <thead>
             <tr>
               <th>Empresa</th>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
               <td>Workr Lite Pro</td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

@@ -309,6 +309,12 @@
   box-sizing: border-box;
 }
 
+/* ── Info block scroll wrapper ────────────────────── */
+.dash-info-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ── Info table ───────────────────────────────────── */
 .dash-info-table {
   width: 100%;
@@ -333,4 +339,127 @@
   font-weight: var(--font-medium);
   padding: 0 var(--space-6) 0 0;
   white-space: nowrap;
+}
+
+/* ── Responsive ─────────────────────────────────────
+   md (≤1024px): 3-col grid → 2-col, account full-width
+   sm (≤720px):  single column, stats 2×2, button stacks
+   xs (≤480px):  tighter spacing, info table scrolls
+──────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dash-account-block {
+    grid-column: 1 / -1;
+  }
+
+  .dash-account {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-5);
+  }
+
+  .dash-account__header {
+    flex: 0 0 auto;
+  }
+
+  .dash-account__contacts {
+    flex: 1;
+    border-top: none;
+    border-left: 1px solid var(--color-gray-100);
+    padding-top: 0;
+    padding-left: var(--space-5);
+    justify-content: center;
+  }
+
+  .dash-account__btn {
+    width: auto;
+    flex-shrink: 0;
+    align-self: center;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Welcome: button drops below */
+  .dash-welcome {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .dash-visit-btn {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  /* Stat cards: 2×2 */
+  .dash-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .dash-stat-card__value {
+    font-size: var(--text-2xl);
+  }
+
+  /* Main grid: single column */
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-account-block {
+    grid-column: auto;
+  }
+
+  /* Account: back to column */
+  .dash-account {
+    flex-direction: column;
+  }
+
+  .dash-account__contacts {
+    border-left: none;
+    border-top: 1px solid var(--color-gray-100);
+    padding-left: 0;
+    padding-top: var(--space-3);
+  }
+
+  .dash-account__btn {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  /* Info table: horizontal scroll */
+  .dash-info-scroll {
+    margin: 0 calc(-1 * var(--space-6));
+    padding: 0 var(--space-6);
+  }
+
+  .dash-info-table {
+    min-width: 520px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-welcome__title {
+    font-size: var(--text-xl);
+  }
+
+  .dash-stat-card {
+    padding: var(--space-4) var(--space-4);
+  }
+
+  .dash-stat-card__value {
+    font-size: var(--text-xl);
+  }
+
+  .dash-block {
+    padding: var(--space-4);
+  }
 }

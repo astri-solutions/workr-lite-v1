@@ -535,6 +535,83 @@ td:has(.table-actions) {
   .table-wrapper--responsive { display: none; }
 }
 
+/* ─── Global responsive rules ───────────────────────────────
+   Breakpoints: 480px (xs) · 720px (sm) · 1024px (md)
+   These apply to shared patterns used across all pages.
+   Page-specific rules live in each page's own CSS file.
+──────────────────────────────────────────────────────────── */
+
+/* md (≤1024px): sidebar becomes drawer — handled in AdminLayout.css */
+
+/* sm (≤720px): main content reflow */
+@media (max-width: 720px) {
+  /* Page padding tighter */
+  .page {
+    padding: var(--space-4);
+  }
+
+  /* Toolbar: filters stack vertically, each full width */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .toolbar__filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+  .toolbar__filters .filter-wrap,
+  .toolbar__filters input[type="text"],
+  .toolbar__filters input[type="search"] {
+    width: 100%;
+  }
+  .toolbar__filters .filter-select {
+    width: 100%;
+  }
+  .toolbar__actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  /* Stat cards: 2×N grid */
+  .stat-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: none;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+
+  /* Table: always horizontally scrollable */
+  .table-wrapper {
+    border-radius: var(--radius-lg);
+  }
+}
+
+/* xs (≤480px): small phones */
+@media (max-width: 480px) {
+  .page {
+    padding: var(--space-3);
+  }
+
+  /* Stat cards: single column when 2 columns would be too tight */
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Toolbar actions wrap and span full width */
+  .toolbar__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .toolbar__actions .btn-primary,
+  .toolbar__actions .btn-outline {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 /* ─── Placeholder / empty ────────────────────────────────── */
 .page-placeholder {
   display: flex;
