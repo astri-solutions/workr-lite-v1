@@ -137,12 +137,7 @@ export default function AdminEmpresasPage() {
       <StickyPageHeader
         title="Empresas"
         description="Gestão de contas dos clientes. Ativar ou suspender uma empresa afeta todos os portais vinculados."
-        action={
-          <button className="btn-primary" type="button">
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-            Nova empresa
-          </button>
-        }
+        action={undefined}
       />
 
       <div className="stat-cards">

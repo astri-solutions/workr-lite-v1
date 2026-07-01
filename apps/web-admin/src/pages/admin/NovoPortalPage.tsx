@@ -114,8 +114,22 @@ const FONTS = [
   { id: 'cormorant', label: 'Cormorant Garamond', family: "'Cormorant Garamond', serif", category: 'Serif' },
 ];
 
+/* ─── Empresas existentes (mock) ─────────────────────────────────────── */
+const EMPRESAS_EXISTENTES = [
+  { id: 'aurora', nome: 'Construtora Aurora', cnpj: '12.345.678/0001-90' },
+  { id: 'imc', nome: 'International Meal Company', cnpj: '17.314.329/0001-20' },
+  { id: 'vetra', nome: 'Vetra Energia', cnpj: '98.765.432/0001-10' },
+];
+
 /* ─── Form state ────────────────────────────────────────────────────── */
 interface FormData {
+  /* empresa */
+  empresaId: string;       // id de empresa existente ou 'nova'
+  novaEmpresaNome: string;
+  novaEmpresaCnpj: string;
+  novaEmpresaResponsavel: string;
+  novaEmpresaEmail: string;
+  /* portal */
   nome: string;
   url: string;
   tipo: string;
@@ -166,7 +180,108 @@ function Stepper({ steps, current }: { steps: { id: number; label: string }[]; c
   );
 }
 
-/* ─── Step 1: Identificação ──────────────────────────────────────────── */
+/* ─── Step 1a: Empresa ────────────────────────────────────────────────── */
+function StepEmpresa({
+  empresaId, novaEmpresaNome, novaEmpresaCnpj, novaEmpresaResponsavel, novaEmpresaEmail,
+  onEmpresaId, onNovaEmpresaNome, onNovaEmpresaCnpj, onNovaEmpresaResponsavel, onNovaEmpresaEmail,
+}: {
+  empresaId: string;
+  novaEmpresaNome: string; novaEmpresaCnpj: string;
+  novaEmpresaResponsavel: string; novaEmpresaEmail: string;
+  onEmpresaId: (v: string) => void;
+  onNovaEmpresaNome: (v: string) => void; onNovaEmpresaCnpj: (v: string) => void;
+  onNovaEmpresaResponsavel: (v: string) => void; onNovaEmpresaEmail: (v: string) => void;
+}) {
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Empresa do portal</h2>
+        <p className="np-step__desc">Selecione uma empresa existente ou cadastre uma nova para vincular a este portal.</p>
+      </div>
+      <div className="np-step__body">
+
+        {/* Empresas existentes */}
+        <div className="np-empresa-list">
+          {EMPRESAS_EXISTENTES.map(emp => (
+            <button
+              key={emp.id}
+              type="button"
+              className={`np-empresa-card${empresaId === emp.id ? ' np-empresa-card--selected' : ''}`}
+              onClick={() => onEmpresaId(emp.id)}
+            >
+              <div className="np-empresa-card__info">
+                <span className="np-empresa-card__nome">{emp.nome}</span>
+                <span className="np-empresa-card__cnpj">{emp.cnpj}</span>
+              </div>
+              <div className={`np-empresa-card__check${empresaId === emp.id ? ' np-empresa-card__check--active' : ''}`}>
+                {empresaId === emp.id && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </div>
+            </button>
+          ))}
+
+          {/* Nova empresa option */}
+          <button
+            type="button"
+            className={`np-empresa-card np-empresa-card--new${empresaId === 'nova' ? ' np-empresa-card--selected' : ''}`}
+            onClick={() => onEmpresaId('nova')}
+          >
+            <div className="np-empresa-card__info">
+              <span className="np-empresa-card__nome">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ verticalAlign: 'middle', marginRight: '6px' }}>
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Nova empresa
+              </span>
+              <span className="np-empresa-card__cnpj">Cadastrar uma empresa não listada acima</span>
+            </div>
+            <div className={`np-empresa-card__check${empresaId === 'nova' ? ' np-empresa-card__check--active' : ''}`}>
+              {empresaId === 'nova' && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </div>
+          </button>
+        </div>
+
+        {/* Nova empresa form */}
+        {empresaId === 'nova' && (
+          <div className="np-nova-empresa-form">
+            <div className="np-field">
+              <label className="np-label">Nome da empresa</label>
+              <input className="np-input" type="text" placeholder="Ex: Construtora Nova S.A."
+                value={novaEmpresaNome} onChange={e => onNovaEmpresaNome(e.target.value)} autoFocus />
+            </div>
+            <div className="np-nova-empresa-row">
+              <div className="np-field">
+                <label className="np-label">CNPJ</label>
+                <input className="np-input" type="text" placeholder="00.000.000/0001-00"
+                  value={novaEmpresaCnpj} onChange={e => onNovaEmpresaCnpj(e.target.value)} />
+              </div>
+              <div className="np-field">
+                <label className="np-label">Responsável</label>
+                <input className="np-input" type="text" placeholder="Nome do responsável"
+                  value={novaEmpresaResponsavel} onChange={e => onNovaEmpresaResponsavel(e.target.value)} />
+              </div>
+            </div>
+            <div className="np-field">
+              <label className="np-label">E-mail de contato</label>
+              <input className="np-input" type="email" placeholder="contato@empresa.com.br"
+                value={novaEmpresaEmail} onChange={e => onNovaEmpresaEmail(e.target.value)} />
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+/* ─── Step 1b: Identificação ─────────────────────────────────────────── */
 function StepIdentificacao({
   nome, url, onNome, onUrl,
 }: {
@@ -796,7 +911,13 @@ function StepEmail({ value, onChange }: { value: string; onChange: (v: string) =
 export default function NovoPortalPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [idFase, setIdFase] = useState<'empresa' | 'portal'>('empresa');
   const [form, setForm] = useState<FormData>({
+    empresaId: '',
+    novaEmpresaNome: '',
+    novaEmpresaCnpj: '',
+    novaEmpresaResponsavel: '',
+    novaEmpresaEmail: '',
     nome: '',
     url: '',
     tipo: '',
@@ -840,7 +961,14 @@ export default function NovoPortalPage() {
   }, []);
 
   const canProceed = () => {
-    if (currentLabel === 'Identificação') return form.nome.trim().length > 0 && form.url.trim().length > 0;
+    if (currentLabel === 'Identificação') {
+      if (idFase === 'empresa') {
+        if (!form.empresaId) return false;
+        if (form.empresaId === 'nova') return form.novaEmpresaNome.trim().length > 0 && form.novaEmpresaCnpj.trim().length > 0;
+        return true;
+      }
+      return form.nome.trim().length > 0 && form.url.trim().length > 0;
+    }
     if (currentLabel === 'Tipo') return form.tipo !== '';
     if (currentLabel === 'Identidade') return form.idiomas.length > 0;
     if (currentLabel === 'Email') {
@@ -850,8 +978,15 @@ export default function NovoPortalPage() {
     return true;
   };
 
-  function next() { if (canProceed()) setStep((s) => Math.min(s + 1, steps.length)); }
-  function back() { setStep((s) => Math.max(s - 1, 1)); }
+  function next() {
+    if (!canProceed()) return;
+    if (currentLabel === 'Identificação' && idFase === 'empresa') { setIdFase('portal'); return; }
+    setStep((s) => Math.min(s + 1, steps.length));
+  }
+  function back() {
+    if (currentLabel === 'Identificação' && idFase === 'portal') { setIdFase('empresa'); return; }
+    setStep((s) => Math.max(s - 1, 1));
+  }
 
   function handleSubmit() {
     navigate('/admin/portais');
@@ -866,7 +1001,21 @@ export default function NovoPortalPage() {
       <Stepper steps={steps} current={step} />
 
       <div className="np-card">
-        {currentLabel === 'Identificação' && (
+        {currentLabel === 'Identificação' && idFase === 'empresa' && (
+          <StepEmpresa
+            empresaId={form.empresaId}
+            novaEmpresaNome={form.novaEmpresaNome}
+            novaEmpresaCnpj={form.novaEmpresaCnpj}
+            novaEmpresaResponsavel={form.novaEmpresaResponsavel}
+            novaEmpresaEmail={form.novaEmpresaEmail}
+            onEmpresaId={(v) => setForm((f) => ({ ...f, empresaId: v }))}
+            onNovaEmpresaNome={(v) => setForm((f) => ({ ...f, novaEmpresaNome: v }))}
+            onNovaEmpresaCnpj={(v) => setForm((f) => ({ ...f, novaEmpresaCnpj: v }))}
+            onNovaEmpresaResponsavel={(v) => setForm((f) => ({ ...f, novaEmpresaResponsavel: v }))}
+            onNovaEmpresaEmail={(v) => setForm((f) => ({ ...f, novaEmpresaEmail: v }))}
+          />
+        )}
+        {currentLabel === 'Identificação' && idFase === 'portal' && (
           <StepIdentificacao
             nome={form.nome}
             url={form.url}
@@ -924,7 +1073,7 @@ export default function NovoPortalPage() {
         )}
 
         <div className="np-footer">
-          {step > 1 ? (
+          {step > 1 || idFase === 'portal' ? (
             <button className="np-btn np-btn--ghost" type="button" onClick={back}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="19" y1="12" x2="5" y2="12" />
