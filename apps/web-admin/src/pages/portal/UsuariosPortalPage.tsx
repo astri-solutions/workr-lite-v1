@@ -36,6 +36,10 @@ const INITIAL_USERS: PortalUser[] = [
 
 const ROLE_LABEL: Record<Role, string> = { editor: 'Editor', viewer: 'Visualizador' };
 
+function initials(nome: string) {
+  return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+}
+
 function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
   onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean;
 }) {
@@ -69,113 +73,52 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo }: {
 interface UserForm { nome: string; email: string; role: Role; empresaIds: string[]; allEmpresas: boolean; }
 const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'viewer', empresaIds: [], allEmpresas: true };
 
-function usersForEmpresa(users: PortalUser[], empresaId: string) {
-  return users.filter(u => u.empresaIds.length === 0 || u.empresaIds.includes(empresaId));
+interface UserCardProps {
+  user: PortalUser;
+  onEdit: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
 }
 
-interface EmpresaSectionProps {
-  empresa: Empresa;
-  users: PortalUser[];
-  search: string;
-  onEdit: (u: PortalUser) => void;
-  onToggle: (id: string) => void;
-  onDelete: (u: PortalUser) => void;
-  onInvite: (empresaId: string) => void;
-}
-
-function EmpresaSection({ empresa, users, search, onEdit, onToggle, onDelete, onInvite }: EmpresaSectionProps) {
-  const [open, setOpen] = useState(true);
-
-  const filtered = users.filter(u =>
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const ativos = filtered.filter(u => u.ativo).length;
+function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
+  const empresaNomes = user.empresaIds.length === 0
+    ? null
+    : user.empresaIds.map(id => EMPRESAS.find(e => e.id === id)?.nome ?? id);
 
   return (
-    <div className="up-empresa-block">
-      <button type="button" className="up-empresa-header" onClick={() => setOpen(o => !o)}>
-        <div className="up-empresa-header__left">
-          <span className="material-symbols-outlined up-empresa-header__icon" style={{ fontSize: '18px' }}>business</span>
-          <span className="up-empresa-header__name">{empresa.nome}</span>
-          <span className="up-empresa-header__count">
-            {filtered.length} {filtered.length === 1 ? 'usuário' : 'usuários'}
+    <div className={`up-user-card${!user.ativo ? ' up-user-card--inactive' : ''}`}>
+      <div className="up-user-card__header">
+        <div className="up-user-card__avatar">{initials(user.nome)}</div>
+        <div className="up-user-card__info">
+          <span className="up-user-card__name">{user.nome}</span>
+          <span className="up-user-card__email">{user.email}</span>
+        </div>
+        <div className="up-user-card__badges">
+          <span className={`badge ${user.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
+            {ROLE_LABEL[user.role]}
           </span>
-          <span className="up-empresa-header__ativos">{ativos} ativo{ativos !== 1 ? 's' : ''}</span>
-        </div>
-        <div className="up-empresa-header__right">
-          <button
-            type="button"
-            className="up-empresa-invite"
-            onClick={e => { e.stopPropagation(); onInvite(empresa.id); }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Convidar
-          </button>
-          <span
-            className="material-symbols-outlined up-empresa-header__chevron"
-            style={{ fontSize: '18px', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-          >
-            expand_more
+          <span className={`badge ${user.ativo ? 'badge--success' : 'badge--error'}`}>
+            {user.ativo ? 'Ativo' : 'Inativo'}
           </span>
+          <span className="up-user-card__date">{user.criadoEm}</span>
         </div>
-      </button>
-
-      {open && (
-        <div className="up-empresa-body">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Perfil</th>
-                <th>Status</th>
-                <th>Criado em</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="table-empty">Nenhum usuário encontrado.</td></tr>
-              ) : filtered.map(u => (
-                <tr key={u.id}>
-                  <td>
-                    <div className="up-user-name-cell">
-                      <span className="table-cell--bold">{u.nome}</span>
-                      {u.empresaIds.length === 0 && (
-                        <span className="up-all-badge">Acesso total</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="table-cell--muted">{u.email}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
-                      {ROLE_LABEL[u.role]}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${u.ativo ? 'badge--success' : 'badge--error'}`}>
-                      {u.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="table-cell--muted">{u.criadoEm}</td>
-                  <td>
-                    <KebabMenu
-                      ativo={u.ativo}
-                      onEdit={() => onEdit(u)}
-                      onToggle={() => onToggle(u.id)}
-                      onDelete={() => onDelete(u)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <KebabMenu ativo={user.ativo} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
+      </div>
+      <div className="up-user-card__footer">
+        <span className="up-user-card__footer-label">
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>business</span>
+          Acesso
+        </span>
+        {empresaNomes === null ? (
+          <span className="up-all-badge">Todas as empresas</span>
+        ) : (
+          <div className="up-user-card__chips">
+            {empresaNomes.map(nome => (
+              <span key={nome} className="up-tag">{nome}</span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -189,25 +132,21 @@ export default function UsuariosPortalPage() {
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
   const [invited, setInvited] = useState(false);
 
-  function openCreate(empresaId?: string) {
+  const filtered = users.filter(u =>
+    u.nome.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function openCreate() {
     setEditing(null);
-    setForm(empresaId
-      ? { ...EMPTY_FORM, allEmpresas: false, empresaIds: [empresaId] }
-      : EMPTY_FORM
-    );
+    setForm(EMPTY_FORM);
     setInvited(false);
     setModalOpen(true);
   }
 
   function openEdit(u: PortalUser) {
     setEditing(u);
-    setForm({
-      nome: u.nome,
-      email: u.email,
-      role: u.role,
-      empresaIds: u.empresaIds,
-      allEmpresas: u.empresaIds.length === 0,
-    });
+    setForm({ nome: u.nome, email: u.email, role: u.role, empresaIds: u.empresaIds, allEmpresas: u.empresaIds.length === 0 });
     setModalOpen(true);
   }
 
@@ -225,16 +164,11 @@ export default function UsuariosPortalPage() {
       setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, ...form, empresaIds: empIds } : u));
       closeModal();
     } else {
-      const newUser: PortalUser = {
-        id: 'u' + Date.now(),
-        nome: form.nome,
-        email: form.email,
-        role: form.role,
-        empresaIds: empIds,
-        ativo: true,
+      setUsers(prev => [...prev, {
+        id: 'u' + Date.now(), nome: form.nome, email: form.email,
+        role: form.role, empresaIds: empIds, ativo: true,
         criadoEm: new Date().toLocaleDateString('pt-BR'),
-      };
-      setUsers(prev => [...prev, newUser]);
+      }]);
       setInvited(true);
     }
   }
@@ -242,9 +176,7 @@ export default function UsuariosPortalPage() {
   function toggleEmpresa(id: string) {
     setForm(f => ({
       ...f,
-      empresaIds: f.empresaIds.includes(id)
-        ? f.empresaIds.filter(e => e !== id)
-        : [...f.empresaIds, id],
+      empresaIds: f.empresaIds.includes(id) ? f.empresaIds.filter(e => e !== id) : [...f.empresaIds, id],
     }));
   }
 
@@ -256,7 +188,7 @@ export default function UsuariosPortalPage() {
         title="Usuários do Portal"
         description={<>Usuários com acesso ao portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={() => openCreate()}>
+          <button className="btn-primary" type="button" onClick={openCreate}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -278,10 +210,6 @@ export default function UsuariosPortalPage() {
           <span className="stat-card__number">{users.filter(u => u.role === 'editor').length}</span>
           <span className="stat-card__label">Editores</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-card__number">{EMPRESAS.length}</span>
-          <span className="stat-card__label">Empresas</span>
-        </div>
       </div>
 
       <div className="up-search-wrap">
@@ -297,17 +225,16 @@ export default function UsuariosPortalPage() {
         />
       </div>
 
-      <div className="up-empresas-list">
-        {EMPRESAS.map(emp => (
-          <EmpresaSection
-            key={emp.id}
-            empresa={emp}
-            users={usersForEmpresa(users, emp.id)}
-            search={search}
-            onEdit={openEdit}
-            onToggle={id => setUsers(prev => prev.map(u => u.id === id ? { ...u, ativo: !u.ativo } : u))}
-            onDelete={u => setDeleteTarget(u)}
-            onInvite={openCreate}
+      <div className="up-user-list">
+        {filtered.length === 0 ? (
+          <p className="up-empty">Nenhum usuário encontrado.</p>
+        ) : filtered.map(u => (
+          <UserCard
+            key={u.id}
+            user={u}
+            onEdit={() => openEdit(u)}
+            onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
+            onDelete={() => setDeleteTarget(u)}
           />
         ))}
       </div>
@@ -324,12 +251,8 @@ export default function UsuariosPortalPage() {
           ) : (
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
-              <button
-                className="btn-primary"
-                type="button"
-                onClick={handleSave}
-                disabled={!form.nome.trim() || !form.email.trim()}
-              >
+              <button className="btn-primary" type="button" onClick={handleSave}
+                disabled={!form.nome.trim() || !form.email.trim()}>
                 {editing ? 'Salvar' : 'Enviar convite'}
               </button>
             </div>
@@ -339,8 +262,7 @@ export default function UsuariosPortalPage() {
         {invited ? (
           <div className="up-invited">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00D865" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="9 12 11 14 15 10" />
+              <circle cx="12" cy="12" r="10" /><polyline points="9 12 11 14 15 10" />
             </svg>
             <p>Convite enviado para <strong>{form.email}</strong>.</p>
           </div>
@@ -367,7 +289,6 @@ export default function UsuariosPortalPage() {
                 <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
               </div>
             </label>
-
             <div className="up-form__section">
               <span className="up-form__section-label">Acesso às empresas</span>
               <label className="up-form__check">
@@ -391,13 +312,8 @@ export default function UsuariosPortalPage() {
         )}
       </Modal>
 
-      {/* Delete confirm */}
       {deleteTarget && (
-        <Modal
-          open
-          onClose={() => setDeleteTarget(null)}
-          title="Remover usuário"
-          size="sm"
+        <Modal open onClose={() => setDeleteTarget(null)} title="Remover usuário" size="sm"
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
