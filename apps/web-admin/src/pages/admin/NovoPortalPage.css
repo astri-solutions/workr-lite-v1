@@ -1021,3 +1021,68 @@
 @media (max-width: 600px) {
   .np-nova-empresa-row { grid-template-columns: 1fr; }
 }
+
+/* CNPJ / CVM 2-col row in Identificação */
+.np-id-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 600px) {
+  .np-id-row { grid-template-columns: 1fr; }
+}
+
+/* Auto CVM option cards */
+.np-autocvm-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.np-autocvm-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.np-autocvm-card:hover { border-color: var(--color-primary-300); background: var(--color-primary-50, #e8f5f7); }
+.np-autocvm-card--selected { border-color: var(--color-primary-500); background: var(--color-primary-50, #e8f5f7); }
+
+.np-autocvm-card__check {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.np-autocvm-card__check--active {
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+  color: #fff;
+}
+
+.np-autocvm-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.np-autocvm-card__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-800);
+}
+.np-autocvm-card__desc {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  line-height: 1.5;
+}

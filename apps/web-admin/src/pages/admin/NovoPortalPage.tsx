@@ -17,8 +17,9 @@ function getSteps(tipo: string) {
     { id: 3 + off, label: 'Fonte' },
     { id: 4 + off, label: 'Cores' },
     { id: 5 + off, label: 'Identidade' },
-    { id: 6 + off, label: 'SEO' },
-    { id: 7 + off, label: 'Email' },
+    { id: 6 + off, label: 'Idioma' },
+    { id: 7 + off, label: 'SEO' },
+    { id: 8 + off, label: 'Email' },
   );
   return steps;
 }
@@ -132,6 +133,9 @@ interface FormData {
   /* portal */
   nome: string;
   url: string;
+  cnpj: string;
+  cvmCode: string;
+  autoCvm: boolean;
   tipo: string;
   fonte: string;
   corPrimaria: string;
@@ -283,10 +287,12 @@ function StepEmpresa({
 
 /* ─── Step 1b: Identificação ─────────────────────────────────────────── */
 function StepIdentificacao({
-  nome, url, onNome, onUrl,
+  nome, url, cnpj, cvmCode, autoCvm,
+  onNome, onUrl, onCnpj, onCvmCode, onAutoCvm,
 }: {
-  nome: string; url: string;
+  nome: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean;
   onNome: (v: string) => void; onUrl: (v: string) => void;
+  onCnpj: (v: string) => void; onCvmCode: (v: string) => void; onAutoCvm: (v: boolean) => void;
 }) {
   const slug = url.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-');
 
@@ -298,9 +304,10 @@ function StepIdentificacao({
     <div className="np-step">
       <div className="np-step__head">
         <h2 className="np-step__title">Identificação do portal</h2>
-        <p className="np-step__desc">Defina o nome interno e o endereço público do portal.</p>
+        <p className="np-step__desc">Defina o nome interno, o endereço público e os dados da empresa vinculada.</p>
       </div>
       <div className="np-step__body">
+
         <div className="np-field">
           <label className="np-label">Nome do site</label>
           <p className="np-field__hint">Esse nome é exibido no painel e identifica o portal internamente.</p>
@@ -341,6 +348,65 @@ function StepIdentificacao({
             </div>
           )}
         </div>
+
+        <div className="np-id-row">
+          <div className="np-field">
+            <label className="np-label">CNPJ da empresa</label>
+            <input
+              className="np-input"
+              type="text"
+              placeholder="00.000.000/0001-00"
+              value={cnpj}
+              onChange={(e) => onCnpj(e.target.value)}
+              maxLength={18}
+            />
+          </div>
+          <div className="np-field">
+            <label className="np-label">Código CVM</label>
+            <input
+              className="np-input"
+              type="text"
+              placeholder="Ex: 23574"
+              value={cvmCode}
+              onChange={(e) => onCvmCode(e.target.value)}
+              maxLength={10}
+            />
+          </div>
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Auto CVM</label>
+          <p className="np-field__hint">Ativar a importação automática de documentos da CVM pelo CNPJ.</p>
+          <div className="np-autocvm-options">
+            <button
+              type="button"
+              className={`np-autocvm-card${autoCvm ? ' np-autocvm-card--selected' : ''}`}
+              onClick={() => onAutoCvm(true)}
+            >
+              <div className={`np-autocvm-card__check${autoCvm ? ' np-autocvm-card__check--active' : ''}`}>
+                {autoCvm && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+              </div>
+              <div className="np-autocvm-card__body">
+                <span className="np-autocvm-card__title">Ativar Auto CVM</span>
+                <span className="np-autocvm-card__desc">Documentos da CVM são importados automaticamente para os canais regulatórios.</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              className={`np-autocvm-card${!autoCvm ? ' np-autocvm-card--selected' : ''}`}
+              onClick={() => onAutoCvm(false)}
+            >
+              <div className={`np-autocvm-card__check${!autoCvm ? ' np-autocvm-card__check--active' : ''}`}>
+                {!autoCvm && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+              </div>
+              <div className="np-autocvm-card__body">
+                <span className="np-autocvm-card__title">Não ativar agora</span>
+                <span className="np-autocvm-card__desc">O Auto CVM pode ser configurado posteriormente nas configurações do portal.</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -714,34 +780,19 @@ function Dropzone({
 
 /* ─── Step: Identidade ────────────────────────────────────────────────────── */
 function StepIdentidade({
-  logoPreview, faviconPreview, idiomas,
-  onLogo, onFavicon, onIdiomas,
+  logoPreview, faviconPreview,
+  onLogo, onFavicon,
 }: {
   logoPreview: string | null;
   faviconPreview: string | null;
-  idiomas: string[];
   onLogo: (file: File | null, preview: string | null) => void;
   onFavicon: (file: File | null, preview: string | null) => void;
-  onIdiomas: (v: string[]) => void;
 }) {
-  const langs = [
-    { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
-    { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
-  ];
-
-  function toggleIdioma(id: string) {
-    if (idiomas.includes(id)) {
-      onIdiomas(idiomas.filter((v) => v !== id));
-    } else {
-      onIdiomas([...idiomas, id]);
-    }
-  }
-
   return (
     <div className="np-step">
       <div className="np-step__head">
-        <h2 className="np-step__title">Identidade visual e idioma</h2>
-        <p className="np-step__desc">Configure o logotipo, favicon e os idiomas disponíveis no portal.</p>
+        <h2 className="np-step__title">Identidade visual</h2>
+        <p className="np-step__desc">Configure o logotipo e o favicon do portal.</p>
       </div>
       <div className="np-step__body np-step__body--sections">
 
@@ -769,37 +820,61 @@ function StepIdentidade({
           />
         </div>
 
-        <div className="np-field">
-          <label className="np-label">Idiomas do portal</label>
-          <p className="np-field__hint">Selecione um ou mais idiomas. Você pode configurar versões adicionais depois.</p>
-          <div className="np-idioma-list">
-            {langs.map((lang) => {
-              const selected = idiomas.includes(lang.id);
-              return (
-                <button
-                  key={lang.id}
-                  type="button"
-                  className={`np-idioma-card${selected ? ' np-idioma-card--selected' : ''}`}
-                  onClick={() => toggleIdioma(lang.id)}
-                >
-                  <span className="np-idioma-card__flag">{lang.flag}</span>
-                  <div className="np-idioma-card__info">
-                    <span className="np-idioma-card__label">{lang.label}</span>
-                    <span className="np-idioma-card__desc">{lang.desc}</span>
-                  </div>
-                  <div className={`np-idioma-card__check${selected ? ' np-idioma-card__check--active' : ''}`}>
-                    {selected && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      </div>
+    </div>
+  );
+}
 
+/* ─── Step: Idioma ────────────────────────────────────────────────────────── */
+function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: string[]) => void }) {
+  const langs = [
+    { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
+    { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
+    { id: 'es', label: 'Espanhol', flag: '🇪🇸', desc: 'Conteúdo em espanhol' },
+  ];
+
+  function toggleIdioma(id: string) {
+    if (idiomas.includes(id)) {
+      if (idiomas.length === 1) return; // always keep at least one
+      onIdiomas(idiomas.filter((v) => v !== id));
+    } else {
+      onIdiomas([...idiomas, id]);
+    }
+  }
+
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Idiomas do portal</h2>
+        <p className="np-step__desc">Selecione um ou mais idiomas disponíveis no portal. Você pode adicionar versões adicionais depois.</p>
+      </div>
+      <div className="np-step__body">
+        <div className="np-idioma-list">
+          {langs.map((lang) => {
+            const selected = idiomas.includes(lang.id);
+            return (
+              <button
+                key={lang.id}
+                type="button"
+                className={`np-idioma-card${selected ? ' np-idioma-card--selected' : ''}`}
+                onClick={() => toggleIdioma(lang.id)}
+              >
+                <span className="np-idioma-card__flag">{lang.flag}</span>
+                <div className="np-idioma-card__info">
+                  <span className="np-idioma-card__label">{lang.label}</span>
+                  <span className="np-idioma-card__desc">{lang.desc}</span>
+                </div>
+                <div className={`np-idioma-card__check${selected ? ' np-idioma-card__check--active' : ''}`}>
+                  {selected && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -920,6 +995,9 @@ export default function NovoPortalPage() {
     novaEmpresaEmail: '',
     nome: '',
     url: '',
+    cnpj: '',
+    cvmCode: '',
+    autoCvm: true,
     tipo: '',
     fonte: 'inter',
     customFontFile: null,
@@ -970,7 +1048,7 @@ export default function NovoPortalPage() {
       return form.nome.trim().length > 0 && form.url.trim().length > 0;
     }
     if (currentLabel === 'Tipo') return form.tipo !== '';
-    if (currentLabel === 'Identidade') return form.idiomas.length > 0;
+    if (currentLabel === 'Idioma') return form.idiomas.length > 0;
     if (currentLabel === 'Email') {
       if (!form.emailContato) return true;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailContato);
@@ -1019,8 +1097,14 @@ export default function NovoPortalPage() {
           <StepIdentificacao
             nome={form.nome}
             url={form.url}
+            cnpj={form.cnpj}
+            cvmCode={form.cvmCode}
+            autoCvm={form.autoCvm}
             onNome={(v) => setForm((f) => ({ ...f, nome: v }))}
             onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
+            onCnpj={(v) => setForm((f) => ({ ...f, cnpj: v }))}
+            onCvmCode={(v) => setForm((f) => ({ ...f, cvmCode: v }))}
+            onAutoCvm={(v) => setForm((f) => ({ ...f, autoCvm: v }))}
           />
         )}
         {currentLabel === 'Tipo' && (
@@ -1052,9 +1136,13 @@ export default function NovoPortalPage() {
           <StepIdentidade
             logoPreview={form.logoPreview}
             faviconPreview={form.faviconPreview}
-            idiomas={form.idiomas}
             onLogo={(file, preview) => setForm((f) => ({ ...f, logoFile: file, logoPreview: preview }))}
             onFavicon={(file, preview) => setForm((f) => ({ ...f, faviconFile: file, faviconPreview: preview }))}
+          />
+        )}
+        {currentLabel === 'Idioma' && (
+          <StepIdioma
+            idiomas={form.idiomas}
             onIdiomas={(v) => setForm((f) => ({ ...f, idiomas: v }))}
           />
         )}
