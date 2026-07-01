@@ -22,6 +22,7 @@ const TIPOS = ['Conference Call', 'Assembleia', 'Road Show', 'Divulgação de Re
 
 const STATUS_LABEL: Record<EventStatus, string> = { publicado: 'Publicado', rascunho: 'Rascunho', agendado: 'Agendado' };
 const STATUS_BADGE: Record<EventStatus, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
+const STATUS_STRIPE: Record<EventStatus, string> = { publicado: 'var(--color-success-500)', rascunho: 'var(--color-gray-300)', agendado: 'var(--color-warning-500)' };
 
 const INITIAL: CalEvent[] = [
   // upcoming
@@ -145,7 +146,9 @@ export default function CalendarioPage() {
 
       {/* Upcoming events table */}
       <p className="cal-section-heading">Próximos eventos</p>
-      <div className="table-wrapper">
+
+      {/* Desktop table */}
+      <div className="table-wrapper table-wrapper--responsive">
         <table className="data-table">
           <thead>
             <tr>
@@ -187,6 +190,35 @@ export default function CalendarioPage() {
         </table>
       </div>
 
+      {/* Mobile cards */}
+      <div className="rcard-list">
+        {upcoming.length === 0 ? (
+          <p className="cal-section-heading" style={{ textAlign: 'center', color: 'var(--color-gray-400)', fontStyle: 'italic' }}>Nenhum evento encontrado.</p>
+        ) : upcoming.map(e => (
+          <div key={e.id} className="rcard">
+            <div className="rcard__stripe" style={{ background: STATUS_STRIPE[e.status] }} />
+            <div className="rcard__inner">
+              <div className="rcard__body">
+                <span className="rcard__title">{e.titulo}</span>
+                <span className="rcard__meta">{formatDate(e.data)} · {e.hora} · {e.tipo}</span>
+                <div className="rcard__chips">
+                  <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
+                  <button type="button" className={`cal-home-toggle${e.exibirHome ? ' cal-home-toggle--on' : ''}`}
+                    onClick={() => toggleHome(e.id)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
+                    {e.exibirHome ? 'Na home' : 'Oculto'}
+                  </button>
+                </div>
+              </div>
+              <div className="rcard__footer">
+                <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
+                <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Past events — collapsible */}
       <button type="button" className="cal-past-toggle" onClick={() => setPastOpen(o => !o)}>
         <span className="cal-past-toggle__label">
@@ -200,39 +232,66 @@ export default function CalendarioPage() {
       </button>
 
       {pastOpen && (
-        <div className="table-wrapper">
-          <table className="data-table cal-past-table">
-            <thead>
-              <tr>
-                <th>Evento</th>
-                <th>Data</th>
-                <th>Hora</th>
-                <th>Tipo</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {past.length === 0 ? (
-                <tr><td colSpan={6} className="table-empty">Nenhum evento realizado.</td></tr>
-              ) : past.map(e => (
-                <tr key={e.id} className="cal-past-row">
-                  <td className="table-cell--bold">{e.titulo}</td>
-                  <td className="table-cell--muted">{formatDate(e.data)}</td>
-                  <td className="table-cell--muted">{e.hora}</td>
-                  <td className="table-cell--muted">{e.tipo}</td>
-                  <td><span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span></td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
-                    </div>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="table-wrapper table-wrapper--responsive">
+            <table className="data-table cal-past-table">
+              <thead>
+                <tr>
+                  <th>Evento</th>
+                  <th>Data</th>
+                  <th>Hora</th>
+                  <th>Tipo</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {past.length === 0 ? (
+                  <tr><td colSpan={6} className="table-empty">Nenhum evento realizado.</td></tr>
+                ) : past.map(e => (
+                  <tr key={e.id} className="cal-past-row">
+                    <td className="table-cell--bold">{e.titulo}</td>
+                    <td className="table-cell--muted">{formatDate(e.data)}</td>
+                    <td className="table-cell--muted">{e.hora}</td>
+                    <td className="table-cell--muted">{e.tipo}</td>
+                    <td><span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span></td>
+                    <td>
+                      <div className="table-actions">
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
+                        <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="rcard-list">
+            {past.length === 0 ? (
+              <p className="cal-section-heading" style={{ textAlign: 'center', color: 'var(--color-gray-400)', fontStyle: 'italic' }}>Nenhum evento realizado.</p>
+            ) : past.map(e => (
+              <div key={e.id} className="rcard rcard--past">
+                <div className="rcard__stripe" style={{ background: STATUS_STRIPE[e.status] }} />
+                <div className="rcard__inner">
+                  <div className="rcard__body">
+                    <span className="rcard__title">{e.titulo}</span>
+                    <span className="rcard__meta">{formatDate(e.data)} · {e.hora} · {e.tipo}</span>
+                    <div className="rcard__chips">
+                      <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
+                    </div>
+                  </div>
+                  <div className="rcard__footer">
+                    <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(e)}>Editar</button>
+                    <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(e.id)}>Excluir</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Create / Edit modal */}

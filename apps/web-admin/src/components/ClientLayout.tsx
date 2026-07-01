@@ -232,6 +232,7 @@ export default function ClientLayout() {
   const [portalLayout, setPortalLayout] = useState<PortalLayout>(
     () => (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar'
   );
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
@@ -255,13 +256,19 @@ export default function ClientLayout() {
 
   return (
     <div className="admin-shell">
+      <div
+        className={`admin-sidebar-backdrop${mobileNavOpen ? ' admin-sidebar-backdrop--visible' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+      />
       <AppSidebar
         sections={sections}
         logoSrc={logoSrc}
         logoAlt={logoAlt}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
       />
       <div className="admin-right">
-        <AppTopbar />
+        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} />
         <main className="admin-main">
           <div className="admin-content">
             <Outlet />

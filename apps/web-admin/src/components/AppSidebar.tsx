@@ -19,6 +19,8 @@ interface AppSidebarProps {
   logoSrc: string;
   logoCollapsedSrc?: string;
   logoAlt?: string;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 function SidebarNavItem({
@@ -113,18 +115,20 @@ export default function AppSidebar({
   logoSrc,
   logoCollapsedSrc,
   logoAlt = 'Logo',
+  mobileOpen = false,
+  onMobileClose,
 }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const currentLogo = collapsed ? (logoCollapsedSrc ?? logoSrc) : logoSrc;
 
   return (
-    <aside className={`admin-sidebar${collapsed ? ' admin-sidebar--collapsed' : ''}`}>
+    <aside className={`admin-sidebar${collapsed ? ' admin-sidebar--collapsed' : ''}${mobileOpen ? ' admin-sidebar--mobile-open' : ''}`}>
       <NavLink to="/portal/dashboard" className="admin-sidebar__logo">
         <img src={currentLogo} alt={logoAlt} className="admin-sidebar__logo-img" />
       </NavLink>
 
-      <div className="admin-sidebar__scroll">
+      <div className="admin-sidebar__scroll" onClick={onMobileClose}>
         <nav className="admin-sidebar__nav">
           {sections.map((section) => (
             <div key={section.label} className="admin-sidebar__section">

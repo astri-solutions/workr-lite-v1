@@ -413,6 +413,102 @@ td:has(.table-actions) {
   padding: var(--space-8) var(--space-4) !important;
 }
 
+/* ─── Responsive card list ──────────────────────────────────
+   Replaces data-table on narrow viewports (≤ 720 px).
+
+   Usage in TSX:
+     Add "table-wrapper--responsive" to the existing table wrapper
+     so it hides on mobile, then render a sibling .rcard-list.
+
+   Card anatomy:
+     <div className="rcard">
+       <div className="rcard__stripe" style={{ background: '...' }} />
+       <div className="rcard__inner">
+         <div className="rcard__body">
+           <span className="rcard__title">…</span>
+           <span className="rcard__meta">…</span>
+           <div className="rcard__chips"> badge / toggle chips </div>
+         </div>
+         <div className="rcard__footer">
+           action buttons (btn-action variants)
+         </div>
+       </div>
+     </div>
+────────────────────────────────────────────────────────── */
+.rcard-list {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.rcard {
+  display: flex;
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.rcard__stripe {
+  width: 4px;
+  flex-shrink: 0;
+  background: var(--color-gray-300);
+}
+
+.rcard__inner {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rcard__body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rcard__title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-900);
+  line-height: 1.4;
+}
+
+.rcard__meta {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  line-height: 1.5;
+}
+
+.rcard__chips {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.rcard__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+/* Past cards — slightly muted */
+.rcard--past { opacity: 0.72; }
+.rcard--past:hover { opacity: 1; }
+
+@media (max-width: 720px) {
+  .rcard-list { display: flex; }
+  .table-wrapper--responsive { display: none; }
+}
+
 /* ─── Placeholder / empty ────────────────────────────────── */
 .page-placeholder {
   display: flex;
