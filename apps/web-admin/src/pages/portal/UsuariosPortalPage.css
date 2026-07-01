@@ -32,13 +32,18 @@
   background: #fff;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
-  overflow: hidden;
   box-shadow: var(--shadow-sm);
   transition: border-color 0.15s;
 }
 .up-user-card:hover { border-color: var(--color-gray-300); }
 .up-user-card--inactive { opacity: 0.72; }
 .up-user-card--inactive:hover { opacity: 1; }
+
+/* Round footer corners to match card radius (no overflow:hidden on card) */
+.up-user-card__footer {
+  border-bottom-left-radius: calc(var(--radius-xl) - 1px);
+  border-bottom-right-radius: calc(var(--radius-xl) - 1px);
+}
 
 /* Header row */
 .up-user-card__header {
