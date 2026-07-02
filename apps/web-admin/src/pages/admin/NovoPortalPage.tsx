@@ -119,6 +119,7 @@ const FONTS = [
 interface FormData {
   /* portal */
   nome: string;
+  nomeFantasia: string;
   url: string;
   cnpj: string;
   cvmCode: string;
@@ -145,8 +146,6 @@ interface FormData {
   /* admin user */
   adminNome: string;
   adminEmail: string;
-  adminSenha: string;
-  adminSenhaConfirm: string;
 }
 
 /* ─── Stepper ──────────────────────────────────────────────────────── */
@@ -187,11 +186,11 @@ const TIPO_SITE_OPTIONS = [
 ];
 
 function StepIdentificacao({
-  nome, url, cnpj, cvmCode, autoCvm, tipoSite,
-  onNome, onUrl, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
+  nome, nomeFantasia, url, cnpj, cvmCode, autoCvm, tipoSite,
+  onNome, onNomeFantasia, onUrl, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
 }: {
-  nome: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean; tipoSite: string;
-  onNome: (v: string) => void; onUrl: (v: string) => void;
+  nome: string; nomeFantasia: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean; tipoSite: string;
+  onNome: (v: string) => void; onNomeFantasia: (v: string) => void; onUrl: (v: string) => void;
   onCnpj: (v: string) => void; onCvmCode: (v: string) => void; onAutoCvm: (v: boolean) => void;
   onTipoSite: (v: string) => void;
 }) {
@@ -225,6 +224,19 @@ function StepIdentificacao({
         </div>
 
         <div className="np-field">
+          <label className="np-label">Nome fantasia</label>
+          <p className="np-field__hint">Nome público da empresa exibido no portal para os visitantes.</p>
+          <input
+            className="np-input"
+            type="text"
+            placeholder="Ex: Construtora Aurora"
+            value={nomeFantasia}
+            onChange={(e) => onNomeFantasia(e.target.value)}
+            maxLength={120}
+          />
+        </div>
+
+        <div className="np-field">
           <label className="np-label">Tipo de site</label>
           <div className="np-select-wrap">
             <select
@@ -247,7 +259,7 @@ function StepIdentificacao({
           <label className="np-label">Subdomínio</label>
           <p className="np-field__hint">Escolha o endereço do portal. Pode ser alterado depois.</p>
           <div className="np-url-wrap">
-            <span className="np-url-prefix">workr.com.br /</span>
+            <span className="np-url-prefix">astri.solutions /</span>
             <input
               className="np-input np-input--url"
               type="text"
@@ -264,7 +276,7 @@ function StepIdentificacao({
                 <line x1="2" y1="12" x2="22" y2="12" />
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
-              <span>https://<strong>{slug}</strong>.workr.com.br</span>
+              <span>https://astri.solutions/<strong>{slug}</strong></span>
             </div>
           )}
         </div>
@@ -1008,35 +1020,28 @@ function StepEmail({ value, onChange }: { value: string; onChange: (v: string) =
 
 /* ─── Step: Admin ─────────────────────────────────────────────────────── */
 function StepAdmin({
-  nome, email, senha, senhaConfirm,
-  onNome, onEmail, onSenha, onSenhaConfirm,
+  nome, email,
+  onNome, onEmail,
 }: {
-  nome: string; email: string; senha: string; senhaConfirm: string;
+  nome: string; email: string;
   onNome: (v: string) => void; onEmail: (v: string) => void;
-  onSenha: (v: string) => void; onSenhaConfirm: (v: string) => void;
 }) {
-  const [showSenha, setShowSenha] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
   const emailValid = !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const senhaStrength = senha.length === 0 ? null : senha.length < 6 ? 'fraca' : senha.length < 10 ? 'média' : 'forte';
-  const senhasMatch = !senhaConfirm || senha === senhaConfirm;
 
   return (
     <div className="np-step">
       <div className="np-step__head">
         <h2 className="np-step__title">Usuário administrador</h2>
-        <p className="np-step__desc">Crie a conta principal de acesso ao portal. Esse usuário terá permissão total e será o responsável pelo cliente.</p>
+        <p className="np-step__desc">Informe os dados do responsável pelo portal. Após a criação, um e-mail de boas-vindas será enviado com o link para o cliente definir a própria senha.</p>
       </div>
       <div className="np-step__body">
 
-        <div className="np-admin-notice">
+        <div className="np-admin-notice np-admin-notice--email">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
           </svg>
-          <span>Essa conta é obrigatória. O cliente usará esse acesso para gerenciar o portal.</span>
+          <span>O cliente receberá um e-mail de boas-vindas com um link para criar a própria senha antes de acessar o portal pela primeira vez.</span>
         </div>
 
         <div className="np-field">
@@ -1070,70 +1075,6 @@ function StepAdmin({
           {!emailValid && <span className="np-input__hint np-input__hint--error">Digite um endereço de e-mail válido.</span>}
         </div>
 
-        <div className="np-field">
-          <label className="np-label">Senha <span className="np-label__required">*</span></label>
-          <p className="np-field__hint">Mínimo de 6 caracteres.</p>
-          <div className="np-password-wrap">
-            <input
-              className="np-input np-input--password"
-              type={showSenha ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={senha}
-              onChange={(e) => onSenha(e.target.value)}
-            />
-            <button type="button" className="np-password-toggle" onClick={() => setShowSenha(v => !v)} aria-label="Mostrar senha">
-              {showSenha ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
-            </button>
-          </div>
-          {senhaStrength && (
-            <div className="np-senha-strength">
-              <div className={`np-senha-bar np-senha-bar--${senhaStrength}`} />
-              <span className={`np-senha-label np-senha-label--${senhaStrength}`}>
-                {senhaStrength === 'fraca' ? 'Senha fraca' : senhaStrength === 'média' ? 'Senha média' : 'Senha forte'}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="np-field">
-          <label className="np-label">Confirmar senha <span className="np-label__required">*</span></label>
-          <div className="np-password-wrap">
-            <input
-              className={`np-input np-input--password${!senhasMatch ? ' np-input--error' : ''}`}
-              type={showConfirm ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={senhaConfirm}
-              onChange={(e) => onSenhaConfirm(e.target.value)}
-            />
-            <button type="button" className="np-password-toggle" onClick={() => setShowConfirm(v => !v)} aria-label="Mostrar confirmação">
-              {showConfirm ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
-            </button>
-          </div>
-          {!senhasMatch && <span className="np-input__hint np-input__hint--error">As senhas não coincidem.</span>}
-        </div>
-
       </div>
     </div>
   );
@@ -1149,6 +1090,7 @@ export default function NovoPortalPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormData>({
     nome: locationState?.empresaNome ?? '',
+    nomeFantasia: '',
     url: '',
     cnpj: '',
     cvmCode: '',
@@ -1174,8 +1116,6 @@ export default function NovoPortalPage() {
     canais: DEFAULT_CANAIS,
     adminNome: '',
     adminEmail: '',
-    adminSenha: '',
-    adminSenhaConfirm: '',
   });
 
   const steps = getSteps(form.tipo);
@@ -1201,9 +1141,7 @@ export default function NovoPortalPage() {
     if (currentLabel === 'Admin') {
       return (
         form.adminNome.trim().length > 0 &&
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.adminEmail) &&
-        form.adminSenha.length >= 6 &&
-        form.adminSenha === form.adminSenhaConfirm
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.adminEmail)
       );
     }
     return true;
@@ -1247,12 +1185,14 @@ export default function NovoPortalPage() {
         {currentLabel === 'Identificação' && (
           <StepIdentificacao
             nome={form.nome}
+            nomeFantasia={form.nomeFantasia}
             url={form.url}
             cnpj={form.cnpj}
             cvmCode={form.cvmCode}
             autoCvm={form.autoCvm}
             tipoSite={form.tipoSite}
             onNome={(v) => setForm((f) => ({ ...f, nome: v }))}
+            onNomeFantasia={(v) => setForm((f) => ({ ...f, nomeFantasia: v }))}
             onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
             onCnpj={(v) => setForm((f) => ({ ...f, cnpj: v }))}
             onCvmCode={(v) => setForm((f) => ({ ...f, cvmCode: v }))}
@@ -1317,12 +1257,8 @@ export default function NovoPortalPage() {
           <StepAdmin
             nome={form.adminNome}
             email={form.adminEmail}
-            senha={form.adminSenha}
-            senhaConfirm={form.adminSenhaConfirm}
             onNome={(v) => setForm((f) => ({ ...f, adminNome: v }))}
             onEmail={(v) => setForm((f) => ({ ...f, adminEmail: v }))}
-            onSenha={(v) => setForm((f) => ({ ...f, adminSenha: v }))}
-            onSenhaConfirm={(v) => setForm((f) => ({ ...f, adminSenhaConfirm: v }))}
           />
         )}
 

@@ -217,19 +217,19 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
       title="Alterar Domínio do Site"
       size="sm"
       footer={
-        <>
-          <button className="portais-modal-btn-cancel" type="button" onClick={handleClose}>
+        <div className="modal-footer">
+          <button className="btn-outline" type="button" onClick={handleClose}>
             Cancelar
           </button>
           <button
-            className={`portais-modal-btn-confirm${confirmed ? ' portais-modal-btn-confirm--active' : ''}`}
+            className="btn-primary"
             type="button"
             disabled={!confirmed}
             onClick={handleClose}
           >
             Alterar
           </button>
-        </>
+        </div>
       }
     >
       <div className="portais-alterar">
