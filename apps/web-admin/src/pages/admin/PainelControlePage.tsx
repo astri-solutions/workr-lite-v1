@@ -69,6 +69,7 @@ export default function PainelControlePage() {
   const [cacheClearing, setCacheClearing] = useState(false);
   const [cacheDone, setCacheDone] = useState(false);
   const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
+  const [suspendConfirm, setSuspendConfirm] = useState(false);
 
   const site = SITES_DB.find((s) => s.id === siteId);
 
@@ -159,13 +160,6 @@ export default function PainelControlePage() {
           <span className={`painel-badge ${effectiveStatus === 'Ativo' ? 'painel-badge--success' : 'painel-badge--error'}`}>
             {effectiveStatus}
           </span>
-          <button
-            className={`painel-suspend-btn${effectiveStatus === 'Suspenso' ? ' painel-suspend-btn--reativar' : ''}`}
-            type="button"
-            onClick={() => setSiteStatus(s => (s ?? site.status) === 'Ativo' ? 'Suspenso' : 'Ativo')}
-          >
-            {effectiveStatus === 'Ativo' ? 'Suspender site' : 'Reativar site'}
-          </button>
         </div>
       </div>
 
@@ -360,6 +354,108 @@ export default function PainelControlePage() {
 
         </div>
       </div>
+
+      {/* ── Suspend / Reactivate block ──────────────────── */}
+      {effectiveStatus === 'Ativo' ? (
+        <div className={`painel-suspend-card${suspendConfirm ? ' painel-suspend-card--confirming' : ''}`}>
+          {!suspendConfirm ? (
+            <>
+              <div className="painel-suspend-card__body">
+                <div className="painel-suspend-card__icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="painel-suspend-card__title">Suspender site</p>
+                  <p className="painel-suspend-card__desc">
+                    O site ficará indisponível para visitantes. Todos os dados são preservados e o site pode ser reativado a qualquer momento.
+                  </p>
+                </div>
+              </div>
+              <button className="painel-suspend-card__btn" type="button" onClick={() => setSuspendConfirm(true)}>
+                Suspender site
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="painel-suspend-card__body">
+                <div className="painel-suspend-card__icon painel-suspend-card__icon--warn">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="painel-suspend-card__title painel-suspend-card__title--warn">Confirmar suspensão</p>
+                  <p className="painel-suspend-card__desc">
+                    Tem certeza? O site <strong>{site.link}</strong> ficará offline imediatamente para todos os visitantes.
+                  </p>
+                </div>
+              </div>
+              <div className="painel-suspend-card__confirm-actions">
+                <button className="painel-suspend-card__btn-cancel" type="button" onClick={() => setSuspendConfirm(false)}>
+                  Cancelar
+                </button>
+                <button className="painel-suspend-card__btn painel-suspend-card__btn--confirm" type="button" onClick={() => { setSiteStatus('Suspenso'); setSuspendConfirm(false); }}>
+                  Sim, suspender
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="painel-suspend-card painel-suspend-card--suspended">
+          {!suspendConfirm ? (
+            <>
+              <div className="painel-suspend-card__body">
+                <div className="painel-suspend-card__icon painel-suspend-card__icon--off">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="painel-suspend-card__title painel-suspend-card__title--off">Site suspenso</p>
+                  <p className="painel-suspend-card__desc">
+                    Este site está offline. Reative-o para que os visitantes possam acessá-lo novamente.
+                  </p>
+                </div>
+              </div>
+              <button className="painel-suspend-card__btn painel-suspend-card__btn--reativar" type="button" onClick={() => setSuspendConfirm(true)}>
+                Reativar site
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="painel-suspend-card__body">
+                <div className="painel-suspend-card__icon painel-suspend-card__icon--off">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="painel-suspend-card__title painel-suspend-card__title--off">Confirmar reativação</p>
+                  <p className="painel-suspend-card__desc">
+                    O site <strong>{site.link}</strong> voltará a estar disponível para os visitantes imediatamente.
+                  </p>
+                </div>
+              </div>
+              <div className="painel-suspend-card__confirm-actions">
+                <button className="painel-suspend-card__btn-cancel" type="button" onClick={() => setSuspendConfirm(false)}>
+                  Cancelar
+                </button>
+                <button className="painel-suspend-card__btn painel-suspend-card__btn--reativar" type="button" onClick={() => { setSiteStatus('Ativo'); setSuspendConfirm(false); }}>
+                  Sim, reativar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
     </div>
   );
