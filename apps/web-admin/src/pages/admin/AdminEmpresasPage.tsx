@@ -16,6 +16,7 @@ interface AdminEmpresa {
   id: string;
   nome: string;
   cnpj: string;
+  codigoCvm: string;
   responsavel: string;
   email: string;
   criadoEm: string;
@@ -28,6 +29,7 @@ const EMPRESAS_DATA: AdminEmpresa[] = [
     id: 'aurora',
     nome: 'Construtora Aurora',
     cnpj: '12.345.678/0001-90',
+    codigoCvm: '21234',
     responsavel: 'Marcos Oliveira',
     email: 'marcos@aurora.com.br',
     criadoEm: '03/03/2026',
@@ -38,6 +40,7 @@ const EMPRESAS_DATA: AdminEmpresa[] = [
     id: 'imc',
     nome: 'International Meal Company',
     cnpj: '17.314.329/0001-20',
+    codigoCvm: '8133',
     responsavel: 'Carlos Souza',
     email: 'carlos@imc.com.br',
     criadoEm: '12/02/2026',
@@ -51,6 +54,7 @@ const EMPRESAS_DATA: AdminEmpresa[] = [
     id: 'vetra',
     nome: 'Vetra Energia',
     cnpj: '98.765.432/0001-10',
+    codigoCvm: '',
     responsavel: 'Patrícia Mendes',
     email: 'patricia@vetra.com.br',
     criadoEm: '21/01/2026',
@@ -101,6 +105,8 @@ export default function AdminEmpresasPage() {
   const [suspendTarget, setSuspendTarget] = useState<AdminEmpresa | null>(null);
   const [suspendPortalTarget, setSuspendPortalTarget] = useState<{ empresa: AdminEmpresa; portal: Portal } | null>(null);
   const [encerrarTarget, setEncerrarTarget] = useState<AdminEmpresa | null>(null);
+  const [editTarget, setEditTarget] = useState<AdminEmpresa | null>(null);
+  const [editForm, setEditForm] = useState({ nome: '', cnpj: '', codigoCvm: '' });
 
   const filtered = empresas.filter(e =>
     e.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -127,6 +133,22 @@ export default function AdminEmpresasPage() {
       return { ...e, portais: e.portais.map(p => p.id !== portalId ? p : { ...p, ativo: !p.ativo }) };
     }));
     setSuspendPortalTarget(null);
+  }
+
+  function openEdit(empresa: AdminEmpresa) {
+    setEditTarget(empresa);
+    setEditForm({ nome: empresa.nome, cnpj: empresa.cnpj, codigoCvm: empresa.codigoCvm });
+  }
+
+  function saveEdit() {
+    if (!editTarget) return;
+    setEmpresas(prev => prev.map(e => e.id !== editTarget.id ? e : {
+      ...e,
+      nome: editForm.nome.trim(),
+      cnpj: editForm.cnpj.trim(),
+      codigoCvm: editForm.codigoCvm.trim(),
+    }));
+    setEditTarget(null);
   }
 
   function encerrarConta(empresa: AdminEmpresa) {
@@ -214,7 +236,7 @@ export default function AdminEmpresasPage() {
                   </button>
                 )}
                 <EmpresaKebabMenu
-                  onEditar={() => {}}
+                  onEditar={() => openEdit(empresa)}
                   onEncerrar={() => setEncerrarTarget(empresa)}
                 />
               </div>
@@ -350,6 +372,56 @@ export default function AdminEmpresasPage() {
               Reativar o portal <strong>{suspendPortalTarget.portal.link}</strong> restaurará o acesso dos usuários.
             </p>
           )}
+        </Modal>
+      )}
+
+      {/* Editar dados */}
+      {editTarget && (
+        <Modal
+          open
+          onClose={() => setEditTarget(null)}
+          title="Editar dados"
+          size="md"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setEditTarget(null)}>Cancelar</button>
+              <button className="btn-primary" type="button" disabled={!editForm.nome.trim()} onClick={saveEdit}>Salvar</button>
+            </div>
+          }
+        >
+          <div className="np-step__body">
+            <div className="np-field">
+              <label className="np-label">Nome da empresa</label>
+              <input
+                className="np-input"
+                type="text"
+                placeholder="Ex: Construtora Aurora"
+                value={editForm.nome}
+                onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))}
+              />
+            </div>
+            <div className="np-field">
+              <label className="np-label">CNPJ</label>
+              <input
+                className="np-input"
+                type="text"
+                placeholder="00.000.000/0000-00"
+                value={editForm.cnpj}
+                onChange={e => setEditForm(f => ({ ...f, cnpj: e.target.value }))}
+              />
+            </div>
+            <div className="np-field">
+              <label className="np-label">Código CVM</label>
+              <input
+                className="np-input"
+                type="text"
+                placeholder="Ex: 21234"
+                value={editForm.codigoCvm}
+                onChange={e => setEditForm(f => ({ ...f, codigoCvm: e.target.value }))}
+              />
+              <p className="np-field__hint">Código de registro da empresa na Comissão de Valores Mobiliários.</p>
+            </div>
+          </div>
         </Modal>
       )}
 

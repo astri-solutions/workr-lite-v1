@@ -19,6 +19,7 @@ function getSteps(tipo: string) {
     { id: 6 + off, label: 'Idioma' },
     { id: 7 + off, label: 'SEO' },
     { id: 8 + off, label: 'Email' },
+    { id: 9 + off, label: 'Admin' },
   );
   return steps;
 }
@@ -141,6 +142,11 @@ interface FormData {
   analyticsId: string;
   emailContato: string;
   canais: Canal[];
+  /* admin user */
+  adminNome: string;
+  adminEmail: string;
+  adminSenha: string;
+  adminSenhaConfirm: string;
 }
 
 /* ─── Stepper ──────────────────────────────────────────────────────── */
@@ -1000,6 +1006,139 @@ function StepEmail({ value, onChange }: { value: string; onChange: (v: string) =
   );
 }
 
+/* ─── Step: Admin ─────────────────────────────────────────────────────── */
+function StepAdmin({
+  nome, email, senha, senhaConfirm,
+  onNome, onEmail, onSenha, onSenhaConfirm,
+}: {
+  nome: string; email: string; senha: string; senhaConfirm: string;
+  onNome: (v: string) => void; onEmail: (v: string) => void;
+  onSenha: (v: string) => void; onSenhaConfirm: (v: string) => void;
+}) {
+  const [showSenha, setShowSenha] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const emailValid = !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const senhaStrength = senha.length === 0 ? null : senha.length < 6 ? 'fraca' : senha.length < 10 ? 'média' : 'forte';
+  const senhasMatch = !senhaConfirm || senha === senhaConfirm;
+
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Usuário administrador</h2>
+        <p className="np-step__desc">Crie a conta principal de acesso ao portal. Esse usuário terá permissão total e será o responsável pelo cliente.</p>
+      </div>
+      <div className="np-step__body">
+
+        <div className="np-admin-notice">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>Essa conta é obrigatória. O cliente usará esse acesso para gerenciar o portal.</span>
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Nome completo <span className="np-label__required">*</span></label>
+          <input
+            className="np-input"
+            type="text"
+            placeholder="Ex: Carlos Silva"
+            value={nome}
+            onChange={(e) => onNome(e.target.value)}
+            maxLength={80}
+            autoFocus
+          />
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">E-mail <span className="np-label__required">*</span></label>
+          <div className="np-email-wrap">
+            <svg className="np-email-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            <input
+              className={`np-input np-input--email${!emailValid ? ' np-input--error' : ''}`}
+              type="email"
+              placeholder="carlos@empresa.com.br"
+              value={email}
+              onChange={(e) => onEmail(e.target.value)}
+            />
+          </div>
+          {!emailValid && <span className="np-input__hint np-input__hint--error">Digite um endereço de e-mail válido.</span>}
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Senha <span className="np-label__required">*</span></label>
+          <p className="np-field__hint">Mínimo de 6 caracteres.</p>
+          <div className="np-password-wrap">
+            <input
+              className="np-input np-input--password"
+              type={showSenha ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={senha}
+              onChange={(e) => onSenha(e.target.value)}
+            />
+            <button type="button" className="np-password-toggle" onClick={() => setShowSenha(v => !v)} aria-label="Mostrar senha">
+              {showSenha ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+          {senhaStrength && (
+            <div className="np-senha-strength">
+              <div className={`np-senha-bar np-senha-bar--${senhaStrength}`} />
+              <span className={`np-senha-label np-senha-label--${senhaStrength}`}>
+                {senhaStrength === 'fraca' ? 'Senha fraca' : senhaStrength === 'média' ? 'Senha média' : 'Senha forte'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Confirmar senha <span className="np-label__required">*</span></label>
+          <div className="np-password-wrap">
+            <input
+              className={`np-input np-input--password${!senhasMatch ? ' np-input--error' : ''}`}
+              type={showConfirm ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={senhaConfirm}
+              onChange={(e) => onSenhaConfirm(e.target.value)}
+            />
+            <button type="button" className="np-password-toggle" onClick={() => setShowConfirm(v => !v)} aria-label="Mostrar confirmação">
+              {showConfirm ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+          {!senhasMatch && <span className="np-input__hint np-input__hint--error">As senhas não coincidem.</span>}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main ──────────────────────────────────────────────────────────── */
 export default function NovoPortalPage() {
   const navigate = useNavigate();
@@ -1033,6 +1172,10 @@ export default function NovoPortalPage() {
     analyticsId: '',
     emailContato: '',
     canais: DEFAULT_CANAIS,
+    adminNome: '',
+    adminEmail: '',
+    adminSenha: '',
+    adminSenhaConfirm: '',
   });
 
   const steps = getSteps(form.tipo);
@@ -1054,6 +1197,14 @@ export default function NovoPortalPage() {
     if (currentLabel === 'Email') {
       if (!form.emailContato) return true;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailContato);
+    }
+    if (currentLabel === 'Admin') {
+      return (
+        form.adminNome.trim().length > 0 &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.adminEmail) &&
+        form.adminSenha.length >= 6 &&
+        form.adminSenha === form.adminSenhaConfirm
+      );
     }
     return true;
   };
@@ -1161,6 +1312,18 @@ export default function NovoPortalPage() {
         )}
         {currentLabel === 'Email' && (
           <StepEmail value={form.emailContato} onChange={(v) => setForm((f) => ({ ...f, emailContato: v }))} />
+        )}
+        {currentLabel === 'Admin' && (
+          <StepAdmin
+            nome={form.adminNome}
+            email={form.adminEmail}
+            senha={form.adminSenha}
+            senhaConfirm={form.adminSenhaConfirm}
+            onNome={(v) => setForm((f) => ({ ...f, adminNome: v }))}
+            onEmail={(v) => setForm((f) => ({ ...f, adminEmail: v }))}
+            onSenha={(v) => setForm((f) => ({ ...f, adminSenha: v }))}
+            onSenhaConfirm={(v) => setForm((f) => ({ ...f, adminSenhaConfirm: v }))}
+          />
         )}
 
         <div className="np-footer">
