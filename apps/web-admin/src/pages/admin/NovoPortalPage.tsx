@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import './AdminPages.css';
 import './NovoPortalPage.css';
+import '../../components/InviteUserModal.css';
 
 /* ─── Default canais por tipo ──────────────────────────────────────────── */
 const DEFAULT_CANAIS_SIDEBAR: Canal[] = [
@@ -157,6 +158,7 @@ interface FormData {
   metaTitulo: string;
   metaDescricao: string;
   analyticsId: string;
+  clarityId: string;
   emailContato: string;
   canais: Canal[];
   /* admin user */
@@ -582,11 +584,10 @@ function StepCores({
   primaria: string; secundaria: string; terciaria: string;
   onPrimaria: (v: string) => void; onSecundaria: (v: string) => void; onTerciaria: (v: string) => void;
 }) {
-  function ColorPicker({ label, value, onChange, hint }: {
-    label: string; value: string; onChange: (v: string) => void; hint: string;
+  function ColorPicker({ label, value, onChange, hint, required }: {
+    label: string; value: string; onChange: (v: string) => void; hint: string; required?: boolean;
   }) {
     const [hex, setHex] = useState(value);
-    const colorRef = useRef<HTMLInputElement>(null);
 
     function handleHex(raw: string) {
       setHex(raw);
@@ -597,13 +598,14 @@ function StepCores({
 
     return (
       <div className="np-color-item">
-        <label className="np-color-item__label">{label}</label>
+        <label className="np-color-item__label">
+          {label}{required && <span className="np-label__required"> *</span>}
+        </label>
         <p className="np-color-item__hint">{hint}</p>
         <div className="np-color-item__row">
-          <div className="np-color-swatch-wrap" onClick={() => colorRef.current?.click()} style={{ cursor: 'pointer' }}>
+          <div className="np-color-swatch-wrap">
             <div className="np-color-swatch" style={{ background: value }} />
             <input
-              ref={colorRef}
               type="color"
               className="np-color-native"
               value={value}
@@ -642,8 +644,8 @@ function StepCores({
             <div className="np-cores-preview__mock-btn" style={{ background: primaria }}>Acessar portal</div>
           </div>
         </div>
-        <div className="np-cores-list">
-          <ColorPicker label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões e ações principais" />
+        <div className="np-cores-grid">
+          <ColorPicker label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões e ações principais" required />
           <ColorPicker label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Destaques e badges" />
           <ColorPicker label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Textos e títulos" />
         </div>
@@ -843,7 +845,6 @@ const ALL_LANGS = [
 
 function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: string[]) => void }) {
   const primaryLangs = ALL_LANGS.filter((l) => ['pt', 'en', 'es'].includes(l.id));
-  const extraLangs = ALL_LANGS.filter((l) => !['pt', 'en', 'es'].includes(l.id) && !idiomas.includes(l.id));
 
   function toggleIdioma(id: string) {
     if (idiomas.includes(id)) {
@@ -853,13 +854,6 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
       onIdiomas([...idiomas, id]);
     }
   }
-
-  function addExtra(id: string) {
-    if (!id || idiomas.includes(id)) return;
-    onIdiomas([...idiomas, id]);
-  }
-
-  const extraAdded = idiomas.filter((id) => !['pt', 'en', 'es'].includes(id));
 
   return (
     <div className="np-step">
@@ -893,45 +887,7 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
               </button>
             );
           })}
-          {extraAdded.map((id) => {
-            const lang = ALL_LANGS.find((l) => l.id === id);
-            if (!lang) return null;
-            return (
-              <button
-                key={lang.id}
-                type="button"
-                className="np-idioma-card np-idioma-card--selected"
-                onClick={() => toggleIdioma(lang.id)}
-              >
-                <span className="np-idioma-card__flag">{FLAG_COMPONENTS[lang.id] ?? <FlagGeneric code={lang.id} />}</span>
-                <div className="np-idioma-card__info">
-                  <span className="np-idioma-card__label">{lang.label}</span>
-                  <span className="np-idioma-card__desc">{lang.desc}</span>
-                </div>
-                <div className="np-idioma-card__check np-idioma-card__check--active">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </div>
-              </button>
-            );
-          })}
         </div>
-        {extraLangs.length > 0 && (
-          <div className="np-idioma-add">
-            <label className="np-label">Adicionar outro idioma</label>
-            <select
-              className="np-input np-idioma-select"
-              defaultValue=""
-              onChange={(e) => { addExtra(e.target.value); e.target.value = ''; }}
-            >
-              <option value="" disabled>Selecionar idioma…</option>
-              {extraLangs.map((l) => (
-                <option key={l.id} value={l.id}>{l.flag} {l.label}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -939,11 +895,11 @@ function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: 
 
 /* ─── Step: SEO ───────────────────────────────────────────────────────── */
 function StepSeo({
-  metaTitulo, metaDescricao, analyticsId,
-  onMetaTitulo, onMetaDescricao, onAnalyticsId,
+  metaTitulo, metaDescricao, analyticsId, clarityId,
+  onMetaTitulo, onMetaDescricao, onAnalyticsId, onClarityId,
 }: {
-  metaTitulo: string; metaDescricao: string; analyticsId: string;
-  onMetaTitulo: (v: string) => void; onMetaDescricao: (v: string) => void; onAnalyticsId: (v: string) => void;
+  metaTitulo: string; metaDescricao: string; analyticsId: string; clarityId: string;
+  onMetaTitulo: (v: string) => void; onMetaDescricao: (v: string) => void; onAnalyticsId: (v: string) => void; onClarityId: (v: string) => void;
 }) {
   return (
     <div className="np-step">
@@ -998,6 +954,18 @@ function StepSeo({
             maxLength={30}
           />
         </div>
+        <div className="np-field">
+          <label className="np-label">ID do Microsoft Clarity</label>
+          <p className="np-field__hint">Tracking de mapas de calor e sessões via Microsoft Clarity (clarity.microsoft.com)</p>
+          <input
+            className="np-input"
+            type="text"
+            placeholder="xxxxxxxxxx"
+            value={clarityId}
+            onChange={(e) => onClarityId(e.target.value)}
+            maxLength={20}
+          />
+        </div>
       </div>
     </div>
   );
@@ -1011,7 +979,7 @@ function StepEmail({ value, onChange }: { value: string; onChange: (v: string) =
     <div className="np-step">
       <div className="np-step__head">
         <h2 className="np-step__title">Email de contato</h2>
-        <p className="np-step__desc">Endereço de e-mail exibido no portal para contato com a empresa.</p>
+        <p className="np-step__desc">E-mail padrão de resposta do portal. Usado como Reply-To nos envios automáticos e exibido como contato nos comunicados.</p>
       </div>
       <div className="np-step__body">
         <div className="np-field">
@@ -1133,12 +1101,14 @@ export default function NovoPortalPage() {
     metaTitulo: '',
     metaDescricao: '',
     analyticsId: '',
+    clarityId: '',
     emailContato: '',
     canais: DEFAULT_CANAIS,
     adminNome: '',
     adminEmail: '',
   });
 
+  const [showSuccess, setShowSuccess] = useState(false);
   const steps = getSteps(form.tipo);
   const currentLabel = steps[step - 1]?.label ?? '';
   const [fonteFase, setFonteFase] = useState<'titulo' | 'texto'>('titulo');
@@ -1159,6 +1129,7 @@ export default function NovoPortalPage() {
       if (!form.emailContato) return true;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.emailContato);
     }
+    if (currentLabel === 'Cores') return form.corPrimaria !== '';
     if (currentLabel === 'Admin') {
       return (
         form.adminNome.trim().length > 0 &&
@@ -1189,7 +1160,7 @@ export default function NovoPortalPage() {
   }
 
   function handleSubmit() {
-    navigate('/admin/portais');
+    setShowSuccess(true);
   }
 
   return (
@@ -1266,9 +1237,11 @@ export default function NovoPortalPage() {
             metaTitulo={form.metaTitulo}
             metaDescricao={form.metaDescricao}
             analyticsId={form.analyticsId}
+            clarityId={form.clarityId}
             onMetaTitulo={(v) => setForm((f) => ({ ...f, metaTitulo: v }))}
             onMetaDescricao={(v) => setForm((f) => ({ ...f, metaDescricao: v }))}
             onAnalyticsId={(v) => setForm((f) => ({ ...f, analyticsId: v }))}
+            onClarityId={(v) => setForm((f) => ({ ...f, clarityId: v }))}
           />
         )}
         {currentLabel === 'Email' && (
@@ -1326,6 +1299,28 @@ export default function NovoPortalPage() {
           )}
         </div>
       </div>
+
+      {showSuccess && (
+        <div className="np-success-overlay">
+          <div className="np-success-modal">
+            <div className="invite-success__icon">
+              <svg className="invite-success__svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle className="invite-success__circle" cx="26" cy="26" r="23" stroke="currentColor" strokeWidth="2.5" fill="none" />
+                <polyline className="invite-success__check" points="14,26 22,34 38,18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              </svg>
+            </div>
+            <h3 className="np-success-modal__title">Portal criado com sucesso!</h3>
+            <p className="np-success-modal__desc">O portal foi configurado e o e-mail de boas-vindas será enviado ao administrador.</p>
+            <button className="np-btn np-btn--primary" type="button" onClick={() => navigate('/admin/portais')}>
+              Ir para Portais
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
