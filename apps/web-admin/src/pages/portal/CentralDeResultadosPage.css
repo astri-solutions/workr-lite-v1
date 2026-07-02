@@ -36,6 +36,17 @@
   flex-wrap: wrap;
 }
 
+.cdr-entity-mobile {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .cdr-entities { display: none; }
+  .cdr-entity-mobile { display: block; }
+  .cdr-entity-mobile .filter-wrap { width: 100%; }
+  .cdr-entity-mobile .filter-select { width: 100%; }
+}
+
 .cdr-entity-card {
   display: flex;
   flex-direction: column;

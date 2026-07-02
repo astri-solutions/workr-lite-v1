@@ -303,7 +303,7 @@ export default function CentralDeResultadosPage() {
         }
       />
 
-      {/* Entity selector */}
+      {/* Entity selector — cards on desktop */}
       <div className="cdr-entities">
         {ENTITIES.map((e) => (
           <button
@@ -316,6 +316,24 @@ export default function CentralDeResultadosPage() {
             <span className="cdr-entity-card__tipo">{e.tipo}</span>
           </button>
         ))}
+      </div>
+
+      {/* Entity selector — dropdown on mobile */}
+      <div className="cdr-entity-mobile">
+        <div className="filter-wrap">
+          <select
+            className="filter-select"
+            value={activeEntity}
+            onChange={(e) => setActiveEntity(e.target.value)}
+          >
+            {ENTITIES.map((e) => (
+              <option key={e.id} value={e.id}>{e.name} — {e.tipo}</option>
+            ))}
+          </select>
+          <svg className="filter-wrap__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
       </div>
 
       {/* Toolbar: filters left · actions right */}
