@@ -1,10 +1,22 @@
-.cal-toolbar {
+.cal-search-wrap {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  width: 240px;
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: 9px var(--space-4);
+  color: var(--color-gray-400);
+  box-shadow: var(--shadow-sm);
 }
+.cal-search {
+  flex: 1; border: none; outline: none;
+  font-family: var(--font-body); font-size: var(--text-sm);
+  color: var(--color-gray-800); background: transparent;
+}
+.cal-search::placeholder { color: var(--color-gray-400); }
 
 .cal-form-row {
   display: grid;

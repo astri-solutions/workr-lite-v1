@@ -101,8 +101,10 @@ export default function InteracoesPage() {
         </div>
       </div>
 
-      <div className="int-toolbar">
-        <FilterBar groups={INT_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <FilterBar groups={INT_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
+        </div>
       </div>
 
       <div className="table-wrapper">

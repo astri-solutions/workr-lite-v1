@@ -221,15 +221,17 @@ export default function MidiaPage() {
       <input ref={inputRef} type="file" multiple style={{ display: 'none' }} onChange={handleUpload}
         accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.mp4,.mov" />
 
-      <div className="midia-toolbar">
-        <div className="midia-search-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <input className="midia-search" type="text" placeholder="Buscar arquivo..." value={search}
-            onChange={e => setSearch(e.target.value)} />
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <div className="midia-search-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input className="midia-search" type="text" placeholder="Buscar arquivo..." value={search}
+              onChange={e => setSearch(e.target.value)} />
+          </div>
+          <FilterBar groups={MIDIA_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
-        <FilterBar groups={MIDIA_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       {filtered.length === 0 ? (

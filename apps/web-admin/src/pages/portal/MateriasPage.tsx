@@ -109,13 +109,15 @@ export default function MateriasPage() {
         }
       />
 
-      <div className="mat-toolbar">
-        <div className="mat-search-wrap">
-          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-          <input className="mat-search" type="text" placeholder="Buscar matéria..." value={search}
-            onChange={e => setSearch(e.target.value)} />
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <div className="mat-search-wrap">
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
+            <input className="mat-search" type="text" placeholder="Buscar matéria..." value={search}
+              onChange={e => setSearch(e.target.value)} />
+          </div>
+          <FilterBar groups={MAT_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
-        <FilterBar groups={MAT_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       <div className="table-wrapper">

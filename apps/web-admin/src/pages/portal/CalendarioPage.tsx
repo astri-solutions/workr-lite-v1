@@ -142,12 +142,14 @@ export default function CalendarioPage() {
       />
 
       {/* Toolbar */}
-      <div className="cal-toolbar">
-        <div className="mat-search-wrap">
-          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-          <input className="mat-search" type="text" placeholder="Buscar evento..." value={search} onChange={e => setSearch(e.target.value)} />
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <div className="cal-search-wrap">
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
+            <input className="cal-search" type="text" placeholder="Buscar evento..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <FilterBar groups={CAL_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
-        <FilterBar groups={CAL_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
       </div>
 
       {/* Upcoming events table */}
