@@ -178,11 +178,6 @@ const DOC_TIPOS = [
   'Informações Periódicas',
 ];
 
-const IDIOMAS = [
-  { code: 'PT', label: 'Português', flag: '🇧🇷' },
-  { code: 'EN', label: 'English', flag: '🇺🇸' },
-  { code: 'ES', label: 'Español', flag: '🇪🇸' },
-];
 
 interface DocForm {
   titulo: string;
@@ -221,13 +216,6 @@ export default function DocumentosPage() {
 
   function patchForm<K extends keyof DocForm>(key: K, val: DocForm[K]) {
     setForm(f => ({ ...f, [key]: val }));
-  }
-
-  function toggleIdioma(code: string) {
-    setForm(f => ({
-      ...f,
-      idiomas: f.idiomas.includes(code) ? f.idiomas.filter(i => i !== code) : [...f.idiomas, code],
-    }));
   }
 
   function handleFile(file: File) { patchForm('file', file); }
