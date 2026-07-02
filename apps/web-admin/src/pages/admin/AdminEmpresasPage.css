@@ -109,27 +109,23 @@
 .ae-kebab__item--danger { color: var(--color-error-500); }
 .ae-kebab__item--danger:hover { background: var(--color-error-50, #fef2f2); }
 
-/* Portal rows with columns */
+/* All rows share the same 4-column grid so badge + action align perfectly */
 .ae-portal-row {
   display: grid;
-  grid-template-columns: 1fr 110px 160px;
+  grid-template-columns: 1fr 110px 160px 32px;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-5);
   border-top: 1px solid var(--color-gray-100);
 }
 
-/* Center badge text and align button column */
 .ae-portal-row .badge {
   justify-self: start;
-  text-align: center;
 }
 
 .ae-portal-row--empresa-header {
-  grid-template-columns: 1fr 110px 160px 32px;
   border-top: none;
   padding: var(--space-4) var(--space-5);
-  align-items: center;
 }
 
 .ae-accordion-chevron-btn {
@@ -168,10 +164,6 @@
   gap: var(--space-2);
 }
 
-/* Reserve chevron-column width so portal-row buttons align with empresa-header buttons */
-.ae-portal-row:not(.ae-portal-row--empresa-header) .ae-portal-row__action {
-  padding-right: 48px;
-}
 
 /* Disabled link for suspended portals */
 .portal-site-row__link--disabled {
@@ -277,8 +269,8 @@
     position: relative;
   }
 
-  /* Portal sub-rows: 2-col (link fills, actions auto) */
-  .ae-portal-row:not(.ae-portal-row--empresa-header) {
+  /* Portal sub-rows: 2-col on mobile (link fills, action auto) */
+  .ae-portal-row:not(.ae-portal-row--empresa-header):not(.ae-portal-row--header) {
     grid-template-columns: 1fr auto;
     gap: var(--space-2);
   }
