@@ -1,3 +1,5 @@
+.emp-search-input { margin-bottom: var(--space-4); }
+
 .emp-search-wrap {
   display: flex;
   align-items: center;

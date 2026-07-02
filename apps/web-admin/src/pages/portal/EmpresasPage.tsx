@@ -127,7 +127,7 @@ export default function EmpresasPage() {
         </div>
       </div>
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou CNPJ…" />
+      <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou CNPJ…" className="emp-search-input" />
 
       <div className="table-wrapper">
         <table className="data-table">
