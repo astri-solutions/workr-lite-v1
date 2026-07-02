@@ -188,10 +188,6 @@ export default function TransmisoesPage() {
     backToList();
   }
 
-  function toggleFeatured(id: string) {
-    setCasts(prev => prev.map(c => c.id === id ? { ...c, featured: !c.featured } : c));
-    if (selectedId === id) setForm(prev => ({ ...prev, featured: !prev.featured }));
-  }
 
   const isNewValid = form.name.trim() && form.template && form.diagrams;
 
@@ -231,7 +227,6 @@ export default function TransmisoesPage() {
             <thead>
               <tr>
                 <th style={{ width: 32 }}></th>
-                <th style={{ width: 24 }}></th>
                 <th>Cast</th>
                 <th>Data de início</th>
                 <th style={{ width: 120 }}></th>
@@ -246,16 +241,6 @@ export default function TransmisoesPage() {
                 <tr key={cast.id} className="trn-row">
                   <td className="trn-cell--check">
                     <input type="checkbox" className="cdr-checkbox" />
-                  </td>
-                  <td className="trn-cell--star">
-                    <button
-                      type="button"
-                      className={`trn-star${cast.featured ? ' trn-star--on' : ''}`}
-                      onClick={() => toggleFeatured(cast.id)}
-                      title={cast.featured ? 'Remover destaque' : 'Destacar'}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px', fontVariationSettings: cast.featured ? "'FILL' 1" : "'FILL' 0" }}>star</span>
-                    </button>
                   </td>
                   <td>
                     <button type="button" className="trn-name-link" onClick={() => openDetail(cast)}>
