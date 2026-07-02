@@ -192,3 +192,10 @@
   padding: 9px var(--space-4);
   font-size: var(--text-sm);
 }
+
+@media (max-width: 720px) {
+  .pld-period-row { flex-direction: column; }
+  .pld-period-select { width: 100%; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pld-filename { max-width: 120px; }
+}

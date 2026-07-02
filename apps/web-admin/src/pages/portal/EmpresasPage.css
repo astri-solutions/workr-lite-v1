@@ -245,6 +245,14 @@
 }
 .emp-modal-footer__danger:hover { background: var(--color-error-600, #dc2626); }
 
+@media (max-width: 720px) {
+  .emp-search-wrap { width: 100%; box-sizing: border-box; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .emp-modal-footer { flex-direction: column; }
+  .emp-modal-footer button { width: 100%; justify-content: center; }
+  .emp-cvm-radio { grid-template-columns: 16px 1fr; }
+}
+
 /* Delete text */
 .emp-delete-text {
   font-family: var(--font-body);

@@ -78,6 +78,14 @@
 }
 
 /* ─── Replace modal ──────────────────────────────────── */
+@media (max-width: 720px) {
+  .midia-search-wrap { width: 100%; min-width: unset; box-sizing: border-box; }
+  .midia-col-thumb { width: 80px; padding: 6px 8px 6px 12px !important; }
+  .midia-thumb { width: 68px; height: 52px; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ─── Replace modal ──────────────────────────────────── */
 .midia-replace-info {
   font-size: var(--text-sm);
   color: var(--color-gray-600);

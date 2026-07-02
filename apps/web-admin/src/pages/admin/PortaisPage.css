@@ -569,3 +569,15 @@
   border-color: var(--color-primary-500);
   color: #fff;
 }
+
+@media (max-width: 720px) {
+  .portais-search-wrap { margin-bottom: var(--space-4); }
+  .portais-search { min-height: 40px; }
+  .portal-card__header { flex-wrap: wrap; gap: var(--space-3); }
+  .portal-card__actions { width: 100%; justify-content: flex-end; }
+  .portal-site-row { flex-wrap: wrap; gap: var(--space-2); }
+  .portal-site-row__right { width: 100%; justify-content: flex-end; }
+  .portal-empresa-detail { flex-direction: column; align-items: flex-start; }
+  .portal-empresa-detail__actions { width: 100%; justify-content: flex-end; }
+  .portais-detalhes__row { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+}

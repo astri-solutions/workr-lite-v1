@@ -177,7 +177,7 @@
 }
 
 .fp {
-  background: #0b5b68;
+  background: var(--color-primary-500);
   color: rgba(255,255,255,0.85);
   font-family: var(--font-body);
   font-size: var(--text-sm);

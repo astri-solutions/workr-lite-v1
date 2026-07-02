@@ -129,3 +129,8 @@
   color: var(--color-gray-400);
   pointer-events: none;
 }
+
+@media (max-width: 600px) {
+  .info-addr-fields { gap: var(--space-3); }
+  .info-edit-input { min-height: 44px; padding: var(--space-3) var(--space-4); }
+}

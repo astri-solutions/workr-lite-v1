@@ -49,3 +49,9 @@
   color: var(--color-gray-600); cursor: pointer;
 }
 .int-modal-cancel:hover { background: var(--color-gray-50); }
+
+@media (max-width: 720px) {
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .int-modal-footer { flex-direction: column; }
+  .int-modal-footer button { width: 100%; justify-content: center; }
+}

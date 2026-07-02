@@ -244,3 +244,12 @@
 
 /* Delete text */
 .up-delete-text { font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-gray-700); line-height: 1.6; margin: 0; }
+
+@media (max-width: 720px) {
+  .up-search-wrap { width: 100%; box-sizing: border-box; margin-bottom: var(--space-4); }
+  .up-user-card__header { flex-wrap: wrap; }
+  .up-user-card__info { min-width: 0; flex: 1; }
+  .up-user-card__badges { flex-wrap: wrap; }
+  .up-user-card__date { width: 100%; margin-top: var(--space-1); }
+  .up-user-card__footer { flex-wrap: wrap; }
+}

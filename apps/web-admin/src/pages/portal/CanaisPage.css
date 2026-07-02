@@ -56,7 +56,7 @@
   background: var(--color-gray-300);
   flex-shrink: 0;
 }
-.canais-section__dot--on { background: #00D865; }
+.canais-section__dot--on { background: var(--color-secondary-500); }
 
 .canais-section__name {
   font-family: var(--font-heading);
