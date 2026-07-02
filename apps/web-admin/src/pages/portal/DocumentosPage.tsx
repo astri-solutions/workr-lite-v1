@@ -352,9 +352,9 @@ export default function DocumentosPage() {
         }
       />
 
-      {/* Filter bar */}
-      <div className="docs-filterbar">
-        <div className="docs-filterbar__left">
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div className="toolbar__filters">
           <div className="docs-search">
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>search</span>
             <input
@@ -366,8 +366,7 @@ export default function DocumentosPage() {
           </div>
           <FilterBar groups={DOC_FILTERS} value={docFilters} onChange={handleDocFilter} />
         </div>
-
-        <div className="docs-filterbar__right">
+        <div className="toolbar__actions">
           <button type="button" className="btn-toolbar">Despublicar</button>
           <button type="button" className="btn-toolbar btn-toolbar--success">Publicar</button>
           <button
@@ -378,7 +377,7 @@ export default function DocumentosPage() {
           >
             Excluir
           </button>
-          <span className="docs-count">
+          <span className="toolbar__count">
             {selected.size > 0 ? `${selected.size} de ` : ''}{filtered.length} doc{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
