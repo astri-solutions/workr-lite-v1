@@ -539,6 +539,15 @@
   cursor: pointer;
 }
 
+.banner-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
 .banner-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-5); }
 .banner-field {
   display: flex; flex-direction: column; gap: var(--space-2);

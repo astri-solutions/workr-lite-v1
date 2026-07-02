@@ -525,14 +525,13 @@ export default function DocumentosPage() {
               )}
 
               <div className={locked ? 'modal-locked-group' : ''}>
-                {/* Upload zone */}
+                {/* Upload zone — always enabled; each language can have its own file */}
                 <div
-                  className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}${locked ? ' doc-upload--locked' : ''}`}
-                  onDragOver={e => { if (locked) return; e.preventDefault(); setDragActive(true); }}
+                  className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
+                  onDragOver={e => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
-                  onDrop={locked ? undefined : handleDrop}
-                  onClick={() => !locked && !form.file && fileInputRef.current?.click()}
-                  style={locked ? { pointerEvents: 'none' } : undefined}
+                  onDrop={handleDrop}
+                  onClick={() => !form.file && fileInputRef.current?.click()}
                 >
                   <input ref={fileInputRef} type="file" style={{ display: 'none' }}
                     accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
@@ -544,12 +543,10 @@ export default function DocumentosPage() {
                         <span className="doc-upload__file-name">{form.file.name}</span>
                         <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
                       </div>
-                      {!locked && (
-                        <button type="button" className="doc-upload__file-remove"
-                          onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                        </button>
-                      )}
+                      <button type="button" className="doc-upload__file-remove"
+                        onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                      </button>
                     </div>
                   ) : (
                     <>
@@ -601,21 +598,6 @@ export default function DocumentosPage() {
                       })()}
                     </select>
                     <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
-                  </div>
-                </div>
-
-                {/* Idioma */}
-                <div className="doc-field">
-                  <label className="doc-field__label">Idioma(s)</label>
-                  <div className="doc-idiomas">
-                    {IDIOMAS.map(l => (
-                      <button key={l.code} type="button" disabled={locked}
-                        className={`doc-idioma-chip${form.idiomas.includes(l.code) ? ' doc-idioma-chip--active' : ''}`}
-                        onClick={() => !locked && toggleIdioma(l.code)}>
-                        <span>{l.flag}</span>
-                        {l.label}
-                      </button>
-                    ))}
                   </div>
                 </div>
 
