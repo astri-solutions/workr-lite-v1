@@ -300,6 +300,11 @@
   color: #5b21b6;
 }
 
+.badge--astri {
+  background: #d1fae5;
+  color: #065f46;
+}
+
 .badge--purple {
   background: #f3e8ff;
   color: #7e22ce;

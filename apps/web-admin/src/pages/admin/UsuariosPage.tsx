@@ -217,6 +217,7 @@ export default function UsuariosPage() {
             <tr>
               <th>Nome</th>
               <th>Email</th>
+              <th>Organização</th>
               <th>Tipo</th>
               <th>Portal</th>
               <th>Status</th>
@@ -230,6 +231,17 @@ export default function UsuariosPage() {
                 <tr key={u.id}>
                   <td className="table-cell--bold">{u.nome}</td>
                   <td className="table-cell--muted">{u.email}</td>
+                  <td>
+                    {u.role === 'super_admin' ? (
+                      <span className="badge badge--astri">Astri</span>
+                    ) : (
+                      <span className="table-cell--muted" style={{ fontSize: '13px' }}>
+                        {u.portais.length === 0
+                          ? '—'
+                          : (PORTAIS_MAP[u.portais[0]] ?? u.portais[0])}
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <span className={`badge ${u.role === 'super_admin' ? 'badge--info' : 'badge--gray'}`}>
                       {ROLE_LABELS[u.role]}
@@ -291,7 +303,7 @@ export default function UsuariosPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="table-empty">Nenhum usuário encontrado para os filtros selecionados.</td>
+                <td colSpan={8} className="table-empty">Nenhum usuário encontrado para os filtros selecionados.</td>
               </tr>
             )}
           </tbody>
