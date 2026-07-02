@@ -171,9 +171,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
   /* ── Success ── */
   if (sent) {
     return (
-      <Modal open={open} onClose={handleClose} title="" size="sm"
-        footer={<button className="modal-btn modal-btn--primary" type="button" onClick={handleClose}>Fechar</button>}
-      >
+      <Modal open={open} onClose={handleClose} title="" size="sm" footer={null}>
         <div className="invite-success">
           <div className="invite-success__icon">
             <svg className="invite-success__svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
