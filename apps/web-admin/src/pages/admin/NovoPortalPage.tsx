@@ -4,14 +4,30 @@ import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEd
 import './AdminPages.css';
 import './NovoPortalPage.css';
 
+/* ─── Default canais por tipo ──────────────────────────────────────────── */
+const DEFAULT_CANAIS_SIDEBAR: Canal[] = [
+  { id: 'central-resultados', label: 'Central de Resultados', href: '/central-resultados.html', enabled: true, children: [] },
+  { id: 'docs-cvm', label: 'Documentos CVM', href: '/documentos-cvm.html', enabled: true, children: [] },
+  { id: 'atas-assembleias', label: 'Atas e Assembleias', href: '/atas-assembleias.html', enabled: true, children: [] },
+  { id: 'fale-ri', label: 'Fale com RI', href: '/fale-com-ri.html', enabled: true, children: [] },
+  { id: 'mailing', label: 'Mailing', href: '/mailing.html', enabled: true, children: [] },
+];
+
+function defaultCanaisForTipo(tipo: string): Canal[] {
+  if (tipo === 'banner') return DEFAULT_CANAIS;
+  return DEFAULT_CANAIS_SIDEBAR;
+}
+
 /* ─── Dynamic steps ────────────────────────────────────────────────────── */
 function getSteps(tipo: string) {
   const steps: { id: number; label: string }[] = [
     { id: 1, label: 'Identificação' },
     { id: 2, label: 'Tipo' },
   ];
-  if (tipo === 'banner') steps.push({ id: 3, label: 'Canais' });
-  const off = tipo === 'banner' ? 1 : 0;
+  if (tipo === 'banner' || tipo === 'sidebar' || tipo === 'tabmenu') {
+    steps.push({ id: 3, label: 'Canais' });
+  }
+  const off = (tipo === 'banner' || tipo === 'sidebar' || tipo === 'tabmenu') ? 1 : 0;
   steps.push(
     { id: 3 + off, label: 'Fonte' },
     { id: 4 + off, label: 'Cores' },
@@ -383,13 +399,18 @@ function StepTipo({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 }
 
-/* ─── Step 3 (banner only): Canais ───────────────────────────────────────── */
-function StepCanais({ value, onChange }: { value: Canal[]; onChange: (v: Canal[]) => void }) {
+/* ─── Step: Canais ───────────────────────────────────────────────────── */
+function StepCanais({ value, onChange, tipo }: { value: Canal[]; onChange: (v: Canal[]) => void; tipo: string }) {
+  const isBanner = tipo === 'banner';
   return (
     <div className="np-step">
       <div className="np-step__head">
         <h2 className="np-step__title">Árvore de canais</h2>
-        <p className="np-step__desc">Configure as seções e páginas que farão parte do portal. Você pode alterar isso depois.</p>
+        <p className="np-step__desc">
+          {isBanner
+            ? 'Configure as seções e páginas que farão parte do portal. Você pode alterar isso depois.'
+            : 'Selecione e organize os canais que aparecerão na navegação do portal. Pré-configurados com as seções mais comuns de RI.'}
+        </p>
       </div>
       <div className="np-step__body">
         <ChannelEditor value={value} onChange={onChange} />
@@ -1201,10 +1222,10 @@ export default function NovoPortalPage() {
           />
         )}
         {currentLabel === 'Tipo' && (
-          <StepTipo value={form.tipo} onChange={(v) => setForm((f) => ({ ...f, tipo: v }))} />
+          <StepTipo value={form.tipo} onChange={(v) => setForm((f) => ({ ...f, tipo: v, canais: defaultCanaisForTipo(v) }))} />
         )}
         {currentLabel === 'Canais' && (
-          <StepCanais value={form.canais} onChange={(v) => setForm((f) => ({ ...f, canais: v }))} />
+          <StepCanais tipo={form.tipo} value={form.canais} onChange={(v) => setForm((f) => ({ ...f, canais: v }))} />
         )}
         {currentLabel === 'Fonte' && (
           <StepFonte
