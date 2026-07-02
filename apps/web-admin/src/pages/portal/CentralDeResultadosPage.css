@@ -198,6 +198,11 @@
 }
 
 /* ─── Document table inside accordion ───────────────── */
+.cdr-doc-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .cdr-doc-table {
   width: 100%;
   border-collapse: collapse;

@@ -423,6 +423,7 @@ export default function CentralDeResultadosPage() {
                             Documentos do período <strong>{q.period}</strong> aparecerão aqui.
                           </p>
                         ) : (
+                          <div className="cdr-doc-table-wrap">
                           <table className="cdr-doc-table">
                             <thead>
                               <tr>
@@ -482,6 +483,7 @@ export default function CentralDeResultadosPage() {
                               ))}
                             </tbody>
                           </table>
+                          </div>
                         )}
                       </div>
                     )}
