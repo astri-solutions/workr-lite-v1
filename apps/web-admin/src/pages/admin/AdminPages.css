@@ -84,6 +84,16 @@
   flex-shrink: 0;
 }
 
+/* Suppress FilterBar labels + margin when embedded inside a toolbar row */
+.toolbar__filters .filter-bar {
+  margin-bottom: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+.toolbar__filters .filter-bar__label {
+  display: none;
+}
+
 .toolbar__count {
   font-size: var(--text-xs);
   color: var(--color-gray-400);
