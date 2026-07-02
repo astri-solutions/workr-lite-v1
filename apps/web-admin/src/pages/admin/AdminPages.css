@@ -137,6 +137,25 @@
 }
 .btn-outline--danger:hover { background: var(--color-error-50); border-color: var(--color-error-500); color: var(--color-error-600); }
 
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--color-error-600, #dc2626);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: var(--color-error-700, #b91c1c); }
+.btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ─── Stat cards ───────────────────────────────────────── */
 .stat-cards {
   display: flex;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './AdminPages.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
-import InviteUserModal, { InviteFormData } from '../../components/InviteUserModal';
+import InviteUserModal, { InviteFormData, PortalWithEmpresas } from '../../components/InviteUserModal';
 import EditUserModal, { EditableUser } from '../../components/EditUserModal';
 import Modal from '../../components/Modal';
 
@@ -34,9 +34,22 @@ const ROLE_LABELS: Record<string, string> = {
   client_user: 'Cliente',
 };
 
-const PORTAIS = [
-  { id: '1', nome: 'Construtora Aurora' },
-  { id: '2', nome: 'International Meal Company' },
+const PORTAIS: PortalWithEmpresas[] = [
+  {
+    id: '1', nome: 'Construtora Aurora',
+    empresas: [
+      { id: '1a', nome: 'Aurora Incorporadora' },
+      { id: '1b', nome: 'Aurora Imóveis' },
+    ],
+  },
+  {
+    id: '2', nome: 'International Meal Company',
+    empresas: [
+      { id: '2a', nome: 'IMC Brasil' },
+      { id: '2b', nome: 'IMC São Paulo' },
+      { id: '2c', nome: 'IMC Nordeste' },
+    ],
+  },
   { id: '3', nome: 'Vetra Energia' },
 ];
 
@@ -168,7 +181,7 @@ export default function UsuariosPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setDesativarTarget(null)}>Cancelar</button>
-              <button className="btn-action btn-action--danger" type="button" onClick={confirmDesativar}>Desativar</button>
+              <button className="btn-danger" type="button" onClick={confirmDesativar}>Desativar</button>
             </div>
           }
         >
@@ -187,7 +200,7 @@ export default function UsuariosPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setRemoverTarget(null)}>Cancelar</button>
-              <button className="btn-action btn-action--danger" type="button" onClick={confirmRemover}>Remover</button>
+              <button className="btn-danger" type="button" onClick={confirmRemover}>Remover</button>
             </div>
           }
         >
@@ -227,10 +240,15 @@ export default function UsuariosPage() {
                     ) : u.portais.length === 0 ? (
                       <span className="table-cell--muted">—</span>
                     ) : (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {u.portais.map(pid => (
-                          <span key={pid} className="badge badge--gray" style={{ fontSize: '11px' }}>{PORTAIS_MAP[pid] ?? pid}</span>
-                        ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span className="badge badge--gray" style={{ fontSize: '11px' }}>
+                          {PORTAIS_MAP[u.portais[0]] ?? u.portais[0]}
+                        </span>
+                        {u.portais.length > 1 && (
+                          <span className="badge badge--gray" style={{ fontSize: '11px' }}>
+                            +{u.portais.length - 1}
+                          </span>
+                        )}
                       </div>
                     )}
                   </td>
