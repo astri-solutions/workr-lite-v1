@@ -157,3 +157,81 @@
 .user-menu__item--danger:hover svg {
   color: var(--color-error-500);
 }
+
+/* ─── Active portal indicator ────────────────────────── */
+.user-menu__identity-portal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-primary-600);
+  font-weight: var(--font-medium);
+}
+
+/* ─── Switch portal modal list ───────────────────────── */
+.um-portal-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.um-portal-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: #fff;
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-gray-700);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.um-portal-item:hover {
+  border-color: var(--color-primary-300);
+  background: var(--color-primary-50);
+}
+
+.um-portal-item--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+  font-weight: var(--font-semibold);
+}
+
+.um-portal-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.um-portal-item--active .um-portal-item__icon {
+  background: var(--color-primary-100);
+  color: var(--color-primary-600);
+}
+
+.um-portal-item__name {
+  flex: 1;
+}
+
+.um-portal-item__check {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+}

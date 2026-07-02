@@ -2,11 +2,18 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 
 type Role = 'super_admin' | 'client_user';
 
+export interface Portal {
+  id: string;
+  nome: string;
+}
+
 interface User {
   email: string;
   name: string;
   role: Role;
   tenantId?: string;
+  portais?: Portal[];
+  activePortalId?: string;
 }
 
 interface AuthState {
@@ -16,6 +23,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => boolean;
   logout: () => void;
+  switchPortal: (portalId: string) => void;
 }
 
 const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
@@ -27,7 +35,15 @@ const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
   {
     email: 'cliente@demo.com',
     password: 'demo2025',
-    user: { email: 'cliente@demo.com', name: 'Cliente Demo', role: 'client_user', tenantId: 'demo' },
+    user: {
+      email: 'cliente@demo.com', name: 'Cliente Demo', role: 'client_user', tenantId: 'demo',
+      portais: [
+        { id: '1', nome: 'Construtora Aurora' },
+        { id: '2', nome: 'International Meal Company' },
+        { id: '3', nome: 'Vetra Energia' },
+      ],
+      activePortalId: '1',
+    },
   },
 ];
 
@@ -63,8 +79,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  function switchPortal(portalId: string) {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, activePortalId: portalId };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, switchPortal }}>
       {children}
     </AuthContext.Provider>
   );
