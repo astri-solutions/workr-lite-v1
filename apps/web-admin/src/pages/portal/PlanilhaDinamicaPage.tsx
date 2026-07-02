@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './PlanilhaDinamicaPage.css';
@@ -154,11 +155,7 @@ export default function PlanilhaDinamicaPage() {
       {/* Toolbar */}
       <div className="toolbar">
         <div className="toolbar__filters">
-          <div className="mat-search-wrap">
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-            <input className="mat-search" type="text" placeholder="Buscar planilha..."
-              value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar planilha..." />
           <FilterBar groups={PLD_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
         <div className="toolbar__actions">

@@ -4,6 +4,7 @@ import LangTabs from '../../components/LangTabs';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
@@ -343,15 +344,7 @@ export default function DocumentosPage() {
       {/* Toolbar */}
       <div className="toolbar">
         <div className="toolbar__filters">
-          <div className="docs-search">
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>search</span>
-            <input
-              type="text"
-              placeholder="Pesquisar por título..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <SearchInput value={search} onChange={setSearch} placeholder="Pesquisar por título..." />
           <FilterBar groups={DOC_FILTERS} value={docFilters} onChange={handleDocFilter} />
         </div>
         <div className="toolbar__actions">

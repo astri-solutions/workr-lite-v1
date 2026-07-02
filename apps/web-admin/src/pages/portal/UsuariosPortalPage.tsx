@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './UsuariosPortalPage.css';
@@ -220,18 +221,7 @@ export default function UsuariosPortalPage() {
 
       <div className="toolbar">
         <div className="toolbar__filters">
-          <div className="up-search-wrap">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              className="up-search"
-              type="text"
-              placeholder="Buscar por nome ou e-mail…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou e-mail…" />
           <div className="filter-wrap">
             <select
               className="filter-select"

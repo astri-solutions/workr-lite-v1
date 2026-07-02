@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './TransmisoesPage.css';
@@ -208,16 +209,7 @@ export default function TransmisoesPage() {
 
         <div className="toolbar">
           <div className="toolbar__filters">
-            <div className="mat-search-wrap">
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-              <input
-                className="mat-search"
-                type="text"
-                placeholder="Pesquisar por nome..."
-                value={search}
-                onChange={e => { setSearch(e.target.value); setListPage(1); }}
-              />
-            </div>
+            <SearchInput value={search} onChange={v => { setSearch(v); setListPage(1); }} placeholder="Pesquisar por nome..." />
           </div>
           <span className="toolbar__count">{filtered.length} transmiss{filtered.length !== 1 ? 'ões' : 'ão'}</span>
         </div>

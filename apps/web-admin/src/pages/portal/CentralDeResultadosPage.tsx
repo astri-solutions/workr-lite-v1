@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { ALL_LOCALES, LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
@@ -339,16 +340,7 @@ export default function CentralDeResultadosPage() {
       {/* Toolbar: filters left · actions right */}
       <div className="toolbar">
         <div className="toolbar__filters">
-          <div className="mat-search-wrap">
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>search</span>
-            <input
-              className="mat-search"
-              type="text"
-              placeholder="Pesquisar por título..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <SearchInput value={search} onChange={setSearch} placeholder="Pesquisar por título..." />
           <div className="filter-wrap">
             <select className="filter-select" value={filterQuarter} onChange={(e) => setFilterQuarter(e.target.value)}>
               <option value="">Trimestre</option>

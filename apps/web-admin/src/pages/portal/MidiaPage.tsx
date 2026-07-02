@@ -3,6 +3,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
@@ -223,13 +224,7 @@ export default function MidiaPage() {
 
       <div className="toolbar">
         <div className="toolbar__filters">
-          <div className="midia-search-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <input className="midia-search" type="text" placeholder="Buscar arquivo..." value={search}
-              onChange={e => setSearch(e.target.value)} />
-          </div>
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar arquivo..." />
           <FilterBar groups={MIDIA_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
       </div>

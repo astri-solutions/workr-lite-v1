@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
@@ -126,18 +127,7 @@ export default function EmpresasPage() {
         </div>
       </div>
 
-      <div className="emp-search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
-        <input
-          className="emp-search"
-          type="text"
-          placeholder="Buscar por nome ou CNPJ…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
+      <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou CNPJ…" />
 
       <div className="table-wrapper">
         <table className="data-table">
