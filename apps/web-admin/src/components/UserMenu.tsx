@@ -18,6 +18,7 @@ export default function UserMenu() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,8 +46,13 @@ export default function UserMenu() {
   }
 
   function handleSwitchPortal(portalId: string) {
-    switchPortal(portalId);
+    if (portalId === user?.activePortalId) { setSwitchOpen(false); return; }
     setSwitchOpen(false);
+    setSwitching(true);
+    setTimeout(() => {
+      switchPortal(portalId);
+      setSwitching(false);
+    }, 1100);
   }
 
   if (!user) return null;
@@ -59,6 +65,15 @@ export default function UserMenu() {
 
   return (
     <>
+      {switching && (
+        <div className="um-switching-overlay">
+          <div className="um-switching-box">
+            <span className="um-switching-spinner" />
+            <span className="um-switching-label">Trocando empresa…</span>
+          </div>
+        </div>
+      )}
+
       <div className="user-menu" ref={menuRef}>
         <button
           className={`user-menu__trigger${open ? ' user-menu__trigger--open' : ''}`}
@@ -68,7 +83,12 @@ export default function UserMenu() {
           onClick={() => setOpen((v) => !v)}
         >
           <span className="user-menu__avatar">{initials}</span>
-          <span className="user-menu__email">{user.email}</span>
+          <span className="user-menu__trigger-info">
+            <span className="user-menu__email">{user.email}</span>
+            {activePortal && (
+              <span className="user-menu__portal-name">{activePortal.nome}</span>
+            )}
+          </span>
           <span className={`material-symbols-outlined user-menu__caret${open ? ' user-menu__caret--open' : ''}`} style={{ fontSize: '16px' }}>expand_more</span>
         </button>
 
