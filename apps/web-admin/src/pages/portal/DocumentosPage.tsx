@@ -501,121 +501,145 @@ export default function DocumentosPage() {
       >
         <LangTabs active={docLocale} onChange={setDocLocale} />
 
-        {/* Upload zone */}
-        <div
-          className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
-          onDragOver={e => { e.preventDefault(); setDragActive(true); }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={handleDrop}
-          onClick={() => !form.file && fileInputRef.current?.click()}
-        >
-          <input ref={fileInputRef} type="file" style={{ display: 'none' }}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-          {form.file ? (
-            <div className="doc-upload__file">
-              <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
-              <div className="doc-upload__file-info">
-                <span className="doc-upload__file-name">{form.file.name}</span>
-                <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
-              </div>
-              <button type="button" className="doc-upload__file-remove"
-                onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-              </button>
-            </div>
-          ) : (
+        {(() => {
+          const locked = docLocale !== PORTAL_CONFIG.languages[0];
+          return (
             <>
-              <span className="material-symbols-outlined doc-upload__icon">upload_file</span>
-              <span className="doc-upload__label">Arraste ou clique para enviar</span>
-              <span className="doc-upload__hint">PDF, DOC, XLS, PPT, ZIP</span>
+              {/* Título — per language */}
+              <div className="doc-field">
+                <label className="doc-field__label">Título *</label>
+                <input className="doc-field__input lang-fade" type="text" placeholder="Nome do documento"
+                  key={docLocale}
+                  value={form.titulo} onChange={e => patchForm('titulo', e.target.value)} autoFocus />
+              </div>
+
+              {/* Locked notice */}
+              {locked && (
+                <div className="modal-locked-notice">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  Campos comuns já definidos no idioma principal
+                </div>
+              )}
+
+              <div className={locked ? 'modal-locked-group' : ''}>
+                {/* Upload zone */}
+                <div
+                  className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}${locked ? ' doc-upload--locked' : ''}`}
+                  onDragOver={e => { if (locked) return; e.preventDefault(); setDragActive(true); }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={locked ? undefined : handleDrop}
+                  onClick={() => !locked && !form.file && fileInputRef.current?.click()}
+                  style={locked ? { pointerEvents: 'none' } : undefined}
+                >
+                  <input ref={fileInputRef} type="file" style={{ display: 'none' }}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                  {form.file ? (
+                    <div className="doc-upload__file">
+                      <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
+                      <div className="doc-upload__file-info">
+                        <span className="doc-upload__file-name">{form.file.name}</span>
+                        <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
+                      </div>
+                      {!locked && (
+                        <button type="button" className="doc-upload__file-remove"
+                          onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined doc-upload__icon">upload_file</span>
+                      <span className="doc-upload__label">Arraste ou clique para enviar</span>
+                      <span className="doc-upload__hint">PDF, DOC, XLS, PPT, ZIP</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Data */}
+                <div className="doc-field">
+                  <label className="doc-field__label">Data de publicação</label>
+                  <input className="doc-field__input" type="date" disabled={locked}
+                    value={form.data} onChange={e => patchForm('data', e.target.value)} />
+                </div>
+
+                {/* Tipo */}
+                <div className="doc-field">
+                  <label className="doc-field__label">Tipo</label>
+                  <div className="doc-select-wrap">
+                    <select className="doc-field__select" disabled={locked}
+                      value={form.tipo} onChange={e => patchForm('tipo', e.target.value)}>
+                      <option value="">Selecionar tipo...</option>
+                      {DOC_TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
+                  </div>
+                </div>
+
+                {/* Página */}
+                <div className="doc-field">
+                  <label className="doc-field__label">Página de destino</label>
+                  <p className="doc-field__hint">Apenas páginas do tipo lista e lista agrupada</p>
+                  <div className="doc-select-wrap">
+                    <select className="doc-field__select" disabled={locked}
+                      value={form.paginaId} onChange={e => patchForm('paginaId', e.target.value)}>
+                      <option value="">Selecionar página...</option>
+                      {(() => {
+                        const groups: Record<string, typeof LIST_PAGES> = {};
+                        for (const p of LIST_PAGES) {
+                          (groups[p.group] ??= []).push(p);
+                        }
+                        return Object.entries(groups).map(([group, pages]) => (
+                          <optgroup key={group} label={group}>
+                            {pages.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                          </optgroup>
+                        ));
+                      })()}
+                    </select>
+                    <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
+                  </div>
+                </div>
+
+                {/* Idioma */}
+                <div className="doc-field">
+                  <label className="doc-field__label">Idioma(s)</label>
+                  <div className="doc-idiomas">
+                    {IDIOMAS.map(l => (
+                      <button key={l.code} type="button" disabled={locked}
+                        className={`doc-idioma-chip${form.idiomas.includes(l.code) ? ' doc-idioma-chip--active' : ''}`}
+                        onClick={() => !locked && toggleIdioma(l.code)}>
+                        <span>{l.flag}</span>
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agendamento */}
+                <div className="doc-field">
+                  <label className="doc-field__label">Agendamento</label>
+                  <label className="doc-schedule-toggle">
+                    <input type="checkbox" disabled={locked} checked={form.scheduleEnabled}
+                      onChange={e => patchForm('scheduleEnabled', e.target.checked)} />
+                    <span>Publicar em data e hora específica</span>
+                  </label>
+                  {form.scheduleEnabled && (
+                    <div className="doc-schedule-row">
+                      <input className="doc-field__input" type="date" disabled={locked}
+                        value={form.scheduleDate} onChange={e => patchForm('scheduleDate', e.target.value)} />
+                      <input className="doc-field__input" type="time" disabled={locked}
+                        value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
+                    </div>
+                  )}
+                </div>
+              </div>
             </>
-          )}
-        </div>
-
-        {/* Título */}
-        <div className="doc-field">
-          <label className="doc-field__label">Título *</label>
-          <input className="doc-field__input" type="text" placeholder="Nome do documento"
-            value={form.titulo} onChange={e => patchForm('titulo', e.target.value)} />
-        </div>
-
-        {/* Data */}
-        <div className="doc-field">
-          <label className="doc-field__label">Data de publicação</label>
-          <input className="doc-field__input" type="date"
-            value={form.data} onChange={e => patchForm('data', e.target.value)} />
-        </div>
-
-        {/* Tipo */}
-        <div className="doc-field">
-          <label className="doc-field__label">Tipo</label>
-          <div className="doc-select-wrap">
-            <select className="doc-field__select"
-              value={form.tipo} onChange={e => patchForm('tipo', e.target.value)}>
-              <option value="">Selecionar tipo...</option>
-              {DOC_TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
-          </div>
-        </div>
-
-        {/* Página */}
-        <div className="doc-field">
-          <label className="doc-field__label">Página de destino</label>
-          <p className="doc-field__hint">Apenas páginas do tipo lista e lista agrupada</p>
-          <div className="doc-select-wrap">
-            <select className="doc-field__select"
-              value={form.paginaId} onChange={e => patchForm('paginaId', e.target.value)}>
-              <option value="">Selecionar página...</option>
-              {(() => {
-                const groups: Record<string, typeof LIST_PAGES> = {};
-                for (const p of LIST_PAGES) {
-                  (groups[p.group] ??= []).push(p);
-                }
-                return Object.entries(groups).map(([group, pages]) => (
-                  <optgroup key={group} label={group}>
-                    {pages.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </optgroup>
-                ));
-              })()}
-            </select>
-            <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
-          </div>
-        </div>
-
-        {/* Idioma */}
-        <div className="doc-field">
-          <label className="doc-field__label">Idioma(s)</label>
-          <div className="doc-idiomas">
-            {IDIOMAS.map(l => (
-              <button key={l.code} type="button"
-                className={`doc-idioma-chip${form.idiomas.includes(l.code) ? ' doc-idioma-chip--active' : ''}`}
-                onClick={() => toggleIdioma(l.code)}>
-                <span>{l.flag}</span>
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Agendamento */}
-        <div className="doc-field">
-          <label className="doc-field__label">Agendamento</label>
-          <label className="doc-schedule-toggle">
-            <input type="checkbox" checked={form.scheduleEnabled}
-              onChange={e => patchForm('scheduleEnabled', e.target.checked)} />
-            <span>Publicar em data e hora específica</span>
-          </label>
-          {form.scheduleEnabled && (
-            <div className="doc-schedule-row">
-              <input className="doc-field__input" type="date"
-                value={form.scheduleDate} onChange={e => patchForm('scheduleDate', e.target.value)} />
-              <input className="doc-field__input" type="time"
-                value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
-            </div>
-          )}
-        </div>
+          );
+        })()}
       </Modal>
 
       {/* Delete modal */}

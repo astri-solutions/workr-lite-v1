@@ -521,140 +521,167 @@ export default function CentralDeResultadosPage() {
           <LangTabs active={modalLang} onChange={setModalLang} />
         )}
 
-        <div className="cdr-modal-form">
-          {/* Entidade — only if more than one */}
-          {ENTITIES.length > 1 && (
-            <label className="cdr-modal-form__label">
-              Entidade
-              <select
-                className="cdr-modal-form__input cdr-modal-form__select"
-                value={newEntity}
-                onChange={(e) => setNewEntity(e.target.value)}
-              >
-                {ENTITIES.map((e) => (
-                  <option key={e.id} value={e.id}>{e.name}</option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {/* Título (per language) */}
-          <label className="cdr-modal-form__label" key={modalLang}>
-            Título
-            <input
-              className="cdr-modal-form__input lang-fade"
-              type="text"
-              placeholder="Ex: Resultado do 2º Trimestre 2026"
-              value={newTitles[modalLang] ?? ''}
-              onChange={(e) => setNewTitles(prev => ({ ...prev, [modalLang]: e.target.value }))}
-              autoFocus
-            />
-          </label>
-
-          {/* Data */}
-          <label className="cdr-modal-form__label">
-            Data de divulgação
-            <input
-              className="cdr-modal-form__input"
-              type="date"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-            />
-          </label>
-
-          {/* Período: trimestral / anual */}
-          <div className="cdr-modal-form__label">
-            Período
-            <div className="cdr-period-toggle">
-              <button
-                type="button"
-                className={`cdr-period-toggle__btn${newPeriodType === 'trimestral' ? ' cdr-period-toggle__btn--active' : ''}`}
-                onClick={() => setNewPeriodType('trimestral')}
-              >Trimestral</button>
-              <button
-                type="button"
-                className={`cdr-period-toggle__btn${newPeriodType === 'anual' ? ' cdr-period-toggle__btn--active' : ''}`}
-                onClick={() => setNewPeriodType('anual')}
-              >Anual</button>
-            </div>
-          </div>
-
-          {/* Trimestre (só se trimestral) + Ano — inline */}
-          <div className="cdr-modal-form__row">
-            {newPeriodType === 'trimestral' && (
-              <label className="cdr-modal-form__label">
-                Trimestre
-                <select
-                  className="cdr-modal-form__input cdr-modal-form__select"
-                  value={newQuarter}
-                  onChange={(e) => setNewQuarter(e.target.value)}
-                >
-                  <option value="">Selecionar</option>
-                  {QUARTER_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
-                </select>
+        {(() => {
+          const isPrimary = modalLang === PORTAL_CONFIG.languages[0];
+          const locked = !isPrimary;
+          return (
+            <div className="cdr-modal-form">
+              {/* Título (per language) */}
+              <label className="cdr-modal-form__label" key={modalLang}>
+                Título
+                <input
+                  className="cdr-modal-form__input lang-fade"
+                  type="text"
+                  placeholder="Ex: Resultado do 2º Trimestre 2026"
+                  value={newTitles[modalLang] ?? ''}
+                  onChange={(e) => setNewTitles(prev => ({ ...prev, [modalLang]: e.target.value }))}
+                  autoFocus
+                />
               </label>
-            )}
-            <label className="cdr-modal-form__label">
-              Ano
-              <select
-                className="cdr-modal-form__input cdr-modal-form__select"
-                value={newYear}
-                onChange={(e) => setNewYear(e.target.value)}
-              >
-                <option value="">Selecionar</option>
-                {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </label>
-          </div>
 
-          {/* Tipo */}
-          <div className="cdr-modal-form__label">
-            Tipo
-            <div className="cdr-tipo-grid">
-              {TIPO_OPTIONS.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  className={`cdr-tipo-btn${newTipo === t.value ? ' cdr-tipo-btn--active' : ''}`}
-                  onClick={() => setNewTipo(t.value)}
-                >
-                  <span className="material-symbols-outlined cdr-tipo-btn__icon">{t.icon}</span>
-                  <span className="cdr-tipo-btn__label">{t.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+              {/* Locked notice + shared fields */}
+              {locked && (
+                <div className="modal-locked-notice">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  Campos comuns já definidos no idioma principal
+                </div>
+              )}
 
-          {/* Agendamento */}
-          <div className="cdr-modal-schedule">
-            <div className="cdr-modal-schedule__header">
-              <div className="cdr-modal-schedule__title-group">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
-                <span className="cdr-modal-schedule__title">Agendamento</span>
+              <div className={locked ? 'modal-locked-group' : ''}>
+                {/* Entidade — only if more than one */}
+                {ENTITIES.length > 1 && (
+                  <label className="cdr-modal-form__label">
+                    Entidade
+                    <select
+                      className="cdr-modal-form__input cdr-modal-form__select"
+                      value={newEntity}
+                      onChange={(e) => setNewEntity(e.target.value)}
+                      disabled={locked}
+                    >
+                      {ENTITIES.map((e) => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+
+                {/* Data */}
+                <label className="cdr-modal-form__label">
+                  Data de divulgação
+                  <input
+                    className="cdr-modal-form__input"
+                    type="date"
+                    value={newDate}
+                    onChange={(e) => setNewDate(e.target.value)}
+                    disabled={locked}
+                  />
+                </label>
+
+                {/* Período: trimestral / anual */}
+                <div className="cdr-modal-form__label">
+                  Período
+                  <div className="cdr-period-toggle">
+                    <button
+                      type="button"
+                      className={`cdr-period-toggle__btn${newPeriodType === 'trimestral' ? ' cdr-period-toggle__btn--active' : ''}`}
+                      onClick={() => !locked && setNewPeriodType('trimestral')}
+                      disabled={locked}
+                    >Trimestral</button>
+                    <button
+                      type="button"
+                      className={`cdr-period-toggle__btn${newPeriodType === 'anual' ? ' cdr-period-toggle__btn--active' : ''}`}
+                      onClick={() => !locked && setNewPeriodType('anual')}
+                      disabled={locked}
+                    >Anual</button>
+                  </div>
+                </div>
+
+                {/* Trimestre + Ano */}
+                <div className="cdr-modal-form__row">
+                  {newPeriodType === 'trimestral' && (
+                    <label className="cdr-modal-form__label">
+                      Trimestre
+                      <select
+                        className="cdr-modal-form__input cdr-modal-form__select"
+                        value={newQuarter}
+                        onChange={(e) => setNewQuarter(e.target.value)}
+                        disabled={locked}
+                      >
+                        <option value="">Selecionar</option>
+                        {QUARTER_OPTIONS.map((q) => <option key={q} value={q}>{q}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <label className="cdr-modal-form__label">
+                    Ano
+                    <select
+                      className="cdr-modal-form__input cdr-modal-form__select"
+                      value={newYear}
+                      onChange={(e) => setNewYear(e.target.value)}
+                      disabled={locked}
+                    >
+                      <option value="">Selecionar</option>
+                      {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                {/* Tipo */}
+                <div className="cdr-modal-form__label">
+                  Tipo
+                  <div className="cdr-tipo-grid">
+                    {TIPO_OPTIONS.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        className={`cdr-tipo-btn${newTipo === t.value ? ' cdr-tipo-btn--active' : ''}`}
+                        onClick={() => !locked && setNewTipo(t.value)}
+                        disabled={locked}
+                      >
+                        <span className="material-symbols-outlined cdr-tipo-btn__icon">{t.icon}</span>
+                        <span className="cdr-tipo-btn__label">{t.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agendamento */}
+                <div className="cdr-modal-schedule">
+                  <div className="cdr-modal-schedule__header">
+                    <div className="cdr-modal-schedule__title-group">
+                      <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
+                      <span className="cdr-modal-schedule__title">Agendamento</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`cdr-modal-schedule__toggle${scheduleEnabled ? ' cdr-modal-schedule__toggle--on' : ''}`}
+                      onClick={() => !locked && setScheduleEnabled((v) => !v)}
+                      aria-pressed={scheduleEnabled}
+                      disabled={locked}
+                    >
+                      <span className="cdr-modal-schedule__toggle-knob" />
+                    </button>
+                  </div>
+                  {scheduleEnabled && (
+                    <div className="cdr-modal-schedule__fields">
+                      <label className="cdr-modal-form__label">
+                        Data
+                        <input className="cdr-modal-form__input" type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} disabled={locked} />
+                      </label>
+                      <label className="cdr-modal-form__label">
+                        Horário
+                        <input className="cdr-modal-form__input" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} disabled={locked} />
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
-              <button
-                type="button"
-                className={`cdr-modal-schedule__toggle${scheduleEnabled ? ' cdr-modal-schedule__toggle--on' : ''}`}
-                onClick={() => setScheduleEnabled((v) => !v)}
-                aria-pressed={scheduleEnabled}
-              >
-                <span className="cdr-modal-schedule__toggle-knob" />
-              </button>
             </div>
-            {scheduleEnabled && (
-              <div className="cdr-modal-schedule__fields">
-                <label className="cdr-modal-form__label">
-                  Data
-                  <input className="cdr-modal-form__input" type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
-                </label>
-                <label className="cdr-modal-form__label">
-                  Horário
-                  <input className="cdr-modal-form__input" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
+          );
+        })()}
       </Modal>
     </div>
   );

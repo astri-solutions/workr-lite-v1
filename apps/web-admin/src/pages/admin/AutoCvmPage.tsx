@@ -93,21 +93,29 @@ const PORTAIS: Portal[] = [
   },
 ];
 
-const STATUS_LABEL: Record<EntityStatus, string> = {
-  ativo: 'Ativo',
-  pausado: 'Pausado',
-  erro: 'Erro',
-};
-
-const STATUS_CLASS: Record<EntityStatus, string> = {
-  ativo: 'badge badge--success',
-  pausado: 'badge badge--error',
-  erro: 'badge badge--error',
-};
 
 function EntityCard({ entity }: { entity: CvmEntity }) {
+  const [status, setStatus] = useState<EntityStatus>(entity.status);
+  const [syncing, setSyncing] = useState(false);
+  const [importDate, setImportDate] = useState(() => {
+    if (!entity.importarDesde) return '';
+    const [d, m, y] = entity.importarDesde.split('/');
+    return y && m && d ? `${y}-${m}-${d}` : '';
+  });
+
+  const isAtivo = status === 'ativo';
+
+  function handleSync() {
+    setSyncing(true);
+    setTimeout(() => setSyncing(false), 2200);
+  }
+
+  function toggleStatus() {
+    setStatus((s) => (s === 'ativo' ? 'pausado' : 'ativo'));
+  }
+
   return (
-    <div className="cvm-entity-card">
+    <div className={`cvm-entity-card${!isAtivo ? ' cvm-entity-card--paused' : ''}`}>
       <div className="cvm-entity-card__header">
         <div>
           <h3 className="cvm-entity-card__name">{entity.nome}</h3>
@@ -115,9 +123,19 @@ function EntityCard({ entity }: { entity: CvmEntity }) {
             {entity.tipo} · CNPJ {entity.cnpj} · CVM {entity.cvmCode}
           </p>
         </div>
-        <span className={STATUS_CLASS[entity.status]}>
-          {STATUS_LABEL[entity.status]}
-        </span>
+        <div className="cvm-entity-card__header-actions">
+          <button
+            type="button"
+            className={`cvm-toggle${isAtivo ? ' cvm-toggle--on' : ''}`}
+            onClick={toggleStatus}
+            title={isAtivo ? 'Pausar importação' : 'Ativar importação'}
+          >
+            <span className="cvm-toggle__track">
+              <span className="cvm-toggle__thumb" />
+            </span>
+            <span className="cvm-toggle__label">{isAtivo ? 'Ativo' : 'Pausado'}</span>
+          </button>
+        </div>
       </div>
 
       <div className="cvm-entity-card__fields">
@@ -133,24 +151,54 @@ function EntityCard({ entity }: { entity: CvmEntity }) {
         <div className="cvm-field">
           <label className="cvm-field__label">Importar desde (retroativo)</label>
           <input
-            className="cvm-field__input"
-            type="text"
-            defaultValue={entity.importarDesde}
-            placeholder="dd/mm/aaaa"
+            className="cvm-field__input cvm-field__input--date"
+            type="date"
+            value={importDate}
+            onChange={(e) => setImportDate(e.target.value)}
+            disabled={!isAtivo}
           />
         </div>
       </div>
 
       <div className="cvm-entity-card__footer">
         <span className="cvm-entity-card__sync-info">
-          Casa por CNPJ · incremental a cada 5 min
-          {entity.ultimaSync !== '—' && (
-            <> · última: <strong>{entity.ultimaSync}</strong></>
+          {isAtivo ? (
+            <>Casa por CNPJ · incremental a cada 5 min
+              {entity.ultimaSync !== '—' && (
+                <> · última: <strong>{entity.ultimaSync}</strong></>
+              )}
+            </>
+          ) : (
+            <span className="cvm-entity-card__sync-info--paused">Importação pausada</span>
           )}
         </span>
-        <button className="btn-outline-sm" type="button">
-          Importar histórico
-        </button>
+        <div className="cvm-entity-card__footer-actions">
+          <button
+            className="btn-outline-sm"
+            type="button"
+            onClick={handleSync}
+            disabled={syncing || !isAtivo}
+          >
+            {syncing
+              ? <><span className="cvm-spin" />Sincronizando…</>
+              : <>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                  </svg>
+                  Sincronizar
+                </>
+            }
+          </button>
+          <button
+            className="btn-outline-sm"
+            type="button"
+            disabled={!isAtivo || !importDate}
+            title={!importDate ? 'Selecione uma data para importar' : ''}
+          >
+            Importar histórico
+          </button>
+        </div>
       </div>
     </div>
   );
