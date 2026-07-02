@@ -284,3 +284,18 @@
   color: rgba(255,255,255,0.4);
   line-height: 1.6;
 }
+
+/* ── Mobile responsive ────────────────────────────── */
+@media (max-width: 600px) {
+  .footer-fields-row {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-social-row {
+    grid-template-columns: 24px 1fr;
+  }
+
+  .footer-social-row__platform {
+    display: none;
+  }
+}

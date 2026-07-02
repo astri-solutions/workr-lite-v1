@@ -436,3 +436,18 @@
   color: var(--color-primary-600);
   background: var(--color-primary-50, #e8f5f7);
 }
+
+/* ── Mobile responsive ────────────────────────────── */
+@media (max-width: 720px) {
+  .nf-picker__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .nf-field-editor__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nm-meta-card__row {
+    grid-template-columns: 1fr;
+  }
+}

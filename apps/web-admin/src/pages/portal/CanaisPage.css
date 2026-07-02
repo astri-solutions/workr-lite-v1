@@ -574,3 +574,18 @@ select.canais-edit-form__input,
   accent-color: var(--color-primary-500);
   flex-shrink: 0;
 }
+
+/* ── Mobile responsive ────────────────────────────── */
+@media (max-width: 720px) {
+  .canais-edit-row {
+    grid-template-columns: 1fr;
+  }
+
+  .canais-page-types {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .canais-new-type-row {
+    flex-direction: column;
+  }
+}

@@ -27,9 +27,11 @@ interface AppSidebarProps {
 function SidebarNavItem({
   item,
   collapsed,
+  onMobileClose,
 }: {
   item: NavItem;
   collapsed: boolean;
+  onMobileClose?: () => void;
 }) {
   const location = useLocation();
 
@@ -44,7 +46,7 @@ function SidebarNavItem({
         <button
           type="button"
           className={`admin-nav-item admin-nav-item--parent${isChildActive ? ' admin-nav-item--child-active' : ''}`}
-          onClick={() => setOpen((o) => !o)}
+          onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
           title={collapsed ? item.label : undefined}
         >
           <span className="admin-nav-item__icon">{item.icon}</span>
@@ -73,6 +75,7 @@ function SidebarNavItem({
                 <NavLink
                   key={child.to}
                   to={child.to}
+                  onClick={onMobileClose}
                   className={({ isActive }) =>
                     `admin-nav-item admin-nav-item--child${isActive ? ' admin-nav-item--active' : ''}`
                   }
@@ -94,6 +97,7 @@ function SidebarNavItem({
     <NavLink
       to={item.to}
       title={collapsed ? item.label : undefined}
+      onClick={onMobileClose}
       className={({ isActive }) =>
         `admin-nav-item${isActive ? ' admin-nav-item--active' : ''}`
       }
@@ -157,7 +161,7 @@ export default function AppSidebar({
         <img src={currentLogo} alt={logoAlt} className="admin-sidebar__logo-img" />
       </NavLink>
 
-      <div className="admin-sidebar__scroll" onClick={onMobileClose}>
+      <div className="admin-sidebar__scroll">
         <nav className="admin-sidebar__nav">
           {sections.map((section) => (
             <div key={section.label} className="admin-sidebar__section">
@@ -169,6 +173,7 @@ export default function AppSidebar({
                   key={item.to ?? item.label}
                   item={item}
                   collapsed={collapsed}
+                  onMobileClose={onMobileClose}
                 />
               ))}
             </div>

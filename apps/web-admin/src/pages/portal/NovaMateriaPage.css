@@ -984,3 +984,29 @@
   border-color: var(--color-primary-500);
   color: #fff;
 }
+
+/* ── Mobile responsive ────────────────────────────── */
+@media (max-width: 900px) {
+  .nm-body {
+    grid-template-columns: 1fr !important;
+  }
+
+  .nm-sections-panel {
+    display: none;
+  }
+
+  .nm-meta-panel {
+    border-left: none;
+    border-top: 1px solid var(--color-gray-200);
+  }
+
+  .sec-two-panel,
+  .sec-cols--2,
+  .sec-cols--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .galeria-card-editor__fields {
+    grid-template-columns: 1fr;
+  }
+}

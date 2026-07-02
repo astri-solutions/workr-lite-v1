@@ -140,13 +140,13 @@ export default function MateriasPage() {
             ) : (
               filtered.map(m => (
                 <tr key={m.id}>
-                  <td className="table-cell--bold">{m.titulo}</td>
-                  <td className="table-cell--muted">{m.pagina}</td>
-                  <td><span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span></td>
-                  <td className="table-cell--muted">{m.data}</td>
-                  <td className="table-cell--muted">{m.autor}</td>
-                  <td className="table-cell--muted">{m.ultimaEdicao}</td>
-                  <td className="table-cell--muted">{m.ultimoEditor}</td>
+                  <td className="table-cell--bold" data-label="Título">{m.titulo}</td>
+                  <td className="table-cell--muted" data-label="Página">{m.pagina}</td>
+                  <td data-label="Status"><span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span></td>
+                  <td className="table-cell--muted" data-label="Publicação">{m.data}</td>
+                  <td className="table-cell--muted" data-label="Autor">{m.autor}</td>
+                  <td className="table-cell--muted" data-label="Editado em">{m.ultimaEdicao}</td>
+                  <td className="table-cell--muted" data-label="Editor">{m.ultimoEditor}</td>
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button"

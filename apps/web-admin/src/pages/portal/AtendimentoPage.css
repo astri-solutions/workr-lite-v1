@@ -269,3 +269,34 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 800px) {
+  .atend-layout {
+    flex-direction: column;
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .atend-aside {
+    width: 100%;
+  }
+
+  .atend-card {
+    padding: var(--space-5);
+  }
+
+  .atend-form__row--two {
+    grid-template-columns: 1fr;
+  }
+
+  .atend-form__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .atend-form__footer .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
