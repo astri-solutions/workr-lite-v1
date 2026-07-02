@@ -84,6 +84,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
     if (form.perfil === 'super_admin') {
       onSubmit(form);
       setSent(true);
+      setTimeout(() => handleClose(), 2500);
     } else {
       setStep(2);
     }
@@ -93,6 +94,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
     if (!validateStep2()) return;
     onSubmit(form);
     setSent(true);
+    setTimeout(() => handleClose(), 2500);
   }
 
   function handleClose() {
