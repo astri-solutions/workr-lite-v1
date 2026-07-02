@@ -27,6 +27,7 @@ const INITIAL_USUARIOS: UsuarioItem[] = [
   { id: '3', nome: 'Ana Souza', email: 'ana@construtoraaurora.com', role: 'client_user', portais: ['1'], status: 'Ativo' },
   { id: '4', nome: 'Carlos Melo', email: 'carlos@imc.com.br', role: 'client_user', portais: ['2'], status: 'Ativo' },
   { id: '5', nome: 'Fernanda Costa', email: 'fcosta@vetraenergia.com', role: 'client_user', portais: ['3'], status: 'Suspenso' },
+  { id: '6', nome: 'Bruno Almeida', email: 'bruno@astri.solutions', role: 'client_user', portais: ['1', '2', '3'], status: 'Ativo' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
