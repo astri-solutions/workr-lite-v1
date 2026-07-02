@@ -18,7 +18,7 @@ export interface InviteFormData {
   nome: string;
   email: string;
   perfil: 'super_admin' | 'client_user';
-  portalId: string;
+  portaisIds: string[];
 }
 
 const PERFIS = [
@@ -40,12 +40,12 @@ const EMPTY: InviteFormData = {
   nome: '',
   email: '',
   perfil: 'client_user',
-  portalId: '',
+  portaisIds: [],
 };
 
 export default function InviteUserModal({ open, onClose, portais, onSubmit }: InviteUserModalProps) {
   const [form, setForm] = useState<InviteFormData>(EMPTY);
-  const [errors, setErrors] = useState<Partial<Record<keyof InviteFormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [sent, setSent] = useState(false);
 
   function set<K extends keyof InviteFormData>(key: K, val: InviteFormData[K]) {
@@ -61,8 +61,8 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       next.email = 'Digite um email válido.';
     }
-    if (form.perfil === 'client_user' && !form.portalId) {
-      next.portalId = 'Selecione um portal para o cliente.';
+    if (form.perfil === 'client_user' && form.portaisIds.length === 0) {
+      next.portaisIds = 'Selecione ao menos um portal para o cliente.';
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -177,7 +177,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
                 className={`mf__perfil-card${active ? ' mf__perfil-card--active' : ''}`}
                 onClick={() => {
                   set('perfil', p.value);
-                  if (p.value === 'super_admin') set('portalId', '');
+                  if (p.value === 'super_admin') set('portaisIds', []);
                 }}
               >
                 <span className={`mf__perfil-icon${active ? ' mf__perfil-icon--active' : ''}`}>
@@ -196,24 +196,28 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
         </div>
       </div>
 
-      {/* Portal — apenas para clientes */}
+      {/* Portais — apenas para clientes */}
       {isClient && (
         <div className="mf">
-          <label className="mf__label">Portal</label>
-          <div className="mf__select-wrap">
-            <select
-              className={`mf__input mf__select${errors.portalId ? ' mf__input--error' : ''}`}
-              value={form.portalId}
-              onChange={(e) => set('portalId', e.target.value)}
-            >
-              <option value="">Selecione um portal…</option>
-              {portais.map((p) => (
-                <option key={p.id} value={p.id}>{p.nome}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined mf__select-chevron" style={{ fontSize: '14px' }}>expand_more</span>
+          <label className="mf__label">Portais com acesso</label>
+          <div className="eu-portais-list">
+            {portais.map((p) => (
+              <label key={p.id} className="eu-portal-check">
+                <input
+                  type="checkbox"
+                  checked={form.portaisIds.includes(p.id)}
+                  onChange={() => {
+                    const next = form.portaisIds.includes(p.id)
+                      ? form.portaisIds.filter(id => id !== p.id)
+                      : [...form.portaisIds, p.id];
+                    set('portaisIds', next);
+                  }}
+                />
+                {p.nome}
+              </label>
+            ))}
           </div>
-          {errors.portalId && <span className="mf__error">{errors.portalId}</span>}
+          {errors.portaisIds && <span className="mf__error">{errors.portaisIds}</span>}
         </div>
       )}
     </Modal>

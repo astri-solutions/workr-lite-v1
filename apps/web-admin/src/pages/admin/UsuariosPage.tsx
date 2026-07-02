@@ -82,7 +82,15 @@ export default function UsuariosPage() {
   }
 
   function handleInvite(data: InviteFormData) {
-    console.log('Convidar usuário:', data);
+    const newUser: UsuarioItem = {
+      id: Math.random().toString(36).slice(2),
+      nome: data.nome,
+      email: data.email,
+      role: data.perfil,
+      portais: data.portaisIds,
+      status: 'Ativo',
+    };
+    setUsuarios(prev => [...prev, newUser]);
   }
 
   function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portais: string[]) {
