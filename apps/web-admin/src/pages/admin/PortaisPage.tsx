@@ -15,10 +15,18 @@ interface Site {
   tipo: SiteTipo;
 }
 
+interface Empresa {
+  cnpj: string;
+  responsavel: string;
+  email: string;
+  status: 'Ativa' | 'Suspensa';
+}
+
 interface Portal {
   id: string;
   cliente: string;
   criadoEm: string;
+  empresa: Empresa;
   sites: Site[];
 }
 
@@ -27,12 +35,14 @@ const PORTAIS: Portal[] = [
     id: '1',
     cliente: 'Construtora Aurora',
     criadoEm: '03/03/2026',
+    empresa: { cnpj: '12.345.678/0001-90', responsavel: 'Marcos Oliveira', email: 'marcos@aurora.com.br', status: 'Ativa' },
     sites: [{ id: 's1', link: 'aurora.workr.com.br', status: 'Ativo', ip: '177.71.142.53', tipo: 'RI' }],
   },
   {
     id: '2',
     cliente: 'International Meal Company',
     criadoEm: '12/02/2026',
+    empresa: { cnpj: '05.583.665/0001-10', responsavel: 'Ana Paula Ramos', email: 'ana@imc.com.br', status: 'Ativa' },
     sites: [
       { id: 's2', link: 'imc.workr.com.br', status: 'Ativo', ip: '177.71.142.54', tipo: 'RI' },
       { id: 's3', link: 'imc-en.workr.com.br', status: 'Ativo', ip: '177.71.142.55', tipo: 'Institucional' },
@@ -42,6 +52,7 @@ const PORTAIS: Portal[] = [
     id: '3',
     cliente: 'Vetra Energia',
     criadoEm: '21/01/2026',
+    empresa: { cnpj: '29.117.035/0001-82', responsavel: 'Felipe Carvalho', email: 'fcarvalho@vetra.com.br', status: 'Suspensa' },
     sites: [{ id: 's4', link: 'vetra.workr.com.br', status: 'Suspenso', ip: '177.71.142.56', tipo: 'RI' }],
   },
 ];
@@ -247,10 +258,22 @@ export default function PortaisPage() {
   const navigate = useNavigate();
   const [portais, setPortais] = useState(PORTAIS);
   const [search, setSearch] = useState('');
+  const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
   const [tipoTarget, setTipoTarget] = useState<{ portalId: string; site: Site } | null>(null);
   const [tipoEdit, setTipoEdit] = useState<SiteTipo>('RI');
+
+  function toggleExpand(portalId: string) {
+    setExpandedPortalId(prev => prev === portalId ? null : portalId);
+  }
+
+  function toggleEmpresaStatus(portalId: string) {
+    setPortais(prev => prev.map(p => p.id !== portalId ? p : {
+      ...p,
+      empresa: { ...p.empresa, status: p.empresa.status === 'Ativa' ? 'Suspensa' : 'Ativa' },
+    }));
+  }
 
   function openTipo(portalId: string, site: Site) {
     setTipoTarget({ portalId, site });
@@ -315,56 +338,112 @@ export default function PortaisPage() {
       </div>
 
       <div className="portais-list">
-        {filtered.map((portal) => (
-          <div key={portal.id} className="portal-card">
-            <div className="portal-card__header">
-              <div className="portal-card__info">
-                <span className="portal-card__name">{portal.cliente}</span>
-                <span className="portal-card__meta">Criado em: {portal.criadoEm}</span>
-              </div>
-              <div className="portal-card__actions">
-                <button className="portais-btn portais-btn--add" type="button" onClick={() => navigate('/admin/portais/novo', { state: { empresaNome: portal.cliente, portalId: portal.id } })}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                  Adicionar site
-                </button>
-              </div>
-            </div>
-
-            <div className="portal-card__sites">
-              {portal.sites.map((site) => (
-                <div key={site.id} className="portal-site-row">
-                  <div className="portal-site-row__left">
-                    <span className={`badge ${site.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
-                      {site.status}
-                    </span>
-                    <span className={`badge ${TIPO_BADGE[site.tipo]}`}>{site.tipo}</span>
-                    <a
-                      className="portal-site-row__link"
-                      href={`https://${site.link}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {site.link}
-                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>open_in_new</span>
-                    </a>
-                  </div>
-                  <div className="portal-site-row__right">
-                    <button className="portais-btn portais-btn--panel" type="button" onClick={() => navigate(`/admin/portais/${site.id}/painel`)}>
-                      Painel de controle
-                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>arrow_forward</span>
+        {filtered.map((portal) => {
+          const isExpanded = expandedPortalId === portal.id;
+          return (
+            <div key={portal.id} className="portal-card">
+              <div className="portal-card__header">
+                <div className="portal-card__info">
+                  <span className="portal-card__name">{portal.cliente}</span>
+                  {!isExpanded && (
+                    <span className="portal-card__meta">Criado em: {portal.criadoEm}</span>
+                  )}
+                </div>
+                <div className="portal-card__actions">
+                  {!isExpanded && (
+                    <button className="portais-btn portais-btn--add" type="button" onClick={() => navigate('/admin/portais/novo', { state: { empresaNome: portal.cliente, portalId: portal.id } })}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                      Adicionar site
                     </button>
-                    <FerramentasDropdown />
-                    <SiteKebabMenu
-                      onDetalhes={() => setDetalhesSite(site)}
-                      onAlterarDominio={() => setAlterarSite(site)}
-                      onAlterarTipo={() => openTipo(portal.id, site)}
-                    />
+                  )}
+                  <button
+                    className="portais-kebab__trigger"
+                    type="button"
+                    aria-label={isExpanded ? 'Recolher' : 'Expandir empresa'}
+                    onClick={() => toggleExpand(portal.id)}
+                    style={{ marginLeft: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>
+                      expand_more
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="portal-empresa-detail">
+                  <div className="portal-empresa-detail__meta">
+                    <span>CNPJ {portal.empresa.cnpj}</span>
+                    <span className="portal-empresa-detail__dot">·</span>
+                    <span>Responsável {portal.empresa.responsavel}</span>
+                    <span className="portal-empresa-detail__dot">·</span>
+                    <a href={`mailto:${portal.empresa.email}`} className="portal-empresa-detail__email">{portal.empresa.email}</a>
+                    <span className="portal-empresa-detail__dot">·</span>
+                    <span>Cadastro {portal.criadoEm}</span>
+                  </div>
+                  <div className="portal-empresa-detail__actions">
+                    <span className={`badge ${portal.empresa.status === 'Ativa' ? 'badge--success' : 'badge--error'}`}>
+                      {portal.empresa.status}
+                    </span>
+                    <button
+                      className="portais-btn portais-btn--outline-sm"
+                      type="button"
+                      onClick={() => toggleEmpresaStatus(portal.id)}
+                    >
+                      {portal.empresa.status === 'Ativa' ? 'Suspender conta' : 'Reativar conta'}
+                    </button>
+                    <button className="portais-btn portais-btn--add" type="button" onClick={() => navigate('/admin/portais/novo', { state: { empresaNome: portal.cliente, portalId: portal.id } })}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                      Adicionar site
+                    </button>
                   </div>
                 </div>
-              ))}
+              )}
+
+              <div className="portal-card__sites">
+                {portal.sites.map((site) => (
+                  <div key={site.id} className="portal-site-row">
+                    <div className="portal-site-row__left">
+                      <span className={`badge ${site.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
+                        {site.status}
+                      </span>
+                      <span className={`badge ${TIPO_BADGE[site.tipo]}`}>{site.tipo}</span>
+                      <a
+                        className="portal-site-row__link"
+                        href={`https://${site.link}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {site.link}
+                        <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>open_in_new</span>
+                      </a>
+                    </div>
+                    <div className="portal-site-row__right">
+                      <button className="portais-btn portais-btn--panel" type="button" onClick={() => navigate(`/admin/portais/${site.id}/painel`)}>
+                        Painel de controle
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>arrow_forward</span>
+                      </button>
+                      <button
+                        className="portais-btn portais-btn--admin-site"
+                        type="button"
+                        onClick={() => window.open('/portal/empresas', '_blank')}
+                      >
+                        Admin Site
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>open_in_new</span>
+                      </button>
+                      <FerramentasDropdown />
+                      <SiteKebabMenu
+                        onDetalhes={() => setDetalhesSite(site)}
+                        onAlterarDominio={() => setAlterarSite(site)}
+                        onAlterarTipo={() => openTipo(portal.id, site)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filtered.length === 0 && (
           <div className="page-placeholder">

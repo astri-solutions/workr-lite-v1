@@ -68,6 +68,7 @@ export default function PainelControlePage() {
   const navigate = useNavigate();
   const [cacheClearing, setCacheClearing] = useState(false);
   const [cacheDone, setCacheDone] = useState(false);
+  const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
 
   const site = SITES_DB.find((s) => s.id === siteId);
 
@@ -93,6 +94,7 @@ export default function PainelControlePage() {
     setTimeout(() => setCacheDone(false), 3000);
   }
 
+  const effectiveStatus = siteStatus ?? site.status;
   const discoPercent = Math.round((site.disco.usado / site.disco.total) * 100);
   const inodesPercent = Math.round((site.inodes.usado / site.inodes.total) * 100);
 
@@ -154,9 +156,16 @@ export default function PainelControlePage() {
               CDN
             </span>
           )}
-          <span className={`painel-badge ${site.status === 'Ativo' ? 'painel-badge--success' : 'painel-badge--error'}`}>
-            {site.status}
+          <span className={`painel-badge ${effectiveStatus === 'Ativo' ? 'painel-badge--success' : 'painel-badge--error'}`}>
+            {effectiveStatus}
           </span>
+          <button
+            className={`painel-suspend-btn${effectiveStatus === 'Suspenso' ? ' painel-suspend-btn--reativar' : ''}`}
+            type="button"
+            onClick={() => setSiteStatus(s => (s ?? site.status) === 'Ativo' ? 'Suspenso' : 'Ativo')}
+          >
+            {effectiveStatus === 'Ativo' ? 'Suspender site' : 'Reativar site'}
+          </button>
         </div>
       </div>
 
