@@ -583,6 +583,70 @@
   white-space: nowrap;
 }
 
+/* ─── Step 3 role selector ───────────────────────────────── */
+.invite-roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.invite-role-item__portal {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+  margin-bottom: var(--space-2);
+}
+
+.invite-role-opts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.invite-role-opt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+  background: #fff;
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  padding-right: 28px;
+}
+
+.invite-role-opt:hover {
+  border-color: var(--color-primary-300);
+}
+
+.invite-role-opt--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+}
+
+.invite-role-opt__label {
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-gray-900);
+}
+
+.invite-role-opt--active .invite-role-opt__label {
+  color: var(--color-primary-700);
+}
+
+.invite-role-opt__desc {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--color-gray-500);
+  line-height: 1.4;
+}
+
 /* ─── Summary pill ───────────────────────────────────────── */
 .invite-summary {
   display: flex;

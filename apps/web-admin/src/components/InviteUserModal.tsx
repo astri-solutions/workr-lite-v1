@@ -21,7 +21,16 @@ export interface InviteFormData {
   perfil: 'super_admin' | 'client_user';
   portaisIds: string[];
   empresasIds: string[];
+  portalRoles: Record<string, 'admin' | 'editor' | 'viewer'>;
 }
+
+type PortalRole = 'admin' | 'editor' | 'viewer';
+
+const PORTAL_ROLES: { value: PortalRole; label: string; desc: string }[] = [
+  { value: 'admin', label: 'Admin', desc: 'Acesso total ao portal.' },
+  { value: 'editor', label: 'Editor', desc: 'Cria e edita conteúdo.' },
+  { value: 'viewer', label: 'Visualizador', desc: 'Apenas leitura.' },
+];
 
 const PERFIS = [
   {
@@ -44,10 +53,11 @@ const EMPTY: InviteFormData = {
   perfil: 'client_user',
   portaisIds: [],
   empresasIds: [],
+  portalRoles: {},
 };
 
 export default function InviteUserModal({ open, onClose, portais, onSubmit }: InviteUserModalProps) {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [form, setForm] = useState<InviteFormData>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [sent, setSent] = useState(false);
@@ -92,6 +102,16 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
 
   function handleSubmit() {
     if (!validateStep2()) return;
+    // Pre-fill any portal without a role with 'viewer'
+    const roles: Record<string, PortalRole> = { ...form.portalRoles };
+    for (const id of form.portaisIds) {
+      if (!roles[id]) roles[id] = 'viewer';
+    }
+    setForm(f => ({ ...f, portalRoles: roles }));
+    setStep(3);
+  }
+
+  function handleFinalSubmit() {
     onSubmit(form);
     setSent(true);
     setTimeout(() => handleClose(), 2500);
@@ -101,7 +121,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
     onClose();
     setTimeout(() => {
       setForm(EMPTY); setErrors({}); setSent(false);
-      setStep(1); setSearch(''); setExpandedPortalId(null);
+      setStep(1 as 1 | 2 | 3); setSearch(''); setExpandedPortalId(null);
     }, 200);
   }
 
@@ -229,6 +249,11 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
               <span className="invite-step__dot">2</span>
               <span className="invite-step__label">Acesso</span>
             </div>
+            <div className="invite-step__line" />
+            <div className="invite-step">
+              <span className="invite-step__dot">3</span>
+              <span className="invite-step__label">Permissões</span>
+            </div>
           </div>
         )}
 
@@ -297,8 +322,8 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
             Voltar
           </button>
           <button className="modal-btn modal-btn--primary" type="button" onClick={handleSubmit}>
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>send</span>
-            Enviar convite
+            Próximo
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>arrow_forward</span>
           </button>
         </>
       }
@@ -315,6 +340,11 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
         <div className="invite-step invite-step--active">
           <span className="invite-step__dot">2</span>
           <span className="invite-step__label">Acesso</span>
+        </div>
+        <div className="invite-step__line" />
+        <div className="invite-step">
+          <span className="invite-step__dot">3</span>
+          <span className="invite-step__label">Permissões</span>
         </div>
       </div>
 
@@ -401,6 +431,91 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
           <span>{totalSelecionados} {totalSelecionados === 1 ? 'item selecionado' : 'itens selecionados'}</span>
         </div>
       )}
+    </Modal>
+  );
+
+  /* ── Step 3: Permissões ── */
+  const selectedPortais = portais.filter(p => form.portaisIds.includes(p.id));
+
+  return (
+    <Modal
+      open={open} onClose={handleClose}
+      title="Permissões por portal"
+      description="Defina o nível de acesso do usuário em cada portal selecionado."
+      size="sm"
+      footer={
+        <>
+          <button className="modal-btn modal-btn--ghost" type="button"
+            onClick={() => setStep(2)}>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>arrow_back</span>
+            Voltar
+          </button>
+          <button className="modal-btn modal-btn--primary" type="button" onClick={handleFinalSubmit}>
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>send</span>
+            Enviar convite
+          </button>
+        </>
+      }
+    >
+      {/* Step indicator */}
+      <div className="invite-steps">
+        <div className="invite-step invite-step--done">
+          <span className="invite-step__dot">
+            <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>check</span>
+          </span>
+          <span className="invite-step__label">Dados</span>
+        </div>
+        <div className="invite-step__line invite-step__line--done" />
+        <div className="invite-step invite-step--done">
+          <span className="invite-step__dot">
+            <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>check</span>
+          </span>
+          <span className="invite-step__label">Acesso</span>
+        </div>
+        <div className="invite-step__line invite-step__line--done" />
+        <div className="invite-step invite-step--active">
+          <span className="invite-step__dot">3</span>
+          <span className="invite-step__label">Permissões</span>
+        </div>
+      </div>
+
+      {/* User summary */}
+      <div className="invite-user-summary">
+        <span className="material-symbols-outlined invite-user-summary__icon" style={{ fontSize: '16px' }}>person</span>
+        <span className="invite-user-summary__name">{form.nome}</span>
+        <span className="invite-user-summary__email">{form.email}</span>
+        <span className="badge badge--gray" style={{ fontSize: '11px' }}>Cliente</span>
+      </div>
+
+      {/* Per-portal role selector */}
+      <div className="invite-roles-list">
+        {selectedPortais.map(portal => {
+          const currentRole: PortalRole = form.portalRoles[portal.id] ?? 'viewer';
+          return (
+            <div key={portal.id} className="invite-role-item">
+              <div className="invite-role-item__portal">{portal.nome}</div>
+              <div className="invite-role-opts">
+                {PORTAL_ROLES.map(r => {
+                  const active = currentRole === r.value;
+                  return (
+                    <button key={r.value} type="button"
+                      className={`invite-role-opt${active ? ' invite-role-opt--active' : ''}`}
+                      onClick={() => setForm(f => ({ ...f, portalRoles: { ...f.portalRoles, [portal.id]: r.value } }))}
+                    >
+                      <span className="invite-role-opt__label">{r.label}</span>
+                      <span className="invite-role-opt__desc">{r.desc}</span>
+                      <div className={`mf__perfil-check${active ? ' mf__perfil-check--active' : ''}`}
+                        style={{ position: 'absolute', top: '8px', right: '8px' }}>
+                        {active && <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </Modal>
   );
 }
