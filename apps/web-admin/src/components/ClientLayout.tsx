@@ -124,11 +124,37 @@ const SECTIONS: NavSection[] = [
         ),
       },
       {
-        to: '/portal/mailing',
         label: 'Mailing',
         icon: (
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>contact_mail</span>
         ),
+        children: [
+          {
+            to: '/portal/mailing',
+            label: 'Minhas Campanhas',
+            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>campaign</span>,
+          },
+          {
+            to: '/portal/mailing/contatos',
+            label: 'Contatos',
+            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>contacts</span>,
+          },
+          {
+            to: '/portal/mailing/lista-de-envio',
+            label: 'Lista de Envio',
+            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>list</span>,
+          },
+          {
+            to: '/portal/mailing/opt-out',
+            label: 'Opt-Out',
+            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>block</span>,
+          },
+          {
+            to: '/portal/mailing/templates',
+            label: 'Templates',
+            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>description</span>,
+          },
+        ],
       },
       {
         to: '/portal/transmissoes',
