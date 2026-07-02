@@ -369,6 +369,17 @@
 
 /* ─── Mobile responsive ──────────────────────────────────── */
 @media (max-width: 720px) {
+  /* Hide portal filter label (FilterBar handles its own label via filter-bar__label) */
+  .cvm-label {
+    display: none;
+  }
+
+  /* Portal select: full-width on mobile */
+  .cvm-select {
+    min-width: unset;
+    width: 100%;
+  }
+
   /* Entity card fields: stack to single column */
   .cvm-entity-card__fields {
     grid-template-columns: 1fr;

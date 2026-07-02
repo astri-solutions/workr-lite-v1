@@ -187,12 +187,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  background: var(--color-success-100);
-  color: var(--color-success-600);
+  background: var(--color-success-50, #f0fdf4);
+  color: var(--color-success-600, #16a34a);
   margin-bottom: var(--space-2);
+  animation: invite-success-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.invite-success__svg {
+  width: 40px;
+  height: 40px;
+}
+
+.invite-success__circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: invite-draw-circle 0.5s ease-out 0.1s forwards;
+}
+
+.invite-success__check {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: invite-draw-check 0.35s ease-out 0.5s forwards;
+}
+
+@keyframes invite-success-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes invite-draw-circle {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes invite-draw-check {
+  to { stroke-dashoffset: 0; }
 }
 
 .invite-success__title {
@@ -515,6 +546,41 @@
   height: 2px;
   border-radius: 1px;
   background: var(--color-primary-500);
+}
+
+/* ─── User summary strip (Step 2) ───────────────────────── */
+.invite-user-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+}
+
+.invite-user-summary__icon {
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+.invite-user-summary__name {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-800);
+  flex-shrink: 0;
+}
+
+.invite-user-summary__email {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ─── Summary pill ───────────────────────────────────────── */

@@ -176,7 +176,10 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
       >
         <div className="invite-success">
           <div className="invite-success__icon">
-            <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>check_circle</span>
+            <svg className="invite-success__svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle className="invite-success__circle" cx="26" cy="26" r="23" stroke="currentColor" strokeWidth="2.5" fill="none" />
+              <polyline className="invite-success__check" points="14,26 22,34 38,18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
           </div>
           <h3 className="invite-success__title">Convite enviado!</h3>
           <p className="invite-success__desc">
@@ -313,6 +316,16 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
           <span className="invite-step__dot">2</span>
           <span className="invite-step__label">Acesso</span>
         </div>
+      </div>
+
+      {/* User summary */}
+      <div className="invite-user-summary">
+        <span className="material-symbols-outlined invite-user-summary__icon" style={{ fontSize: '16px' }}>person</span>
+        <span className="invite-user-summary__name">{form.nome}</span>
+        <span className="invite-user-summary__email">{form.email}</span>
+        <span className={`badge ${form.perfil === 'super_admin' ? 'badge--info' : 'badge--gray'}`} style={{ fontSize: '11px' }}>
+          {form.perfil === 'super_admin' ? 'Admin' : 'Cliente'}
+        </span>
       </div>
 
       {/* Search */}

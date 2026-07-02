@@ -440,3 +440,26 @@
 .painel-analytics__row:hover .painel-analytics__chevron {
   color: var(--color-primary-500);
 }
+
+/* ─── Responsive ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .painel-grid {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+@media (max-width: 720px) {
+  .painel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .painel-header {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .painel-header__badges {
+    flex-shrink: 1;
+    flex-wrap: wrap;
+  }
+}
