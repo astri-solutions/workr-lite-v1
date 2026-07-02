@@ -126,16 +126,18 @@ function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
 export default function UsuariosPortalPage() {
   const [users, setUsers] = useState<PortalUser[]>(INITIAL_USERS);
   const [search, setSearch] = useState('');
+  const [filterEmpresa, setFilterEmpresa] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PortalUser | null>(null);
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
   const [invited, setInvited] = useState(false);
 
-  const filtered = users.filter(u =>
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter(u => {
+    const matchSearch = !search || u.nome.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+    const matchEmpresa = !filterEmpresa || u.empresaIds.length === 0 || u.empresaIds.includes(filterEmpresa);
+    return matchSearch && matchEmpresa;
+  });
 
   function openCreate() {
     setEditing(null);
@@ -216,17 +218,39 @@ export default function UsuariosPortalPage() {
         </div>
       </div>
 
-      <div className="up-search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
-        <input
-          className="up-search"
-          type="text"
-          placeholder="Buscar por nome ou e-mail…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <div className="up-search-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              className="up-search"
+              type="text"
+              placeholder="Buscar por nome ou e-mail…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="filter-wrap">
+            <select
+              className="filter-select"
+              value={filterEmpresa}
+              onChange={e => setFilterEmpresa(e.target.value)}
+            >
+              <option value="">Todas as empresas</option>
+              {EMPRESAS.map(e => (
+                <option key={e.id} value={e.id}>{e.nome}</option>
+              ))}
+            </select>
+            <svg className="filter-wrap__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </div>
+        <div className="toolbar__actions">
+          <span className="toolbar__count">{filtered.length} usuário{filtered.length !== 1 ? 's' : ''}</span>
+        </div>
       </div>
 
       <div className="up-user-list">
