@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
@@ -25,54 +24,154 @@ interface ContentSection {
   cards?: GaleriaCard[];
 }
 
-const SECTION_DEFS: { type: SectionType; label: string; desc: string; icon: React.ReactNode }[] = [
+type SectionCategory = 'texto' | 'layout' | 'midia';
+
+const SECTION_DEFS: { type: SectionType; label: string; desc: string; cat: SectionCategory; thumb: React.ReactNode }[] = [
   {
     type: 'text',
     label: 'Bloco de texto',
-    desc: 'Título e parágrafos com formatação rica.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>text_fields</span>,
+    desc: 'Título e parágrafos com formatação rica e multilíngue.',
+    cat: 'texto',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="16" y="18" width="80" height="8" rx="3" fill="#0B5B68" opacity="0.85"/>
+        <rect x="16" y="34" width="128" height="5" rx="2.5" fill="#B8B8B8"/>
+        <rect x="16" y="44" width="118" height="5" rx="2.5" fill="#B8B8B8"/>
+        <rect x="16" y="54" width="124" height="5" rx="2.5" fill="#B8B8B8"/>
+        <rect x="16" y="64" width="96" height="5" rx="2.5" fill="#B8B8B8"/>
+        <rect x="16" y="78" width="52" height="12" rx="4" fill="#0B5B68" opacity="0.2"/>
+      </svg>
+    ),
   },
   {
     type: 'image-text',
     label: 'Imagem + Texto',
-    desc: 'Imagem à esquerda com texto à direita.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>view_sidebar</span>,
+    desc: 'Imagem à esquerda com texto e parágrafo à direita.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="12" y="16" width="58" height="68" rx="5" fill="#C8DFE2"/>
+        <line x1="29" y1="42" x2="52" y2="58" stroke="#0B5B68" strokeWidth="1.5" opacity="0.4"/>
+        <circle cx="34" cy="34" r="6" fill="#0B5B68" opacity="0.25"/>
+        <rect x="80" y="22" width="68" height="7" rx="3" fill="#0B5B68" opacity="0.8"/>
+        <rect x="80" y="36" width="68" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="80" y="45" width="58" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="80" y="54" width="62" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="80" y="63" width="50" height="4.5" rx="2" fill="#B8B8B8"/>
+      </svg>
+    ),
   },
   {
     type: 'bg-image',
     label: 'Fundo com texto',
-    desc: 'Imagem de fundo com sobreposição de texto.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>panorama</span>,
+    desc: 'Imagem de fundo com sobreposição escurecida e texto centrado.',
+    cat: 'midia',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#C8DFE2"/>
+        <rect width="160" height="100" rx="6" fill="#0B5B68" opacity="0.55"/>
+        <rect x="30" y="30" width="100" height="9" rx="4" fill="white" opacity="0.9"/>
+        <rect x="45" y="46" width="70" height="5" rx="2.5" fill="white" opacity="0.6"/>
+        <rect x="52" y="56" width="56" height="5" rx="2.5" fill="white" opacity="0.5"/>
+        <rect x="55" y="70" width="50" height="12" rx="4" fill="white" opacity="0.2"/>
+      </svg>
+    ),
   },
   {
     type: 'two-col',
     label: 'Duas colunas',
-    desc: 'Dois blocos de texto lado a lado.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>view_column</span>,
+    desc: 'Dois blocos de conteúdo independentes lado a lado.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="12" y="16" width="62" height="68" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="22" y="26" width="42" height="6" rx="2.5" fill="#0B5B68" opacity="0.7"/>
+        <rect x="22" y="38" width="42" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="22" y="47" width="36" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="22" y="56" width="40" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="86" y="16" width="62" height="68" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="96" y="26" width="42" height="6" rx="2.5" fill="#0B5B68" opacity="0.7"/>
+        <rect x="96" y="38" width="42" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="96" y="47" width="36" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="96" y="56" width="40" height="4" rx="2" fill="#B8B8B8"/>
+      </svg>
+    ),
   },
   {
     type: 'three-col',
     label: 'Três colunas',
-    desc: 'Três blocos de texto lado a lado.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>view_week</span>,
+    desc: 'Três blocos de conteúdo alinhados horizontalmente.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="8" y="16" width="42" height="68" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="15" y="24" width="28" height="5" rx="2" fill="#0B5B68" opacity="0.7"/>
+        <rect x="15" y="34" width="28" height="3.5" rx="1.5" fill="#B8B8B8"/>
+        <rect x="15" y="42" width="22" height="3.5" rx="1.5" fill="#B8B8B8"/>
+        <rect x="59" y="16" width="42" height="68" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="66" y="24" width="28" height="5" rx="2" fill="#0B5B68" opacity="0.7"/>
+        <rect x="66" y="34" width="28" height="3.5" rx="1.5" fill="#B8B8B8"/>
+        <rect x="66" y="42" width="22" height="3.5" rx="1.5" fill="#B8B8B8"/>
+        <rect x="110" y="16" width="42" height="68" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="117" y="24" width="28" height="5" rx="2" fill="#0B5B68" opacity="0.7"/>
+        <rect x="117" y="34" width="28" height="3.5" rx="1.5" fill="#B8B8B8"/>
+        <rect x="117" y="42" width="22" height="3.5" rx="1.5" fill="#B8B8B8"/>
+      </svg>
+    ),
   },
   {
     type: 'image',
     label: 'Imagem',
-    desc: 'Imagem centralizada dentro do container.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>,
+    desc: 'Imagem centralizada dentro do container de conteúdo.',
+    cat: 'midia',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="24" y="14" width="112" height="72" rx="6" fill="#C8DFE2"/>
+        <line x1="50" y1="55" x2="80" y2="70" stroke="#0B5B68" strokeWidth="1.5" opacity="0.45"/>
+        <line x1="80" y1="70" x2="110" y2="45" stroke="#0B5B68" strokeWidth="1.5" opacity="0.45"/>
+        <circle cx="50" cy="38" r="8" fill="#0B5B68" opacity="0.25"/>
+      </svg>
+    ),
   },
   {
     type: 'image-full',
     label: 'Imagem full width',
-    desc: 'Imagem de borda a borda, sem container.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>panorama_wide_angle</span>,
+    desc: 'Imagem de borda a borda, sem margens laterais.',
+    cat: 'midia',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#C8DFE2"/>
+        <line x1="20" y1="65" x2="70" y2="45" stroke="#0B5B68" strokeWidth="2" opacity="0.4"/>
+        <line x1="70" y1="45" x2="120" y2="68" stroke="#0B5B68" strokeWidth="2" opacity="0.4"/>
+        <circle cx="28" cy="28" r="10" fill="#0B5B68" opacity="0.2"/>
+        <rect x="0" y="78" width="160" height="22" rx="0" fill="#0B5B68" opacity="0.08"/>
+      </svg>
+    ),
   },
   {
     type: 'galeria',
-    label: 'Galeria',
-    desc: 'Cards com título, descrição, data, link e imagem opcional.',
-    icon: <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>grid_view</span>,
+    label: 'Galeria de cards',
+    desc: 'Grade de cards com título, imagem, descrição e link.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        {[0,1,2].map(i => (
+          <g key={i} transform={`translate(${10 + i * 50}, 12)`}>
+            <rect width="40" height="76" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+            <rect x="4" y="4" width="32" height="28" rx="3" fill="#C8DFE2"/>
+            <rect x="5" y="38" width="28" height="5" rx="2" fill="#0B5B68" opacity="0.65"/>
+            <rect x="5" y="48" width="24" height="3.5" rx="1.5" fill="#B8B8B8"/>
+            <rect x="5" y="55" width="20" height="3.5" rx="1.5" fill="#B8B8B8"/>
+          </g>
+        ))}
+      </svg>
+    ),
   },
 ];
 
@@ -509,6 +608,8 @@ export default function NovaMateriaPage() {
     isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()]
   );
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState('');
+  const [pickerCat, setPickerCat] = useState<'all' | SectionCategory>('all');
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [page, setPage] = useState(editing?.pagina ?? '');
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
@@ -813,31 +914,74 @@ export default function NovaMateriaPage() {
         </aside>
       </div>
 
-      {/* ── Section type picker modal ── */}
-      <Modal
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        title="Escolher tipo de seção"
-        size="md"
-      >
-        <div className="nm-picker">
-          {SECTION_DEFS.filter(def => isGaleria ? def.type === 'galeria' : def.type !== 'galeria').map((def) => (
-            <button
-              key={def.type}
-              type="button"
-              className="nm-picker-item"
-              onClick={() => addSection(def.type)}
-            >
-              <span className="nm-picker-item__icon">{def.icon}</span>
-              <div className="nm-picker-item__info">
-                <span className="nm-picker-item__label">{def.label}</span>
-                <span className="nm-picker-item__desc">{def.desc}</span>
+      {/* ── Section type picker overlay (WordPress-style) ── */}
+      {pickerOpen && (
+        <div className="nm-bp-overlay" role="dialog" aria-modal="true" aria-label="Adicionar seção">
+          <div className="nm-bp-panel">
+            {/* Sidebar */}
+            <aside className="nm-bp-sidebar">
+              <div className="nm-bp-search-wrap">
+                <span className="material-symbols-outlined nm-bp-search-icon">search</span>
+                <input
+                  className="nm-bp-search"
+                  type="text"
+                  placeholder="Pesquisar tipo..."
+                  value={pickerSearch}
+                  onChange={e => setPickerSearch(e.target.value)}
+                  autoFocus
+                />
               </div>
-              <span className="material-symbols-outlined nm-picker-item__arrow" style={{ fontSize: '14px' }}>chevron_right</span>
-            </button>
-          ))}
+              <nav className="nm-bp-cats">
+                {([['all', 'Tudo'], ['texto', 'Texto'], ['layout', 'Layout'], ['midia', 'Mídia']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    className={`nm-bp-cat${pickerCat === val ? ' nm-bp-cat--active' : ''}`}
+                    onClick={() => setPickerCat(val)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </aside>
+
+            {/* Content area */}
+            <div className="nm-bp-content">
+              <div className="nm-bp-header">
+                <h3 className="nm-bp-title">Adicionar seção</h3>
+                <button
+                  type="button"
+                  className="nm-bp-close"
+                  onClick={() => { setPickerOpen(false); setPickerSearch(''); setPickerCat('all'); }}
+                  aria-label="Fechar"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <div className="nm-bp-grid">
+                {SECTION_DEFS
+                  .filter(def => isGaleria ? def.type === 'galeria' : def.type !== 'galeria')
+                  .filter(def => pickerCat === 'all' || def.cat === pickerCat)
+                  .filter(def => !pickerSearch || def.label.toLowerCase().includes(pickerSearch.toLowerCase()) || def.desc.toLowerCase().includes(pickerSearch.toLowerCase()))
+                  .map(def => (
+                    <button
+                      key={def.type}
+                      type="button"
+                      className="nm-bp-card"
+                      onClick={() => { addSection(def.type); setPickerSearch(''); setPickerCat('all'); }}
+                    >
+                      <div className="nm-bp-thumb">{def.thumb}</div>
+                      <div className="nm-bp-card-info">
+                        <span className="nm-bp-card-label">{def.label}</span>
+                        <span className="nm-bp-card-desc">{def.desc}</span>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </div>
         </div>
-      </Modal>
+      )}
     </div>
   );
 }

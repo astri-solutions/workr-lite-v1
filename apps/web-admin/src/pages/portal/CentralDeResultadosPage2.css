@@ -64,28 +64,18 @@
 }
 
 .cdr2-file-list__header {
-  display: grid;
-  grid-template-columns: 20px 22px 1fr 200px 90px 28px 28px;
-  gap: var(--space-3);
-  padding: 0 var(--space-3) var(--space-1);
-  align-items: center;
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--color-gray-400);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  display: none; /* header replaced by inline field labels */
 }
 
-/* ─── File item ───────────────────────────────────── */
+/* ─── File item — 2-row card ──────────────────────── */
 .cdr2-file-item {
-  display: grid;
-  grid-template-columns: 20px 22px 1fr 200px auto 28px 28px;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3);
   background: #ffffff;
   border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   transition: box-shadow 0.15s, border-color 0.15s;
 }
 
@@ -99,6 +89,21 @@
   box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.15);
 }
 
+/* Row 1: handle + icon + name + actions */
+.cdr2-file-row1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Row 2: (indent) + tipo select + file badge */
+.cdr2-file-row2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: calc(20px + 22px + var(--space-2) * 2); /* align under name */
+}
+
 .cdr2-drag-handle {
   font-size: 18px;
   color: var(--color-gray-300);
@@ -106,12 +111,13 @@
   user-select: none;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .cdr2-drag-handle:active { cursor: grabbing; }
 
 .cdr2-file-tipo-icon {
-  font-size: 20px;
+  font-size: 22px;
   color: var(--color-gray-300);
   display: flex;
   align-items: center;
@@ -123,55 +129,94 @@
   color: var(--color-primary-500);
 }
 
+/* ─── Nome field ─────────────────────────────────── */
+.cdr2-file-name-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cdr2-field-label {
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  line-height: 1;
+}
+
 .cdr2-file-name {
   min-width: 0;
-  padding: 7px var(--space-3);
-  border: 1px solid var(--color-gray-200);
+  padding: 8px var(--space-3);
+  border: 1.5px solid var(--color-gray-300);
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
   color: var(--color-gray-900);
-  background: var(--color-gray-50);
+  background: #ffffff;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   width: 100%;
 }
 
 .cdr2-file-name:focus {
-  border-color: var(--color-primary-400);
-  background: #ffffff;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.1);
 }
 
 .cdr2-file-name::placeholder {
   color: var(--color-gray-400);
+  font-weight: var(--font-normal);
+}
+
+/* ─── Tipo select ────────────────────────────────── */
+.cdr2-tipo-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .cdr2-type-select {
   width: 100%;
   padding: 7px var(--space-3);
-  border: 1px solid var(--color-gray-200);
+  border: 1.5px solid var(--color-gray-300);
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  color: var(--color-gray-700);
-  background: var(--color-gray-50);
+  font-weight: var(--font-medium);
+  color: var(--color-gray-800);
+  background: #ffffff;
   appearance: none;
   outline: none;
   cursor: pointer;
-  transition: border-color 0.15s;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F6F6F' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230B5B68' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   padding-right: 28px;
 }
 
 .cdr2-type-select:focus {
-  border-color: var(--color-primary-400);
-  background-color: #ffffff;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.1);
 }
 
 .cdr2-type-select--unset {
-  color: var(--color-gray-400);
+  color: var(--color-gray-500);
+  border-color: var(--color-gray-300);
+  border-style: dashed;
+}
+
+.cdr2-type-select--set {
+  border-color: var(--color-primary-400);
+  background-color: var(--color-primary-50, #e8f5f7);
+  color: var(--color-primary-800, #0B5B68);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230B5B68' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 .cdr2-file-fname {
@@ -179,15 +224,16 @@
   align-items: center;
   gap: var(--space-1);
   font-size: var(--text-xs);
-  color: var(--color-gray-400);
+  color: var(--color-gray-500);
   background: var(--color-gray-100);
   border-radius: var(--radius-sm);
-  padding: 3px 8px;
-  max-width: 100px;
+  padding: 4px 8px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex-shrink: 0;
+  border: 1px solid var(--color-gray-200);
 }
 
 .cdr2-status-btn {
@@ -326,11 +372,10 @@
 }
 
 /* ─── Responsive ────────────────────────────────── */
-@media (max-width: 700px) {
-  .cdr2-file-item {
-    grid-template-columns: 20px 22px 1fr 28px 28px;
+@media (max-width: 600px) {
+  .cdr2-file-row2 {
+    padding-left: 0;
   }
-  .cdr2-type-select,
   .cdr2-file-fname {
     display: none;
   }
