@@ -53,6 +53,7 @@ interface Quarter {
   entityId: string;
   period: string;
   exibirHome: boolean;
+  status: 'draft' | 'published';
 }
 
 function parsePeriod(period: string) {
@@ -393,6 +394,7 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
           O documento <strong>"{confirmDeleteEntry?.nome || 'sem nome'}"</strong> será removido da lista. Esta ação não pode ser desfeita.
         </p>
       </Modal>
+
     </div>
   );
 }
@@ -406,9 +408,9 @@ export default function CentralDeResultadosPage2() {
   const [filterQuarter, setFilterQuarter] = useState('');
 
   const [quarters, setQuarters] = useState<Quarter[]>([
-    { id: '2t25', entityId: 'imc', period: '2T25', exibirHome: true },
-    { id: '1t25', entityId: 'imc', period: '1T25', exibirHome: false },
-    { id: '4t24', entityId: 'imc', period: '4T24', exibirHome: false },
+    { id: '2t25', entityId: 'imc', period: '2T25', exibirHome: true,  status: 'published' },
+    { id: '1t25', entityId: 'imc', period: '1T25', exibirHome: false, status: 'published' },
+    { id: '4t24', entityId: 'imc', period: '4T24', exibirHome: false, status: 'draft' },
   ]);
 
   const [docs, setDocs] = useState<Record<string, FileEntry[]>>({
@@ -440,6 +442,7 @@ export default function CentralDeResultadosPage2() {
 
   // ── Quarter full-page editor ───────────────────────────────
   const [editingQuarterId, setEditingQuarterId] = useState<string | null>(null);
+  const [saveConfirmId, setSaveConfirmId] = useState<string | null>(null);
 
   function openWizard() {
     setWEntity(activeEntity);
@@ -463,9 +466,14 @@ export default function CentralDeResultadosPage2() {
   }
 
   function wizardSave(openEditor = false) {
-    const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
-    setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome }, ...prev]);
-    setDocs(prev => ({ ...prev, [pendingId]: wEntries }));
+    const isExisting = quarters.some(q => q.id === pendingId);
+    if (isExisting) {
+      setDocs(prev => ({ ...prev, [pendingId]: wEntries }));
+    } else {
+      const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
+      setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const }, ...prev]);
+      setDocs(prev => ({ ...prev, [pendingId]: wEntries }));
+    }
     setWizardOpen(null);
     if (openEditor) setEditingQuarterId(pendingId);
   }
@@ -477,6 +485,17 @@ export default function CentralDeResultadosPage2() {
 
   function toggleHome(id: string) {
     setQuarters(prev => prev.map(q => q.id === id ? { ...q, exibirHome: !q.exibirHome } : q));
+  }
+
+  function setQuarterStatus(id: string, status: 'draft' | 'published') {
+    setQuarters(prev => prev.map(q => q.id === id ? { ...q, status } : q));
+    setEditingQuarterId(null);
+    setSaveConfirmId(null);
+  }
+
+  function handleSaveQuarter(id: string | null) {
+    if (!id) return;
+    setSaveConfirmId(id);
   }
 
   function updateQuarterDocs(quarterId: string, entries: FileEntry[]) {
@@ -522,12 +541,18 @@ export default function CentralDeResultadosPage2() {
               <button
                 type="button"
                 className="btn-outline"
-                onClick={() => updateQuarterDocs(editingQuarterId, [...qDocs, { id: `f${Date.now()}`, nome: '', tipo: '', fileName: '', status: 'draft', locale: 'pt-BR' }])}
+                onClick={() => {
+                  setWEntity(quarter?.entityId ?? activeEntity);
+                  setWEntries(qDocs);
+                  setPendingId(editingQuarterId);
+                  setWLocale(PORTAL_CONFIG.languages[0]);
+                  setWizardOpen('step2');
+                }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                 Adicionar resultado
               </button>
-              <button type="button" className="btn-primary" onClick={() => setEditingQuarterId(null)}>
+              <button type="button" className="btn-primary" onClick={() => handleSaveQuarter(editingQuarterId)}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
                 Salvar e fechar
               </button>
@@ -562,7 +587,7 @@ export default function CentralDeResultadosPage2() {
 
         <div className="cdr2-fullpage-footer">
           <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>Cancelar</button>
-          <button type="button" className="btn-primary" onClick={() => setEditingQuarterId(null)}>Salvar trimestre</button>
+          <button type="button" className="btn-primary" onClick={() => handleSaveQuarter(editingQuarterId)}>Salvar trimestre</button>
         </div>
       </div>
     );
@@ -642,6 +667,9 @@ export default function CentralDeResultadosPage2() {
                     <div className="cdr-accordion__row cdr2-quarter-row">
                       <span className="cdr-accordion__folder">📁</span>
                       <span className="cdr-accordion__period">{q.period}</span>
+                      <span className={`badge ${q.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
+                        {q.status === 'published' ? 'Publicado' : 'Rascunho'}
+                      </span>
                       <span className="cdr-accordion__meta">
                         {qDocs.length} {qDocs.length === 1 ? 'arquivo' : 'arquivos'}
                         {published > 0 && ` · ${published} publicado${published !== 1 ? 's' : ''}`}
@@ -848,6 +876,31 @@ export default function CentralDeResultadosPage2() {
             </label>
           </div>
         </div>
+      </Modal>
+
+      {/* ── Save confirm: publicar ou rascunho ── */}
+      <Modal
+        open={!!saveConfirmId}
+        onClose={() => setSaveConfirmId(null)}
+        title="Publicar trimestre?"
+        description="Como deseja salvar este trimestre?"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => { if (saveConfirmId) setQuarterStatus(saveConfirmId, 'draft'); }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
+              Salvar como rascunho
+            </button>
+            <button type="button" className="btn-primary" onClick={() => { if (saveConfirmId) setQuarterStatus(saveConfirmId, 'published'); }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>public</span>
+              Publicar agora
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
+          Publicar tornará o trimestre e seus documentos visíveis no portal. Você pode alterar isso depois.
+        </p>
       </Modal>
     </div>
   );
