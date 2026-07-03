@@ -377,7 +377,6 @@ export default function DocumentosPage() {
               </th>
               <th>Status</th>
               <th>Nome</th>
-              <th>Tipo</th>
               <th>Data de publicação</th>
               <th>Página</th>
               <th>Publicado por</th>
@@ -388,7 +387,7 @@ export default function DocumentosPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="table-empty">Nenhum documento encontrado.</td>
+                <td colSpan={8} className="table-empty">Nenhum documento encontrado.</td>
               </tr>
             ) : (
               filtered.map((doc) => (
@@ -407,8 +406,15 @@ export default function DocumentosPage() {
                   </td>
                   <td className="docs-cell-nome">
                     <span className="docs-nome-title">{doc.nome}</span>
+                    <div className="docs-nome-badges">
+                      {doc.idiomas.map(lang => (
+                        <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>
+                      ))}
+                      {doc.tags.includes('CVM') && (
+                        <span className="docs-badge docs-badge--cvm">Auto CVM</span>
+                      )}
+                    </div>
                   </td>
-                  <td className="docs-cell-tipo table-cell--muted">{doc.tipo}</td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
                   <td className="table-cell--muted">{doc.pagina}</td>
                   <td>

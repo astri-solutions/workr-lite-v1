@@ -589,6 +589,36 @@
 .doc-pt-only-hint {
   font-size: var(--text-xs);
   font-weight: var(--font-normal);
-  color: var(--color-gray-400);
+  color: var(--color-gray-600, #4B4B4B);
   margin-left: var(--space-1);
+}
+
+/* ─── Nome badges ────────────────────────────────────── */
+.docs-nome-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.docs-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.docs-badge--lang {
+  background: var(--color-gray-100, #EFEFEF);
+  color: var(--color-gray-600, #4B4B4B);
+}
+
+.docs-badge--cvm {
+  background: #E8F5FF;
+  color: #0B5B68;
 }
