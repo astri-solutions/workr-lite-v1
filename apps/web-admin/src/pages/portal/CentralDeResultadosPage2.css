@@ -56,52 +56,84 @@
   margin: 0;
 }
 
-/* ─── File list ───────────────────────────────────── */
+/* ─── File list — column table ────────────────────── */
 .cdr2-file-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-}
-
-.cdr2-file-list__header {
-  display: none; /* header replaced by inline field labels */
-}
-
-/* ─── File item — 2-row card ──────────────────────── */
-.cdr2-file-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-3) var(--space-3);
-  background: #ffffff;
+  gap: 0;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  transition: box-shadow 0.15s, border-color 0.15s;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+/* Grid: handle | icon | nome | tipo | arquivo | actions */
+.cdr2-col-header,
+.cdr2-file-item {
+  display: grid;
+  grid-template-columns: 24px 26px 1fr 1fr 150px 60px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ─── Column header ──────────────────────────────── */
+.cdr2-col-header {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  background: var(--color-gray-50, #F8F8F8);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.cdr2-col-label {
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ─── File item — column row ─────────────────────── */
+.cdr2-file-item {
+  border-bottom: 1px solid var(--color-gray-100);
+  transition: background 0.12s;
+}
+
+.cdr2-file-item:last-child {
+  border-bottom: none;
 }
 
 .cdr2-file-item:hover {
-  box-shadow: var(--shadow-sm);
-  border-color: var(--color-gray-300);
+  background: var(--color-gray-50, #F8F8F8);
 }
 
 .cdr2-file-item--drag-over {
-  border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.15);
+  background: var(--color-primary-50, #e8f5f7);
+  outline: 2px solid var(--color-primary-300);
+  outline-offset: -2px;
 }
 
-/* Row 1: handle + icon + name + actions */
-.cdr2-file-row1 {
+/* Actions cell */
+.cdr2-file-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  justify-content: flex-end;
 }
 
-/* Row 2: (indent) + tipo select + file badge */
-.cdr2-file-row2 {
+/* Arquivo cell */
+.cdr2-fname-wrap {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding-left: calc(20px + 22px + var(--space-2) * 2); /* align under name */
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cdr2-file-fname--empty {
+  color: var(--color-gray-300);
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .cdr2-drag-handle {
@@ -131,7 +163,6 @@
 
 /* ─── Nome field ─────────────────────────────────── */
 .cdr2-file-name-wrap {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -145,6 +176,7 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   line-height: 1;
+  display: none; /* hidden on desktop — column header shows labels */
 }
 
 .cdr2-file-name {
@@ -174,7 +206,6 @@
 
 /* ─── Tipo select ────────────────────────────────── */
 .cdr2-tipo-wrap {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -372,11 +403,49 @@
 }
 
 /* ─── Responsive ────────────────────────────────── */
-@media (max-width: 600px) {
-  .cdr2-file-row2 {
-    padding-left: 0;
+
+/* Tablet: hide arquivo column, compress */
+@media (max-width: 780px) {
+  .cdr2-col-header,
+  .cdr2-file-item {
+    grid-template-columns: 24px 26px 1fr 1fr 52px;
   }
-  .cdr2-file-fname {
+  .cdr2-fname-wrap {
     display: none;
+  }
+}
+
+/* Mobile: stack into card blocks */
+@media (max-width: 520px) {
+  .cdr2-col-header {
+    display: none;
+  }
+
+  .cdr2-file-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--color-gray-100);
+  }
+
+  .cdr2-drag-handle {
+    display: none;
+  }
+
+  .cdr2-file-tipo-icon {
+    display: none;
+  }
+
+  .cdr2-file-actions {
+    justify-content: flex-start;
+  }
+
+  .cdr2-field-label {
+    display: block; /* show inline labels on mobile */
+  }
+
+  .cdr2-fname-wrap {
+    display: flex;
   }
 }

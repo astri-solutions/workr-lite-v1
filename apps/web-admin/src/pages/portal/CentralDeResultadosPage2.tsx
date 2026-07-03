@@ -160,6 +160,16 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
       {/* File list */}
       {entries.length > 0 && (
         <div className="cdr2-file-list">
+          {/* Column header */}
+          <div className="cdr2-col-header">
+            <span />
+            <span />
+            <span className="cdr2-col-label">Nome</span>
+            <span className="cdr2-col-label">Tipo de documento</span>
+            <span className="cdr2-col-label">Arquivo</span>
+            <span />
+          </div>
+
           {entries.map((entry, idx) => (
             <div
               key={entry.id}
@@ -170,25 +180,50 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
               onDragEnd={onDragEnd}
               onDragOver={e => e.preventDefault()}
             >
-              {/* Row 1: handle + icon + name + status + remove */}
-              <div className="cdr2-file-row1">
-                <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
+              <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
 
-                <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
-                  {tipoIcon(entry.tipo)}
-                </span>
+              <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
+                {tipoIcon(entry.tipo)}
+              </span>
 
-                <div className="cdr2-file-name-wrap">
-                  <span className="cdr2-field-label">Nome</span>
-                  <input
-                    className="cdr2-file-name"
-                    type="text"
-                    placeholder="Ex: Apresentação de Resultados 3T26"
-                    value={entry.nome}
-                    onChange={e => update(entry.id, { nome: e.target.value })}
-                  />
-                </div>
+              <div className="cdr2-file-name-wrap">
+                <span className="cdr2-field-label">Nome</span>
+                <input
+                  className="cdr2-file-name"
+                  type="text"
+                  placeholder="Ex: Apresentação de Resultados 3T26"
+                  value={entry.nome}
+                  onChange={e => update(entry.id, { nome: e.target.value })}
+                />
+              </div>
 
+              <div className="cdr2-tipo-wrap">
+                <span className="cdr2-field-label">Tipo de documento</span>
+                <select
+                  className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
+                  value={entry.tipo}
+                  onChange={e => update(entry.id, { tipo: e.target.value })}
+                >
+                  <option value="">Selecionar tipo…</option>
+                  {DOC_TIPOS.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="cdr2-fname-wrap">
+                <span className="cdr2-field-label">Arquivo</span>
+                {entry.fileName ? (
+                  <span className="cdr2-file-fname" title={entry.fileName}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>attach_file</span>
+                    {entry.fileName}
+                  </span>
+                ) : (
+                  <span className="cdr2-file-fname cdr2-file-fname--empty">—</span>
+                )}
+              </div>
+
+              <div className="cdr2-file-actions">
                 <button
                   type="button"
                   className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
@@ -199,34 +234,9 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
                     {entry.status === 'published' ? 'visibility' : 'visibility_off'}
                   </span>
                 </button>
-
                 <button type="button" className="cdr2-remove-btn" onClick={() => remove(entry.id)} title="Remover">
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
                 </button>
-              </div>
-
-              {/* Row 2: tipo select + file badge */}
-              <div className="cdr2-file-row2">
-                <div className="cdr2-tipo-wrap">
-                  <span className="cdr2-field-label">Tipo de documento</span>
-                  <select
-                    className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
-                    value={entry.tipo}
-                    onChange={e => update(entry.id, { tipo: e.target.value })}
-                  >
-                    <option value="">Selecionar tipo…</option>
-                    {DOC_TIPOS.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {entry.fileName && (
-                  <span className="cdr2-file-fname" title={entry.fileName}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>attach_file</span>
-                    {entry.fileName}
-                  </span>
-                )}
               </div>
             </div>
           ))}
