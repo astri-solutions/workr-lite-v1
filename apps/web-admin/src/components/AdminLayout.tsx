@@ -6,7 +6,7 @@ import './AdminLayout.css';
 
 const SECTIONS: NavSection[] = [
   {
-    label: 'Plataforma',
+    label: 'Companhias',
     items: [
       {
         to: '/admin/portais',
