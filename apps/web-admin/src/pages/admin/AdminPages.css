@@ -84,6 +84,8 @@
   flex-shrink: 0;
 }
 
+.usu-admin-search { margin-bottom: var(--space-4); }
+
 /* Suppress FilterBar labels + margin when embedded inside a toolbar row */
 .toolbar__filters .filter-bar {
   margin-bottom: 0;

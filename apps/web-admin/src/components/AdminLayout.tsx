@@ -6,7 +6,7 @@ import './AdminLayout.css';
 
 const SECTIONS: NavSection[] = [
   {
-    label: 'Companhias',
+    label: 'Plataforma',
     items: [
       {
         to: '/admin/portais',
@@ -18,11 +18,6 @@ const SECTIONS: NavSection[] = [
           </svg>
         ),
       },
-    ],
-  },
-  {
-    label: 'Gestão',
-    items: [
       {
         to: '/admin/usuarios',
         label: 'Usuários',

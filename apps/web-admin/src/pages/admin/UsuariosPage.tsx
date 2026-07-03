@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './AdminPages.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
+import SearchInput from '../../components/SearchInput';
 import InviteUserModal, { InviteFormData, PortalWithEmpresas } from '../../components/InviteUserModal';
 import EditUserModal, { EditableUser } from '../../components/EditUserModal';
 import Modal from '../../components/Modal';
@@ -85,6 +86,7 @@ const FILTER_GROUPS = [
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>(INITIAL_USUARIOS);
+  const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', portal: 'all', status: 'all' });
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
@@ -134,6 +136,10 @@ export default function UsuariosPage() {
   }
 
   const filtered = usuarios.filter((u) => {
+    if (search) {
+      const q = search.toLowerCase();
+      if (!u.nome.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
+    }
     if (filters.role !== 'all' && u.role !== filters.role) return false;
     if (filters.portal !== 'all' && !u.portais.includes(filters.portal)) return false;
     if (filters.status !== 'all' && u.status !== filters.status) return false;
@@ -155,6 +161,7 @@ export default function UsuariosPage() {
         }
       />
 
+      <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou e-mail…" className="usu-admin-search" />
       <FilterBar groups={FILTER_GROUPS} value={filters} onChange={handleFilter} />
 
       <InviteUserModal
