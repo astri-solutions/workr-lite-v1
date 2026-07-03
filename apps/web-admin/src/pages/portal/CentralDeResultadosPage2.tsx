@@ -193,88 +193,94 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
 
       {/* File list */}
       {entries.length > 0 && (
-        <div className="cdr2-file-list">
-          {/* Column header */}
-          <div className="cdr2-col-header">
-            <span />
-            <span />
-            <span className="cdr2-col-label">Nome</span>
-            <span className="cdr2-col-label">Tipo de documento</span>
-            <span className="cdr2-col-label">Idioma</span>
-            <span className="cdr2-col-label">Ext.</span>
-            <span />
-          </div>
-
-          {entries.map((entry, idx) => {
-            const ext = fileExt(entry.fileName);
-            const langShort = LOCALE_SHORT[entry.locale ?? 'pt-BR'] ?? 'PT';
-            return (
-              <div
-                key={entry.id}
-                className={`cdr2-file-item${dragOverIdx === idx ? ' cdr2-file-item--drag-over' : ''}`}
-                draggable
-                onDragStart={() => onDragStart(idx)}
-                onDragEnter={() => onDragEnter(idx)}
-                onDragEnd={onDragEnd}
-                onDragOver={e => e.preventDefault()}
-              >
-                <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
-
-                <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
-                  {tipoIcon(entry.tipo)}
-                </span>
-
-                <div className="cdr2-file-name-wrap">
-                  <span className="cdr2-field-label">Nome</span>
-                  <span className={`cdr2-file-name-text${!entry.nome ? ' cdr2-file-name-text--empty' : ''}`}>
-                    {entry.nome || 'Sem nome'}
-                  </span>
-                </div>
-
-                <div className="cdr2-tipo-wrap">
-                  <span className="cdr2-field-label">Tipo de documento</span>
-                  <select
-                    className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
-                    value={entry.tipo}
-                    onChange={e => update(entry.id, { tipo: e.target.value })}
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th style={{ width: 24 }} />
+                <th style={{ width: 28 }} />
+                <th>Nome</th>
+                <th style={{ width: 180 }}>Tipo de documento</th>
+                <th style={{ width: 60 }}>Idioma</th>
+                <th style={{ width: 56 }}>Ext.</th>
+                <th style={{ width: 96 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry, idx) => {
+                const ext = fileExt(entry.fileName);
+                const langShort = LOCALE_SHORT[entry.locale ?? 'pt-BR'] ?? 'PT';
+                return (
+                  <tr
+                    key={entry.id}
+                    className={dragOverIdx === idx ? 'cdr2-file-item--drag-over' : ''}
+                    draggable
+                    onDragStart={() => onDragStart(idx)}
+                    onDragEnter={() => onDragEnter(idx)}
+                    onDragEnd={onDragEnd}
+                    onDragOver={e => e.preventDefault()}
                   >
-                    <option value="">Tipo…</option>
-                    {DOC_TIPOS.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <span className="cdr2-lang-badge" title={entry.locale ?? 'pt-BR'}>{langShort}</span>
-
-                <span className={`cdr2-ext-badge${ext ? '' : ' cdr2-ext-badge--empty'}`}>{ext || '—'}</span>
-
-                <div className="cdr2-file-actions">
-                  <button
-                    type="button"
-                    className="cdr2-edit-btn"
-                    onClick={() => openEdit(entry)}
-                    title="Editar arquivo"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
-                    onClick={() => setConfirmStatusId(entry.id)}
-                    title={entry.status === 'published' ? 'Publicado' : 'Rascunho'}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
-                      {entry.status === 'published' ? 'visibility' : 'visibility_off'}
-                    </span>
-                  </button>
-                  <button type="button" className="cdr2-remove-btn" onClick={() => remove(entry.id)} title="Remover">
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    <td>
+                      <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
+                    </td>
+                    <td>
+                      <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
+                        {tipoIcon(entry.tipo)}
+                      </span>
+                    </td>
+                    <td className="table-cell--bold">
+                      <span className={!entry.nome ? 'cdr2-file-name-text--empty' : ''}>
+                        {entry.nome || 'Sem nome'}
+                      </span>
+                    </td>
+                    <td>
+                      <select
+                        className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
+                        value={entry.tipo}
+                        onChange={e => update(entry.id, { tipo: e.target.value })}
+                      >
+                        <option value="">Tipo…</option>
+                        {DOC_TIPOS.map(t => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <span className="cdr2-lang-badge" title={entry.locale ?? 'pt-BR'}>{langShort}</span>
+                    </td>
+                    <td>
+                      <span className={`cdr2-ext-badge${ext ? '' : ' cdr2-ext-badge--empty'}`}>{ext || '—'}</span>
+                    </td>
+                    <td>
+                      <div className="cdr2-file-actions">
+                        <button
+                          type="button"
+                          className="cdr2-edit-btn"
+                          onClick={() => openEdit(entry)}
+                          title="Editar arquivo"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
+                          onClick={() => setConfirmStatusId(entry.id)}
+                          title={entry.status === 'published' ? 'Publicado' : 'Rascunho'}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                            {entry.status === 'published' ? 'visibility' : 'visibility_off'}
+                          </span>
+                        </button>
+                        <button type="button" className="cdr2-remove-btn" onClick={() => remove(entry.id)} title="Remover">
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -344,7 +350,7 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
             <button type="button" className="btn-outline" onClick={() => setConfirmStatusId(null)}>Cancelar</button>
             <button
               type="button"
-              className={confirmEntry?.status === 'published' ? 'btn-action btn-action--danger' : 'btn-primary'}
+              className={confirmEntry?.status === 'published' ? 'btn-outline btn-outline--danger' : 'btn-primary'}
               onClick={() => { if (confirmStatusId) { toggleStatus(confirmStatusId); setConfirmStatusId(null); } }}
             >
               {confirmEntry?.status === 'published' ? 'Despublicar' : 'Publicar'}
