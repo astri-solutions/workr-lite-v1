@@ -704,7 +704,7 @@ export default function CentralDeResultadosPage2() {
             </button>
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
               <button type="button" className="btn-outline" onClick={() => wizardSave(false)}>
-                Salvar vazio
+                Criar sem documentos
               </button>
               <button type="button" className="btn-primary" onClick={() => wizardSave(true)}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
