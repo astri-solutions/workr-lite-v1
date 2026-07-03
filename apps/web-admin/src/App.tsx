@@ -13,7 +13,8 @@ import InformacoesPage from './pages/admin/InformacoesPage';
 import PainelControlePage from './pages/admin/PainelControlePage';
 import NovoPortalPage from './pages/admin/NovoPortalPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
-import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
+// resultados-1 (oculto): import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
+import CentralDeResultadosPage2 from './pages/portal/CentralDeResultadosPage2'; // resultados-2 (ativo)
 import DocumentosPage from './pages/portal/DocumentosPage';
 import InformacoesPortalPage from './pages/portal/InformacoesPortalPage';
 import CanaisPage from './pages/portal/CanaisPage';
@@ -88,7 +89,7 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'empresas', element: <EmpresasPage /> },
       { path: 'usuarios-portal', element: <UsuariosPortalPage /> },
-      { path: 'central-de-resultados', element: <CentralDeResultadosPage /> },
+      { path: 'central-de-resultados', element: <CentralDeResultadosPage2 /> },
       { path: 'documentos', element: <DocumentosPage /> },
       { path: 'midia', element: <MidiaPage /> },
       { path: 'canais', element: <CanaisPage /> },

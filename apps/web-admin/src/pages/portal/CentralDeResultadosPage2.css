@@ -1,0 +1,337 @@
+/* ─── V2 accordion body ───────────────────────────── */
+.cdr2-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ─── Drop zone ───────────────────────────────────── */
+.cdr2-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  border: 2px dashed var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  cursor: default;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+}
+
+.cdr2-dropzone--active {
+  border-color: var(--color-primary-400);
+  background: var(--color-primary-50, #e8f5f7);
+}
+
+.cdr2-dropzone__icon {
+  font-size: 26px;
+  color: var(--color-gray-300);
+  transition: color 0.15s;
+}
+
+.cdr2-dropzone--active .cdr2-dropzone__icon {
+  color: var(--color-primary-500);
+}
+
+.cdr2-dropzone__text {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+.cdr2-dropzone__link {
+  color: var(--color-primary-500);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cdr2-dropzone__hint {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin: 0;
+}
+
+/* ─── File list ───────────────────────────────────── */
+.cdr2-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.cdr2-file-list__header {
+  display: grid;
+  grid-template-columns: 20px 22px 1fr 200px 90px 28px 28px;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-1);
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ─── File item ───────────────────────────────────── */
+.cdr2-file-item {
+  display: grid;
+  grid-template-columns: 20px 22px 1fr 200px auto 28px 28px;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  background: #ffffff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.cdr2-file-item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-gray-300);
+}
+
+.cdr2-file-item--drag-over {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.15);
+}
+
+.cdr2-drag-handle {
+  font-size: 18px;
+  color: var(--color-gray-300);
+  cursor: grab;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+
+.cdr2-drag-handle:active { cursor: grabbing; }
+
+.cdr2-file-tipo-icon {
+  font-size: 20px;
+  color: var(--color-gray-300);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.cdr2-file-tipo-icon--set {
+  color: var(--color-primary-500);
+}
+
+.cdr2-file-name {
+  min-width: 0;
+  padding: 7px var(--space-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-900);
+  background: var(--color-gray-50);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.cdr2-file-name:focus {
+  border-color: var(--color-primary-400);
+  background: #ffffff;
+}
+
+.cdr2-file-name::placeholder {
+  color: var(--color-gray-400);
+}
+
+.cdr2-type-select {
+  width: 100%;
+  padding: 7px var(--space-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  background: var(--color-gray-50);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F6F6F' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.cdr2-type-select:focus {
+  border-color: var(--color-primary-400);
+  background-color: #ffffff;
+}
+
+.cdr2-type-select--unset {
+  color: var(--color-gray-400);
+}
+
+.cdr2-file-fname {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cdr2-status-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.cdr2-status-btn:hover {
+  background: var(--color-gray-200);
+  color: var(--color-gray-600);
+}
+
+.cdr2-status-btn--pub {
+  background: var(--color-primary-50, #e8f5f7);
+  color: var(--color-primary-600);
+}
+
+.cdr2-status-btn--pub:hover {
+  background: var(--color-primary-100, #d0eef2);
+}
+
+.cdr2-remove-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-gray-300);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.cdr2-remove-btn:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+/* ─── Save bar ───────────────────────────────────── */
+.cdr2-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.cdr2-save-bar__info {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+/* ─── New quarter modal simple form ─────────────── */
+.cdr2-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ─── Editor wrapper ────────────────────────────── */
+.cdr2-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ─── Quarter row (list view) ────────────────────── */
+.cdr2-quarter-row {
+  cursor: default;
+}
+
+/* ─── Icon row (document type summary) ──────────── */
+.cdr2-icon-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.cdr2-icon-row__icon {
+  font-size: 18px;
+}
+
+/* ─── Wizard step label ──────────────────────────── */
+.cdr2-wizard-step {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin: 0;
+  font-weight: var(--font-medium);
+}
+
+/* ─── Full-page editor ───────────────────────────── */
+.cdr2-fullpage-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.cdr2-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  background: var(--color-gray-100);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-600);
+}
+
+.cdr2-meta-pill--pub {
+  background: var(--color-primary-50, #e8f5f7);
+  color: var(--color-primary-700);
+}
+
+.cdr2-fullpage-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+/* ─── Responsive ────────────────────────────────── */
+@media (max-width: 700px) {
+  .cdr2-file-item {
+    grid-template-columns: 20px 22px 1fr 28px 28px;
+  }
+  .cdr2-type-select,
+  .cdr2-file-fname {
+    display: none;
+  }
+}

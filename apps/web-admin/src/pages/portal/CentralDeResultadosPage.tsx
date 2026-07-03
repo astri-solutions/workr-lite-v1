@@ -287,20 +287,8 @@ export default function CentralDeResultadosPage() {
         title="Central de Resultados"
         description={<>Resultados de <strong>{PORTAL_CONFIG.name}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
         action={
-          <button
-            className="btn-primary"
-            type="button"
-            onClick={() => {
-              setNewEntity(activeEntity);
-              setNewQuarter('');
-              setNewYear('');
-              setScheduleEnabled(false);
-              setModalOpen(true);
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-            Novo resultado
-          </button>
+          /* resultados-1: botão oculto — usar resultados-2 */
+          undefined
         }
       />
 
