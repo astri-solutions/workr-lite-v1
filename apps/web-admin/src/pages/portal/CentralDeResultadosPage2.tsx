@@ -115,6 +115,10 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNome, setEditNome] = useState('');
   const [editLocale, setEditLocale] = useState('pt-BR');
+
+  // Publish confirm modal state
+  const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
+  const confirmEntry = entries.find(e => e.id === confirmStatusId);
   const editFileRef = useRef<HTMLInputElement>(null);
 
   function update(id: string, patch: Partial<FileEntry>) {
@@ -222,13 +226,9 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
 
                 <div className="cdr2-file-name-wrap">
                   <span className="cdr2-field-label">Nome</span>
-                  <input
-                    className="cdr2-file-name"
-                    type="text"
-                    placeholder="Ex: Apresentação de Resultados 3T26"
-                    value={entry.nome}
-                    onChange={e => update(entry.id, { nome: e.target.value })}
-                  />
+                  <span className={`cdr2-file-name-text${!entry.nome ? ' cdr2-file-name-text--empty' : ''}`}>
+                    {entry.nome || 'Sem nome'}
+                  </span>
                 </div>
 
                 <div className="cdr2-tipo-wrap">
@@ -261,7 +261,7 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
                   <button
                     type="button"
                     className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
-                    onClick={() => toggleStatus(entry.id)}
+                    onClick={() => setConfirmStatusId(entry.id)}
                     title={entry.status === 'published' ? 'Publicado' : 'Rascunho'}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
@@ -331,6 +331,33 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
             </label>
           </label>
         </div>
+      </Modal>
+
+      {/* ── Publish confirm modal ── */}
+      <Modal
+        open={!!confirmStatusId}
+        onClose={() => setConfirmStatusId(null)}
+        title={confirmEntry?.status === 'published' ? 'Despublicar documento' : 'Publicar documento'}
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setConfirmStatusId(null)}>Cancelar</button>
+            <button
+              type="button"
+              className={confirmEntry?.status === 'published' ? 'btn-action btn-action--danger' : 'btn-primary'}
+              onClick={() => { if (confirmStatusId) { toggleStatus(confirmStatusId); setConfirmStatusId(null); } }}
+            >
+              {confirmEntry?.status === 'published' ? 'Despublicar' : 'Publicar'}
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
+          {confirmEntry?.status === 'published'
+            ? <>O documento <strong>"{confirmEntry?.nome || 'sem nome'}"</strong> será removido da visualização pública imediatamente.</>
+            : <>O documento <strong>"{confirmEntry?.nome || 'sem nome'}"</strong> ficará visível publicamente no portal.</>
+          }
+        </p>
       </Modal>
     </div>
   );
