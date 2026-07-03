@@ -801,23 +801,35 @@ export default function CentralDeResultadosPage2() {
         onClose={() => wizardSave(false)}
         title={`${wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`} — Adicionar documentos`}
         size="xl"
-        footer={
-          <div className="modal-footer">
-            <button type="button" className="btn-outline" onClick={() => setWizardOpen('step1')}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
-              Voltar
-            </button>
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              <button type="button" className="btn-outline" onClick={() => wizardSave(false)}>
-                Criar sem documentos
-              </button>
-              <button type="button" className="btn-primary" onClick={() => wizardSave(true)}>
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
-                Criar e abrir
-              </button>
+        footer={(() => {
+          const isExisting = quarters.some(q => q.id === pendingId);
+          return (
+            <div className="modal-footer">
+              {isExisting ? (
+                <button type="button" className="btn-outline" onClick={() => setWizardOpen(null)}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                  Voltar
+                </button>
+              ) : (
+                <button type="button" className="btn-outline" onClick={() => setWizardOpen('step1')}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                  Voltar
+                </button>
+              )}
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                {!isExisting && (
+                  <button type="button" className="btn-outline" onClick={() => wizardSave(false)}>
+                    Criar sem documentos
+                  </button>
+                )}
+                <button type="button" className="btn-primary" onClick={() => wizardSave(!isExisting)}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
+                  {isExisting ? 'Salvar' : 'Criar e abrir'}
+                </button>
+              </div>
             </div>
-          </div>
-        }
+          );
+        })()}
       >
         <div className="cdr2-step2-body">
           {/* Entity context */}
