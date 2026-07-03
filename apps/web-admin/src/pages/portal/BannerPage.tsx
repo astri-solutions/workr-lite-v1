@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
+import Modal from '../../components/Modal';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
@@ -43,10 +44,17 @@ export default function BannerPage() {
   const [slides, setSlides] = useState<BannerSlide[]>(INITIAL_SLIDES);
   const [activeId, setActiveId] = useState('b1');
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
-  const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const blocker = useUnsavedChanges(dirty && !saved);
+  const blocker = useUnsavedChanges(dirty);
+
+  // Auto-close the success modal after 2.5s
+  useEffect(() => {
+    if (!publishSuccess) return;
+    const t = setTimeout(() => setPublishSuccess(false), 2500);
+    return () => clearTimeout(t);
+  }, [publishSuccess]);
 
   const active = slides.find(s => s.id === activeId) ?? slides[0];
   const activeContent: SlideContent = active.content[locale] ?? active.content[primaryLang] ?? emptyContent();
@@ -58,13 +66,13 @@ export default function BannerPage() {
       return { ...s, content: { ...s.content, [locale]: { ...existing, [field]: value } } };
     }));
     setDirty(true);
-    setSaved(false);
+    
   }
 
   function updateImage(value: string | null) {
     setSlides(prev => prev.map(s => s.id === activeId ? { ...s, imagem: value } : s));
     setDirty(true);
-    setSaved(false);
+    
   }
 
   function addSlide() {
@@ -73,7 +81,7 @@ export default function BannerPage() {
     setSlides(prev => [...prev, novo]);
     setActiveId(id);
     setDirty(true);
-    setSaved(false);
+    
   }
 
   function removeSlide(id: string) {
@@ -81,7 +89,7 @@ export default function BannerPage() {
     setSlides(prev => prev.filter(s => s.id !== id));
     if (activeId === id) setActiveId(slides.find(s => s.id !== id)?.id ?? '');
     setDirty(true);
-    setSaved(false);
+    
   }
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -92,10 +100,13 @@ export default function BannerPage() {
     reader.readAsDataURL(file);
   }
 
-  function handleSave() {
-    setSaved(true);
+  function handleDraft() {
     setDirty(false);
-    setTimeout(() => setSaved(false), 2500);
+  }
+
+  function handlePublish() {
+    setDirty(false);
+    setPublishSuccess(true);
   }
 
   return (
@@ -104,9 +115,16 @@ export default function BannerPage() {
         title="Banner"
         description={<>Banner hero do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button className="btn-outline" type="button" disabled={!dirty} onClick={handleDraft}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
+              Salvar rascunho
+            </button>
+            <button className="btn-primary" type="button" disabled={!dirty} onClick={handlePublish}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>public</span>
+              Publicar
+            </button>
+          </div>
         }
       />
 
@@ -196,6 +214,32 @@ export default function BannerPage() {
         onStay={() => blocker.reset?.()}
         onLeave={() => blocker.proceed?.()}
       />
+
+      {/* ── Publish success modal ── */}
+      <Modal
+        open={publishSuccess}
+        onClose={() => setPublishSuccess(false)}
+        title=""
+        size="sm"
+        footer={
+          <div className="modal-footer" style={{ justifyContent: 'center' }}>
+            <button type="button" className="btn-primary" onClick={() => setPublishSuccess(false)}>
+              Fechar
+            </button>
+          </div>
+        }
+      >
+        <div className="banner-publish-success">
+          <div className="banner-success-icon">
+            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle className="banner-success-circle" cx="28" cy="28" r="26" stroke="#00D865" strokeWidth="3" />
+              <polyline className="banner-success-check" points="16,28 24,36 40,20" stroke="#00D865" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <p className="banner-success-title">Banner publicado!</p>
+          <p className="banner-success-desc">As alterações já estão visíveis no portal.</p>
+        </div>
+      </Modal>
     </div>
   );
 }
