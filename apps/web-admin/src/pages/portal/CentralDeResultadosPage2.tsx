@@ -439,6 +439,7 @@ export default function CentralDeResultadosPage2() {
   const [wScheduleTime, setWScheduleTime] = useState('');
   const [wLocale, setWLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [pendingId, setPendingId] = useState('');
+  const [wPortugueseOnly, setWPortugueseOnly] = useState(false);
 
   // ── Quarter full-page editor ───────────────────────────────
   const [editingQuarterId, setEditingQuarterId] = useState<string | null>(null);
@@ -453,6 +454,7 @@ export default function CentralDeResultadosPage2() {
     setWExibirHome(false);
     setWScheduleDate(''); setWScheduleTime('');
     setWLocale(PORTAL_CONFIG.languages[0]);
+    setWPortugueseOnly(false);
     setWizardOpen('step1');
   }
 
@@ -522,16 +524,17 @@ export default function CentralDeResultadosPage2() {
   }
 
   // ── Full-page quarter editor ─────────────────────────────────────────────
-  if (editingQuarterId) {
-    const quarter = quarters.find(q => q.id === editingQuarterId);
-    const qDocs = docs[editingQuarterId] ?? [];
-    const published = qDocs.filter(d => d.status === 'published').length;
+  const editorQuarter = editingQuarterId ? quarters.find(q => q.id === editingQuarterId) : null;
+  const editorDocs = editingQuarterId ? (docs[editingQuarterId] ?? []) : [];
+  const editorPublished = editorDocs.filter(d => d.status === 'published').length;
 
-    return (
-      <div className="page cdr-page">
+  // ── Main return (always) ──────────────────────────────────────────────────
+  return (
+    <div className="page cdr-page">
+      {editingQuarterId ? (<>
         <StickyPageHeader
-          title={`Trimestre ${quarter?.period ?? ''}`}
-          description={<>Editar documentos do trimestre · <strong>{ENTITIES.find(e => e.id === quarter?.entityId)?.name}</strong></>}
+          title={`Trimestre ${editorQuarter?.period ?? ''}`}
+          description={<>Editar documentos do trimestre · <strong>{ENTITIES.find(e => e.id === editorQuarter?.entityId)?.name}</strong></>}
           action={
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>
@@ -542,10 +545,15 @@ export default function CentralDeResultadosPage2() {
                 type="button"
                 className="btn-outline"
                 onClick={() => {
-                  setWEntity(quarter?.entityId ?? activeEntity);
-                  setWEntries(qDocs);
+                  const p = parsePeriod(editorQuarter?.period ?? '');
+                  setWEntity(editorQuarter?.entityId ?? activeEntity);
+                  setWEntries(editorDocs);
                   setPendingId(editingQuarterId);
                   setWLocale(PORTAL_CONFIG.languages[0]);
+                  setWPeriodType(p.quarter ? 'trimestral' : 'anual');
+                  setWQuarter(p.quarter || '');
+                  setWYear(p.year || editorQuarter?.period || '');
+                  setWPortugueseOnly(false);
                   setWizardOpen('step2');
                 }}
               >
@@ -563,39 +571,33 @@ export default function CentralDeResultadosPage2() {
         <div className="cdr2-fullpage-meta">
           <span className="cdr2-meta-pill">
             <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>folder</span>
-            {qDocs.length} arquivo{qDocs.length !== 1 ? 's' : ''}
+            {editorDocs.length} arquivo{editorDocs.length !== 1 ? 's' : ''}
           </span>
           <span className="cdr2-meta-pill cdr2-meta-pill--pub">
             <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>visibility</span>
-            {published} publicado{published !== 1 ? 's' : ''}
+            {editorPublished} publicado{editorPublished !== 1 ? 's' : ''}
           </span>
           <button
             type="button"
-            className={`cal-home-toggle${quarter?.exibirHome ? ' cal-home-toggle--on' : ''}`}
+            className={`cal-home-toggle${editorQuarter?.exibirHome ? ' cal-home-toggle--on' : ''}`}
             onClick={() => toggleHome(editingQuarterId)}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
-            {quarter?.exibirHome ? 'Na home' : 'Home'}
+            {editorQuarter?.exibirHome ? 'Na home' : 'Home'}
           </button>
         </div>
 
         <FileListEditor
-          entries={qDocs}
+          entries={editorDocs}
           onChange={entries => updateQuarterDocs(editingQuarterId, entries)}
-          onDropFiles={files => updateQuarterDocs(editingQuarterId, [...qDocs, ...makeEntries(files)])}
+          onDropFiles={files => updateQuarterDocs(editingQuarterId, [...editorDocs, ...makeEntries(files)])}
         />
 
         <div className="cdr2-fullpage-footer">
           <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>Cancelar</button>
           <button type="button" className="btn-primary" onClick={() => handleSaveQuarter(editingQuarterId)}>Salvar trimestre</button>
         </div>
-      </div>
-    );
-  }
-
-  // ── Main list view ──────────────────────────────────────────────────────────
-  return (
-    <div className="page cdr-page">
+      </>) : (<>
       <StickyPageHeader
         title="Central de Resultados"
         description={<>Resultados de <strong>{PORTAL_CONFIG.name}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
@@ -710,6 +712,8 @@ export default function CentralDeResultadosPage2() {
         )}
       </div>
 
+      </>)}
+
       {/* ── Wizard step 1: Período ── */}
       <Modal
         open={wizardOpen === 'step1'}
@@ -812,8 +816,27 @@ export default function CentralDeResultadosPage2() {
             <span className="cdr2-wiz-entity-line__tipo">{ENTITIES.find(e => e.id === wEntity)?.tipo}</span>
           </p>
 
-          {/* Language tabs */}
-          <LangTabs active={wLocale} onChange={setWLocale} />
+          {/* Language tabs + Portuguese-only option */}
+          <div className="cdr2-lang-row">
+            {!wPortugueseOnly && <LangTabs active={wLocale} onChange={setWLocale} />}
+            <button
+              type="button"
+              className={`cdr2-pt-only-chip${wPortugueseOnly ? ' cdr2-pt-only-chip--on' : ''}`}
+              onClick={() => { setWPortugueseOnly(v => !v); setWLocale(PORTAL_CONFIG.languages[0]); }}
+              title="Usar o mesmo documento em Português para todos os idiomas"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                {wPortugueseOnly ? 'check_circle' : 'language'}
+              </span>
+              Apenas Português
+            </button>
+          </div>
+          {wPortugueseOnly && (
+            <p className="cdr2-pt-only-note">
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+              Os arquivos em Português serão exibidos em todos os idiomas do portal.
+            </p>
+          )}
 
           {/* Drag & file list */}
           <p className="cdr2-wizard-step">Arraste os arquivos abaixo ou adicione manualmente. Você pode inserir mais depois.</p>
