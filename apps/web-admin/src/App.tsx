@@ -41,6 +41,7 @@ import FooterPage from './pages/portal/FooterPage';
 import CookiesPage from './pages/portal/CookiesPage';
 import AtendimentoPage from './pages/portal/AtendimentoPage';
 import BackupPage from './pages/portal/BackupPage';
+import SelecionarPortalPage from './pages/SelecionarPortalPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/definir-senha', element: <SetPasswordPage /> },
+  { path: '/selecionar-portal', element: <SelecionarPortalPage /> },
   {
     path: '/admin',
     element: (

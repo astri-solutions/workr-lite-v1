@@ -2,9 +2,10 @@ import UserMenu from './UserMenu';
 
 interface AppTopbarProps {
   onMobileMenuOpen?: () => void;
+  contextLabel?: string;
 }
 
-export default function AppTopbar({ onMobileMenuOpen }: AppTopbarProps) {
+export default function AppTopbar({ onMobileMenuOpen, contextLabel }: AppTopbarProps) {
   return (
     <header className="admin-topbar">
       <div className="admin-topbar__left">
@@ -20,10 +21,9 @@ export default function AppTopbar({ onMobileMenuOpen }: AppTopbarProps) {
             <rect x="1" y="11" width="16" height="2" rx="1" fill="currentColor" />
           </svg>
         </button>
-        <div className="admin-search" style={{ visibility: 'hidden' }}>
-          <span className="material-symbols-outlined admin-search__icon" style={{ fontSize: '18px' }}>search</span>
-          <input className="admin-search__input" type="text" placeholder="Buscar..." />
-        </div>
+        {contextLabel && (
+          <span className="admin-topbar__context-label">{contextLabel}</span>
+        )}
       </div>
       <div className="admin-topbar__right">
         <span className="admin-topbar__version">Workr Lite v1.0</span>

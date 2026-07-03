@@ -303,8 +303,13 @@ export default function LoginPage() {
     const raw = localStorage.getItem('workr_auth');
     if (raw) {
       const user = JSON.parse(raw);
-      if (user.role === 'super_admin') navigate('/admin/portais');
-      else navigate('/portal');
+      if (user.role === 'super_admin' && !user.portais?.length) {
+        navigate('/admin/portais');
+      } else if ((user.portais ?? []).length > 1) {
+        navigate('/selecionar-portal');
+      } else {
+        navigate('/portal');
+      }
     }
   }
 

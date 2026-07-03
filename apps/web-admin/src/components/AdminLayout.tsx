@@ -52,7 +52,7 @@ export default function AdminLayout() {
         onMobileClose={() => setMobileNavOpen(false)}
       />
       <div className="admin-right">
-        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} />
+        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} contextLabel="Dashboard" />
         <main className="admin-main">
           <div className="admin-content">
             <Outlet />
