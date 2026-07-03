@@ -38,6 +38,14 @@ interface FileEntry {
   tipo: string;
   fileName: string;
   status: 'draft' | 'published';
+  locale: string;
+}
+
+const LOCALE_SHORT: Record<string, string> = { 'pt-BR': 'PT', 'en': 'EN', 'es': 'ES' };
+
+function fileExt(fileName: string): string {
+  const m = fileName.match(/\.([^.]{1,5})$/);
+  return m ? m[1].toUpperCase() : '';
 }
 
 interface Quarter {
@@ -83,7 +91,8 @@ function makeEntries(files: File[]): FileEntry[] {
     nome: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
     tipo: guessType(f.name),
     fileName: f.name,
-    status: 'draft',
+    status: 'draft' as const,
+    locale: 'pt-BR',
   }));
 }
 
@@ -102,6 +111,12 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
   const dragOverItem = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
+  // Edit-file modal state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editNome, setEditNome] = useState('');
+  const [editLocale, setEditLocale] = useState('pt-BR');
+  const editFileRef = useRef<HTMLInputElement>(null);
+
   function update(id: string, patch: Partial<FileEntry>) {
     onChange(entries.map(e => e.id === id ? { ...e, ...patch } : e));
   }
@@ -114,8 +129,20 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
     onChange(entries.map(e => e.id === id ? { ...e, status: e.status === 'published' ? 'draft' : 'published' } : e));
   }
 
-  function addEmpty() {
-    onChange([...entries, { id: uid(), nome: '', tipo: '', fileName: '', status: 'draft' }]);
+  function openEdit(entry: FileEntry) {
+    setEditingId(entry.id);
+    setEditNome(entry.nome);
+    setEditLocale(entry.locale ?? 'pt-BR');
+  }
+
+  function saveEdit() {
+    if (!editingId) return;
+    const patch: Partial<FileEntry> = { nome: editNome, locale: editLocale };
+    const f = editFileRef.current?.files?.[0];
+    if (f) { patch.fileName = f.name; patch.tipo = guessType(f.name) || (entries.find(e => e.id === editingId)?.tipo ?? ''); }
+    update(editingId, patch);
+    setEditingId(null);
+    if (editFileRef.current) editFileRef.current.value = '';
   }
 
   function onDragStart(idx: number) { dragItem.current = idx; }
@@ -132,6 +159,8 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
     dragItem.current = null;
     dragOverItem.current = null;
   }
+
+  const editingEntry = entries.find(e => e.id === editingId);
 
   return (
     <div className="cdr2-editor">
@@ -167,87 +196,142 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
             <span />
             <span className="cdr2-col-label">Nome</span>
             <span className="cdr2-col-label">Tipo de documento</span>
-            <span className="cdr2-col-label">Arquivo</span>
+            <span className="cdr2-col-label">Idioma</span>
+            <span className="cdr2-col-label">Ext.</span>
             <span />
           </div>
 
-          {entries.map((entry, idx) => (
-            <div
-              key={entry.id}
-              className={`cdr2-file-item${dragOverIdx === idx ? ' cdr2-file-item--drag-over' : ''}`}
-              draggable
-              onDragStart={() => onDragStart(idx)}
-              onDragEnter={() => onDragEnter(idx)}
-              onDragEnd={onDragEnd}
-              onDragOver={e => e.preventDefault()}
-            >
-              <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
+          {entries.map((entry, idx) => {
+            const ext = fileExt(entry.fileName);
+            const langShort = LOCALE_SHORT[entry.locale ?? 'pt-BR'] ?? 'PT';
+            return (
+              <div
+                key={entry.id}
+                className={`cdr2-file-item${dragOverIdx === idx ? ' cdr2-file-item--drag-over' : ''}`}
+                draggable
+                onDragStart={() => onDragStart(idx)}
+                onDragEnter={() => onDragEnter(idx)}
+                onDragEnd={onDragEnd}
+                onDragOver={e => e.preventDefault()}
+              >
+                <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
 
-              <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
-                {tipoIcon(entry.tipo)}
-              </span>
+                <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
+                  {tipoIcon(entry.tipo)}
+                </span>
 
-              <div className="cdr2-file-name-wrap">
-                <span className="cdr2-field-label">Nome</span>
-                <input
-                  className="cdr2-file-name"
-                  type="text"
-                  placeholder="Ex: Apresentação de Resultados 3T26"
-                  value={entry.nome}
-                  onChange={e => update(entry.id, { nome: e.target.value })}
-                />
+                <div className="cdr2-file-name-wrap">
+                  <span className="cdr2-field-label">Nome</span>
+                  <input
+                    className="cdr2-file-name"
+                    type="text"
+                    placeholder="Ex: Apresentação de Resultados 3T26"
+                    value={entry.nome}
+                    onChange={e => update(entry.id, { nome: e.target.value })}
+                  />
+                </div>
+
+                <div className="cdr2-tipo-wrap">
+                  <span className="cdr2-field-label">Tipo de documento</span>
+                  <select
+                    className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
+                    value={entry.tipo}
+                    onChange={e => update(entry.id, { tipo: e.target.value })}
+                  >
+                    <option value="">Tipo…</option>
+                    {DOC_TIPOS.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <span className="cdr2-lang-badge" title={entry.locale ?? 'pt-BR'}>{langShort}</span>
+
+                <span className={`cdr2-ext-badge${ext ? '' : ' cdr2-ext-badge--empty'}`}>{ext || '—'}</span>
+
+                <div className="cdr2-file-actions">
+                  <button
+                    type="button"
+                    className="cdr2-edit-btn"
+                    onClick={() => openEdit(entry)}
+                    title="Editar arquivo"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
+                    onClick={() => toggleStatus(entry.id)}
+                    title={entry.status === 'published' ? 'Publicado' : 'Rascunho'}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
+                      {entry.status === 'published' ? 'visibility' : 'visibility_off'}
+                    </span>
+                  </button>
+                  <button type="button" className="cdr2-remove-btn" onClick={() => remove(entry.id)} title="Remover">
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                  </button>
+                </div>
               </div>
-
-              <div className="cdr2-tipo-wrap">
-                <span className="cdr2-field-label">Tipo de documento</span>
-                <select
-                  className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
-                  value={entry.tipo}
-                  onChange={e => update(entry.id, { tipo: e.target.value })}
-                >
-                  <option value="">Selecionar tipo…</option>
-                  {DOC_TIPOS.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="cdr2-fname-wrap">
-                <span className="cdr2-field-label">Arquivo</span>
-                {entry.fileName ? (
-                  <span className="cdr2-file-fname" title={entry.fileName}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>attach_file</span>
-                    {entry.fileName}
-                  </span>
-                ) : (
-                  <span className="cdr2-file-fname cdr2-file-fname--empty">—</span>
-                )}
-              </div>
-
-              <div className="cdr2-file-actions">
-                <button
-                  type="button"
-                  className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
-                  onClick={() => toggleStatus(entry.id)}
-                  title={entry.status === 'published' ? 'Publicado — clique para despublicar' : 'Rascunho — clique para publicar'}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
-                    {entry.status === 'published' ? 'visibility' : 'visibility_off'}
-                  </span>
-                </button>
-                <button type="button" className="cdr2-remove-btn" onClick={() => remove(entry.id)} title="Remover">
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      <button type="button" className="cdr-add-doc" onClick={addEmpty}>
-        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add</span>
-        Adicionar documento manualmente
-      </button>
+      {/* ── Edit-file modal ── */}
+      <Modal
+        open={!!editingId}
+        onClose={() => setEditingId(null)}
+        title="Editar documento"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setEditingId(null)}>Cancelar</button>
+            <button type="button" className="btn-primary" onClick={saveEdit}>Salvar</button>
+          </div>
+        }
+      >
+        <div className="cdr-modal-form">
+          <label className="cdr-modal-form__label">
+            Nome do documento
+            <input
+              className="cdr-modal-form__input"
+              type="text"
+              value={editNome}
+              onChange={e => setEditNome(e.target.value)}
+              placeholder="Ex: Apresentação de Resultados 2T25"
+            />
+          </label>
+
+          <label className="cdr-modal-form__label">
+            Idioma
+            <select
+              className="cdr-modal-form__input cdr-modal-form__select"
+              value={editLocale}
+              onChange={e => setEditLocale(e.target.value)}
+            >
+              {PORTAL_CONFIG.languages.map(l => (
+                <option key={l} value={l}>{l === 'pt-BR' ? 'Português (BR)' : l === 'en' ? 'English' : 'Español'}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="cdr-modal-form__label">
+            Substituir arquivo
+            {editingEntry?.fileName && (
+              <span className="cdr2-edit-current-file">
+                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>attach_file</span>
+                {editingEntry.fileName}
+              </span>
+            )}
+            <label className="cdr2-replace-file-btn">
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload</span>
+              Escolher novo arquivo
+              <input ref={editFileRef} type="file" style={{ display: 'none' }} />
+            </label>
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -268,13 +352,13 @@ export default function CentralDeResultadosPage2() {
 
   const [docs, setDocs] = useState<Record<string, FileEntry[]>>({
     '2t25': [
-      { id: 'd1', nome: 'Apresentação de Resultados 2T25', tipo: 'apresentacao', fileName: 'apresentacao-2t25.pdf', status: 'published' },
-      { id: 'd2', nome: 'Release de Resultados 2T25',     tipo: 'release',      fileName: 'release-2t25.pdf',     status: 'published' },
-      { id: 'd3', nome: 'Planilha de Apoio 2T25',         tipo: 'planilha',     fileName: 'planilha-2t25.xlsx',   status: 'draft' },
+      { id: 'd1', nome: 'Apresentação de Resultados 2T25', tipo: 'apresentacao', fileName: 'apresentacao-2t25.pdf', status: 'published', locale: 'pt-BR' },
+      { id: 'd2', nome: 'Release de Resultados 2T25',     tipo: 'release',      fileName: 'release-2t25.pdf',     status: 'published', locale: 'pt-BR' },
+      { id: 'd3', nome: 'Planilha de Apoio 2T25',         tipo: 'planilha',     fileName: 'planilha-2t25.xlsx',   status: 'draft',     locale: 'pt-BR' },
     ],
     '1t25': [
-      { id: 'd4', nome: 'Apresentação de Resultados 1T25', tipo: 'apresentacao', fileName: 'apresentacao-1t25.pdf', status: 'published' },
-      { id: 'd5', nome: 'Release de Resultados 1T25',     tipo: 'release',      fileName: 'release-1t25.pdf',     status: 'published' },
+      { id: 'd4', nome: 'Apresentação de Resultados 1T25', tipo: 'apresentacao', fileName: 'apresentacao-1t25.pdf', status: 'published', locale: 'pt-BR' },
+      { id: 'd5', nome: 'Release de Resultados 1T25',     tipo: 'release',      fileName: 'release-1t25.pdf',     status: 'published', locale: 'pt-BR' },
     ],
     '4t24': [],
   });
@@ -372,6 +456,14 @@ export default function CentralDeResultadosPage2() {
               <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                 Voltar
+              </button>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={() => updateQuarterDocs(editingQuarterId, [...qDocs, { id: `f${Date.now()}`, nome: '', tipo: '', fileName: '', status: 'draft', locale: 'pt-BR' }])}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                Adicionar resultado
               </button>
               <button type="button" className="btn-primary" onClick={() => setEditingQuarterId(null)}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
@@ -603,7 +695,7 @@ export default function CentralDeResultadosPage2() {
         open={wizardOpen === 'step2'}
         onClose={() => wizardSave(false)}
         title={`${wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`} — Adicionar documentos`}
-        size="lg"
+        size="xl"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={() => setWizardOpen('step1')}>
@@ -641,8 +733,14 @@ export default function CentralDeResultadosPage2() {
             onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files)])}
           />
 
-          {/* Bottom options */}
-          <div className="cdr2-step2-opts">
+          {/* Bottom options — only editable on primary locale */}
+          <div className={`cdr2-step2-opts${wLocale !== PORTAL_CONFIG.languages[0] ? ' cdr2-step2-opts--locked' : ''}`}>
+            {wLocale !== PORTAL_CONFIG.languages[0] && (
+              <p className="cdr2-opts-locked-note">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>lock</span>
+                Configurações definidas no idioma principal ({PORTAL_CONFIG.languages[0]})
+              </p>
+            )}
             <label className="cdr2-step2-opt">
               <span className="cdr2-step2-opt__label">
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>home</span>
@@ -651,8 +749,9 @@ export default function CentralDeResultadosPage2() {
               <button
                 type="button"
                 className={`cdr2-toggle${wExibirHome ? ' cdr2-toggle--on' : ''}`}
-                onClick={() => setWExibirHome(v => !v)}
+                onClick={() => wLocale === PORTAL_CONFIG.languages[0] && setWExibirHome(v => !v)}
                 aria-pressed={wExibirHome}
+                style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1, cursor: wLocale !== PORTAL_CONFIG.languages[0] ? 'not-allowed' : 'pointer' }}
               >
                 <span className="cdr2-toggle__knob" />
               </button>
@@ -666,7 +765,9 @@ export default function CentralDeResultadosPage2() {
                 type="datetime-local"
                 className="cdr2-schedule-input"
                 value={wSchedule}
+                disabled={wLocale !== PORTAL_CONFIG.languages[0]}
                 onChange={e => setWSchedule(e.target.value)}
+                style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1 }}
               />
             </label>
           </div>

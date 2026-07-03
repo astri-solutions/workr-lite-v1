@@ -67,11 +67,11 @@
   background: #ffffff;
 }
 
-/* Grid: handle | icon | nome | tipo | arquivo | actions */
+/* Grid: handle | icon | nome | tipo | idioma | ext | actions */
 .cdr2-col-header,
 .cdr2-file-item {
   display: grid;
-  grid-template-columns: 24px 26px 1fr 1fr 110px 60px;
+  grid-template-columns: 24px 26px 1fr 155px 40px 46px 96px;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
@@ -408,9 +408,11 @@
 @media (max-width: 780px) {
   .cdr2-col-header,
   .cdr2-file-item {
-    grid-template-columns: 24px 26px 1fr 1fr 52px;
+    grid-template-columns: 24px 26px 1fr 130px 52px;
   }
-  .cdr2-fname-wrap {
+  .cdr2-fname-wrap,
+  .cdr2-lang-badge,
+  .cdr2-ext-badge {
     display: none;
   }
 }
@@ -618,4 +620,120 @@
 .cdr2-schedule-input:focus {
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.1);
+}
+
+/* ── Language badge ──────────────────────────────── */
+.cdr2-lang-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
+  white-space: nowrap;
+}
+
+/* ── Extension badge ─────────────────────────────── */
+.cdr2-ext-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.03em;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  background: #EEF2FF;
+  color: #4338CA;
+  white-space: nowrap;
+}
+
+/* ── Edit file button ────────────────────────────── */
+.cdr2-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-gray-200);
+  background: transparent;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.cdr2-edit-btn:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border-color: var(--color-gray-300);
+}
+
+/* ── Edit modal — current file display ───────────── */
+.cdr2-edit-current-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50, #F8F8F8);
+  border: 1px solid var(--color-gray-200);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+}
+
+.cdr2-edit-current-file .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+/* ── Edit modal — replace file button ───────────── */
+.cdr2-replace-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-gray-300);
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cdr2-replace-file-btn:hover {
+  border-color: var(--color-primary-500);
+  color: var(--color-primary-500);
+  background: rgba(11, 91, 104, 0.04);
+}
+
+/* ── Locked options note ─────────────────────────── */
+.cdr2-opts-locked-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50, #F8F8F8);
+  border: 1px solid var(--color-gray-200);
+  margin-bottom: var(--space-1);
+}
+
+.cdr2-opts-locked-note .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+.cdr2-step2-opts--locked .cdr2-step2-opt {
+  pointer-events: none;
 }
