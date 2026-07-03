@@ -104,9 +104,11 @@ interface FileListEditorProps {
   entries: FileEntry[];
   onChange: (entries: FileEntry[]) => void;
   onDropFiles: (files: File[]) => void;
+  portugueseOnly?: boolean;
+  onPortugueseOnlyChange?: (v: boolean) => void;
 }
 
-function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps) {
+function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPortugueseOnlyChange }: FileListEditorProps) {
   const [dropActive, setDropActive] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -314,18 +316,26 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
             />
           </label>
 
-          <label className="cdr-modal-form__label">
-            Idioma
-            <select
-              className="cdr-modal-form__input cdr-modal-form__select"
-              value={editLocale}
-              onChange={e => setEditLocale(e.target.value)}
-            >
-              {PORTAL_CONFIG.languages.map(l => (
-                <option key={l} value={l}>{l === 'pt-BR' ? 'Português (BR)' : l === 'en' ? 'English' : 'Español'}</option>
-              ))}
-            </select>
-          </label>
+          {PORTAL_CONFIG.languages.length > 1 && (
+            <div className="cdr-modal-form__label">
+              <span>Idioma</span>
+              {portugueseOnly ? (
+                <div className="cdr2-edit-pt-only-row">
+                  <span className="cdr2-edit-pt-only-msg">
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                    Configurado como Apenas Português
+                  </span>
+                  {onPortugueseOnlyChange && (
+                    <button type="button" className="cdr2-edit-pt-only-switch" onClick={() => onPortugueseOnlyChange(false)}>
+                      Usar múltiplos idiomas
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <LangTabs active={editLocale as LocaleCode} onChange={v => setEditLocale(v)} />
+              )}
+            </div>
+          )}
 
           <label className="cdr-modal-form__label">
             Substituir arquivo
@@ -436,7 +446,8 @@ export default function CentralDeResultadosPage2() {
   const [wEntries, setWEntries] = useState<FileEntry[]>([]);
   const [wExibirHome, setWExibirHome] = useState(false);
   const [wScheduleDate, setWScheduleDate] = useState('');
-  const [wScheduleTime, setWScheduleTime] = useState('');
+  const [wScheduleHour, setWScheduleHour] = useState('');
+  const [wScheduleMinute, setWScheduleMinute] = useState('');
   const [wLocale, setWLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [pendingId, setPendingId] = useState('');
   const [wPortugueseOnly, setWPortugueseOnly] = useState(false);
@@ -452,7 +463,7 @@ export default function CentralDeResultadosPage2() {
     setWYear('');
     setWEntries([]);
     setWExibirHome(false);
-    setWScheduleDate(''); setWScheduleTime('');
+    setWScheduleDate(''); setWScheduleHour(''); setWScheduleMinute('');
     setWLocale(PORTAL_CONFIG.languages[0]);
     setWPortugueseOnly(false);
     setWizardOpen('step1');
@@ -816,26 +827,28 @@ export default function CentralDeResultadosPage2() {
             <span className="cdr2-wiz-entity-line__tipo">{ENTITIES.find(e => e.id === wEntity)?.tipo}</span>
           </p>
 
-          {/* Language tabs + Portuguese-only option */}
-          <div className="cdr2-lang-row">
-            {!wPortugueseOnly && <LangTabs active={wLocale} onChange={setWLocale} />}
-            <button
-              type="button"
-              className={`cdr2-pt-only-chip${wPortugueseOnly ? ' cdr2-pt-only-chip--on' : ''}`}
-              onClick={() => { setWPortugueseOnly(v => !v); setWLocale(PORTAL_CONFIG.languages[0]); }}
-              title="Usar o mesmo documento em Português para todos os idiomas"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                {wPortugueseOnly ? 'check_circle' : 'language'}
+          {/* Language tabs */}
+          {!wPortugueseOnly && PORTAL_CONFIG.languages.length > 1 && (
+            <LangTabs active={wLocale} onChange={setWLocale} />
+          )}
+
+          {/* Apenas Português switch — below tabmenu, only visible on primary locale */}
+          {PORTAL_CONFIG.languages.length > 1 && (wLocale === PORTAL_CONFIG.languages[0] || wPortugueseOnly) && (
+            <label className="cdr2-pt-only-switch-row">
+              <span className="cdr2-pt-only-switch-label">
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>translate</span>
+                Apenas Português
+                <span className="cdr2-pt-only-switch-hint">O mesmo documento será exibido em todos os idiomas</span>
               </span>
-              Apenas Português
-            </button>
-          </div>
-          {wPortugueseOnly && (
-            <p className="cdr2-pt-only-note">
-              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
-              Os arquivos em Português serão exibidos em todos os idiomas do portal.
-            </p>
+              <button
+                type="button"
+                className={`cdr2-toggle${wPortugueseOnly ? ' cdr2-toggle--on' : ''}`}
+                onClick={() => { setWPortugueseOnly(v => !v); setWLocale(PORTAL_CONFIG.languages[0]); }}
+                aria-pressed={wPortugueseOnly}
+              >
+                <span className="cdr2-toggle__knob" />
+              </button>
+            </label>
           )}
 
           {/* Drag & file list */}
@@ -844,6 +857,8 @@ export default function CentralDeResultadosPage2() {
             entries={wEntries}
             onChange={setWEntries}
             onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files)])}
+            portugueseOnly={wPortugueseOnly}
+            onPortugueseOnlyChange={setWPortugueseOnly}
           />
 
           {/* Bottom options — only editable on primary locale */}
@@ -885,15 +900,29 @@ export default function CentralDeResultadosPage2() {
                 />
                 <div className="cdr2-schedule-time-wrap">
                   <span className="cdr2-schedule-time-label">Horário</span>
-                  <input
-                    type="time"
-                    className="cdr2-schedule-input"
-                    value={wScheduleTime}
-                    min="00:00"
-                    max="23:59"
+                  <select
+                    className="cdr2-schedule-select"
+                    value={wScheduleHour}
                     disabled={wLocale !== PORTAL_CONFIG.languages[0]}
-                    onChange={e => setWScheduleTime(e.target.value)}
-                  />
+                    onChange={e => setWScheduleHour(e.target.value)}
+                  >
+                    <option value="">--</option>
+                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span className="cdr2-schedule-time-sep">:</span>
+                  <select
+                    className="cdr2-schedule-select"
+                    value={wScheduleMinute}
+                    disabled={wLocale !== PORTAL_CONFIG.languages[0]}
+                    onChange={e => setWScheduleMinute(e.target.value)}
+                  >
+                    <option value="">--</option>
+                    {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </label>
