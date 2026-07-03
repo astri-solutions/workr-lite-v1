@@ -449,3 +449,173 @@
     display: flex;
   }
 }
+
+/* ── Wizard: entity context (step 1) ─────────────── */
+.cdr2-wiz-entity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-primary-50, #e8f5f7);
+  border: 1px solid var(--color-primary-200, #C8DFE2);
+  border-radius: var(--radius-lg);
+}
+
+.cdr2-wiz-entity__name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-800, #0B5B68);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.cdr2-wiz-entity__tipo {
+  font-size: var(--text-xs);
+  color: var(--color-primary-500);
+  margin: 0;
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Period type chips ───────────────────────────── */
+.cdr2-period-chips {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.cdr2-period-chip {
+  flex: 1;
+  padding: 9px var(--space-3);
+  border: 1.5px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.cdr2-period-chip:hover {
+  border-color: var(--color-primary-400);
+  color: var(--color-primary-600);
+}
+
+.cdr2-period-chip--active {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50, #e8f5f7);
+  color: var(--color-primary-700);
+  font-weight: var(--font-semibold);
+}
+
+/* ── Step 2 body ─────────────────────────────────── */
+.cdr2-step2-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Entity context line (step 2) */
+.cdr2-wiz-entity-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+.cdr2-wiz-entity-line__tipo {
+  margin-left: var(--space-1);
+  padding: 2px 7px;
+  background: var(--color-gray-100);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Bottom options (home + schedule) ────────────── */
+.cdr2-step2-opts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.cdr2-step2-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.cdr2-step2-opt__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  font-weight: var(--font-medium);
+}
+
+/* ── Toggle switch ───────────────────────────────── */
+.cdr2-toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: var(--color-gray-300);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.cdr2-toggle--on {
+  background: var(--color-primary-500);
+}
+
+.cdr2-toggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: transform 0.2s;
+  display: block;
+}
+
+.cdr2-toggle--on .cdr2-toggle__knob {
+  transform: translateX(18px);
+}
+
+/* ── Schedule input ──────────────────────────────── */
+.cdr2-schedule-input {
+  padding: 7px 10px;
+  border: 1.5px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-800);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cdr2-schedule-input:focus {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.1);
+}

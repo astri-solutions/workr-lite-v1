@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
+import LangTabs from '../../components/LangTabs';
+import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CentralDeResultadosPage2.css';
@@ -282,9 +283,13 @@ export default function CentralDeResultadosPage2() {
   type WizardStep = 'step1' | 'step2' | null;
   const [wizardOpen, setWizardOpen] = useState<WizardStep>(null);
   const [wEntity, setWEntity] = useState('imc');
+  const [wPeriodType, setWPeriodType] = useState<'trimestral' | 'anual'>('trimestral');
   const [wQuarter, setWQuarter] = useState('');
   const [wYear, setWYear] = useState('');
   const [wEntries, setWEntries] = useState<FileEntry[]>([]);
+  const [wExibirHome, setWExibirHome] = useState(false);
+  const [wSchedule, setWSchedule] = useState('');
+  const [wLocale, setWLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [pendingId, setPendingId] = useState('');
 
   // ── Quarter full-page editor ───────────────────────────────
@@ -292,26 +297,31 @@ export default function CentralDeResultadosPage2() {
 
   function openWizard() {
     setWEntity(activeEntity);
+    setWPeriodType('trimestral');
     setWQuarter('');
     setWYear('');
     setWEntries([]);
+    setWExibirHome(false);
+    setWSchedule('');
+    setWLocale(PORTAL_CONFIG.languages[0]);
     setWizardOpen('step1');
   }
 
   function wizardAdvance() {
-    if (!wQuarter || !wYear) return;
-    const period = `${wQuarter}${wYear.slice(-2)}`;
+    const periodOk = wPeriodType === 'anual' ? !!wYear : !!(wQuarter && wYear);
+    if (!periodOk) return;
+    const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
     const id = `${period.toLowerCase()}-${wEntity}-${Date.now()}`;
     setPendingId(id);
     setWizardOpen('step2');
   }
 
-  function wizardCreate() {
-    const period = `${wQuarter}${wYear.slice(-2)}`;
-    setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: false }, ...prev]);
+  function wizardSave(openEditor = false) {
+    const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
+    setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome }, ...prev]);
     setDocs(prev => ({ ...prev, [pendingId]: wEntries }));
     setWizardOpen(null);
-    setEditingQuarterId(pendingId);
+    if (openEditor) setEditingQuarterId(pendingId);
   }
 
   function wizardCancel() {
@@ -518,16 +528,21 @@ export default function CentralDeResultadosPage2() {
         )}
       </div>
 
-      {/* ── Wizard step 1: Dados do trimestre ── */}
+      {/* ── Wizard step 1: Período ── */}
       <Modal
         open={wizardOpen === 'step1'}
         onClose={wizardCancel}
-        title="Novo trimestre"
+        title="Novo período de resultados"
         size="sm"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={wizardCancel}>Cancelar</button>
-            <button type="button" className="btn-primary" onClick={wizardAdvance} disabled={!wQuarter || !wYear}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={wizardAdvance}
+              disabled={wPeriodType === 'trimestral' ? (!wQuarter || !wYear) : !wYear}
+            >
               Avançar
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
             </button>
@@ -535,23 +550,43 @@ export default function CentralDeResultadosPage2() {
         }
       >
         <div className="cdr-modal-form">
-          <p className="cdr2-wizard-step">Passo 1 de 2 — Defina o período</p>
-          {ENTITIES.length > 1 && (
-            <label className="cdr-modal-form__label">
-              Entidade
-              <select className="cdr-modal-form__input cdr-modal-form__select" value={wEntity} onChange={e => setWEntity(e.target.value)}>
-                {ENTITIES.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
-            </label>
-          )}
+          {/* Entity context */}
+          <div className="cdr2-wiz-entity">
+            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-primary-500)' }}>business</span>
+            <div>
+              <p className="cdr2-wiz-entity__name">{ENTITIES.find(e => e.id === wEntity)?.name}</p>
+              <p className="cdr2-wiz-entity__tipo">{ENTITIES.find(e => e.id === wEntity)?.tipo}</p>
+            </div>
+          </div>
+
+          {/* Period type toggle */}
+          <div className="cdr-modal-form__label" style={{ gap: 'var(--space-2)' }}>
+            <span>Tipo de período</span>
+            <div className="cdr2-period-chips">
+              {(['trimestral', 'anual'] as const).map(pt => (
+                <button
+                  key={pt}
+                  type="button"
+                  className={`cdr2-period-chip${wPeriodType === pt ? ' cdr2-period-chip--active' : ''}`}
+                  onClick={() => { setWPeriodType(pt); setWQuarter(''); }}
+                >
+                  {pt === 'trimestral' ? 'Trimestral' : 'Anual'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Period selects */}
           <div className="cdr-modal-form__row">
-            <label className="cdr-modal-form__label">
-              Trimestre
-              <select className="cdr-modal-form__input cdr-modal-form__select" value={wQuarter} onChange={e => setWQuarter(e.target.value)}>
-                <option value="">Selecionar</option>
-                {QUARTER_OPTIONS.map(q => <option key={q} value={q}>{q}</option>)}
-              </select>
-            </label>
+            {wPeriodType === 'trimestral' && (
+              <label className="cdr-modal-form__label">
+                Trimestre
+                <select className="cdr-modal-form__input cdr-modal-form__select" value={wQuarter} onChange={e => setWQuarter(e.target.value)}>
+                  <option value="">Selecionar</option>
+                  {QUARTER_OPTIONS.map(q => <option key={q} value={q}>{q}</option>)}
+                </select>
+              </label>
+            )}
             <label className="cdr-modal-form__label">
               Ano
               <select className="cdr-modal-form__input cdr-modal-form__select" value={wYear} onChange={e => setWYear(e.target.value)}>
@@ -566,8 +601,8 @@ export default function CentralDeResultadosPage2() {
       {/* ── Wizard step 2: Arquivos ── */}
       <Modal
         open={wizardOpen === 'step2'}
-        onClose={wizardCancel}
-        title={`Trimestre ${wQuarter}${wYear.slice(-2)} — Adicionar arquivos`}
+        onClose={() => wizardSave(false)}
+        title={`${wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`} — Adicionar documentos`}
         size="lg"
         footer={
           <div className="modal-footer">
@@ -575,20 +610,66 @@ export default function CentralDeResultadosPage2() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
               Voltar
             </button>
-            <button type="button" className="btn-primary" onClick={wizardCreate}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
-              Criar trimestre
-            </button>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button type="button" className="btn-outline" onClick={() => wizardSave(false)}>
+                Salvar vazio
+              </button>
+              <button type="button" className="btn-primary" onClick={() => wizardSave(true)}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
+                Criar e abrir
+              </button>
+            </div>
           </div>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <p className="cdr2-wizard-step">Passo 2 de 2 — Arraste os arquivos e defina os tipos. Você pode adicionar mais depois.</p>
+        <div className="cdr2-step2-body">
+          {/* Entity context */}
+          <p className="cdr2-wiz-entity-line">
+            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>business</span>
+            {ENTITIES.find(e => e.id === wEntity)?.name}
+            <span className="cdr2-wiz-entity-line__tipo">{ENTITIES.find(e => e.id === wEntity)?.tipo}</span>
+          </p>
+
+          {/* Language tabs */}
+          <LangTabs active={wLocale} onChange={setWLocale} />
+
+          {/* Drag & file list */}
+          <p className="cdr2-wizard-step">Arraste os arquivos abaixo ou adicione manualmente. Você pode inserir mais depois.</p>
           <FileListEditor
             entries={wEntries}
             onChange={setWEntries}
             onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files)])}
           />
+
+          {/* Bottom options */}
+          <div className="cdr2-step2-opts">
+            <label className="cdr2-step2-opt">
+              <span className="cdr2-step2-opt__label">
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>home</span>
+                Mostrar na home
+              </span>
+              <button
+                type="button"
+                className={`cdr2-toggle${wExibirHome ? ' cdr2-toggle--on' : ''}`}
+                onClick={() => setWExibirHome(v => !v)}
+                aria-pressed={wExibirHome}
+              >
+                <span className="cdr2-toggle__knob" />
+              </button>
+            </label>
+            <label className="cdr2-step2-opt">
+              <span className="cdr2-step2-opt__label">
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
+                Agendamento de publicação
+              </span>
+              <input
+                type="datetime-local"
+                className="cdr2-schedule-input"
+                value={wSchedule}
+                onChange={e => setWSchedule(e.target.value)}
+              />
+            </label>
+          </div>
         </div>
       </Modal>
     </div>
