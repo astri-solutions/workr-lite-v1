@@ -25,6 +25,9 @@
 }
 
 .admin-topbar__context-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-heading);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -388,6 +391,7 @@
 .admin-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   background-color: transparent;
   padding: 0 var(--space-4) var(--space-4) var(--space-4);
   display: flex;

@@ -273,27 +273,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
   background: var(--color-gray-100);
-  color: var(--color-gray-400);
+  color: var(--color-gray-500);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
 
 .cdr2-status-btn:hover {
   background: var(--color-gray-200);
-  color: var(--color-gray-600);
+  color: var(--color-gray-800);
+  border-color: var(--color-gray-400);
 }
 
 .cdr2-status-btn--pub {
   background: var(--color-primary-50, #e8f5f7);
   color: var(--color-primary-600);
+  border-color: var(--color-primary-300);
 }
 
 .cdr2-status-btn--pub:hover {
   background: var(--color-primary-100, #d0eef2);
+  border-color: var(--color-primary-400);
 }
 
 .cdr2-remove-btn {
@@ -302,18 +305,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-gray-300);
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
 
 .cdr2-remove-btn:hover {
   background: #fef2f2;
-  color: #ef4444;
+  color: #dc2626;
+  border-color: #fca5a5;
 }
 
 /* ─── Save bar ───────────────────────────────────── */

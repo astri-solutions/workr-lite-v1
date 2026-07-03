@@ -119,6 +119,10 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
   // Publish confirm modal state
   const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
   const confirmEntry = entries.find(e => e.id === confirmStatusId);
+
+  // Delete confirm modal state
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const confirmDeleteEntry = entries.find(e => e.id === confirmDeleteId);
   const editFileRef = useRef<HTMLInputElement>(null);
 
   function update(id: string, patch: Partial<FileEntry>) {
@@ -271,7 +275,7 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
                             {entry.status === 'published' ? 'visibility' : 'visibility_off'}
                           </span>
                         </button>
-                        <button type="button" className="cdr2-remove-btn" onClick={() => remove(entry.id)} title="Remover">
+                        <button type="button" className="cdr2-remove-btn" onClick={() => setConfirmDeleteId(entry.id)} title="Remover">
                           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
                         </button>
                       </div>
@@ -363,6 +367,30 @@ function FileListEditor({ entries, onChange, onDropFiles }: FileListEditorProps)
             ? <>O documento <strong>"{confirmEntry?.nome || 'sem nome'}"</strong> será removido da visualização pública imediatamente.</>
             : <>O documento <strong>"{confirmEntry?.nome || 'sem nome'}"</strong> ficará visível publicamente no portal.</>
           }
+        </p>
+      </Modal>
+
+      {/* ── Delete confirm modal ── */}
+      <Modal
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title="Remover documento"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setConfirmDeleteId(null)}>Cancelar</button>
+            <button
+              type="button"
+              className="btn-outline btn-outline--danger"
+              onClick={() => { if (confirmDeleteId) { remove(confirmDeleteId); setConfirmDeleteId(null); } }}
+            >
+              Remover
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
+          O documento <strong>"{confirmDeleteEntry?.nome || 'sem nome'}"</strong> será removido da lista. Esta ação não pode ser desfeita.
         </p>
       </Modal>
     </div>
@@ -486,7 +514,7 @@ export default function CentralDeResultadosPage2() {
           title={`Trimestre ${quarter?.period ?? ''}`}
           description={<>Editar documentos do trimestre · <strong>{ENTITIES.find(e => e.id === quarter?.entityId)?.name}</strong></>}
           action={
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                 Voltar

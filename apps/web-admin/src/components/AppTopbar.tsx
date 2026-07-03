@@ -22,7 +22,10 @@ export default function AppTopbar({ onMobileMenuOpen, contextLabel }: AppTopbarP
           </svg>
         </button>
         {contextLabel && (
-          <span className="admin-topbar__context-label">{contextLabel}</span>
+          <span className="admin-topbar__context-label">
+            <span className="material-symbols-outlined" style={{ fontSize: '16px', opacity: 0.6 }}>corporate_fare</span>
+            {contextLabel}
+          </span>
         )}
       </div>
       <div className="admin-topbar__right">
