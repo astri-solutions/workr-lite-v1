@@ -373,6 +373,9 @@ export default function PortaisPage() {
               {isExpanded && (
                 <div className="portal-empresa-detail">
                   <div className="portal-empresa-detail__meta">
+                    <span className={`badge ${portal.empresa.status === 'Ativa' ? 'badge--success' : 'badge--error'}`}>
+                      {portal.empresa.status}
+                    </span>
                     <span>CNPJ {portal.empresa.cnpj}</span>
                     <span className="portal-empresa-detail__dot">·</span>
                     <span>Responsável {portal.empresa.responsavel}</span>
@@ -382,9 +385,6 @@ export default function PortaisPage() {
                     <span>Cadastro {portal.criadoEm}</span>
                   </div>
                   <div className="portal-empresa-detail__actions">
-                    <span className={`badge ${portal.empresa.status === 'Ativa' ? 'badge--success' : 'badge--error'}`}>
-                      {portal.empresa.status}
-                    </span>
                     <button
                       className="portais-btn portais-btn--outline-sm"
                       type="button"
