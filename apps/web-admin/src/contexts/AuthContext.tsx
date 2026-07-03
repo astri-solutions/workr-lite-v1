@@ -33,6 +33,16 @@ const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
     user: { email: 'admin@astri.solutions', name: 'G. Santos', role: 'super_admin' },
   },
   {
+    email: 'g.santos@astri.solutions',
+    password: 'workr2025',
+    user: {
+      email: 'g.santos@astri.solutions', name: 'G. Santos', role: 'super_admin',
+      tenantId: 'aurora',
+      portais: [{ id: '1', nome: 'Construtora Aurora' }],
+      activePortalId: '1',
+    },
+  },
+  {
     email: 'cliente@demo.com',
     password: 'demo2025',
     user: {

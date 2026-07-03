@@ -45,6 +45,7 @@ import BackupPage from './pages/portal/BackupPage';
 function RootRedirect() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'super_admin' && user.portais?.length) return <Navigate to="/portal" replace />;
   if (user.role === 'super_admin') return <Navigate to="/admin/portais" replace />;
   return <Navigate to="/portal" replace />;
 }
