@@ -613,7 +613,30 @@
   transform: translateX(18px);
 }
 
-/* ── Schedule input ──────────────────────────────── */
+/* ── Schedule inputs ─────────────────────────────── */
+.cdr2-schedule-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.cdr2-schedule-time-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cdr2-schedule-time-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-500);
+  white-space: nowrap;
+  padding: 2px 6px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-gray-200);
+}
+
 .cdr2-schedule-input {
   padding: 7px 10px;
   border: 1.5px solid var(--color-gray-300);

@@ -405,7 +405,8 @@ export default function CentralDeResultadosPage2() {
   const [wYear, setWYear] = useState('');
   const [wEntries, setWEntries] = useState<FileEntry[]>([]);
   const [wExibirHome, setWExibirHome] = useState(false);
-  const [wSchedule, setWSchedule] = useState('');
+  const [wScheduleDate, setWScheduleDate] = useState('');
+  const [wScheduleTime, setWScheduleTime] = useState('');
   const [wLocale, setWLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [pendingId, setPendingId] = useState('');
 
@@ -419,7 +420,7 @@ export default function CentralDeResultadosPage2() {
     setWYear('');
     setWEntries([]);
     setWExibirHome(false);
-    setWSchedule('');
+    setWScheduleDate(''); setWScheduleTime('');
     setWLocale(PORTAL_CONFIG.languages[0]);
     setWizardOpen('step1');
   }
@@ -794,14 +795,28 @@ export default function CentralDeResultadosPage2() {
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
                 Agendamento de publicação
               </span>
-              <input
-                type="datetime-local"
-                className="cdr2-schedule-input"
-                value={wSchedule}
-                disabled={wLocale !== PORTAL_CONFIG.languages[0]}
-                onChange={e => setWSchedule(e.target.value)}
-                style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1 }}
-              />
+              <div className="cdr2-schedule-wrap" style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1 }}>
+                <input
+                  type="date"
+                  className="cdr2-schedule-input"
+                  value={wScheduleDate}
+                  min={new Date().toISOString().slice(0, 10)}
+                  disabled={wLocale !== PORTAL_CONFIG.languages[0]}
+                  onChange={e => setWScheduleDate(e.target.value)}
+                />
+                <div className="cdr2-schedule-time-wrap">
+                  <span className="cdr2-schedule-time-label">Horário</span>
+                  <input
+                    type="time"
+                    className="cdr2-schedule-input"
+                    value={wScheduleTime}
+                    min="00:00"
+                    max="23:59"
+                    disabled={wLocale !== PORTAL_CONFIG.languages[0]}
+                    onChange={e => setWScheduleTime(e.target.value)}
+                  />
+                </div>
+              </div>
             </label>
           </div>
         </div>
