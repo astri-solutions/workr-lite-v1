@@ -66,50 +66,6 @@ const TIPO_BADGE: Record<SiteTipo, string> = {
   'Landing Page': 'badge--purple',
 };
 
-const FERRAMENTAS = [
-  'Gerenciador de arquivos',
-  'Bancos de dados',
-  'Variáveis de ambiente',
-  'Logs de acesso',
-  'Certificados SSL',
-  'DNS',
-];
-
-function FerramentasDropdown() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function onOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    if (open) document.addEventListener('mousedown', onOutside);
-    return () => document.removeEventListener('mousedown', onOutside);
-  }, [open]);
-
-  return (
-    <div className="portais-dropdown" ref={ref}>
-      <button
-        className="portais-btn portais-btn--tools"
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-      >
-        Ferramentas
-        <span className="material-symbols-outlined" style={{ fontSize: '15px', transform: open ? 'rotate(180deg)' : undefined, transition: 'transform 0.15s', display: 'inline-block' }}>expand_more</span>
-      </button>
-      {open && (
-        <div className="portais-dropdown__menu">
-          {FERRAMENTAS.map((tool) => (
-            <button key={tool} className="portais-dropdown__item" type="button">
-              {tool}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function SiteKebabMenu({
   onDetalhes,
   onAlterarDominio,
@@ -431,7 +387,6 @@ export default function PortaisPage() {
                         Admin Site
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>open_in_new</span>
                       </button>
-                      <FerramentasDropdown />
                       <SiteKebabMenu
                         onDetalhes={() => setDetalhesSite(site)}
                         onAlterarDominio={() => setAlterarSite(site)}
