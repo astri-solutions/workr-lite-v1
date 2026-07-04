@@ -5,36 +5,27 @@ import AppTopbar from './AppTopbar';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminLayout.css';
 
-function buildSections(): NavSection[] {
-  return [
-    {
-      label: 'Plataforma',
-      items: [
-        {
-          to: '/admin/dashboard',
-          label: 'Dashboard',
-          icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>,
-        },
-        {
-          to: '/admin/portais',
-          label: 'Portais',
-          icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>corporate_fare</span>,
-        },
-        {
-          to: '/admin/usuarios',
-          label: 'Usuários',
-          icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>,
-        },
-      ],
-    },
-  ];
-}
+const SECTIONS: NavSection[] = [
+  {
+    label: 'Plataforma',
+    items: [
+      {
+        to: '/admin/portais',
+        label: 'Portais',
+        icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>corporate_fare</span>,
+      },
+      {
+        to: '/admin/usuarios',
+        label: 'Usuários',
+        icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>,
+      },
+    ],
+  },
+];
 
 export default function AdminLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { user } = useAuth();
-
-  const sections = buildSections();
 
   return (
     <div className="admin-shell">
@@ -43,7 +34,7 @@ export default function AdminLayout() {
         onClick={() => setMobileNavOpen(false)}
       />
       <AppSidebar
-        sections={sections}
+        sections={SECTIONS}
         logoSrc="/logos/logotipo-original.svg"
         logoCollapsedSrc="/logos/logo-original.svg"
         logoAlt="Astri"
