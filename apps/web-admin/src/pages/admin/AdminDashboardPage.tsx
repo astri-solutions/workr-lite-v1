@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <>
+    <div className="page">
       <StickyPageHeader
         title="Dashboard"
         description={`Bem-vindo, ${user?.name ?? ''}.`}
@@ -96,6 +96,6 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </section>
-    </>
+    </div>
   );
 }
