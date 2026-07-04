@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-type Role = 'super_admin' | 'client_user';
+type Role = 'super_admin' | 'admin' | 'editor' | 'viewer' | 'client_user';
 
 export interface Portal {
   id: string;
@@ -31,13 +31,13 @@ const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
   {
     email: 'admin@astri.solutions',
     password: 'workr2025',
-    user: { email: 'admin@astri.solutions', name: 'G. Santos', role: 'super_admin' },
+    user: { email: 'admin@astri.solutions', name: 'Admin Astri', role: 'super_admin' },
   },
   {
     email: 'g.santos@astri.solutions',
     password: 'workr2025',
     user: {
-      email: 'g.santos@astri.solutions', name: 'G. Santos', role: 'super_admin',
+      email: 'g.santos@astri.solutions', name: 'G. Santos', role: 'admin',
       tenantId: 'aurora',
       portais: [{ id: '1', nome: 'Construtora Aurora' }],
       activePortalId: '1',

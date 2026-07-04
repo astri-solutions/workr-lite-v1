@@ -2,28 +2,39 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
+import { useAuth } from '../contexts/AuthContext';
 import './AdminLayout.css';
 
-const SECTIONS: NavSection[] = [
-  {
-    label: 'Plataforma',
-    items: [
-      {
-        to: '/admin/portais',
-        label: 'Portais',
-        icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>grid_view</span>,
-      },
-      {
-        to: '/admin/usuarios',
-        label: 'Usuários',
-        icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>,
-      },
-    ],
-  },
-];
+function buildSections(): NavSection[] {
+  return [
+    {
+      label: 'Plataforma',
+      items: [
+        {
+          to: '/admin/dashboard',
+          label: 'Dashboard',
+          icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>,
+        },
+        {
+          to: '/admin/portais',
+          label: 'Portais',
+          icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>corporate_fare</span>,
+        },
+        {
+          to: '/admin/usuarios',
+          label: 'Usuários',
+          icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>,
+        },
+      ],
+    },
+  ];
+}
 
 export default function AdminLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { user } = useAuth();
+
+  const sections = buildSections();
 
   return (
     <div className="admin-shell">
@@ -32,7 +43,7 @@ export default function AdminLayout() {
         onClick={() => setMobileNavOpen(false)}
       />
       <AppSidebar
-        sections={SECTIONS}
+        sections={sections}
         logoSrc="/logos/logotipo-original.svg"
         logoCollapsedSrc="/logos/logo-original.svg"
         logoAlt="Astri"
@@ -40,7 +51,7 @@ export default function AdminLayout() {
         onMobileClose={() => setMobileNavOpen(false)}
       />
       <div className="admin-right">
-        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} contextLabel="Dashboard" />
+        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} contextLabel={user?.name ?? ''} />
         <main className="admin-main">
           <div className="admin-content">
             <Outlet />

@@ -1,11 +1,11 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-type Role = 'super_admin' | 'client_user';
+type RouteAccess = 'super_admin' | 'client_user';
 
 interface ProtectedRouteProps {
   children: JSX.Element;
-  requiredRole: Role;
+  requiredRole: RouteAccess;
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -15,15 +15,26 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
     return <Navigate to="/login" replace />;
   }
 
-  // super_admin with portais may enter the /portal route for testing
-  const canAccessPortal = user.role === 'super_admin' && (user as any).portais?.length > 0;
+  const isAdminRole = user.role === 'super_admin' || user.role === 'admin';
+  const isClientRole = user.role === 'client_user' || user.role === 'editor' || user.role === 'viewer';
+  const hasPortais = (user.portais?.length ?? 0) > 0;
 
-  if (user.role !== requiredRole) {
-    if (requiredRole === 'client_user' && canAccessPortal) return children;
-    if (user.role === 'super_admin') return <Navigate to="/admin/portais" replace />;
-    if (user.role === 'client_user') return <Navigate to="/portal" replace />;
+  if (requiredRole === 'super_admin') {
+    // /admin route: allow super_admin and admin
+    if (isAdminRole) return children;
+    // client roles: redirect to portal
+    return <Navigate to="/portal" replace />;
+  }
+
+  if (requiredRole === 'client_user') {
+    // /portal route: allow client roles
+    if (isClientRole) return children;
+    // admin roles with portais can enter portal (to admin a site)
+    if (isAdminRole && hasPortais) return children;
+    // admin roles without portais: back to admin
+    if (isAdminRole) return <Navigate to="/admin/dashboard" replace />;
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return <Navigate to="/login" replace />;
 }

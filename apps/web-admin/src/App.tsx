@@ -13,6 +13,7 @@ import InformacoesPage from './pages/admin/InformacoesPage';
 import PainelControlePage from './pages/admin/PainelControlePage';
 import NovoPortalPage from './pages/admin/NovoPortalPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 // resultados-1 (oculto): import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
 import CentralDeResultadosPage2 from './pages/portal/CentralDeResultadosPage2'; // resultados-2 (ativo)
 import DocumentosPage from './pages/portal/DocumentosPage';
@@ -47,8 +48,7 @@ import SelecionarPortalPage from './pages/SelecionarPortalPage';
 function RootRedirect() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'super_admin' && user.portais?.length) return <Navigate to="/portal" replace />;
-  if (user.role === 'super_admin') return <Navigate to="/admin/portais" replace />;
+  if (user.role === 'super_admin' || user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to="/portal" replace />;
 }
 
@@ -65,7 +65,8 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/admin/portais" replace /> },
+      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { path: 'dashboard', element: <AdminDashboardPage /> },
       { path: 'portais', element: <PortaisPage /> },
       { path: 'portais/novo', element: <NovoPortalPage /> },
       { path: 'usuarios', element: <UsuariosPage /> },
