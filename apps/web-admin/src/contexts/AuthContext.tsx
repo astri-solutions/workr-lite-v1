@@ -24,6 +24,7 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => boolean;
   logout: () => void;
   switchPortal: (portalId: string) => void;
+  enterPortal: (id: string, nome: string) => void;
 }
 
 const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
@@ -89,6 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  function enterPortal(id: string, nome: string) {
+    setUser(prev => {
+      if (!prev) return prev;
+      const existingPortals = prev.portais ?? [];
+      const portais = existingPortals.some(p => p.id === id)
+        ? existingPortals
+        : [...existingPortals, { id, nome }];
+      const updated = { ...prev, portais, activePortalId: id };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }
+
   function switchPortal(portalId: string) {
     setUser(prev => {
       if (!prev) return prev;
@@ -99,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, switchPortal }}>
+    <AuthContext.Provider value={{ user, login, logout, switchPortal, enterPortal }}>
       {children}
     </AuthContext.Provider>
   );

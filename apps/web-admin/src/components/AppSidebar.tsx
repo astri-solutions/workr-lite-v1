@@ -201,6 +201,9 @@ export default function AppSidebar({
           </span>
           {!collapsed && <span>Recolher</span>}
         </button>
+        {!collapsed && (
+          <div className="admin-sidebar__version">Workr Lite v1.0</div>
+        )}
       </div>
     </aside>
   );

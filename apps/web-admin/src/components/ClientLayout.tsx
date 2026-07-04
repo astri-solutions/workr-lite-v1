@@ -8,17 +8,6 @@ import './AdminLayout.css';
 export const PORTAL_LAYOUT_KEY = 'portal_layout';
 export type PortalLayout = 'sidebar' | 'tabmenu' | 'banner';
 
-// Logo paths follow the convention /logos/tenants/{tenantId}/logotipo.svg
-// When the portal upload feature is complete, these files will be served
-// from storage and the paths below will resolve automatically.
-function useTenantLogo() {
-  const { user } = useAuth();
-  const tenantId = user?.tenantId ?? 'default';
-  return {
-    logoSrc: `/logos/tenants/${tenantId}/logotipo.svg`,
-    logoAlt: user?.name ?? 'Portal',
-  };
-}
 
 const SECTIONS: NavSection[] = [
   {
@@ -300,7 +289,6 @@ const PLATAFORMA_SECTION: NavSection = {
 };
 
 export default function ClientLayout() {
-  const { logoSrc, logoAlt } = useTenantLogo();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
   const [portalLayout, setPortalLayout] = useState<PortalLayout>(
@@ -339,8 +327,9 @@ export default function ClientLayout() {
       />
       <AppSidebar
         sections={sections}
-        logoSrc={logoSrc}
-        logoAlt={logoAlt}
+        logoSrc="/logos/logotipo-original.svg"
+        logoCollapsedSrc="/logos/logo-original.svg"
+        logoAlt="Workr Lite"
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
       />

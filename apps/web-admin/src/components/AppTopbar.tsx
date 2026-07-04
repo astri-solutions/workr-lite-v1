@@ -29,7 +29,6 @@ export default function AppTopbar({ onMobileMenuOpen, contextLabel }: AppTopbarP
         )}
       </div>
       <div className="admin-topbar__right">
-        <span className="admin-topbar__version">Workr Lite v1.0</span>
         <button className="admin-topbar__alert-btn" type="button" aria-label="Alertas">
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
           <span>Alertas</span>

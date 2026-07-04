@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -212,6 +213,7 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
 
 export default function PortaisPage() {
   const navigate = useNavigate();
+  const { enterPortal } = useAuth();
   const [portais, setPortais] = useState(PORTAIS);
   const [search, setSearch] = useState('');
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
@@ -382,10 +384,10 @@ export default function PortaisPage() {
                       <button
                         className="portais-btn portais-btn--admin-site"
                         type="button"
-                        onClick={() => window.open('/portal/empresas', '_blank')}
+                        onClick={() => { enterPortal(portal.id, portal.cliente); navigate('/portal/empresas'); }}
                       >
                         Admin Site
-                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>open_in_new</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>login</span>
                       </button>
                       <SiteKebabMenu
                         onDetalhes={() => setDetalhesSite(site)}
