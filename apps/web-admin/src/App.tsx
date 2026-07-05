@@ -41,6 +41,7 @@ import PlanilhaDinamicaPage from './pages/portal/PlanilhaDinamicaPage';
 import TransmisoesPage from './pages/portal/TransmisoesPage';
 import FooterPage from './pages/portal/FooterPage';
 import CookiesPage from './pages/portal/CookiesPage';
+import TickerPage from './pages/portal/TickerPage';
 import AtendimentoPage from './pages/portal/AtendimentoPage';
 import BackupPage from './pages/portal/BackupPage';
 import SelecionarPortalPage from './pages/SelecionarPortalPage';
@@ -111,6 +112,7 @@ const router = createBrowserRouter([
       { path: 'banner', element: <BannerPage /> },
       { path: 'footer', element: <FooterPage /> },
       { path: 'cookies', element: <CookiesPage /> },
+      { path: 'ticker', element: <TickerPage /> },
       { path: 'atendimento', element: <AtendimentoPage /> },
       { path: 'informacoes', element: <InformacoesPortalPage /> },
       { path: 'auto-cvm', element: <AutoCvmPage /> },

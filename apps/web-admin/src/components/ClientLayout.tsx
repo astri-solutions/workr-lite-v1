@@ -208,6 +208,13 @@ const SECTIONS: NavSection[] = [
         ],
       },
       {
+        to: '/portal/ticker',
+        label: 'Ticker de Cotação',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>show_chart</span>
+        ),
+      },
+      {
         to: '/portal/favicon',
         label: 'Favicon',
         icon: (
