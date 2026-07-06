@@ -1,3 +1,7 @@
+.mat-cell-titulo {
+  min-width: 240px;
+}
+
 .mat-search-wrap {
   display: flex;
   align-items: center;

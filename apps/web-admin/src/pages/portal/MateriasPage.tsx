@@ -137,7 +137,7 @@ export default function MateriasPage() {
             ) : (
               filtered.map(m => (
                 <tr key={m.id}>
-                  <td className="table-cell--bold" data-label="Título">{m.titulo}</td>
+                  <td className="table-cell--bold mat-cell-titulo" data-label="Título">{m.titulo}</td>
                   <td className="table-cell--muted" data-label="Página">{m.pagina}</td>
                   <td data-label="Status"><span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span></td>
                   <td className="table-cell--muted" data-label="Publicação">{m.data}</td>
