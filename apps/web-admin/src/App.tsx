@@ -15,6 +15,7 @@ import NovoPortalPage from './pages/admin/NovoPortalPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
 import BancoDeDadosPage from './pages/admin/BancoDeDadosPage';
 import BackupsAdminPage from './pages/admin/BackupsAdminPage';
+import DominiosPage from './pages/admin/DominiosPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 // resultados-1 (oculto): import CentralDeResultadosPage from './pages/portal/CentralDeResultadosPage';
 import CentralDeResultadosPage2 from './pages/portal/CentralDeResultadosPage2'; // resultados-2 (ativo)
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
       { path: 'portais/:siteId/analytics', element: <AnalyticsPage /> },
       { path: 'portais/:siteId/banco-de-dados', element: <BancoDeDadosPage /> },
       { path: 'portais/:siteId/backups', element: <BackupsAdminPage /> },
+      { path: 'portais/:siteId/dominios', element: <DominiosPage /> },
       { path: 'empresas', element: <AdminEmpresasPage /> },
       { path: 'usuarios-portal', element: <UsuariosPortalPage /> },
     ],

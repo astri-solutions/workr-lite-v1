@@ -209,6 +209,25 @@ export default function PainelControlePage() {
               </button>
             </div>
 
+            <div className="painel-item painel-item--clickable" onClick={() => navigate(`/admin/portais/${siteId}/dominios`)}>
+              <div className="painel-item__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              </div>
+              <div className="painel-item__content">
+                <span className="painel-item__label">Domínios</span>
+                <span className="painel-item__sub">Subdomínios, estacionados e redirecionamentos</span>
+              </div>
+              <button className="painel-item__btn painel-item__btn--chevron" type="button" onClick={e => { e.stopPropagation(); navigate(`/admin/portais/${siteId}/dominios`); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+
             <div className="painel-item">
               <div className="painel-item__icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
