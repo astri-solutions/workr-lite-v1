@@ -16,7 +16,7 @@ const SECTIONS: NavSection[] = [
       },
       {
         to: '/admin/usuarios',
-        label: 'Usuários',
+        label: 'Contas',
         icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>,
       },
     ],
