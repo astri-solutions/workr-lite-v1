@@ -509,7 +509,10 @@ export default function DocumentosPage() {
           </div>
         }
       >
-        <p className="docs-replace-name">{replaceDoc?.nome}</p>
+        <div className="doc-field" style={{ marginBottom: 'var(--space-4)' }}>
+          <label className="doc-field__label">Alterar título</label>
+          <input className="doc-field__input" type="text" defaultValue={replaceDoc?.nome ?? ''} />
+        </div>
         <FileDropzone
           file={replaceFile}
           onChange={setReplaceFile}
