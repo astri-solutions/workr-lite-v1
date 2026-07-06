@@ -47,6 +47,7 @@ import CookiesPage from './pages/portal/CookiesPage';
 import TickerPage from './pages/portal/TickerPage';
 import AtendimentoPage from './pages/portal/AtendimentoPage';
 import BackupPage from './pages/portal/BackupPage';
+import PaginasDeErroPage from './pages/portal/PaginasDeErroPage';
 import SelecionarPortalPage from './pages/SelecionarPortalPage';
 
 function RootRedirect() {
@@ -118,6 +119,7 @@ const router = createBrowserRouter([
       { path: 'banner', element: <BannerPage /> },
       { path: 'footer', element: <FooterPage /> },
       { path: 'cookies', element: <CookiesPage /> },
+      { path: 'paginas-de-erro', element: <PaginasDeErroPage /> },
       { path: 'ticker', element: <TickerPage /> },
       { path: 'atendimento', element: <AtendimentoPage /> },
       { path: 'informacoes', element: <InformacoesPortalPage /> },
