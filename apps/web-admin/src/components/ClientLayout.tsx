@@ -35,6 +35,7 @@ const SECTIONS: NavSection[] = [
         children: [
           {
             to: '/portal/area-restrita',
+            end: true,
             label: 'Resumo',
             icon: (
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>summarize</span>

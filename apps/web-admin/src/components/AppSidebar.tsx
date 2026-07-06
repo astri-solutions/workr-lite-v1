@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export interface NavItem {
   to?: string;
+  end?: boolean;
   label: string;
   icon: React.ReactNode;
   badge?: number;
@@ -75,6 +76,7 @@ function SidebarNavItem({
                 <NavLink
                   key={child.to}
                   to={child.to}
+                  end={child.end}
                   onClick={onMobileClose}
                   className={({ isActive }) =>
                     `admin-nav-item admin-nav-item--child${isActive ? ' admin-nav-item--active' : ''}`
