@@ -671,15 +671,19 @@ export default function DocumentosPage() {
             )}
           </div>
 
-          <label className="doc-field__label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer', fontWeight: 'var(--font-normal)' }}>
-            <input
-              type="checkbox"
-              checked={form.restrito}
-              onChange={e => setForm(f => ({ ...f, restrito: e.target.checked, paginaId: '' }))}
-            />
-            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)' }}>lock</span>
-            Documento restrito — visível apenas para usuários com acesso
-          </label>
+          {/* Área Restrita */}
+          <div className="doc-field">
+            <label className="doc-field__label">Área Restrita</label>
+            <label className="doc-schedule-toggle">
+              <input
+                type="checkbox"
+                checked={form.restrito}
+                onChange={e => setForm(f => ({ ...f, restrito: e.target.checked, paginaId: '' }))}
+              />
+              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)', flexShrink: 0 }}>lock</span>
+              <span>Documento restrito — visível apenas para usuários com acesso</span>
+            </label>
+          </div>
         </div>
       </Modal>
 
