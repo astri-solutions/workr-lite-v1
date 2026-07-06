@@ -1108,7 +1108,8 @@ export default function NovoPortalPage() {
     adminEmail: '',
   });
 
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [creatingStep, setCreatingStep] = useState(-1); // -1 = not started, 0..N = current step, N+1 = done
   const steps = getSteps(form.tipo);
   const currentLabel = steps[step - 1]?.label ?? '';
   const [fonteFase, setFonteFase] = useState<'titulo' | 'texto'>('titulo');
@@ -1159,8 +1160,30 @@ export default function NovoPortalPage() {
     setStep((s) => Math.max(s - 1, 1));
   }
 
+  const CREATION_STEPS = [
+    { label: 'Registrando domínio', desc: 'Configurando DNS e certificado SSL' },
+    { label: 'Criando banco de dados', desc: 'Estrutura de dados inicializada' },
+    { label: 'Aplicando identidade visual', desc: 'Cores, fontes e logotipo configurados' },
+    { label: 'Configurando canais', desc: 'Estrutura de navegação definida' },
+    { label: 'Criando usuário administrador', desc: 'Acesso enviado por e-mail' },
+  ];
+
   function handleSubmit() {
-    setShowSuccess(true);
+    setCreating(true);
+    setCreatingStep(0);
+    let i = 0;
+    function advance() {
+      i += 1;
+      if (i < CREATION_STEPS.length) {
+        setTimeout(() => { setCreatingStep(i); advance(); }, 900);
+      } else {
+        setTimeout(() => {
+          setCreatingStep(CREATION_STEPS.length); // "done"
+          setTimeout(() => navigate('/admin/portais'), 1800);
+        }, 900);
+      }
+    }
+    setTimeout(advance, 900);
   }
 
   return (
@@ -1300,24 +1323,53 @@ export default function NovoPortalPage() {
         </div>
       </div>
 
-      {showSuccess && (
-        <div className="np-success-overlay">
-          <div className="np-success-modal">
-            <div className="invite-success__icon">
-              <svg className="invite-success__svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle className="invite-success__circle" cx="26" cy="26" r="23" stroke="currentColor" strokeWidth="2.5" fill="none" />
-                <polyline className="invite-success__check" points="14,26 22,34 38,18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              </svg>
+      {creating && (
+        <div className="np-creating-overlay">
+          <div className="np-creating-card">
+            <div className="np-creating-card__top">
+              <p className="np-creating-card__eyebrow">Workr Lite</p>
+              <h3 className="np-creating-card__title">
+                {creatingStep < CREATION_STEPS.length ? 'Criando portal…' : 'Portal criado!'}
+              </h3>
+              <p className="np-creating-card__subtitle">
+                {creatingStep < CREATION_STEPS.length
+                  ? 'Aguarde enquanto configuramos seu ambiente.'
+                  : 'O e-mail de boas-vindas será enviado ao administrador.'}
+              </p>
             </div>
-            <h3 className="np-success-modal__title">Portal criado com sucesso!</h3>
-            <p className="np-success-modal__desc">O portal foi configurado e o e-mail de boas-vindas será enviado ao administrador.</p>
-            <button className="np-btn np-btn--primary" type="button" onClick={() => navigate('/admin/portais')}>
-              Ir para Portais
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </button>
+            <ul className="np-creating-steps">
+              {CREATION_STEPS.map((s, i) => {
+                const done = i < creatingStep;
+                const active = i === creatingStep;
+                return (
+                  <li key={i} className={`np-cs-item${done ? ' np-cs-item--done' : active ? ' np-cs-item--active' : ' np-cs-item--pending'}`}>
+                    <span className="np-cs-item__indicator">
+                      {done ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : active ? (
+                        <span className="np-cs-spinner" />
+                      ) : (
+                        <span className="np-cs-item__num">{i + 1}</span>
+                      )}
+                    </span>
+                    <span className="np-cs-item__text">
+                      <span className="np-cs-item__label">{s.label}</span>
+                      {(done || active) && <span className="np-cs-item__desc">{s.desc}</span>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            {creatingStep >= CREATION_STEPS.length && (
+              <div className="np-creating-card__done">
+                <svg className="np-creating-card__done-icon" viewBox="0 0 52 52" fill="none">
+                  <circle className="invite-success__circle" cx="26" cy="26" r="23" stroke="currentColor" strokeWidth="2" fill="none" />
+                  <polyline className="invite-success__check" points="14,26 22,34 38,18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+              </div>
+            )}
           </div>
         </div>
       )}
