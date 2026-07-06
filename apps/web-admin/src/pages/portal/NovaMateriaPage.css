@@ -7,6 +7,10 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-gray-100);
+  /* header heights for sticky offset calc */
+  --nm-topbar-h: 56px;
+  --nm-localebar-h: 41px;
+  --nm-headers-h: calc(var(--nm-topbar-h) + var(--nm-localebar-h));
 }
 
 /* ── Top bar ─────────────────────────────────────── */
@@ -15,10 +19,13 @@
   align-items: center;
   gap: var(--space-4);
   padding: 0 var(--space-5);
-  height: 56px;
+  height: var(--nm-topbar-h);
   background: #fff;
   border-bottom: 1px solid var(--color-gray-200);
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .nm-back {
@@ -75,6 +82,9 @@
   background: #fff;
   border-bottom: 1px solid var(--color-gray-200);
   flex-shrink: 0;
+  position: sticky;
+  top: var(--nm-topbar-h);
+  z-index: 10;
 }
 
 .nm-locale-tab {
@@ -131,8 +141,8 @@
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: var(--space-4);
-  max-height: calc(100vh - var(--space-8));
+  top: calc(var(--nm-headers-h) + var(--space-4));
+  max-height: calc(100vh - var(--nm-headers-h) - var(--space-8));
   overflow-y: auto;
   padding: var(--space-5) var(--space-4);
   gap: var(--space-3);
@@ -774,9 +784,9 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   position: sticky;
-  top: var(--space-4);
+  top: calc(var(--nm-headers-h) + var(--space-4));
   align-self: start;
-  max-height: calc(100vh - var(--space-8));
+  max-height: calc(100vh - var(--nm-headers-h) - var(--space-8));
   overflow-y: auto;
   padding: var(--space-5) var(--space-4);
   display: flex;
