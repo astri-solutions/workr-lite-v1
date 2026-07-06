@@ -328,11 +328,46 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
 
 /* ── Image upload placeholder ─────────────────────────────── */
 function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; ratio?: string }) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(file: File) {
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+  }
+
   return (
-    <div className="img-upload" style={{ aspectRatio: ratio }}>
-      <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>image</span>
-      <span className="img-upload__label">{label}</span>
-      <button type="button" className="img-upload__btn">Escolher arquivo</button>
+    <div
+      className={`img-upload${preview ? ' img-upload--filled' : ''}`}
+      style={{ aspectRatio: ratio }}
+      onClick={() => !preview && inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+      {preview ? (
+        <>
+          <img src={preview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+          <button
+            type="button"
+            className="img-upload__change-btn"
+            onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
+            Alterar imagem
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>image</span>
+          <span className="img-upload__label">{label}</span>
+          <button type="button" className="img-upload__btn" onClick={() => inputRef.current?.click()}>Escolher arquivo</button>
+        </>
+      )}
     </div>
   );
 }
