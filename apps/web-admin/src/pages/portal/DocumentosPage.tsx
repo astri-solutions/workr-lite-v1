@@ -364,7 +364,7 @@ export default function DocumentosPage() {
       </div>
 
       {/* Table */}
-      <div className="table-wrapper">
+      <div className="table-wrapper table-wrapper--responsive">
         <table className="data-table">
           <thead>
             <tr>
@@ -429,6 +429,61 @@ export default function DocumentosPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card list */}
+      <div className="rcard-list">
+        {filtered.length === 0 ? (
+          <p style={{ textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)', padding: 'var(--space-6) 0' }}>
+            Nenhum documento encontrado.
+          </p>
+        ) : (
+          filtered.map((doc) => (
+            <div key={doc.id} className="rcard">
+              <div className="rcard__stripe" style={{ background: doc.status === 'Publicado' ? 'var(--color-primary-400)' : 'var(--color-gray-300)' }} />
+              <div className="rcard__inner">
+                <div className="rcard__body">
+                  <div className="docs-rcard__check">
+                    <input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} />
+                    <span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>{doc.status}</span>
+                  </div>
+                  <span className="rcard__title" style={{ padding: '0 var(--space-4)' }}>{doc.nome}</span>
+                  <div className="docs-nome-badges" style={{ padding: '0 var(--space-4)' }}>
+                    {doc.idiomas.map(lang => (
+                      <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>
+                    ))}
+                    {doc.tags.includes('CVM') && (
+                      <span className="docs-badge docs-badge--cvm">Auto CVM</span>
+                    )}
+                  </div>
+                </div>
+                <div className="docs-rcard__rows">
+                  <div className="docs-rcard__row">
+                    <span className="docs-rcard__label">Publicação</span>
+                    <span className="docs-rcard__value">{doc.dataPub}</span>
+                  </div>
+                  <div className="docs-rcard__row">
+                    <span className="docs-rcard__label">Página</span>
+                    <span className="docs-rcard__value">{doc.pagina}</span>
+                  </div>
+                  <div className="docs-rcard__row">
+                    <span className="docs-rcard__label">Publicado por</span>
+                    <span className="docs-rcard__value">
+                      <div className="docs-avatar" title={doc.publicadoPor}>{doc.publicadoPor}</div>
+                    </span>
+                  </div>
+                  <div className="docs-rcard__row">
+                    <span className="docs-rcard__label">Última edição</span>
+                    <span className="docs-rcard__value">{doc.ultimaEdicao}</span>
+                  </div>
+                </div>
+                <div className="rcard__footer">
+                  <button type="button" className="btn-action btn-action--enter" onClick={() => { setReplaceDoc(doc); setReplaceFile(null); }}>Editar</button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* ── Replace file modal ── */}

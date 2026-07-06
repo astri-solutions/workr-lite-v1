@@ -69,7 +69,8 @@
 }
 
 .docs-cell-nome {
-  max-width: 260px;
+  min-width: 220px;
+  max-width: 320px;
 }
 
 .docs-nome-title {
@@ -621,4 +622,47 @@
 .docs-badge--cvm {
   background: #E8F5FF;
   color: #0B5B68;
+}
+
+/* ─── Mobile card rows (inside rcard) ───────────────────── */
+.docs-rcard__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--color-gray-100);
+  margin-top: var(--space-1);
+}
+
+.docs-rcard__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.docs-rcard__row:last-child { border-bottom: none; }
+
+.docs-rcard__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-gray-400);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.docs-rcard__value {
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  text-align: right;
+}
+
+.docs-rcard__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-1);
 }
