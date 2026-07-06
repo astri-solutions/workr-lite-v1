@@ -58,8 +58,6 @@ const PORTAIS: Portal[] = [
   },
 ];
 
-const SITE_TIPOS: SiteTipo[] = ['RI', 'Institucional', 'Fundo', 'Landing Page'];
-
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
   'Institucional': 'badge--gray',
@@ -70,11 +68,9 @@ const TIPO_BADGE: Record<SiteTipo, string> = {
 function SiteKebabMenu({
   onDetalhes,
   onAlterarDominio,
-  onAlterarTipo,
 }: {
   onDetalhes: () => void;
   onAlterarDominio: () => void;
-  onAlterarTipo: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -105,9 +101,7 @@ function SiteKebabMenu({
           <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onAlterarDominio(); }}>
             Alterar domínio
           </button>
-          <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onAlterarTipo(); }}>
-            Alterar tipo de site
-          </button>
+
         </div>
       )}
     </div>
@@ -219,8 +213,6 @@ export default function PortaisPage() {
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
-  const [tipoTarget, setTipoTarget] = useState<{ portalId: string; site: Site } | null>(null);
-  const [tipoEdit, setTipoEdit] = useState<SiteTipo>('RI');
 
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
@@ -231,20 +223,6 @@ export default function PortaisPage() {
       ...p,
       empresa: { ...p.empresa, status: p.empresa.status === 'Ativa' ? 'Suspensa' : 'Ativa' },
     }));
-  }
-
-  function openTipo(portalId: string, site: Site) {
-    setTipoTarget({ portalId, site });
-    setTipoEdit(site.tipo);
-  }
-
-  function saveTipo() {
-    if (!tipoTarget) return;
-    setPortais(prev => prev.map(p => p.id !== tipoTarget.portalId ? p : {
-      ...p,
-      sites: p.sites.map(s => s.id !== tipoTarget.site.id ? s : { ...s, tipo: tipoEdit }),
-    }));
-    setTipoTarget(null);
   }
 
   const totalPortais = portais.length;
@@ -392,7 +370,6 @@ export default function PortaisPage() {
                       <SiteKebabMenu
                         onDetalhes={() => setDetalhesSite(site)}
                         onAlterarDominio={() => setAlterarSite(site)}
-                        onAlterarTipo={() => openTipo(portal.id, site)}
                       />
                     </div>
                   </div>
@@ -418,40 +395,6 @@ export default function PortaisPage() {
         <AlterarDominioModal onClose={() => setAlterarSite(null)} />
       )}
 
-      {tipoTarget && (
-        <Modal
-          open
-          onClose={() => setTipoTarget(null)}
-          title="Alterar tipo de site"
-          size="sm"
-          footer={
-            <div className="modal-footer">
-              <button className="btn-outline" type="button" onClick={() => setTipoTarget(null)}>Cancelar</button>
-              <button className="btn-primary" type="button" onClick={saveTipo}>Salvar</button>
-            </div>
-          }
-        >
-          <div className="portais-tipo-list">
-            {SITE_TIPOS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`portais-tipo-option${tipoEdit === t ? ' portais-tipo-option--selected' : ''}`}
-                onClick={() => setTipoEdit(t)}
-              >
-                <span className={`badge ${TIPO_BADGE[t]}`}>{t}</span>
-                <div className={`portais-tipo-option__check${tipoEdit === t ? ' portais-tipo-option__check--active' : ''}`}>
-                  {tipoEdit === t && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
