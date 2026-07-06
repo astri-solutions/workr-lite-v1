@@ -141,7 +141,7 @@
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: calc(var(--nm-headers-h) + var(--space-4));
+  top: calc(var(--nm-headers-h) + var(--space-2));
   max-height: calc(100vh - var(--nm-headers-h) - var(--space-8));
   overflow-y: auto;
   padding: var(--space-5) var(--space-4);
@@ -784,7 +784,7 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   position: sticky;
-  top: calc(var(--nm-headers-h) + var(--space-4));
+  top: calc(var(--nm-headers-h) + var(--space-2));
   align-self: start;
   max-height: calc(100vh - var(--nm-headers-h) - var(--space-8));
   overflow-y: auto;
