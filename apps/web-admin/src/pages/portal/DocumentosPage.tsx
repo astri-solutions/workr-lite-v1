@@ -189,6 +189,7 @@ interface DocForm {
   scheduleDate: string;
   scheduleTime: string;
   file: File | null;
+  restrito: boolean;
 }
 
 function emptyDocForm(): DocForm {
@@ -196,6 +197,7 @@ function emptyDocForm(): DocForm {
     titulo: '', tipo: '', paginaId: '',
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null,
+    restrito: false,
   };
 }
 
@@ -629,15 +631,23 @@ export default function DocumentosPage() {
               <select className="doc-field__select"
                 value={form.paginaId} onChange={e => patchForm('paginaId', e.target.value)}>
                 <option value="">Selecionar página...</option>
-                {(() => {
-                  const groups: Record<string, typeof LIST_PAGES> = {};
-                  for (const p of LIST_PAGES) { (groups[p.group] ??= []).push(p); }
-                  return Object.entries(groups).map(([group, pages]) => (
-                    <optgroup key={group} label={group}>
-                      {pages.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                    </optgroup>
-                  ));
-                })()}
+                {form.restrito ? (
+                  <optgroup label="Canais restritos">
+                    <option value="rc1">Resultados Exclusivos</option>
+                    <option value="rc2">Relatórios Internos</option>
+                    <option value="rc3">Dados Privilegiados</option>
+                  </optgroup>
+                ) : (
+                  (() => {
+                    const groups: Record<string, typeof LIST_PAGES> = {};
+                    for (const p of LIST_PAGES) { (groups[p.group] ??= []).push(p); }
+                    return Object.entries(groups).map(([group, pages]) => (
+                      <optgroup key={group} label={group}>
+                        {pages.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                      </optgroup>
+                    ));
+                  })()
+                )}
               </select>
               <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
             </div>
@@ -660,6 +670,16 @@ export default function DocumentosPage() {
               </div>
             )}
           </div>
+
+          <label className="doc-field__label" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer', fontWeight: 'var(--font-normal)' }}>
+            <input
+              type="checkbox"
+              checked={form.restrito}
+              onChange={e => setForm(f => ({ ...f, restrito: e.target.checked, paginaId: '' }))}
+            />
+            <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)' }}>lock</span>
+            Documento restrito — visível apenas para usuários com acesso
+          </label>
         </div>
       </Modal>
 

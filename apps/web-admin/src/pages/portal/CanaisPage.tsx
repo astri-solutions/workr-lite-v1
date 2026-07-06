@@ -153,6 +153,7 @@ interface NewCanalForm {
   locale: LocaleCode;
   isExternalLink: boolean;
   externalUrl: string;
+  restrito: boolean;
 }
 
 function emptyNewCanalForm(): NewCanalForm {
@@ -165,6 +166,7 @@ function emptyNewCanalForm(): NewCanalForm {
     locale: PORTAL_CONFIG.languages[0],
     isExternalLink: false,
     externalUrl: '',
+    restrito: false,
   };
 }
 
@@ -895,6 +897,15 @@ export default function CanaisPage() {
             onChange={e => setNewCanalForm(p => ({ ...p, draft: e.target.checked }))}
           />
           <span>Salvar como rascunho (não exibir no portal ainda)</span>
+        </label>
+        <label className="canais-check-label">
+          <input
+            type="checkbox"
+            checked={newCanalForm.restrito}
+            onChange={e => setNewCanalForm(f => ({ ...f, restrito: e.target.checked }))}
+          />
+          <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)' }}>lock</span>
+          Acesso restrito — exige login para visualizar
         </label>
       </Modal>
     </div>

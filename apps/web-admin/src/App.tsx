@@ -48,6 +48,8 @@ import TickerPage from './pages/portal/TickerPage';
 import AtendimentoPage from './pages/portal/AtendimentoPage';
 import BackupPage from './pages/portal/BackupPage';
 import PaginasDeErroPage from './pages/portal/PaginasDeErroPage';
+import AreaRestritaPage from './pages/portal/AreaRestritaPage';
+import AcessoAreaRestritaPage from './pages/portal/AcessoAreaRestritaPage';
 import SelecionarPortalPage from './pages/SelecionarPortalPage';
 
 function RootRedirect() {
@@ -125,6 +127,8 @@ const router = createBrowserRouter([
       { path: 'informacoes', element: <InformacoesPortalPage /> },
       { path: 'auto-cvm', element: <AutoCvmPage /> },
       { path: 'backup', element: <BackupPage /> },
+      { path: 'area-restrita', element: <AreaRestritaPage /> },
+      { path: 'area-restrita/acesso', element: <AcessoAreaRestritaPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

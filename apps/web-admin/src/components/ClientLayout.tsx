@@ -28,6 +28,28 @@ const SECTIONS: NavSection[] = [
         ),
       },
       {
+        label: 'Área Restrita',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>lock</span>
+        ),
+        children: [
+          {
+            to: '/portal/area-restrita',
+            label: 'Resumo',
+            icon: (
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>summarize</span>
+            ),
+          },
+          {
+            to: '/portal/area-restrita/acesso',
+            label: 'Acesso',
+            icon: (
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>manage_accounts</span>
+            ),
+          },
+        ],
+      },
+      {
         to: '/portal/auto-cvm',
         label: 'Auto CVM',
         icon: (
