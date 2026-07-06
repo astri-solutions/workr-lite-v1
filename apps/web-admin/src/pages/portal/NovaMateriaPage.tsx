@@ -488,6 +488,13 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
   }
   function remove(id: string) { onChange(cards.filter(c => c.id !== id)); }
   function add() { onChange([...cards, newCard()]); }
+  function move(i: number, dir: -1 | 1) {
+    const next = [...cards];
+    const j = i + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
 
   return (
     <div className="galeria-editor">
@@ -495,6 +502,14 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
         <div key={card.id} className="galeria-card-editor">
           <div className="galeria-card-editor__header">
             <span className="galeria-card-editor__num">Card {i + 1}</span>
+            <div className="galeria-card-editor__order">
+              <button type="button" className="ce-icon-btn" title="Mover para cima" disabled={i === 0} onClick={() => move(i, -1)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button type="button" className="ce-icon-btn" title="Mover para baixo" disabled={i === cards.length - 1} onClick={() => move(i, 1)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
             <button type="button" className="sec-editor__del" onClick={() => remove(card.id)} title="Remover card">
               <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
             </button>
