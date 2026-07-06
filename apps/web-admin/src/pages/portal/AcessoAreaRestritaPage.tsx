@@ -58,7 +58,7 @@ export default function AcessoAreaRestritaPage() {
   }
 
   return (
-    <div>
+    <div className="page">
       <PageHeader
         title="Acesso à Área Restrita"
         description="Gerencie os usuários com acesso ao conteúdo restrito do portal."

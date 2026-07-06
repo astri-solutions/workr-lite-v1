@@ -16,7 +16,7 @@ const RESTRICTED_DOCS = [
 
 export default function AreaRestritaPage() {
   return (
-    <div>
+    <div className="page">
       <PageHeader
         title="Área Restrita"
         description="Conteúdo e canais que exigem autenticação para acesso."
