@@ -180,10 +180,10 @@ export default function PainelControlePage() {
                 <span className="painel-item__label">Banco de dados</span>
                 <span className="painel-item__sub">Gerencie o banco de dados</span>
               </div>
-              <button className="painel-item__btn" type="button">Gerenciar</button>
+              <button className="painel-item__btn" type="button" onClick={() => navigate(`/admin/portais/${siteId}/banco-de-dados`)}>Gerenciar</button>
             </div>
 
-            <div className="painel-item">
+            <div className="painel-item painel-item--clickable" onClick={() => navigate(`/admin/portais/${siteId}/backups`)}>
               <div className="painel-item__icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                   <polyline points="1 4 1 10 7 10" />
@@ -194,7 +194,7 @@ export default function PainelControlePage() {
                 <span className="painel-item__label">Backups</span>
                 <span className="painel-item__sub">Semanal</span>
               </div>
-              <button className="painel-item__btn painel-item__btn--chevron" type="button">
+              <button className="painel-item__btn painel-item__btn--chevron" type="button" onClick={() => navigate(`/admin/portais/${siteId}/backups`)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
