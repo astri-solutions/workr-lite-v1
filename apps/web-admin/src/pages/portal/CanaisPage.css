@@ -87,6 +87,19 @@
   justify-content: flex-end;
   gap: var(--space-2);
   padding-left: var(--space-4);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .canais-section__actions {
+    padding-left: var(--space-2);
+    gap: var(--space-1);
+  }
+  .canais-section__actions .btn-action {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+    font-size: 0.75rem;
+  }
 }
 
 /* ── Icon button (up/down arrows) ──────────────── */

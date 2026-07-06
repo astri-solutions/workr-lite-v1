@@ -779,7 +779,7 @@ export default function CanaisPage() {
         }
       >
         {/* External link */}
-        <label className="canais-new-draft-check">
+        <label className="canais-new-draft-check" style={{ marginBottom: 'var(--space-4)' }}>
           <input
             type="checkbox"
             checked={newCanalForm.isExternalLink}
