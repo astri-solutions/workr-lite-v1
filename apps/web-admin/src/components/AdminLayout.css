@@ -38,6 +38,38 @@
   max-width: 260px;
 }
 
+.admin-topbar__portal-ctx {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.admin-topbar__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  padding: 4px 6px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s, color 0.15s;
+}
+
+.admin-topbar__back-btn:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-800);
+}
+
+.admin-topbar__portal-sep {
+  color: var(--color-gray-300);
+  font-size: var(--text-sm);
+  user-select: none;
+}
+
 .admin-search {
   display: flex;
   align-items: center;

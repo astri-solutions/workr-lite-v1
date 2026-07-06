@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
-import { useAuth } from '../contexts/AuthContext';
 import './AdminLayout.css';
+
+export interface AdminOutletContext {
+  setPortalCtx: (ctx: { name: string; backTo: string } | null) => void;
+}
 
 const SECTIONS: NavSection[] = [
   {
@@ -25,7 +28,8 @@ const SECTIONS: NavSection[] = [
 
 export default function AdminLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { user } = useAuth();
+  const [portalCtx, setPortalCtx] = useState<{ name: string; backTo: string } | null>(null);
+  const navigate = useNavigate();
 
   return (
     <div className="admin-shell">
@@ -42,10 +46,14 @@ export default function AdminLayout() {
         onMobileClose={() => setMobileNavOpen(false)}
       />
       <div className="admin-right">
-        <AppTopbar onMobileMenuOpen={() => setMobileNavOpen(true)} contextLabel={user?.name ?? ''} />
+        <AppTopbar
+          onMobileMenuOpen={() => setMobileNavOpen(true)}
+          portalName={portalCtx?.name}
+          onBack={portalCtx ? () => navigate(portalCtx.backTo) : undefined}
+        />
         <main className="admin-main">
           <div className="admin-content">
-            <Outlet />
+            <Outlet context={{ setPortalCtx } satisfies AdminOutletContext} />
           </div>
         </main>
       </div>

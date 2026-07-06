@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
+import type { AdminOutletContext } from '../../components/AdminLayout';
 import './AdminPages.css';
 import './PainelControlePage.css';
 
@@ -66,12 +67,18 @@ function StatBar({ value, max }: { value: number; max: number }) {
 export default function PainelControlePage() {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
+  const { setPortalCtx } = useOutletContext<AdminOutletContext>();
   const [cacheClearing, setCacheClearing] = useState(false);
   const [cacheDone, setCacheDone] = useState(false);
   const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState(false);
 
   const site = SITES_DB.find((s) => s.id === siteId);
+
+  useEffect(() => {
+    if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
+    return () => setPortalCtx(null);
+  }, [site?.id]);
 
   if (!site) {
     return (

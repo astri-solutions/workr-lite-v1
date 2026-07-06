@@ -343,7 +343,7 @@ export default function ClientLayout() {
       <div className="admin-right">
         <AppTopbar
           onMobileMenuOpen={() => setMobileNavOpen(true)}
-          contextLabel={(user?.portais ?? []).find(p => p.id === user?.activePortalId)?.nome ?? user?.portais?.[0]?.nome}
+          portalName={(user?.portais ?? []).find(p => p.id === user?.activePortalId)?.nome ?? user?.portais?.[0]?.nome}
         />
         <main className="admin-main">
           <div className="admin-content">

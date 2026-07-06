@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
+import type { AdminOutletContext } from '../../components/AdminLayout';
 import './AdminPages.css';
 import './AnalyticsPage.css';
 
@@ -258,6 +259,7 @@ function CollapsibleSection({
 export default function AnalyticsPage() {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
+  const { setPortalCtx } = useOutletContext<AdminOutletContext>();
 
   const [period, setPeriod] = useState<Period>('6h');
   const [pageTab, setPageTab] = useState<PageTab>('analytics');
@@ -265,6 +267,11 @@ export default function AnalyticsPage() {
 
   const site = SITES_DB.find((s) => s.id === siteId);
   const analytics = siteId ? ANALYTICS_DB[siteId] : undefined;
+
+  useEffect(() => {
+    if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
+    return () => setPortalCtx(null);
+  }, [site?.id]);
 
   if (!site || !analytics) {
     return (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './Modal';
 import './UserMenu.css';
@@ -55,13 +55,19 @@ export default function UserMenu() {
     }, 1100);
   }
 
+  const location = useLocation();
+
   if (!user) return null;
 
   const initials = getInitials(user.name);
   const infoRoute = user.role === 'super_admin' ? '/admin/informacoes' : '/portal/informacoes';
   const portais = user.portais ?? [];
   const hasMultiplePortais = portais.length > 1;
-  const activePortal = portais.find(p => p.id === user.activePortalId);
+  const rawActivePortal = portais.find(p => p.id === user.activePortalId);
+  // On global admin routes, suppress the active portal so the admin doesn't
+  // appear "logged into" a specific client's portal.
+  const isAdminGlobal = location.pathname.startsWith('/admin');
+  const activePortal = isAdminGlobal ? undefined : rawActivePortal;
 
   return (
     <>
