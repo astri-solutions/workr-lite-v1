@@ -574,6 +574,10 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
 
         {section.type === 'image-text' && (
           <div className="sec-two-panel">
+            <p className="sec-two-panel__hint">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+              No site, imagem e texto ficam lado a lado
+            </p>
             <ImageUpload label="Imagem" ratio="4/3" />
             <RichTextEditor placeholder="Texto da seção..." />
           </div>
@@ -582,19 +586,27 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
         {section.type === 'bg-image' && (
           <div className="sec-bgimg">
             <ImageUpload label="Imagem de fundo" ratio="21/5" />
-            <input className="nm-field" type="text" placeholder="Texto de destaque sobre a imagem..." />
+            <RichTextEditor placeholder="Texto de destaque sobre a imagem..." />
           </div>
         )}
 
         {section.type === 'two-col' && (
-          <div className="sec-cols sec-cols--2">
+          <div className="sec-cols">
+            <p className="sec-cols__hint">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+              No site, as colunas ficam lado a lado
+            </p>
             <RichTextEditor placeholder="Coluna 1..." />
             <RichTextEditor placeholder="Coluna 2..." />
           </div>
         )}
 
         {section.type === 'three-col' && (
-          <div className="sec-cols sec-cols--3">
+          <div className="sec-cols">
+            <p className="sec-cols__hint">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="3" width="6" height="18" rx="1"/><rect x="16" y="3" width="6" height="18" rx="1"/></svg>
+              No site, as colunas ficam lado a lado
+            </p>
             <RichTextEditor placeholder="Coluna 1..." />
             <RichTextEditor placeholder="Coluna 2..." />
             <RichTextEditor placeholder="Coluna 3..." />
