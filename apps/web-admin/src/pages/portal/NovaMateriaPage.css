@@ -6,7 +6,6 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
   background: var(--color-gray-100);
 }
 
@@ -114,10 +113,8 @@
   flex: 1;
   display: grid;
   grid-template-columns: 220px 1fr 280px;
-  min-height: 0;
-  overflow: hidden;
-  /* allow right panel sticky: grid rows must not create a new stacking/overflow context */
   align-items: start;
+  min-height: 0;
 }
 .nm-body--galeria {
   grid-template-columns: 1fr 280px;
@@ -129,10 +126,12 @@
   border-right: 1px solid var(--color-gray-200);
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
   overflow-y: auto;
   padding: var(--space-5) var(--space-4);
   gap: var(--space-3);
-  min-height: 0;
 }
 
 .nm-panel-heading {
@@ -228,9 +227,8 @@
 
 /* ── Main editor area ────────────────────────────── */
 .nm-main {
-  overflow-y: auto;
   padding: var(--space-6);
-  min-height: 0;
+  min-width: 0;
 }
 
 /* Global fields card */
