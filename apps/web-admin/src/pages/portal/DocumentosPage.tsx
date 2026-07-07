@@ -54,31 +54,22 @@ const MOCK_DOCS: DocRow[] = [
 ];
 
 // Pages that accept document uploads (list / list-group types)
+// subGroups: pages that have internal content divisions
 const LIST_PAGES = [
-  { id: 'composicao', label: 'Composição Acionária', group: 'Governança' },
-  { id: 'atas', label: 'Atas e Assembleias', group: 'Governança' },
-  { id: 'docs-cvm', label: 'Documentos CVM', group: 'Governança' },
-  { id: 'resultados', label: 'Central de Resultados', group: 'Investidores' },
-  { id: 'calendario', label: 'Calendário de Eventos', group: 'Investidores' },
-  { id: 'ratings', label: 'Ratings', group: 'Investidores' },
-];
-
-const DOC_TIPOS = [
-  'Fatos Relevantes',
-  'Comunicados ao Mercado',
-  'Avisos aos Acionistas',
-  'Documentos Societários',
-  'Relatórios',
-  'Apresentações',
-  'Informações Periódicas',
+  { id: 'composicao', label: 'Composição Acionária', group: 'Governança', subGroups: [] as string[] },
+  { id: 'atas', label: 'Atas e Assembleias', group: 'Governança', subGroups: ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'] },
+  { id: 'docs-cvm', label: 'Documentos CVM', group: 'Governança', subGroups: ['Fatos Relevantes', 'Comunicados ao Mercado', 'Avisos aos Acionistas', 'Documentos Societários', 'Informações Periódicas'] },
+  { id: 'resultados', label: 'Central de Resultados', group: 'Investidores', subGroups: [] as string[] },
+  { id: 'calendario', label: 'Calendário de Eventos', group: 'Investidores', subGroups: [] as string[] },
+  { id: 'ratings', label: 'Ratings', group: 'Investidores', subGroups: [] as string[] },
 ];
 
 
 interface DocForm {
   entityId: string;
   titulo: string;
-  tipo: string;
   paginaIds: string[];
+  subGroupIds: Record<string, string[]>; // pageId → selected subGroup ids
   idiomas: string[];
   scheduleEnabled: boolean;
   scheduleDate: string;
@@ -89,7 +80,7 @@ interface DocForm {
 function emptyDocForm(entityId = ''): DocForm {
   return {
     entityId,
-    titulo: '', tipo: '', paginaIds: [],
+    titulo: '', paginaIds: [], subGroupIds: {},
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null,
   };
@@ -138,7 +129,7 @@ export default function DocumentosPage() {
       id: Date.now(),
       entityId: form.entityId || activeEntity,
       nome: form.titulo,
-      tipo: form.tipo || 'Sem tipo',
+      tipo: 'Documento',
       status: asDraft ? 'Rascunho' : 'Publicado',
       dataPub: asDraft ? '—' : dateStr,
       pagina: paginaLabel,
@@ -481,6 +472,17 @@ export default function DocumentosPage() {
         }
       >
         <div className="doc-modal-body">
+          {/* Active entity badge */}
+          {(() => {
+            const ent = ENTITIES.find(e => e.id === (form.entityId || activeEntity));
+            return ent ? (
+              <div className="doc-entity-badge">
+                <span className="doc-entity-badge__name">{ent.name}</span>
+                <span className="doc-entity-badge__tipo">{ent.tipo}</span>
+              </div>
+            ) : null;
+          })()}
+
           {/* Language tabs */}
           {!ptOnly && PORTAL_CONFIG.languages.length > 1 && (
             <LangTabs active={docLocale} onChange={setDocLocale} />
@@ -545,19 +547,6 @@ export default function DocumentosPage() {
             )}
           </div>
 
-          {/* Tipo */}
-          <div className="doc-field">
-            <label className="doc-field__label">Tipo</label>
-            <div className="doc-select-wrap">
-              <select className="doc-field__select"
-                value={form.tipo} onChange={e => patchForm('tipo', e.target.value)}>
-                <option value="">Selecionar tipo...</option>
-                {DOC_TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
-            </div>
-          </div>
-
           {/* Página */}
           <div className="doc-field">
             <label className="doc-field__label">Página de destino</label>
@@ -569,21 +558,57 @@ export default function DocumentosPage() {
                 return Object.entries(groups).map(([group, pages]) => (
                   <div key={group} className="doc-page-group">
                     <span className="doc-page-group__label">{group}</span>
-                    {pages.map(p => (
-                      <label key={p.id} className="doc-schedule-toggle">
-                        <input
-                          type="checkbox"
-                          checked={form.paginaIds.includes(p.id)}
-                          onChange={e => {
-                            const ids = e.target.checked
-                              ? [...form.paginaIds, p.id]
-                              : form.paginaIds.filter(id => id !== p.id);
-                            patchForm('paginaIds', ids);
-                          }}
-                        />
-                        <span>{p.label}</span>
-                      </label>
-                    ))}
+                    {pages.map(p => {
+                      const checked = form.paginaIds.includes(p.id);
+                      const subs = form.subGroupIds[p.id] ?? [];
+                      return (
+                        <div key={p.id} className="doc-page-item">
+                          <label className="doc-schedule-toggle">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e => {
+                                const ids = e.target.checked
+                                  ? [...form.paginaIds, p.id]
+                                  : form.paginaIds.filter(id => id !== p.id);
+                                patchForm('paginaIds', ids);
+                                if (!e.target.checked) {
+                                  patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
+                                }
+                              }}
+                            />
+                            <span>{p.label}</span>
+                          </label>
+                          {checked && p.subGroups.length > 0 && (
+                            <div className="doc-subgroup">
+                              <label className="doc-subgroup__check">
+                                <input
+                                  type="checkbox"
+                                  checked={subs.length === 0}
+                                  onChange={() => patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] })}
+                                />
+                                Todos os grupos
+                              </label>
+                              {p.subGroups.map(sg => (
+                                <label key={sg} className="doc-subgroup__check">
+                                  <input
+                                    type="checkbox"
+                                    checked={subs.includes(sg)}
+                                    onChange={e => {
+                                      const next = e.target.checked
+                                        ? [...subs, sg]
+                                        : subs.filter(s => s !== sg);
+                                      patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: next });
+                                    }}
+                                  />
+                                  {sg}
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ));
               })()}

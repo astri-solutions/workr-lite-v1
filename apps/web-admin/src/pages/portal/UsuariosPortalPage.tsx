@@ -17,7 +17,7 @@ const EMPRESAS: Empresa[] = [
   { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII' },
 ];
 
-type Role = 'admin' | 'editor' | 'viewer';
+type Role = 'admin' | 'editor';
 
 interface PortalUser {
   id: string;
@@ -31,11 +31,11 @@ interface PortalUser {
 
 const INITIAL_USERS: PortalUser[] = [
   { id: 'u1', nome: 'Carlos Souza', email: 'carlos@imc.com.br', role: 'admin', empresaIds: [], ativo: true, criadoEm: '10/03/2026' },
-  { id: 'u2', nome: 'Ana Lima', email: 'ana@imc.com.br', role: 'viewer', empresaIds: ['imc'], ativo: true, criadoEm: '15/03/2026' },
-  { id: 'u3', nome: 'Fernanda Costa', email: 'fernanda@imc.com.br', role: 'viewer', empresaIds: ['imc-fii', 'imc-ce'], ativo: false, criadoEm: '20/03/2026' },
+  { id: 'u2', nome: 'Ana Lima', email: 'ana@imc.com.br', role: 'editor', empresaIds: ['imc'], ativo: true, criadoEm: '15/03/2026' },
+  { id: 'u3', nome: 'Fernanda Costa', email: 'fernanda@imc.com.br', role: 'editor', empresaIds: ['imc-fii', 'imc-ce'], ativo: false, criadoEm: '20/03/2026' },
 ];
 
-const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor', viewer: 'Visualizador' };
+const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor' };
 
 function initials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -73,7 +73,7 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage }: {
 }
 
 interface UserForm { nome: string; email: string; role: Role; empresaIds: string[]; allEmpresas: boolean; }
-const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'viewer', empresaIds: [], allEmpresas: true };
+const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'editor', empresaIds: [], allEmpresas: true };
 
 interface UserCardProps {
   user: PortalUser;
@@ -97,7 +97,7 @@ function UserCard({ user, canManage, onEdit, onToggle, onDelete }: UserCardProps
           <span className="up-user-card__email">{user.email}</span>
         </div>
         <div className="up-user-card__badges">
-          <span className={`badge ${user.role === 'admin' ? 'badge--admin' : user.role === 'editor' ? 'badge--warning' : 'badge--gray'}`}>
+          <span className={`badge ${user.role === 'admin' ? 'badge--admin' : 'badge--warning'}`}>
             {ROLE_LABEL[user.role]}
           </span>
           <span className={`badge ${user.ativo ? 'badge--success' : 'badge--error'}`}>
@@ -315,7 +315,6 @@ export default function UsuariosPortalPage() {
               <div className="filter-wrap">
                 <select className="filter-select up-form__select" value={form.role}
                   onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
-                  <option value="viewer">Visualizador — apenas leitura</option>
                   <option value="editor">Editor — pode publicar e editar</option>
                 </select>
                 <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
