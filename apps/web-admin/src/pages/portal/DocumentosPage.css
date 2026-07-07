@@ -482,6 +482,28 @@
   cursor: pointer;
 }
 
+/* ── Page checkboxes ─────────────────────────────── */
+.doc-page-checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.doc-page-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.doc-page-group__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-gray-400);
+  padding: 0 var(--space-1);
+}
+
 .doc-schedule-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

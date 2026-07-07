@@ -196,21 +196,19 @@ const DOC_TIPOS = [
 interface DocForm {
   titulo: string;
   tipo: string;
-  paginaId: string;
+  paginaIds: string[];
   idiomas: string[];
   scheduleEnabled: boolean;
   scheduleDate: string;
   scheduleTime: string;
   file: File | null;
-  restrito: boolean;
 }
 
 function emptyDocForm(): DocForm {
   return {
-    titulo: '', tipo: '', paginaId: '',
+    titulo: '', tipo: '', paginaIds: [],
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null,
-    restrito: false,
   };
 }
 
@@ -247,7 +245,9 @@ export default function DocumentosPage() {
 
   function handleSave(asDraft: boolean) {
     if (!form.titulo.trim()) return;
-    const paginaLabel = LIST_PAGES.find(p => p.id === form.paginaId)?.label ?? '—';
+    const paginaLabel = form.paginaIds.length === 0
+      ? '—'
+      : form.paginaIds.map(id => LIST_PAGES.find(p => p.id === id)?.label ?? id).join(', ');
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
     const newDoc: DocRow = {
@@ -651,30 +651,32 @@ export default function DocumentosPage() {
           {/* Página */}
           <div className="doc-field">
             <label className="doc-field__label">Página de destino</label>
-            <p className="doc-field__hint">Apenas páginas do tipo lista e lista agrupada</p>
-            <div className="doc-select-wrap">
-              <select className="doc-field__select"
-                value={form.paginaId} onChange={e => patchForm('paginaId', e.target.value)}>
-                <option value="">Selecionar página...</option>
-                {form.restrito ? (
-                  <optgroup label="Canais restritos">
-                    <option value="rc1">Resultados Exclusivos</option>
-                    <option value="rc2">Relatórios Internos</option>
-                    <option value="rc3">Dados Privilegiados</option>
-                  </optgroup>
-                ) : (
-                  (() => {
-                    const groups: Record<string, typeof LIST_PAGES> = {};
-                    for (const p of LIST_PAGES) { (groups[p.group] ??= []).push(p); }
-                    return Object.entries(groups).map(([group, pages]) => (
-                      <optgroup key={group} label={group}>
-                        {pages.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                      </optgroup>
-                    ));
-                  })()
-                )}
-              </select>
-              <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
+            <p className="doc-field__hint">Apenas páginas do tipo lista — selecione uma ou mais</p>
+            <div className="doc-page-checks">
+              {(() => {
+                const groups: Record<string, typeof LIST_PAGES> = {};
+                for (const p of LIST_PAGES) { (groups[p.group] ??= []).push(p); }
+                return Object.entries(groups).map(([group, pages]) => (
+                  <div key={group} className="doc-page-group">
+                    <span className="doc-page-group__label">{group}</span>
+                    {pages.map(p => (
+                      <label key={p.id} className="doc-schedule-toggle">
+                        <input
+                          type="checkbox"
+                          checked={form.paginaIds.includes(p.id)}
+                          onChange={e => {
+                            const ids = e.target.checked
+                              ? [...form.paginaIds, p.id]
+                              : form.paginaIds.filter(id => id !== p.id);
+                            patchForm('paginaIds', ids);
+                          }}
+                        />
+                        <span>{p.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
 
@@ -696,19 +698,6 @@ export default function DocumentosPage() {
             )}
           </div>
 
-          {/* Área Restrita */}
-          <div className="doc-field">
-            <label className="doc-field__label">Área Restrita</label>
-            <label className="doc-schedule-toggle">
-              <input
-                type="checkbox"
-                checked={form.restrito}
-                onChange={e => setForm(f => ({ ...f, restrito: e.target.checked, paginaId: '' }))}
-              />
-              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)', flexShrink: 0 }}>lock</span>
-              <span>Documento restrito — visível apenas para usuários com acesso</span>
-            </label>
-          </div>
         </div>
       </Modal>
 
