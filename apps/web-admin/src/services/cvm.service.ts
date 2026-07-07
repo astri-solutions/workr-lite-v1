@@ -107,7 +107,7 @@ const _mockPortais: CvmPortal[] = [
 // Mutable in-memory store for mock mode
 let _store: CvmPortal[] = JSON.parse(JSON.stringify(_mockPortais));
 
-function _findEntity(entityId: string): CvmEntity | undefined { // eslint-disable-line @typescript-eslint/no-unused-vars
+export function _findEntity(entityId: string): CvmEntity | undefined {
   for (const p of _store) {
     const e = p.entidades.find(e => e.id === entityId);
     if (e) return e;
