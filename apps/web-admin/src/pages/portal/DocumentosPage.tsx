@@ -68,6 +68,7 @@ const LIST_PAGES = [
 interface DocForm {
   entityId: string;
   titulo: string;
+  allPages: boolean;
   paginaIds: string[];
   subGroupIds: Record<string, string[]>; // pageId → selected subGroup ids
   idiomas: string[];
@@ -80,7 +81,7 @@ interface DocForm {
 function emptyDocForm(entityId = ''): DocForm {
   return {
     entityId,
-    titulo: '', paginaIds: [], subGroupIds: {},
+    titulo: '', allPages: true, paginaIds: [], subGroupIds: {},
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null,
   };
@@ -548,71 +549,69 @@ export default function DocumentosPage() {
           </div>
 
           {/* Página */}
-          <div className="doc-field">
-            <label className="doc-field__label">Página de destino</label>
-            <p className="doc-field__hint">Apenas páginas do tipo lista — selecione uma ou mais</p>
-            <div className="doc-page-checks">
-              {(() => {
-                const groups: Record<string, typeof LIST_PAGES> = {};
-                for (const p of LIST_PAGES) { (groups[p.group] ??= []).push(p); }
-                return Object.entries(groups).map(([group, pages]) => (
-                  <div key={group} className="doc-page-group">
-                    <span className="doc-page-group__label">{group}</span>
-                    {pages.map(p => {
-                      const checked = form.paginaIds.includes(p.id);
-                      const subs = form.subGroupIds[p.id] ?? [];
-                      return (
-                        <div key={p.id} className="doc-page-item">
-                          <label className="doc-schedule-toggle">
+          <div className="up-form__section">
+            <span className="up-form__section-label">Página de destino</span>
+            <label className="up-form__check">
+              <input
+                type="checkbox"
+                checked={form.allPages}
+                onChange={e => patchForm('allPages', e.target.checked)}
+              />
+              Todas as páginas do portal
+            </label>
+            {!form.allPages && (
+              <div className="up-form__emp-list">
+                {LIST_PAGES.map(p => {
+                  const checked = form.paginaIds.includes(p.id);
+                  const subs = form.subGroupIds[p.id] ?? [];
+                  return (
+                    <div key={p.id}>
+                      <label className="up-form__check">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={e => {
+                            const ids = e.target.checked
+                              ? [...form.paginaIds, p.id]
+                              : form.paginaIds.filter(id => id !== p.id);
+                            patchForm('paginaIds', ids);
+                            if (!e.target.checked) {
+                              patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
+                            }
+                          }}
+                        />
+                        {p.label}
+                      </label>
+                      {checked && p.subGroups.length > 0 && (
+                        <div className="doc-subgroup">
+                          <label className="doc-subgroup__check">
                             <input
                               type="checkbox"
-                              checked={checked}
-                              onChange={e => {
-                                const ids = e.target.checked
-                                  ? [...form.paginaIds, p.id]
-                                  : form.paginaIds.filter(id => id !== p.id);
-                                patchForm('paginaIds', ids);
-                                if (!e.target.checked) {
-                                  patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
-                                }
-                              }}
+                              checked={subs.length === 0}
+                              onChange={() => patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] })}
                             />
-                            <span>{p.label}</span>
+                            Todos os grupos
                           </label>
-                          {checked && p.subGroups.length > 0 && (
-                            <div className="doc-subgroup">
-                              <label className="doc-subgroup__check">
-                                <input
-                                  type="checkbox"
-                                  checked={subs.length === 0}
-                                  onChange={() => patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] })}
-                                />
-                                Todos os grupos
-                              </label>
-                              {p.subGroups.map(sg => (
-                                <label key={sg} className="doc-subgroup__check">
-                                  <input
-                                    type="checkbox"
-                                    checked={subs.includes(sg)}
-                                    onChange={e => {
-                                      const next = e.target.checked
-                                        ? [...subs, sg]
-                                        : subs.filter(s => s !== sg);
-                                      patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: next });
-                                    }}
-                                  />
-                                  {sg}
-                                </label>
-                              ))}
-                            </div>
-                          )}
+                          {p.subGroups.map(sg => (
+                            <label key={sg} className="doc-subgroup__check">
+                              <input
+                                type="checkbox"
+                                checked={subs.includes(sg)}
+                                onChange={e => {
+                                  const next = e.target.checked ? [...subs, sg] : subs.filter(s => s !== sg);
+                                  patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: next });
+                                }}
+                              />
+                              {sg}
+                            </label>
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
-                ));
-              })()}
-            </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Agendamento */}
