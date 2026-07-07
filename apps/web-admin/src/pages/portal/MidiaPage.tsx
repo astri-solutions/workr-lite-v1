@@ -27,6 +27,7 @@ interface MediaFile {
   notes?: string;
   titulo?: string;
   alt?: string;
+  legenda?: string;
   descricao?: string;
   link?: string;
 }
@@ -165,7 +166,7 @@ export default function MidiaPage() {
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '' });
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<'desc' | 'info'>('info');
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [addTagId, setAddTagId] = useState<string | null>(null);
   const [newTag, setNewTag] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -340,7 +341,7 @@ export default function MidiaPage() {
               <div
                 key={f.id}
                 className={`midia-card${selectedId === f.id ? ' midia-card--active' : ''}`}
-                onClick={() => { setSelectedId(prev => prev === f.id ? null : f.id); setDetailTab('info'); }}
+                onClick={() => setSelectedId(prev => prev === f.id ? null : f.id)}
               >
                 <div className="midia-card__thumb">
                   {f.type === 'image' && f.previewUrl ? (
@@ -397,68 +398,89 @@ export default function MidiaPage() {
                 )}
               </div>
 
-              <div className="midia-detail__tabs">
-                <button
-                  type="button"
-                  className={`midia-detail__tab${detailTab === 'desc' ? ' midia-detail__tab--active' : ''}`}
-                  onClick={() => setDetailTab('desc')}
-                >Descrição</button>
-                <button
-                  type="button"
-                  className={`midia-detail__tab${detailTab === 'info' ? ' midia-detail__tab--active' : ''}`}
-                  onClick={() => setDetailTab('info')}
-                >Mais informações</button>
+              <div className="midia-detail__meta">
+                <p className="midia-detail__meta-row"><strong>Upload feito em:</strong> {selectedFile.uploadedAt}</p>
+                <p className="midia-detail__meta-row"><strong>Enviado por:</strong> {selectedFile.uploadedBy}</p>
+                <p className="midia-detail__meta-row"><strong>Nome do arquivo:</strong> {selectedFile.name}</p>
+                <p className="midia-detail__meta-row"><strong>Tipo do arquivo:</strong> {TYPE_LABEL[selectedFile.type]}</p>
+                <p className="midia-detail__meta-row"><strong>Tamanho do arquivo:</strong> {selectedFile.size}</p>
+                {selectedFile.dimensions && (
+                  <p className="midia-detail__meta-row"><strong>Dimensões:</strong> {selectedFile.dimensions}</p>
+                )}
               </div>
 
-              {detailTab === 'info' ? (
-                <div className="midia-detail__info">
-                  {[
-                    ['Data', selectedFile.uploadedAt],
-                    ['Tamanho', selectedFile.size],
-                    ['Dimensões', selectedFile.dimensions ?? '—'],
-                    ['Proporção', selectedFile.ratio ?? '—'],
-                    ['Extensão', extLabel(selectedFile.name)],
-                    ['Enviado por', selectedFile.uploadedBy],
-                  ].map(([label, val]) => (
-                    <div key={label} className="midia-detail__row">
-                      <span className="midia-detail__row-label">{label}</span>
-                      <span className="midia-detail__row-val">{val}</span>
-                    </div>
-                  ))}
-                  <div className="midia-detail__field">
-                    <label className="midia-detail__field-label">Copyright</label>
-                    <input
-                      className="midia-detail__field-input"
-                      value={selectedFile.copyright ?? ''}
-                      onChange={e => patchFile(selectedFile.id, 'copyright', e.target.value)}
-                    />
-                  </div>
-                  <div className="midia-detail__field">
-                    <label className="midia-detail__field-label">Notas privadas</label>
-                    <textarea
-                      className="midia-detail__field-textarea"
-                      value={selectedFile.notes ?? ''}
-                      onChange={e => patchFile(selectedFile.id, 'notes', e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="midia-detail__desc">
-                  <p className="midia-detail__filename">{selectedFile.name}</p>
-                  <p className="midia-detail__type">{TYPE_LABEL[selectedFile.type]} · {selectedFile.size}</p>
-                  <div className="midia-detail__actions">
-                    <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(selectedFile.id)}>Substituir</button>
-                    <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(selectedFile.id)}>Excluir</button>
-                  </div>
-                </div>
-              )}
+              <div className="midia-detail__divider" />
 
-              {detailTab === 'info' && (
-                <div className="midia-detail__footer">
-                  <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(selectedFile.id)}>Substituir</button>
-                  <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(selectedFile.id)}>Excluir</button>
+              <div className="midia-detail__form">
+                {selectedFile.type === 'image' && (
+                  <div className="midia-detail__form-field">
+                    <label className="midia-detail__form-label">Texto alternativo</label>
+                    <textarea
+                      className="midia-detail__form-textarea"
+                      rows={2}
+                      value={selectedFile.alt ?? ''}
+                      onChange={e => patchFile(selectedFile.id, 'alt', e.target.value)}
+                      placeholder="Descreva a imagem para acessibilidade…"
+                    />
+                  </div>
+                )}
+                <div className="midia-detail__form-field">
+                  <label className="midia-detail__form-label">Título</label>
+                  <input
+                    className="midia-detail__form-input"
+                    type="text"
+                    value={selectedFile.titulo ?? selectedFile.name.replace(/\.[^.]+$/, '')}
+                    onChange={e => patchFile(selectedFile.id, 'titulo', e.target.value)}
+                  />
                 </div>
-              )}
+                <div className="midia-detail__form-field">
+                  <label className="midia-detail__form-label">Legenda</label>
+                  <textarea
+                    className="midia-detail__form-textarea"
+                    rows={2}
+                    value={selectedFile.legenda ?? ''}
+                    onChange={e => patchFile(selectedFile.id, 'legenda', e.target.value)}
+                  />
+                </div>
+                <div className="midia-detail__form-field">
+                  <label className="midia-detail__form-label">Descrição</label>
+                  <textarea
+                    className="midia-detail__form-textarea"
+                    rows={3}
+                    value={selectedFile.descricao ?? ''}
+                    onChange={e => patchFile(selectedFile.id, 'descricao', e.target.value)}
+                  />
+                </div>
+                <div className="midia-detail__form-field">
+                  <label className="midia-detail__form-label">URL do arquivo</label>
+                  <input
+                    className="midia-detail__form-input midia-detail__form-input--readonly"
+                    type="text"
+                    readOnly
+                    value={selectedFile.url ?? `https://cdn.workr.com/media/${selectedFile.name}`}
+                  />
+                  <button
+                    type="button"
+                    className="midia-detail__copy-btn"
+                    onClick={() => {
+                      const url = selectedFile.url ?? `https://cdn.workr.com/media/${selectedFile.name}`;
+                      navigator.clipboard.writeText(url).catch(() => {});
+                      setCopiedUrl(true);
+                      setTimeout(() => setCopiedUrl(false), 2000);
+                    }}
+                  >
+                    {copiedUrl ? 'Copiado!' : 'Copiar URL'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="midia-detail__divider" />
+
+              <div className="midia-detail__links">
+                <button type="button" className="midia-detail__link" onClick={() => openReplaceModal(selectedFile.id)}>Substituir arquivo</button>
+                <span className="midia-detail__link-sep">|</span>
+                <button type="button" className="midia-detail__link midia-detail__link--danger" onClick={() => deleteFile(selectedFile.id)}>Excluir permanentemente</button>
+              </div>
             </div>
           )}
         </div>
