@@ -127,8 +127,9 @@ input, textarea, select {
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  transition: background 0.15s;
 }
-.th-sort:hover { color: var(--color-gray-900); }
+.th-sort:hover { background: rgba(0,0,0,0.12); }
 .th-sort-inner {
   display: inline-flex;
   align-items: center;
@@ -137,7 +138,6 @@ input, textarea, select {
 .sort-icon {
   display: inline-flex;
   align-items: center;
-  color: var(--color-gray-400);
   flex-shrink: 0;
 }
-.th-sort--active .sort-icon { color: var(--color-primary-500); }
+.th-sort--active { background: rgba(0,0,0,0.1); }

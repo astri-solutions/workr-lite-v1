@@ -304,7 +304,7 @@ export default function DocumentosPage() {
               </th>
               <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'dataPub' ? ' th-sort--active' : ''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Data de publicação <SortIcon dir={col === 'dataPub' ? dir : null} /></span></th>
+              <th className={`th-sort docs-col-pub${col === 'dataPub' ? ' th-sort--active' : ''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Publicação <SortIcon dir={col === 'dataPub' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'pagina' ? ' th-sort--active' : ''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col === 'pagina' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publicadoPor' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'ultimaEdicao' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col === 'ultimaEdicao' ? dir : null} /></span></th>

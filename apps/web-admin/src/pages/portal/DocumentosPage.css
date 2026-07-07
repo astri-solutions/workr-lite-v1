@@ -1,3 +1,5 @@
+.docs-col-pub { width: 110px; min-width: 110px !important; }
+
 /* ─── Page ──────────────────────────────────────────── */
 .docs-page {
   display: flex;
