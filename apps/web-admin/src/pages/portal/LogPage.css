@@ -1,0 +1,155 @@
+/* ─── Date range filter ─────────────────────────────── */
+.log-date-range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.log-date-input {
+  height: 38px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-800);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.log-date-input:focus { border-color: var(--color-primary-400, #0b5b68); }
+.log-date-input::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+
+.log-date-sep {
+  font-size: var(--text-sm);
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+
+/* ─── Table wrapper ──────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-gray-150, #e8e8e8);
+  border-radius: var(--radius-lg);
+}
+
+/* ─── Empty cell ─────────────────────────────────────── */
+.log-empty {
+  text-align: center;
+  color: var(--color-gray-400);
+  font-size: var(--text-sm);
+  font-style: italic;
+  padding: var(--space-10) 0;
+}
+
+/* ─── Timestamp cell ─────────────────────────────────── */
+.log-ts {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.log-ts__date {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-gray-800);
+  font-weight: var(--font-medium);
+}
+.log-ts__time {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+/* ─── User cell ──────────────────────────────────────── */
+.log-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+.log-user__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary-100, #d0eaee);
+  color: var(--color-primary-700, #094a56);
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+.log-user__avatar--system {
+  background: var(--color-gray-200);
+  color: var(--color-gray-600);
+  font-size: 8px;
+}
+.log-user__name {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-gray-800);
+}
+.log-user__email {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+}
+
+/* ─── Category badge ─────────────────────────────────── */
+.log-cat {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.log-cat--doc      { background: #e8f4ff; color: #1560b8; }
+.log-cat--mat      { background: #fff0e8; color: #c05c00; }
+.log-cat--user     { background: #f0e8ff; color: #6b21a8; }
+.log-cat--cfg      { background: #e8ffe8; color: #166534; }
+.log-cat--media    { background: #ffeef8; color: #9d174d; }
+.log-cat--layout   { background: #fff8e8; color: #92400e; }
+.log-cat--cvm      { background: #e8fff5; color: #065f46; }
+.log-cat--backup   { background: #f0f0f0; color: #4b5563; }
+
+/* ─── Action badge ───────────────────────────────────── */
+.log-action {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+.log-action--success { background: #e8fff2; color: #065f46; }
+.log-action--danger  { background: #fff0f0; color: #991b1b; }
+.log-action--warn    { background: #fffbeb; color: #92400e; }
+.log-action--default { background: var(--color-gray-100); color: var(--color-gray-600); }
+
+/* ─── Entity / Detail cells ──────────────────────────── */
+.log-entity {
+  font-size: var(--text-sm);
+  color: var(--color-gray-800);
+  font-weight: var(--font-medium);
+  max-width: 220px;
+}
+.log-detail {
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  max-width: 280px;
+}
+
+/* ─── Mobile ─────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .log-date-range {
+    width: 100%;
+  }
+  .log-date-input {
+    flex: 1;
+    min-width: 0;
+  }
+}

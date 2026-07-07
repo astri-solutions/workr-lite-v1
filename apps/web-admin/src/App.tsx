@@ -51,6 +51,7 @@ import BackupPage from './pages/portal/BackupPage';
 import PaginasDeErroPage from './pages/portal/PaginasDeErroPage';
 import AreaRestritaPage from './pages/portal/AreaRestritaPage';
 import AcessoAreaRestritaPage from './pages/portal/AcessoAreaRestritaPage';
+import LogPage from './pages/portal/LogPage';
 import SelecionarPortalPage from './pages/SelecionarPortalPage';
 
 function RootRedirect() {
@@ -131,6 +132,7 @@ const router = createBrowserRouter([
       { path: 'backup', element: <BackupPage /> },
       { path: 'area-restrita', element: <AreaRestritaPage /> },
       { path: 'area-restrita/acesso', element: <AcessoAreaRestritaPage /> },
+      { path: 'log', element: <LogPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },
