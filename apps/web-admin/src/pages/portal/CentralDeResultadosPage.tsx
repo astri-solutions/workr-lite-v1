@@ -4,6 +4,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { ALL_LOCALES, LocaleCode } from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CalendarioPage.css';
@@ -81,7 +82,7 @@ function parsePeriod(period: string): { quarter: string; year: string } {
 
 const QUARTER_OPTIONS = ['1T', '2T', '3T', '4T'];
 const CURRENT_YEAR = 2026;
-const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - i));
+const YEAR_OPTIONS = Array.from({ length: 7 }, (_, i) => String(CURRENT_YEAR + 1 - i));
 
 const TIPO_OPTIONS = [
   { value: 'earnings',      label: 'Earnings Release', icon: 'article' },
