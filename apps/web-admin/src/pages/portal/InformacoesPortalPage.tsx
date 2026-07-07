@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
@@ -78,6 +77,7 @@ function SettingsRow({
 }
 
 export default function InformacoesPortalPage() {
+  const portalName = usePortalName();
   const { user } = useAuth();
 
   const [values, setValues] = useState<FieldValues>({
@@ -124,7 +124,7 @@ export default function InformacoesPortalPage() {
     <div className="page">
       <StickyPageHeader
         title="Informações da conta"
-        description={<>Configurações e dados do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Configurações e dados do portal <strong>{portalName}</strong>.</>}
       />
 
       <div className="info-section">

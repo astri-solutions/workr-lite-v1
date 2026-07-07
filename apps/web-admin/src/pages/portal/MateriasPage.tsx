@@ -6,7 +6,6 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
@@ -106,7 +105,7 @@ export default function MateriasPage() {
     <div className="page">
       <StickyPageHeader
         title="Matérias"
-        description={<>Comunicados e artigos do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Comunicados e artigos do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={() => { setSelectedType('show'); setTypePickerOpen(true); }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

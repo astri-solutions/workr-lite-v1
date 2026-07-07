@@ -4,7 +4,6 @@ import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './InteracoesPage.css';
@@ -57,6 +56,7 @@ const INT_FILTERS = [
 ];
 
 export default function InteracoesPage() {
+  const portalName = usePortalName();
   const [items, setItems] = useState<Interacao[]>(INITIAL);
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [selected, setSelected] = useState<Interacao | null>(null);
@@ -83,7 +83,7 @@ export default function InteracoesPage() {
     <div className="page">
       <StickyPageHeader
         title="Interações"
-        description={<>Mensagens recebidas pelo portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Mensagens recebidas pelo portal <strong>{portalName}</strong>.</>}
       />
 
       <div className="stat-cards">

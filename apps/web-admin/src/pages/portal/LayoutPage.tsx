@@ -83,6 +83,7 @@ const isLocked = portalModel === 'banner';
 const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
 
 export default function LayoutPage() {
+  const portalName = usePortalName();
   const [selected, setSelected] = useState<PortalLayout>(INITIAL);
   const [saved, setSaved] = useState(false);
   const isDirty = selected !== INITIAL && !saved;
@@ -100,7 +101,7 @@ export default function LayoutPage() {
     <div className="page">
       <StickyPageHeader
         title="Layout"
-        description={<>Modelo de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Modelo de navegação do portal <strong>{portalName}</strong>.</>}
         action={
           !isLocked && (
             <button className="btn-primary" type="button" onClick={handleSave}>

@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -55,6 +54,7 @@ async function registerFont(label: string, url: string): Promise<boolean> {
 }
 
 export default function FontesPage() {
+  const portalName = usePortalName();
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
   const [headingFont, setHeadingFont] = useState(INITIAL_HEADING);
   const [bodyFont, setBodyFont] = useState(INITIAL_BODY);
@@ -166,7 +166,7 @@ export default function FontesPage() {
     <div className="page">
       <StickyPageHeader
         title="Fontes"
-        description={<>Tipografia do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Tipografia do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

@@ -115,7 +115,7 @@ export default function BannerPage() {
     <div className="page">
       <StickyPageHeader
         title="Banner"
-        description={<>Banner hero do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Banner hero do portal <strong>{portalName}</strong>.</>}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <button className="btn-outline" type="button" disabled={!dirty} onClick={handleDraft}>

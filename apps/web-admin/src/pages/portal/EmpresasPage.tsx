@@ -4,7 +4,6 @@ import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
@@ -35,15 +34,23 @@ const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', O
 interface EmpForm { nome: string; tipo: Tipo; cnpj: string; cvmCodigo: string; autoCvm: boolean; importarDesde: string; }
 const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '', cvmCodigo: '', autoCvm: false, importarDesde: '' };
 
+type DeleteMode = 'choose' | 'migrate' | 'destroy';
 
 export default function EmpresasPage() {
   const portalName = usePortalName();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+
   const [empresas, setEmpresas] = useState<Empresa[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Empresa | null>(null);
   const [form, setForm] = useState<EmpForm>(EMPTY_FORM);
+
+  // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
+  const [deleteMode, setDeleteMode] = useState<DeleteMode>('choose');
+  const [migrateTargetId, setMigrateTargetId] = useState('');
 
   const _filtered = empresas.filter(e =>
     e.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -84,24 +91,40 @@ export default function EmpresasPage() {
     setEmpresas(prev => prev.map(e => e.id === emp.id ? { ...e, ativo: !e.ativo } : e));
   }
 
-  function handleDelete(emp: Empresa) {
-    setEmpresas(prev => prev.filter(e => e.id !== emp.id));
-    setDeleteTarget(null);
+  function openDelete(emp: Empresa) {
+    setDeleteTarget(emp);
+    setDeleteMode('choose');
+    setMigrateTargetId('');
   }
 
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'super_admin';
+  function closeDelete() {
+    setDeleteTarget(null);
+    setDeleteMode('choose');
+    setMigrateTargetId('');
+  }
+
+  function handleDelete() {
+    if (!deleteTarget) return;
+    setEmpresas(prev => prev.filter(e => e.id !== deleteTarget.id));
+    closeDelete();
+  }
 
   const ativos = empresas.filter(e => e.ativo).length;
   const comAutoCvm = empresas.filter(e => e.autoCvm).length;
-
   const principalId = empresas[0]?.id;
+
+  // Empresas available for migration (all except the one being deleted)
+  const migrateOptions = deleteTarget
+    ? empresas.filter(e => e.id !== deleteTarget.id)
+    : [];
+
+  const colCount = isSuperAdmin ? 7 : 6;
 
   return (
     <div className="page">
       <StickyPageHeader
         title="Empresas"
-        description={<>Entidades e fundos de <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Entidades e fundos de <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openCreate}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -143,17 +166,17 @@ export default function EmpresasPage() {
               <th>CVM</th>
               <th className={`th-sort${col === 'ativo' ? ' th-sort--active' : ''}`} onClick={() => toggle('ativo')}><span className="th-sort-inner">Status <SortIcon dir={col === 'ativo' ? dir : null} /></span></th>
               <th>Ações</th>
-              <th className="emp-col-excluir">Excluir empresa</th>
+              {isSuperAdmin && <th className="emp-col-excluir">Excluir empresa</th>}
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={7} className="table-empty">Nenhuma entidade encontrada.</td></tr>
-            ) : isAdmin ? (
+              <tr><td colSpan={colCount} className="table-empty">Nenhuma entidade encontrada.</td></tr>
+            ) : (
               <>
                 {/* Empresa principal */}
                 <tr className="emp-group-header">
-                  <td colSpan={7}>Empresa principal</td>
+                  <td colSpan={colCount}>Empresa principal</td>
                 </tr>
                 {filtered.filter(e => e.id === principalId).map(emp => (
                   <tr key={emp.id}>
@@ -171,16 +194,18 @@ export default function EmpresasPage() {
                         <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
                       </div>
                     </td>
-                    <td className="emp-col-excluir">
-                      <button className="btn-action btn-action--danger" type="button" disabled>Excluir</button>
-                    </td>
+                    {isSuperAdmin && (
+                      <td className="emp-col-excluir">
+                        <button className="btn-action btn-action--danger" type="button" disabled title="A empresa principal não pode ser excluída">Excluir</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
 
                 {/* Subsidiárias */}
                 {filtered.filter(e => e.id !== principalId).length > 0 && (
                   <tr className="emp-group-header">
-                    <td colSpan={7}>Subsidiárias e fundos</td>
+                    <td colSpan={colCount}>Subsidiárias e fundos</td>
                   </tr>
                 )}
                 {filtered.filter(e => e.id !== principalId).map(emp => (
@@ -196,32 +221,14 @@ export default function EmpresasPage() {
                         <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
                       </div>
                     </td>
-                    <td className="emp-col-excluir">
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)}>Excluir</button>
-                    </td>
+                    {isSuperAdmin && (
+                      <td className="emp-col-excluir">
+                        <button className="btn-action btn-action--danger" type="button" onClick={() => openDelete(emp)}>Excluir</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </>
-            ) : (
-              /* Portal (client) view — flat list, no remove for principal */
-              filtered.map(emp => (
-                <tr key={emp.id}>
-                  <td className="table-cell--bold">{emp.nome}</td>
-                  <td><span className={`badge ${emp.tipo === 'FUNDO' ? 'badge--gray' : 'badge--success'}`}>{TIPO_LABEL[emp.tipo]}</span></td>
-                  <td className="table-cell--muted">{emp.cnpj || '—'}</td>
-                  <td>{emp.autoCvm ? <span className="badge badge--cvm">Auto CVM</span> : <span className="table-cell--muted">—</span>}</td>
-                  <td><span className={`badge ${emp.ativo ? 'badge--success' : 'badge--error'}`}>{emp.ativo ? 'Ativa' : 'Inativa'}</span></td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
-                      <button className="btn-action btn-action--secondary" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
-                    </div>
-                  </td>
-                  <td className="emp-col-excluir">
-                    <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteTarget(emp)} disabled={emp.id === empresas[0].id}>Excluir</button>
-                  </td>
-                </tr>
-              ))
             )}
           </tbody>
         </table>
@@ -337,23 +344,103 @@ export default function EmpresasPage() {
         </div>
       </Modal>
 
-      {/* Delete confirm */}
+      {/* Delete modal — super_admin only */}
       {deleteTarget && (
         <Modal
           open
-          onClose={() => setDeleteTarget(null)}
+          onClose={closeDelete}
           title="Excluir empresa"
           size="sm"
           footer={
             <div className="modal-footer">
-              <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
-              <button className="btn-outline btn-outline--danger" type="button" onClick={() => handleDelete(deleteTarget)}>Excluir</button>
+              {deleteMode === 'choose' && (
+                <>
+                  <button className="btn-outline" type="button" onClick={closeDelete}>Cancelar</button>
+                  <div className="emp-delete-actions">
+                    <button className="btn-action btn-action--enter" type="button" onClick={() => setDeleteMode('migrate')}>
+                      Migrar documentos
+                    </button>
+                    <button className="btn-outline btn-outline--danger" type="button" onClick={() => setDeleteMode('destroy')}>
+                      Excluir tudo
+                    </button>
+                  </div>
+                </>
+              )}
+              {deleteMode === 'migrate' && (
+                <>
+                  <button className="btn-outline" type="button" onClick={() => setDeleteMode('choose')}>Voltar</button>
+                  <button
+                    className="btn-outline btn-outline--danger"
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={!migrateTargetId}
+                  >
+                    Migrar e excluir
+                  </button>
+                </>
+              )}
+              {deleteMode === 'destroy' && (
+                <>
+                  <button className="btn-outline" type="button" onClick={() => setDeleteMode('choose')}>Voltar</button>
+                  <button className="btn-outline btn-outline--danger" type="button" onClick={handleDelete}>
+                    Confirmar exclusão
+                  </button>
+                </>
+              )}
             </div>
           }
         >
-          <p className="emp-delete-text">
-            Tem certeza que deseja remover <strong>{deleteTarget.nome}</strong>? Esta ação não pode ser desfeita e todos os documentos vinculados serão desassociados.
-          </p>
+          {deleteMode === 'choose' && (
+            <div className="emp-delete-body">
+              <div className="emp-delete-warning">
+                <span className="material-symbols-outlined emp-delete-warning__icon">warning</span>
+                <div>
+                  <p className="emp-delete-warning__title">Atenção: ação irreversível</p>
+                  <p className="emp-delete-warning__text">
+                    Ao excluir <strong>{deleteTarget.nome}</strong>, todos os documentos, mídias e informações vinculadas a esta empresa serão <strong>permanentemente excluídos e não poderão ser recuperados</strong>.
+                  </p>
+                </div>
+              </div>
+              <p className="emp-delete-hint">
+                Deseja migrar os documentos para outra empresa antes de excluir, ou excluir tudo permanentemente?
+              </p>
+            </div>
+          )}
+
+          {deleteMode === 'migrate' && (
+            <div className="emp-delete-body">
+              <p className="emp-delete-text">
+                Selecione a empresa de destino para onde os documentos de <strong>{deleteTarget.nome}</strong> serão migrados. Após a migração, a empresa será excluída.
+              </p>
+              <div className="filter-wrap emp-delete-select-wrap">
+                <select
+                  className="filter-select emp-form__select-full"
+                  value={migrateTargetId}
+                  onChange={e => setMigrateTargetId(e.target.value)}
+                >
+                  <option value="">Selecionar empresa de destino…</option>
+                  {migrateOptions.map(e => (
+                    <option key={e.id} value={e.id}>{e.nome}</option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
+              </div>
+            </div>
+          )}
+
+          {deleteMode === 'destroy' && (
+            <div className="emp-delete-body">
+              <div className="emp-delete-warning emp-delete-warning--danger">
+                <span className="material-symbols-outlined emp-delete-warning__icon">delete_forever</span>
+                <div>
+                  <p className="emp-delete-warning__title">Exclusão permanente</p>
+                  <p className="emp-delete-warning__text">
+                    Todos os documentos, mídias e informações de <strong>{deleteTarget.nome}</strong> serão excluídos permanentemente. Esta ação <strong>não pode ser desfeita</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </Modal>
       )}
     </div>

@@ -1,5 +1,4 @@
 import StickyPageHeader from '../../components/StickyPageHeader';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 
@@ -9,7 +8,7 @@ export default function MailingPage() {
     <div className="page">
       <StickyPageHeader
         title="Mailing"
-        description={<>Mailing e IRM do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Mailing e IRM do portal <strong>{portalName}</strong>.</>}
       />
       <div className="page-placeholder">
         <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '48px' }}>contact_mail</span>

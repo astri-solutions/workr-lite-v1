@@ -100,6 +100,7 @@ const ENABLED_LANGS = ALL_LOCALES.filter(l =>
 type BulkAction = 'publicar' | 'despublicar' | 'excluir';
 
 export default function CentralDeResultadosPage() {
+  const portalName = usePortalName();
   const [activeEntity, setActiveEntity] = useState<string>('imc');
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -286,7 +287,7 @@ export default function CentralDeResultadosPage() {
     <div className="page cdr-page">
       <StickyPageHeader
         title="Central de Resultados"
-        description={<>Resultados de <strong>{PORTAL_CONFIG.name}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
+        description={<>Resultados de <strong>{portalName}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
         action={
           /* resultados-1: botão oculto — usar resultados-2 */
           undefined

@@ -4,7 +4,6 @@ import Modal from '../../components/Modal';
 import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
@@ -283,7 +282,7 @@ export default function MidiaPage() {
     <div className="page">
       <StickyPageHeader
         title="Biblioteca de Mídia"
-        description={<>Biblioteca de mídia do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Biblioteca de mídia do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={() => { setPendingFile(null); setPendingUrl(''); setUploadTab('computer'); setUploadForm(EMPTY_UPLOAD_FORM); setUploadModalOpen(true); }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

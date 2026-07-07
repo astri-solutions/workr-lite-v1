@@ -3,7 +3,6 @@ import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PlanilhaDinamicaPage.css';
@@ -78,6 +77,7 @@ const PLD_FILTERS = [
 ];
 
 export default function PlanilhaDinamicaPage() {
+  const portalName = usePortalName();
   const [rows, setRows] = useState<SpreadsheetRow[]>(MOCK);
   const [filters, setFilters] = useState<Record<string, string>>({ trimestre: '', ano: '', status: '' });
   const [search, setSearch] = useState('');
@@ -144,7 +144,7 @@ export default function PlanilhaDinamicaPage() {
     <div className="page">
       <StickyPageHeader
         title="Planilha Dinâmica"
-        description={<>Arquivos Excel por trimestre do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Arquivos Excel por trimestre do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={() => { setForm(emptyForm()); setModalOpen(true); }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

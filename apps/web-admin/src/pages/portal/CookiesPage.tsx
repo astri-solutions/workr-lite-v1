@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
@@ -223,7 +222,7 @@ export default function CookiesPage() {
     <div className="page">
       <StickyPageHeader
         title="Cookies"
-        description={<>Configure o banner de consentimento de cookies do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Configure o banner de consentimento de cookies do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

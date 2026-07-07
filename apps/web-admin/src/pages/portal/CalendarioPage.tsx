@@ -3,7 +3,6 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './CalendarioPage.css';
@@ -135,7 +134,7 @@ export default function CalendarioPage() {
     <div className="page">
       <StickyPageHeader
         title="Calendário"
-        description={<>Eventos corporativos do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Eventos corporativos do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openNew}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

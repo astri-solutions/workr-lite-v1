@@ -140,7 +140,7 @@ export default function SplashPage() {
     <div className="page">
       <StickyPageHeader
         title="Splash"
-        description={<>Splash de entrada do portal <strong>{PORTAL_CONFIG.name}</strong>. Exibido automaticamente ao acessar o site.</>}
+        description={<>Splash de entrada do portal <strong>{portalName}</strong>. Exibido automaticamente ao acessar o site.</>}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
             <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>

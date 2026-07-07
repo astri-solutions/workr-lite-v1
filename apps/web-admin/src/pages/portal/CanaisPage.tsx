@@ -176,6 +176,7 @@ function orderKey(list: Canal[]): string {
 }
 
 export default function CanaisPage() {
+  const portalName = usePortalName();
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
   const [savedOrderKey, setSavedOrderKey] = useState(() => orderKey(DEFAULT_CANAIS));
   const [editModal, setEditModal] = useState<EditState | null>(null);
@@ -362,7 +363,7 @@ export default function CanaisPage() {
     <div className="page">
       <StickyPageHeader
         title="Árvore de canais"
-        description={<>Árvore de navegação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Árvore de navegação do portal <strong>{portalName}</strong>.</>}
         action={
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             {orderChanged && (

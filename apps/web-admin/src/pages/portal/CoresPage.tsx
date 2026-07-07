@@ -3,7 +3,6 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { generateColorScale } from '../../utils/colorUtils';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
@@ -165,6 +164,7 @@ const COLOR_DEFS = [
 ];
 
 export default function CoresPage() {
+  const portalName = usePortalName();
   const [draft, setDraft] = useState<Palette>(DEFAULT);
   const [preview, setPreview] = useState<Palette>(DEFAULT);
   const [saved, setSaved] = useState(false);
@@ -191,7 +191,7 @@ export default function CoresPage() {
     <div className="page">
       <StickyPageHeader
         title="Cores"
-        description={<>Paleta de cores do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Paleta de cores do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar e aplicar'}

@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -35,7 +34,7 @@ export default function LogotipoPage() {
     <div className="page">
       <StickyPageHeader
         title="Logotipo"
-        description={<>Logotipos exibidos no portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Logotipos exibidos no portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

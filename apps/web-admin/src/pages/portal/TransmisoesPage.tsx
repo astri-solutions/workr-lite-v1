@@ -107,6 +107,7 @@ const EMPTY_FORM = (): Omit<CastItem, 'id' | 'spectators' | 'markers' | 'spectat
 
 /* ─── Component ────────────────────────────────────────── */
 export default function TransmisoesPage() {
+  const portalName = usePortalName();
   const [casts, setCasts] = useState<CastItem[]>(INITIAL_CASTS);
   const [view, setView] = useState<View>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -199,7 +200,7 @@ export default function TransmisoesPage() {
       <div className="page">
         <StickyPageHeader
           title="Transmissões"
-          description={<>Webcasts e transmissões ao vivo do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+          description={<>Webcasts e transmissões ao vivo do portal <strong>{portalName}</strong>.</>}
           action={
             <button className="btn-primary" type="button" onClick={openNew}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
@@ -286,7 +287,7 @@ export default function TransmisoesPage() {
         title={isDetail ? selectedCast?.name ?? '' : 'Nova transmissão'}
         description={isDetail
           ? <>Configurações e espectadores da transmissão.</>
-          : <>Preencha os dados para criar uma nova transmissão em <strong>{PORTAL_CONFIG.name}</strong>.</>
+          : <>Preencha os dados para criar uma nova transmissão em <strong>{portalName}</strong>.</>
         }
         action={
           <div style={{ display: 'flex', gap: 8 }}>

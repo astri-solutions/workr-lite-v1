@@ -40,6 +40,7 @@ interface DocRow {
   ultimaEdicao: string;
   ultimoEditor: string;
   fromCvm?: boolean;
+  externalLink?: string;
 }
 
 const MOCK_DOCS: DocRow[] = [
@@ -51,6 +52,7 @@ const MOCK_DOCS: DocRow[] = [
   { id: 6, entityId: 'imc', nome: 'Política de Negociação de Valores Mobiliários', tipo: 'Documentos Societários', status: 'Rascunho', dataPub: '30/04/2026', pagina: '—', idiomas: ['PT', 'EN', 'ES'], tags: [], publicadoPor: 'DS', ultimaEdicao: '30/04/2026', ultimoEditor: 'DS' },
   { id: 7, entityId: 'imc', nome: 'Relatório Anual 2024', tipo: 'Relatórios', status: 'Publicado', dataPub: '15/04/2026', pagina: 'Relatórios', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'MA', ultimaEdicao: '15/04/2026', ultimoEditor: 'MA' },
   { id: 8, entityId: 'imc', nome: 'Release de Resultados 4T24', tipo: 'Relatórios', status: 'Publicado', dataPub: '12/03/2026', pagina: 'Relatórios', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'CT', ultimaEdicao: '14/03/2026', ultimoEditor: 'MA' },
+  { id: 11, entityId: 'imc', nome: 'Formulário de Referência 2025', tipo: 'Documentos Societários', status: 'Publicado', dataPub: '20/04/2026', pagina: 'Documentos Societários', idiomas: ['PT'], tags: [], publicadoPor: 'MA', ultimaEdicao: '20/04/2026', ultimoEditor: 'MA', externalLink: 'https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx' },
   { id: 9, entityId: 'imc-fii', nome: 'Apresentação para Investidores 1T25', tipo: 'Apresentações', status: 'Rascunho', dataPub: '28/04/2026', pagina: '—', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'DS', ultimaEdicao: '28/04/2026', ultimoEditor: 'CT' },
   { id: 10, entityId: 'imc-fii', nome: 'ITR 1T25', tipo: 'Informações Periódicas', status: 'Publicado', dataPub: '14/05/2026', pagina: 'Informações Periódicas', idiomas: ['PT'], tags: ['CVM'], publicadoPor: 'CVM', ultimaEdicao: '14/05/2026', ultimoEditor: 'MA', fromCvm: true },
 ];
@@ -78,6 +80,8 @@ interface DocForm {
   scheduleDate: string;
   scheduleTime: string;
   file: File | null;
+  isExternalLink: boolean;
+  externalUrl: string;
 }
 
 function emptyDocForm(entityId = ''): DocForm {
@@ -85,11 +89,12 @@ function emptyDocForm(entityId = ''): DocForm {
     entityId,
     titulo: '', allPages: true, paginaIds: [], subGroupIds: {},
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
-    file: null,
+    file: null, isExternalLink: false, externalUrl: '',
   };
 }
 
 export default function DocumentosPage() {
+  const portalName = usePortalName();
   const [activeEntity, setActiveEntity] = useState(ENTITIES[0].id);
   const [search, setSearch] = useState('');
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
@@ -141,6 +146,7 @@ export default function DocumentosPage() {
       publicadoPor: 'MA',
       ultimaEdicao: dateStr,
       ultimoEditor: 'MA',
+      externalLink: form.isExternalLink ? form.externalUrl : undefined,
     };
     setDocs(prev => [newDoc, ...prev]);
     closeDrawer();
@@ -219,7 +225,7 @@ export default function DocumentosPage() {
     <div className="page docs-page">
       <StickyPageHeader
         title="Documentos"
-        description={<>Documentos publicados no portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Documentos publicados no portal <strong>{portalName}</strong>.</>}
         action={
           <button type="button" className="btn-primary" onClick={openDrawer}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
@@ -338,7 +344,17 @@ export default function DocumentosPage() {
                     </div>
                   </td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
-                  <td className="table-cell--muted">{doc.pagina}</td>
+                  <td className="table-cell--muted">
+                    <span className="docs-pagina-cell">
+                      {doc.pagina}
+                      {doc.externalLink && (
+                        <span className="docs-ext-badge" title={doc.externalLink}>
+                          <span className="material-symbols-outlined docs-ext-badge__icon">open_in_new</span>
+                          Link externo
+                        </span>
+                      )}
+                    </span>
+                  </td>
                   <td className="docs-col-center">
                     <div className={`docs-avatar${doc.fromCvm ? ' docs-avatar--cvm' : ''}`} title={doc.fromCvm ? 'Auto CVM' : doc.publicadoPor}>{doc.publicadoPor}</div>
                   </td>
@@ -389,7 +405,15 @@ export default function DocumentosPage() {
                   </div>
                   <div className="docs-rcard__row">
                     <span className="docs-rcard__label">Página</span>
-                    <span className="docs-rcard__value">{doc.pagina}</span>
+                    <span className="docs-rcard__value docs-pagina-cell">
+                      {doc.pagina}
+                      {doc.externalLink && (
+                        <span className="docs-ext-badge" title={doc.externalLink}>
+                          <span className="material-symbols-outlined docs-ext-badge__icon">open_in_new</span>
+                          Link externo
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="docs-rcard__row">
                     <span className="docs-rcard__label">Publicado por</span>
@@ -518,37 +542,70 @@ export default function DocumentosPage() {
               value={form.titulo} onChange={e => patchForm('titulo', e.target.value)} autoFocus />
           </div>
 
-          {/* Upload */}
-          <div
-            className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
-            onDragOver={e => { e.preventDefault(); setDragActive(true); }}
-            onDragLeave={() => setDragActive(false)}
-            onDrop={handleDrop}
-            onClick={() => !form.file && fileInputRef.current?.click()}
-          >
-            <input ref={fileInputRef} type="file" style={{ display: 'none' }}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-            {form.file ? (
-              <div className="doc-upload__file">
-                <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
-                <div className="doc-upload__file-info">
-                  <span className="doc-upload__file-name">{form.file.name}</span>
-                  <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
-                </div>
-                <button type="button" className="doc-upload__file-remove"
-                  onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-                </button>
-              </div>
-            ) : (
-              <>
-                <span className="material-symbols-outlined doc-upload__icon">upload_file</span>
-                <span className="doc-upload__label">Arraste ou clique para enviar</span>
-                <span className="doc-upload__hint">PDF, DOC, XLS, PPT, ZIP</span>
-              </>
-            )}
+          {/* File / External link toggle */}
+          <div className="doc-source-toggle">
+            <button
+              type="button"
+              className={`doc-source-toggle__btn${!form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchForm('isExternalLink', false)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>upload_file</span>
+              Arquivo
+            </button>
+            <button
+              type="button"
+              className={`doc-source-toggle__btn${form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchForm('isExternalLink', true)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>
+              Link externo
+            </button>
           </div>
+
+          {form.isExternalLink ? (
+            <div className="doc-field">
+              <label className="doc-field__label">URL do documento *</label>
+              <input
+                className="doc-field__input"
+                type="url"
+                placeholder="https://..."
+                value={form.externalUrl}
+                onChange={e => patchForm('externalUrl', e.target.value)}
+              />
+              <span className="doc-field__hint">O documento abrirá em nova aba ao ser acessado no portal.</span>
+            </div>
+          ) : (
+            <div
+              className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={handleDrop}
+              onClick={() => !form.file && fileInputRef.current?.click()}
+            >
+              <input ref={fileInputRef} type="file" style={{ display: 'none' }}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              {form.file ? (
+                <div className="doc-upload__file">
+                  <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
+                  <div className="doc-upload__file-info">
+                    <span className="doc-upload__file-name">{form.file.name}</span>
+                    <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
+                  </div>
+                  <button type="button" className="doc-upload__file-remove"
+                    onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined doc-upload__icon">upload_file</span>
+                  <span className="doc-upload__label">Arraste ou clique para enviar</span>
+                  <span className="doc-upload__hint">PDF, DOC, XLS, PPT, ZIP</span>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Página */}
           <div className="up-form__section">

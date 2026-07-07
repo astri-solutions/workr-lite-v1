@@ -263,3 +263,55 @@
   line-height: 1.6;
   margin: 0;
 }
+
+/* Delete modal body */
+.emp-delete-body { display: flex; flex-direction: column; gap: var(--space-4); }
+.emp-delete-hint {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-600);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Warning banner */
+.emp-delete-warning {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  background: #fff8ec;
+  border: 1px solid #f5c842;
+  border-radius: var(--radius-md);
+}
+.emp-delete-warning--danger {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.emp-delete-warning__icon {
+  font-size: 22px;
+  color: #c08400;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.emp-delete-warning--danger .emp-delete-warning__icon { color: var(--color-error-500); }
+.emp-delete-warning__title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-800);
+  margin: 0 0 4px;
+}
+.emp-delete-warning__text {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Footer actions group */
+.emp-delete-actions { display: flex; gap: var(--space-2); }
+
+/* Migrate select */
+.emp-delete-select-wrap { margin-top: var(--space-1); }

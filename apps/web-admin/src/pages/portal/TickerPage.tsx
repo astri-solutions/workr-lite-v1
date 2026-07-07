@@ -2,7 +2,6 @@ import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './TickerPage.css';
@@ -53,7 +52,7 @@ export default function TickerPage() {
     <div className="page">
       <StickyPageHeader
         title="Ticker de Cotação"
-        description={<>Configure o widget de cotação do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Configure o widget de cotação do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar'}

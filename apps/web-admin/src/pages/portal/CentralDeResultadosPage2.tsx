@@ -413,6 +413,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CentralDeResultadosPage2() {
+  const portalName = usePortalName();
   const [activeEntity, setActiveEntity] = useState('imc');
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -612,7 +613,7 @@ export default function CentralDeResultadosPage2() {
       </>) : (<>
       <StickyPageHeader
         title="Central de Resultados"
-        description={<>Resultados de <strong>{PORTAL_CONFIG.name}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
+        description={<>Resultados de <strong>{portalName}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openWizard}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>

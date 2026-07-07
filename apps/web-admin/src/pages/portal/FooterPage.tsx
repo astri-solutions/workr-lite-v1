@@ -159,6 +159,7 @@ const MODEL_THUMBNAILS: Record<FooterModel, React.ReactNode> = {
 };
 
 export default function FooterPage() {
+  const portalName = usePortalName();
   const [config, setConfig] = useState<FooterConfig>(DEFAULT);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -212,7 +213,7 @@ export default function FooterPage() {
     <div className="page">
       <StickyPageHeader
         title="Footer"
-        description={<>Configuração do rodapé do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Configuração do rodapé do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave} disabled={!dirty}>
             {saved ? 'Salvo!' : 'Salvar alterações'}

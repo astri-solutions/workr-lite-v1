@@ -2,12 +2,12 @@ import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
 export default function FaviconPage() {
+  const portalName = usePortalName();
   const [favicon, setFavicon] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +32,7 @@ export default function FaviconPage() {
     <div className="page">
       <StickyPageHeader
         title="Favicon"
-        description={<>Ícone do portal <strong>{PORTAL_CONFIG.name}</strong> exibido nas abas do navegador.</>}
+        description={<>Ícone do portal <strong>{portalName}</strong> exibido nas abas do navegador.</>}
         action={
           <button className="btn-primary" type="button" onClick={handleSave}>
             {saved ? 'Salvo!' : 'Salvar alterações'}
