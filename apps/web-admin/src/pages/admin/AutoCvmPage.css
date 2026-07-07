@@ -212,7 +212,7 @@
 /* ─── Fields ─────────────────────────────────────────── */
 .cvm-entity-card__fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-4);
 }
 
@@ -448,6 +448,113 @@
   color: var(--color-gray-400);
   font-style: italic;
   padding: var(--space-2) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* ─── Field badge & hint ─────────────────────────────── */
+.cvm-field__badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  font-style: normal;
+  color: var(--color-primary-600, #0b5b68);
+  background: var(--color-primary-50);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+  letter-spacing: 0;
+}
+
+.cvm-field__hint {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin-top: 2px;
+}
+
+/* ─── Next sync countdown ────────────────────────────── */
+.cvm-next-sync {
+  color: var(--color-primary-500);
+}
+
+/* ─── Add entity modal ───────────────────────────────── */
+.cvm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+}
+
+.cvm-modal {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl, 0 20px 60px rgba(0,0,0,0.18));
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cvm-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.cvm-modal__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-900);
+  margin: 0;
+}
+
+.cvm-modal__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-400);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+}
+.cvm-modal__close:hover { color: var(--color-gray-700); }
+
+.cvm-modal__body {
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cvm-modal__row {
+  display: grid;
+  grid-template-columns: 120px 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.cvm-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.cvm-select--sm {
+  padding: 9px var(--space-3);
+  height: auto;
 }
 
 /* ─── Mobile responsive ──────────────────────────────────── */
@@ -465,6 +572,10 @@
 
   /* Entity card fields: stack to single column */
   .cvm-entity-card__fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cvm-modal__row {
     grid-template-columns: 1fr;
   }
 
