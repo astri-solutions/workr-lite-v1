@@ -139,6 +139,14 @@
   font-family: var(--font-heading);
 }
 
+.docs-avatar--cvm {
+  background: #e8f7ef;
+  color: #0a6e3a;
+  border: 1.5px solid #b3e6cc;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
 /* ─── Delete modal ──────────────────────────────────── */
 .docs-delete-msg {
   font-size: var(--text-sm);
