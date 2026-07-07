@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
-import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
+import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
@@ -120,8 +120,11 @@ const PAGE_TYPES = [
   },
 ];
 
+// Edit modal covers both level-2 (SubCanal) and level-3 (SubSubCanal).
+// When parentSubId is set → level-3 item.
 interface EditState {
   canalId: string;
+  parentSubId?: string; // set for level-3 items
   subId: string;
   label: string;
   href: string;
@@ -139,7 +142,7 @@ interface CanalEditState {
   pageType: PageType;
   headerImageUrl: string | null;
   applyHeaderToChildren: boolean;
-  isLeaf: boolean; // no children → show page type picker
+  isLeaf: boolean;
   showInFooter: boolean;
 }
 
@@ -172,7 +175,9 @@ function emptyNewCanalForm(): NewCanalForm {
 }
 
 function orderKey(list: Canal[]): string {
-  return list.map(c => c.id + ':' + c.children.map(s => s.id).join(',')).join('|');
+  return list.map(c =>
+    c.id + ':' + c.children.map(s => s.id + (s.children?.map(ss => ss.id).join(',') ?? '')).join(',')
+  ).join('|');
 }
 
 export default function CanaisPage() {
@@ -184,23 +189,12 @@ export default function CanaisPage() {
   const [newCanalOpen, setNewCanalOpen] = useState(false);
   const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
   const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
-  const [movedSubs, setMovedSubs] = useState<{ key: string; dir: -1 | 1 }[]>([]);
   const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const movedSubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function animateCanal(idA: string, idB: string, dir: -1 | 1) {
     if (movedCanalTimer.current) clearTimeout(movedCanalTimer.current);
     setMovedCanals([{ id: idA, dir }, { id: idB, dir: (dir * -1) as -1 | 1 }]);
     movedCanalTimer.current = setTimeout(() => setMovedCanals([]), 500);
-  }
-
-  function animateSub(canalId: string, subIdA: string, subIdB: string, dir: -1 | 1) {
-    if (movedSubTimer.current) clearTimeout(movedSubTimer.current);
-    setMovedSubs([
-      { key: `${canalId}:${subIdA}`, dir },
-      { key: `${canalId}:${subIdB}`, dir: (dir * -1) as -1 | 1 },
-    ]);
-    movedSubTimer.current = setTimeout(() => setMovedSubs([]), 500);
   }
 
   const orderChanged = orderKey(canais) !== savedOrderKey;
@@ -253,7 +247,7 @@ export default function CanaisPage() {
     setNewCanalForm(emptyNewCanalForm());
   }
 
-  // ── Page-level actions ───────────────────────────────
+  // ── SubCanal (level-2) actions ───────────────────────
   function toggleSub(cid: string, sid: string) {
     mutate(prev => prev.map(c => c.id !== cid ? c : {
       ...c, children: c.children.map(s => s.id === sid ? { ...s, enabled: !s.enabled } : s),
@@ -272,7 +266,6 @@ export default function CanaisPage() {
       const ch = [...c.children];
       const t = idx + dir;
       if (t < 0 || t >= ch.length) return c;
-      animateSub(cid, ch[idx].id, ch[t].id, dir);
       [ch[idx], ch[t]] = [ch[t], ch[idx]];
       return { ...c, children: ch };
     }));
@@ -283,6 +276,46 @@ export default function CanaisPage() {
     mutate(prev => prev.map(c => c.id !== cid ? c : { ...c, children: [...c.children, s] }));
   }
 
+  // ── SubSubCanal (level-3) actions ────────────────────
+  function toggleSubSub(cid: string, sid: string, ssid: string) {
+    mutate(prev => prev.map(c => c.id !== cid ? c : {
+      ...c, children: c.children.map(s => s.id !== sid ? s : {
+        ...s, children: (s.children ?? []).map(ss => ss.id === ssid ? { ...ss, enabled: !ss.enabled } : ss),
+      }),
+    }));
+  }
+
+  function removeSubSub(cid: string, sid: string, ssid: string) {
+    mutate(prev => prev.map(c => c.id !== cid ? c : {
+      ...c, children: c.children.map(s => s.id !== sid ? s : {
+        ...s, children: (s.children ?? []).filter(ss => ss.id !== ssid),
+      }),
+    }));
+  }
+
+  function moveSubSub(cid: string, sid: string, idx: number, dir: -1 | 1) {
+    mutate(prev => prev.map(c => c.id !== cid ? c : {
+      ...c, children: c.children.map(s => {
+        if (s.id !== sid) return s;
+        const ch = [...(s.children ?? [])];
+        const t = idx + dir;
+        if (t < 0 || t >= ch.length) return s;
+        [ch[idx], ch[t]] = [ch[t], ch[idx]];
+        return { ...s, children: ch };
+      }),
+    }));
+  }
+
+  function addSubSub(cid: string, sid: string) {
+    const ss: SubSubCanal = { id: genId(), label: 'Nova sub-página', href: `/${genId()}.html`, enabled: false };
+    mutate(prev => prev.map(c => c.id !== cid ? c : {
+      ...c, children: c.children.map(s => s.id !== sid ? s : {
+        ...s, children: [...(s.children ?? []), ss],
+      }),
+    }));
+  }
+
+  // ── Canal edit ───────────────────────────────────────
   function openCanalEdit(canal: Canal) {
     setCanalEditModal({
       canalId: canal.id,
@@ -319,9 +352,15 @@ export default function CanaisPage() {
     setCanalEditModal(null);
   }
 
-  function openEdit(cid: string, sub: SubCanal) {
+  // ── Sub / SubSub edit ────────────────────────────────
+  function openEdit(cid: string, sub: SubCanal, parentSubId?: string) {
     setEditModal({
-      canalId: cid, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
+      canalId: cid,
+      parentSubId,
+      subId: sub.id,
+      label: sub.label,
+      href: sub.href,
+      targetCanalId: cid,
       pageType: sub.pageType ?? 'show',
       listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
       isExternalLink: sub.isExternalLink ?? false,
@@ -330,32 +369,70 @@ export default function CanaisPage() {
     });
   }
 
+  function openEditSubSub(cid: string, sid: string, ss: SubSubCanal) {
+    setEditModal({
+      canalId: cid,
+      parentSubId: sid,
+      subId: ss.id,
+      label: ss.label,
+      href: ss.href,
+      targetCanalId: cid,
+      pageType: ss.pageType ?? 'show',
+      listaAgrupadaStyle: 'accordion',
+      isExternalLink: ss.isExternalLink ?? false,
+      externalUrl: ss.externalUrl ?? '',
+      showInFooter: false,
+    });
+  }
+
   function commitEdit() {
     if (!editModal) return;
-    const { canalId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
-    setCanais(prev => {
-      let movingSub: SubCanal | null = null;
-      const without = prev.map(c => {
-        if (c.id !== canalId) return c;
-        const sub = c.children.find(s => s.id === subId);
-        if (sub) movingSub = {
-          ...sub,
-          label: label.trim() || sub.label,
-          href: href.trim() || sub.href,
-          pageType,
-          listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
-          isExternalLink,
-          externalUrl: isExternalLink ? externalUrl : undefined,
-          showInFooter,
-        };
-        return { ...c, children: c.children.filter(s => s.id !== subId) };
+    const { canalId, parentSubId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
+
+    if (parentSubId) {
+      // Level-3: edit SubSubCanal in place (no moving to other sections)
+      setCanais(prev => {
+        const next = prev.map(c => c.id !== canalId ? c : {
+          ...c, children: c.children.map(s => s.id !== parentSubId ? s : {
+            ...s, children: (s.children ?? []).map(ss => ss.id !== subId ? ss : {
+              ...ss,
+              label: label.trim() || ss.label,
+              href: href.trim() || ss.href,
+              pageType,
+              isExternalLink,
+              externalUrl: isExternalLink ? externalUrl : undefined,
+            }),
+          }),
+        });
+        saveToStorage(next);
+        return next;
       });
-      if (!movingSub) return prev;
-      const ms = movingSub as SubCanal;
-      const next = without.map(c => c.id !== targetCanalId ? c : { ...c, children: [...c.children, ms] });
-      saveToStorage(next);
-      return next;
-    });
+    } else {
+      // Level-2: edit SubCanal with optional move-to-section
+      setCanais(prev => {
+        let movingSub: SubCanal | null = null;
+        const without = prev.map(c => {
+          if (c.id !== canalId) return c;
+          const sub = c.children.find(s => s.id === subId);
+          if (sub) movingSub = {
+            ...sub,
+            label: label.trim() || sub.label,
+            href: href.trim() || sub.href,
+            pageType,
+            listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
+            isExternalLink,
+            externalUrl: isExternalLink ? externalUrl : undefined,
+            showInFooter,
+          };
+          return { ...c, children: c.children.filter(s => s.id !== subId) };
+        });
+        if (!movingSub) return prev;
+        const ms = movingSub as SubCanal;
+        const next = without.map(c => c.id !== targetCanalId ? c : { ...c, children: [...c.children, ms] });
+        saveToStorage(next);
+        return next;
+      });
+    }
     setEditModal(null);
   }
 
@@ -380,31 +457,39 @@ export default function CanaisPage() {
         }
       />
 
-      <div className="canais-sections">
+      <div className="ct-tree">
         {canais.map((canal, ci) => (
-          <div key={canal.id} className={`canais-section${(() => { const m = movedCanals.find(x => x.id === canal.id); return m ? ` canais-section--moved-${m.dir === -1 ? 'up' : 'down'}` : ''; })()}`}>
+          <div
+            key={canal.id}
+            className={[
+              'ct-section',
+              movedCanals.find(x => x.id === canal.id)
+                ? `ct-section--moved-${movedCanals.find(x => x.id === canal.id)!.dir === -1 ? 'up' : 'down'}`
+                : '',
+            ].filter(Boolean).join(' ')}
+          >
             {/* Section header */}
-            <div className="canais-section__head">
-              <div className="canais-section__left">
-                <span className={`canais-section__dot${canal.enabled ? ' canais-section__dot--on' : ''}`} />
-                <span className="canais-section__name">{canal.label}</span>
-                <span className="canais-section__count">{canal.children.length} {canal.children.length === 1 ? 'página' : 'páginas'}</span>
-              </div>
-              <div className="canais-section__order">
-                <button className="ce-icon-btn" type="button" title="Mover seção para cima" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_less</span>
+            <div className="ct-section__head">
+              <div className="ct-section__reorder">
+                <button className="ct-icon-btn" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
+                  <span className="material-symbols-outlined">expand_less</span>
                 </button>
-                <button className="ce-icon-btn" type="button" title="Mover seção para baixo" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>expand_more</span>
+                <button className="ct-icon-btn" type="button" title="Descer" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
+                  <span className="material-symbols-outlined">expand_more</span>
                 </button>
               </div>
-              <div className="canais-section__actions">
+              <div className="ct-section__info">
+                <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
+                <span className="ct-section__name">{canal.label}</span>
+                <span className="ct-section__count">{canal.children.length}</span>
+              </div>
+              <div className="ct-section__acts">
                 <button className="btn-toolbar" type="button" onClick={() => openCanalEdit(canal)}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>edit</span>
-                  Editar canal
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span>
+                  Editar
                 </button>
                 <button
-                  className={`btn-toolbar ${canal.enabled ? '' : 'btn-toolbar--success'}`}
+                  className={`btn-toolbar${canal.enabled ? '' : ' btn-toolbar--success'}`}
                   type="button"
                   onClick={() => toggleCanal(canal.id)}
                 >
@@ -416,77 +501,113 @@ export default function CanaisPage() {
               </div>
             </div>
 
-            {/* Pages table */}
-            <div className="table-wrapper canais-table-wrap">
-              <table className="data-table canais-table">
-                <colgroup>
-                  <col className="canais-col--name" />
-                  <col className="canais-col--url" />
-                  <col className="canais-col--status" />
-                  <col className="canais-col--order" />
-                  <col className="canais-col--actions" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th>Página</th>
-                    <th>URL</th>
-                    <th>Status</th>
-                    <th>Ordem</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {canal.children.length === 0 ? (
-                    <tr><td colSpan={5} className="table-empty">Nenhuma página nesta seção.</td></tr>
-                  ) : (
-                    canal.children.map((sub, si) => (
-                      <tr key={sub.id} className={[!sub.enabled && 'canais-row--off', (() => { const m = movedSubs.find(x => x.key === `${canal.id}:${sub.id}`); return m ? `canais-row--moved-${m.dir === -1 ? 'up' : 'down'}` : ''; })()].filter(Boolean).join(' ')}>
-                        <td className="table-cell--bold">{sub.label}</td>
-                        <td className="table-cell--muted canais-href">{sub.href}</td>
-                        <td>
-                          <span className={`badge ${sub.enabled ? 'badge--success' : 'badge--gray'}`}>
-                            {sub.enabled ? 'Publicado' : 'Despublicado'}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="canais-order">
-                            <button className="ce-icon-btn" type="button" title="Mover para cima" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>expand_less</span>
-                            </button>
-                            <button className="ce-icon-btn" type="button" title="Mover para baixo" onClick={() => moveSub(canal.id, si, 1)} disabled={si === canal.children.length - 1}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>expand_more</span>
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="table-actions">
-                            <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
-                            <button
-                              className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
-                              type="button"
-                              onClick={() => toggleSub(canal.id, sub.id)}
-                            >
-                              {sub.enabled ? 'Despublicar' : 'Publicar'}
-                            </button>
-                            <button className="btn-action btn-action--danger" type="button" onClick={() => removeSub(canal.id, sub.id)}>Excluir</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* Page rows */}
+            <div className="ct-body">
+              {canal.children.length === 0 && (
+                <p className="ct-empty">Nenhuma página nesta seção.</p>
+              )}
+              {canal.children.map((sub, si) => (
+                <div key={sub.id} className={`ct-item${!sub.enabled ? ' ct-item--off' : ''}`}>
+                  {/* Level-2 row */}
+                  <div className="ct-row">
+                    <div className="ct-row__reorder">
+                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Subir" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
+                        <span className="material-symbols-outlined">expand_less</span>
+                      </button>
+                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Descer" onClick={() => moveSub(canal.id, si, 1)} disabled={si === canal.children.length - 1}>
+                        <span className="material-symbols-outlined">expand_more</span>
+                      </button>
+                    </div>
+                    <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
+                    <div className="ct-row__info">
+                      <span className="ct-row__label">{sub.label}</span>
+                      {sub.isExternalLink ? (
+                        <span className="ct-row__ext">
+                          <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>open_in_new</span>
+                          {sub.externalUrl || 'link externo'}
+                        </span>
+                      ) : (
+                        <span className="ct-row__href">{sub.href}</span>
+                      )}
+                    </div>
+                    {sub.pageType && (
+                      <span className="ct-row__type">{sub.pageType}</span>
+                    )}
+                    <div className="ct-row__acts">
+                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
+                      <button
+                        className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
+                        type="button"
+                        onClick={() => toggleSub(canal.id, sub.id)}
+                      >
+                        {sub.enabled ? 'Despublicar' : 'Publicar'}
+                      </button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => removeSub(canal.id, sub.id)}>Excluir</button>
+                    </div>
+                  </div>
 
-            <div className="canais-add-page-wrap">
-              <button className="canais-add-page" type="button" onClick={() => addSub(canal.id)}>
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
-                Adicionar página
-              </button>
+                  {/* Level-3 children */}
+                  {(sub.children ?? []).length > 0 && (
+                    <div className="ct-l3">
+                      {(sub.children ?? []).map((ss, ssi) => (
+                        <div key={ss.id} className={`ct-row ct-row--l3${!ss.enabled ? ' ct-item--off' : ''}`}>
+                          <div className="ct-row__reorder">
+                            <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Subir" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
+                              <span className="material-symbols-outlined">expand_less</span>
+                            </button>
+                            <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Descer" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
+                              <span className="material-symbols-outlined">expand_more</span>
+                            </button>
+                          </div>
+                          <span className="ct-l3-indent" aria-hidden="true" />
+                          <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />
+                          <div className="ct-row__info">
+                            <span className="ct-row__label">{ss.label}</span>
+                            {ss.isExternalLink ? (
+                              <span className="ct-row__ext">
+                                <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>open_in_new</span>
+                                {ss.externalUrl || 'link externo'}
+                              </span>
+                            ) : (
+                              <span className="ct-row__href">{ss.href}</span>
+                            )}
+                          </div>
+                          <div className="ct-row__acts">
+                            <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
+                            <button
+                              className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
+                              type="button"
+                              onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}
+                            >
+                              {ss.enabled ? 'Despublicar' : 'Publicar'}
+                            </button>
+                            <button className="btn-action btn-action--danger" type="button" onClick={() => removeSubSub(canal.id, sub.id, ss.id)}>Excluir</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add sub-sub-page */}
+                  <div className="ct-add-child">
+                    <button className="ct-add-child__btn" type="button" onClick={() => addSubSub(canal.id, sub.id)}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>subdirectory_arrow_right</span>
+                      Adicionar sub-página em <em>{sub.label}</em>
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add page to section */}
+              <div className="ct-add-row">
+                <button className="ct-add-row__btn" type="button" onClick={() => addSub(canal.id)}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add_circle</span>
+                  Adicionar página
+                </button>
+              </div>
             </div>
           </div>
         ))}
-
       </div>
 
       {/* Canal edit modal */}
@@ -504,7 +625,6 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
-            {/* Name */}
             <label className="canais-edit-form__label">
               Nome do canal
               <input
@@ -518,7 +638,6 @@ export default function CanaisPage() {
 
             <div className="canais-edit-divider" />
 
-            {/* Header image */}
             <p className="canais-edit-section-title">Imagem do header</p>
             <div className="canal-header-img-wrap">
               {canalEditModal.headerImageUrl ? (
@@ -527,13 +646,11 @@ export default function CanaisPage() {
                   <div className="canal-header-img-preview__actions">
                     <label className="btn-action btn-action--enter canais-img-file-label">
                       Substituir
-                      <input
-                        type="file" accept="image/*" style={{ display: 'none' }}
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={e => {
                           const f = e.target.files?.[0];
                           if (f) setCanalEditModal(m => m ? { ...m, headerImageUrl: URL.createObjectURL(f) } : m);
-                        }}
-                      />
+                        }} />
                     </label>
                     <button className="btn-action btn-action--danger" type="button" onClick={() => setCanalEditModal(m => m ? { ...m, headerImageUrl: null } : m)}>
                       Remover
@@ -542,18 +659,15 @@ export default function CanaisPage() {
                 </div>
               ) : (
                 <label className="canal-header-img-empty canais-img-file-label">
-                  <input
-                    type="file" accept="image/*" style={{ display: 'none' }}
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
                     onChange={e => {
                       const f = e.target.files?.[0];
                       if (f) setCanalEditModal(m => m ? { ...m, headerImageUrl: URL.createObjectURL(f) } : m);
-                    }}
-                  />
+                    }} />
                   <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
                   <span>Clique para escolher uma imagem de header</span>
                 </label>
               )}
-
               <label className="canal-apply-default">
                 <input
                   type="checkbox"
@@ -577,7 +691,6 @@ export default function CanaisPage() {
               </span>
             </label>
 
-            {/* Page type — only for leaf canals */}
             {canalEditModal.isLeaf && (
               <>
                 <div className="canais-edit-divider" />
@@ -585,8 +698,7 @@ export default function CanaisPage() {
                 <div className="canais-page-types">
                   {PAGE_TYPES.map(pt => (
                     <button
-                      key={pt.id}
-                      type="button"
+                      key={pt.id} type="button"
                       className={`canais-page-type${canalEditModal.pageType === pt.id ? ' canais-page-type--active' : ''}`}
                       onClick={() => setCanalEditModal(m => m ? { ...m, pageType: pt.id as PageType } : m)}
                     >
@@ -607,12 +719,12 @@ export default function CanaisPage() {
         </Modal>
       )}
 
-      {/* Sub-page edit modal */}
+      {/* Sub / SubSub edit modal */}
       {editModal && (
         <Modal
           open
           onClose={() => setEditModal(null)}
-          title="Editar página"
+          title={editModal.parentSubId ? 'Editar sub-página' : 'Editar página'}
           size="lg"
           footer={
             <div className="modal-footer">
@@ -622,7 +734,6 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
-            {/* External link */}
             <label className="canais-new-draft-check" style={{ marginBottom: 'var(--space-3)' }}>
               <input
                 type="checkbox"
@@ -679,8 +790,7 @@ export default function CanaisPage() {
             <div className="canais-page-types">
               {PAGE_TYPES.map(pt => (
                 <button
-                  key={pt.id}
-                  type="button"
+                  key={pt.id} type="button"
                   className={`canais-page-type${editModal.pageType === pt.id ? ' canais-page-type--active' : ''}`}
                   onClick={() => setEditModal(m => m ? { ...m, pageType: pt.id as PageType } : m)}
                 >
@@ -696,27 +806,31 @@ export default function CanaisPage() {
               ))}
             </div>
 
-            <label className="canais-edit-form__label" style={{ marginTop: 'var(--space-4)' }}>
-              Mover para seção
-              <select
-                className="canais-edit-form__input filter-select"
-                value={editModal.targetCanalId}
-                onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
-              >
-                {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-              </select>
-            </label>
-
-            <label className="canal-apply-default" style={{ marginTop: 'var(--space-4)' }}>
-              <input
-                type="checkbox"
-                checked={editModal.showInFooter}
-                onChange={e => setEditModal(m => m ? { ...m, showInFooter: e.target.checked } : m)}
-              />
-              <span>
-                Exibir no footer <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(Footer completo com mapa do site)</span>
-              </span>
-            </label>
+            {/* Only for level-2: move to section + footer */}
+            {!editModal.parentSubId && (
+              <>
+                <label className="canais-edit-form__label" style={{ marginTop: 'var(--space-4)' }}>
+                  Mover para seção
+                  <select
+                    className="canais-edit-form__input filter-select"
+                    value={editModal.targetCanalId}
+                    onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
+                  >
+                    {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
+                </label>
+                <label className="canal-apply-default" style={{ marginTop: 'var(--space-4)' }}>
+                  <input
+                    type="checkbox"
+                    checked={editModal.showInFooter}
+                    onChange={e => setEditModal(m => m ? { ...m, showInFooter: e.target.checked } : m)}
+                  />
+                  <span>
+                    Exibir no footer <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(Footer completo com mapa do site)</span>
+                  </span>
+                </label>
+              </>
+            )}
 
             {editModal.pageType === 'lista-agrupada' && (
               <div className="canais-agrupada-opts">
@@ -782,7 +896,6 @@ export default function CanaisPage() {
           </div>
         }
       >
-        {/* External link */}
         <label className="canais-new-draft-check" style={{ marginBottom: 'var(--space-4)' }}>
           <input
             type="checkbox"
@@ -806,7 +919,6 @@ export default function CanaisPage() {
 
         <LangTabs active={newCanalForm.locale} onChange={l => setNewCanalForm(f => ({ ...f, locale: l }))} />
 
-        {/* Header image */}
         <div>
           <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Imagem do header</p>
           {newCanalForm.headerImageUrl ? (
@@ -839,7 +951,6 @@ export default function CanaisPage() {
           )}
         </div>
 
-        {/* Titles */}
         <div key={newCanalForm.locale} className="canais-edit-form__label-group">
           <label className="canais-edit-form__label lang-fade">
             Título
@@ -864,7 +975,6 @@ export default function CanaisPage() {
           </label>
         </div>
 
-        {/* Canal type */}
         <div>
           <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Tipo de canal</p>
           <div className="canais-new-type-row">
@@ -891,7 +1001,6 @@ export default function CanaisPage() {
           </div>
         </div>
 
-        {/* Draft toggle */}
         <label className="canais-new-draft-check">
           <input
             type="checkbox"

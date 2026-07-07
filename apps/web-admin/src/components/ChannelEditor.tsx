@@ -6,6 +6,16 @@ export const CANAIS_KEY = 'portal_canais';
 export type PageType = 'show' | 'lista' | 'lista-agrupada' | 'tabela' | 'blog' | 'galeria';
 export type ListaAgrupadaStyle = 'accordion' | 'secao';
 
+export interface SubSubCanal {
+  id: string;
+  label: string;
+  href: string;
+  enabled: boolean;
+  pageType?: PageType;
+  isExternalLink?: boolean;
+  externalUrl?: string;
+}
+
 export interface SubCanal {
   id: string;
   label: string;
@@ -16,6 +26,7 @@ export interface SubCanal {
   isExternalLink?: boolean;
   externalUrl?: string;
   showInFooter?: boolean;
+  children?: SubSubCanal[];
 }
 
 export interface Canal {
