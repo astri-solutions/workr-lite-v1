@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import './AdminPages.css';
 import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
-import { useAuth } from '../../contexts/AuthContext';
 import { cvmService } from '../../services/cvm.service';
 import type { CvmPortal, CvmEntity, EntityStatus } from '../../services/cvm.types';
 
@@ -404,13 +403,9 @@ function PortalAccordion({ portal, onEntityAdded }: { portal: CvmPortal; onEntit
 }
 
 export default function AutoCvmPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'super_admin';
-
   const [portais, setPortais] = useState<CvmPortal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [portalId, setPortalId] = useState('');
 
   useEffect(() => {
     cvmService.listPortais()
@@ -424,36 +419,16 @@ export default function AutoCvmPage() {
     ));
   }
 
-  const clientPortal = portais[0] ?? null;
-  const selectedPortal = isAdmin
-    ? (portalId ? portais.find((p) => p.id === portalId) : null)
-    : clientPortal;
-
-  const visibleEntidades = selectedPortal
-    ? selectedPortal.entidades
-    : portais.flatMap((p) => p.entidades);
-
   return (
     <div className="page cvm-page">
 
-      {/* ── Header ── */}
       <StickyPageHeader
         title="Auto CVM"
         description={
-          isAdmin ? (
-            <>
-              Importação automática de documentos da CVM, configurada pela Workr — para{' '}
-              <strong>empresas listadas</strong> e <strong>fundos de gestoras</strong>. A conexão é
-              pelo <strong>CNPJ</strong>: todo documento publicado com aquele CNPJ é reconhecido e
-              alimenta o site (apenas canais regulatórios; a Central de Resultados é manual). O
-              cliente não edita isto — vê só a marcação "Auto CVM".
-            </>
-          ) : (
-            <>
-              Documentos publicados na CVM são importados automaticamente pelo <strong>CNPJ</strong>{' '}
-              de cada entidade — apenas canais regulatórios. A Central de Resultados é gerida manualmente.
-            </>
-          )
+          <>
+            Documentos publicados na CVM são importados automaticamente pelo <strong>CNPJ</strong>{' '}
+            de cada entidade — apenas canais regulatórios. A Central de Resultados é gerida manualmente.
+          </>
         }
         action={undefined}
       />
@@ -463,40 +438,28 @@ export default function AutoCvmPage() {
 
       {!loading && !error && (
         <>
-          {/* ── Portal selector (admin only) ── */}
-          {isAdmin && (
-            <div className="cvm-section">
-              <label className="cvm-label" htmlFor="portal-select">Portal</label>
-              <select
-                id="portal-select"
-                className="cvm-select"
-                value={portalId}
-                onChange={(e) => setPortalId(e.target.value)}
-              >
-                <option value="">Todos os portais</option>
-                {portais.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nome}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* ── Entities ── */}
           <div className="cvm-entities-header">
             <h2 className="cvm-entities-title">Entidades conectadas (por CNPJ)</h2>
           </div>
 
-          {visibleEntidades.length === 0 && selectedPortal ? (
+          {portais.length === 0 ? (
             <div className="cvm-empty">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
-              <p>Nenhuma entidade conectada neste portal.</p>
+              <p>Nenhuma entidade conectada.</p>
             </div>
-          ) : (!isAdmin || selectedPortal) ? (
-            /* ── Single portal view: flat list ── */
+          ) : portais.length === 1 ? (
+            /* Single portal: flat entity list */
             <div className="cvm-entity-list">
-              {visibleEntidades.map((entity) => (
+              {portais[0].entidades.length === 0 ? (
+                <div className="cvm-empty">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  <p>Nenhuma entidade conectada neste portal.</p>
+                </div>
+              ) : portais[0].entidades.map(entity => (
                 <EntityCard key={entity.id} entity={entity} onDeleted={(id) => {
                   setPortais(prev => prev.map(p => ({
                     ...p,
@@ -506,9 +469,9 @@ export default function AutoCvmPage() {
               ))}
             </div>
           ) : (
-            /* ── All portals (admin): accordion per portal ── */
+            /* Multiple portals: accordion per portal */
             <div className="cvm-groups">
-              {portais.map((portal) => (
+              {portais.map(portal => (
                 <PortalAccordion key={portal.id} portal={portal} onEntityAdded={handleEntityAdded} />
               ))}
             </div>
