@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './AdminPages.css';
 import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
+import { useAuth } from '../../contexts/AuthContext';
 import { cvmService } from '../../services/cvm.service';
 import type { CvmPortal, CvmEntity, EntityStatus } from '../../services/cvm.types';
 
@@ -403,15 +404,30 @@ function PortalAccordion({ portal, onEntityAdded }: { portal: CvmPortal; onEntit
 }
 
 export default function AutoCvmPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  // Active portal name for non-super_admin users (used to filter CVM data)
+  const activePortalNome = user?.portais?.find(p => p.id === user.activePortalId)?.nome
+    ?? user?.portais?.[0]?.nome
+    ?? null;
+
   const [portais, setPortais] = useState<CvmPortal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     cvmService.listPortais()
-      .then(data => { setPortais(data); setLoading(false); })
+      .then(data => {
+        // Non-super_admin sees only the active portal's CVM data (matched by name)
+        const filtered = isSuperAdmin
+          ? data
+          : data.filter(p => p.nome === activePortalNome);
+        setPortais(filtered);
+        setLoading(false);
+      })
       .catch(() => { setError('Falha ao carregar dados da CVM.'); setLoading(false); });
-  }, []);
+  }, [isSuperAdmin, activePortalNome]);
 
   function handleEntityAdded(pid: string, entity: CvmEntity) {
     setPortais(prev => prev.map(p =>
