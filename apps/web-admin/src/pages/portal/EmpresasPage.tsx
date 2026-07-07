@@ -52,6 +52,9 @@ export default function EmpresasPage() {
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('choose');
   const [migrateTargetId, setMigrateTargetId] = useState('');
 
+  // Toggle (ativar/desativar) confirm state
+  const [toggleTarget, setToggleTarget] = useState<Empresa | null>(null);
+
   const _filtered = empresas.filter(e =>
     e.nome.toLowerCase().includes(search.toLowerCase()) ||
     e.cnpj.includes(search)
@@ -87,8 +90,10 @@ export default function EmpresasPage() {
     closeModal();
   }
 
-  function handleToggle(emp: Empresa) {
-    setEmpresas(prev => prev.map(e => e.id === emp.id ? { ...e, ativo: !e.ativo } : e));
+  function confirmToggle() {
+    if (!toggleTarget) return;
+    setEmpresas(prev => prev.map(e => e.id === toggleTarget.id ? { ...e, ativo: !e.ativo } : e));
+    setToggleTarget(null);
   }
 
   function openDelete(emp: Empresa) {
@@ -191,7 +196,7 @@ export default function EmpresasPage() {
                     <td>
                       <div className="table-actions">
                         <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
-                        <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => setToggleTarget(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
                       </div>
                     </td>
                     {isSuperAdmin && (
@@ -218,7 +223,7 @@ export default function EmpresasPage() {
                     <td>
                       <div className="table-actions">
                         <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(emp)}>Editar</button>
-                        <button className="btn-action btn-action--enter" type="button" onClick={() => handleToggle(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => setToggleTarget(emp)}>{emp.ativo ? 'Desativar' : 'Ativar'}</button>
                       </div>
                     </td>
                     {isSuperAdmin && (
@@ -343,6 +348,51 @@ export default function EmpresasPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Ativar / Desativar confirm modal */}
+      {toggleTarget && (
+        <Modal
+          open
+          onClose={() => setToggleTarget(null)}
+          title={toggleTarget.ativo ? 'Desativar empresa' : 'Ativar empresa'}
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setToggleTarget(null)}>Cancelar</button>
+              <button
+                className={toggleTarget.ativo ? 'btn-outline btn-outline--danger' : 'btn-primary'}
+                type="button"
+                onClick={confirmToggle}
+              >
+                {toggleTarget.ativo ? 'Desativar' : 'Ativar'}
+              </button>
+            </div>
+          }
+        >
+          {toggleTarget.ativo ? (
+            <div className="emp-delete-body">
+              <div className="emp-delete-warning">
+                <span className="material-symbols-outlined emp-delete-warning__icon">visibility_off</span>
+                <div>
+                  <p className="emp-delete-warning__title">Empresa será desativada</p>
+                  <p className="emp-delete-warning__text">
+                    Ao desativar <strong>{toggleTarget.nome}</strong>:
+                  </p>
+                  <ul className="emp-toggle-list">
+                    <li>Todos os documentos desta empresa deixarão de aparecer no site.</li>
+                    <li>Não será possível publicar novos documentos ou resultados para esta empresa.</li>
+                    <li>Os dados são preservados e a empresa pode ser reativada a qualquer momento.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="emp-delete-text">
+              Ao ativar <strong>{toggleTarget.nome}</strong>, seus documentos voltarão a aparecer no portal e será possível publicar novos conteúdos para esta empresa.
+            </p>
+          )}
+        </Modal>
+      )}
 
       {/* Delete modal — super_admin only */}
       {deleteTarget && (
