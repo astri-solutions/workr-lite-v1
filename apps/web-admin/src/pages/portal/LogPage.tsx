@@ -276,22 +276,22 @@ export default function LogPage() {
             <tr>
               <th className="th-sort" onClick={() => toggle('timestamp')}>
                 <span className="th-sort-inner">
-                  Data/Hora <SortIcon active={col === 'timestamp'} dir={col === 'timestamp' ? dir : null} />
+                  Data/Hora <SortIcon dir={col === 'timestamp' ? dir : null} />
                 </span>
               </th>
               <th className="th-sort" onClick={() => toggle('user')}>
                 <span className="th-sort-inner">
-                  Usuário <SortIcon active={col === 'user'} dir={col === 'user' ? dir : null} />
+                  Usuário <SortIcon dir={col === 'user' ? dir : null} />
                 </span>
               </th>
               <th className="th-sort" onClick={() => toggle('category')}>
                 <span className="th-sort-inner">
-                  Categoria <SortIcon active={col === 'category'} dir={col === 'category' ? dir : null} />
+                  Categoria <SortIcon dir={col === 'category' ? dir : null} />
                 </span>
               </th>
               <th className="th-sort" onClick={() => toggle('action')}>
                 <span className="th-sort-inner">
-                  Ação <SortIcon active={col === 'action'} dir={col === 'action' ? dir : null} />
+                  Ação <SortIcon dir={col === 'action' ? dir : null} />
                 </span>
               </th>
               <th>Entidade / Objeto</th>
