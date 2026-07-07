@@ -25,7 +25,22 @@ interface MediaFile {
   uploadedBy: string;
   copyright?: string;
   notes?: string;
+  titulo?: string;
+  alt?: string;
+  descricao?: string;
+  link?: string;
 }
+
+interface UploadForm {
+  titulo: string;
+  alt: string;
+  descricao: string;
+  tags: string[];
+  link: string;
+  tagInput: string;
+}
+
+const EMPTY_UPLOAD_FORM: UploadForm = { titulo: '', alt: '', descricao: '', tags: [], link: '', tagInput: '' };
 
 function detectType(file: File): FileType {
   if (file.type.startsWith('image/')) return 'image';
@@ -160,6 +175,7 @@ export default function MidiaPage() {
   const [uploadTab, setUploadTab] = useState<'computer' | 'url'>('computer');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingUrl, setPendingUrl] = useState('');
+  const [uploadForm, setUploadForm] = useState<UploadForm>(EMPTY_UPLOAD_FORM);
 
   // Replace modal
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
@@ -190,8 +206,16 @@ export default function MidiaPage() {
   }
 
   function confirmUpload() {
+    const meta = {
+      titulo: uploadForm.titulo || undefined,
+      alt: uploadForm.alt || undefined,
+      descricao: uploadForm.descricao || undefined,
+      tags: uploadForm.tags,
+      link: uploadForm.link || undefined,
+    };
     if (uploadTab === 'computer' && pendingFile) {
-      const m = fileToMedia(pendingFile);
+      const base = fileToMedia(pendingFile);
+      const m: MediaFile = { ...base, ...meta };
       setFiles(prev => [m, ...prev]);
       setSelectedId(m.id);
     } else if (uploadTab === 'url' && pendingUrl.trim()) {
@@ -204,14 +228,15 @@ export default function MidiaPage() {
         size: '—',
         url: pendingUrl.trim(),
         uploadedAt: new Date().toLocaleDateString('pt-BR'),
-        tags: [],
         uploadedBy: 'Carlos Souza',
+        ...meta,
       };
       setFiles(prev => [m, ...prev]);
       setSelectedId(m.id);
     }
     setPendingFile(null);
     setPendingUrl('');
+    setUploadForm(EMPTY_UPLOAD_FORM);
     setUploadModalOpen(false);
   }
 
@@ -257,7 +282,7 @@ export default function MidiaPage() {
         title="Biblioteca de Mídia"
         description={<>Biblioteca de mídia do portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={() => { setPendingFile(null); setPendingUrl(''); setUploadTab('computer'); setUploadModalOpen(true); }}>
+          <button className="btn-primary" type="button" onClick={() => { setPendingFile(null); setPendingUrl(''); setUploadTab('computer'); setUploadForm(EMPTY_UPLOAD_FORM); setUploadModalOpen(true); }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
@@ -489,66 +514,177 @@ export default function MidiaPage() {
         </div>
       )}
 
-      {/* Upload modal */}
+      {/* Upload modal — Pinterest style */}
       <Modal
         open={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
+        onClose={() => { setUploadModalOpen(false); setPendingFile(null); setPendingUrl(''); setUploadForm(EMPTY_UPLOAD_FORM); }}
         title="Enviar arquivo"
-        size="sm"
+        size="xl"
         footer={
           <div className="modal-footer">
-            <button type="button" className="btn-outline" onClick={() => setUploadModalOpen(false)}>Cancelar</button>
+            <button type="button" className="btn-outline" onClick={() => { setUploadModalOpen(false); setPendingFile(null); setPendingUrl(''); setUploadForm(EMPTY_UPLOAD_FORM); }}>Cancelar</button>
             <button type="button" className="btn-primary" disabled={!canUpload} onClick={confirmUpload}>
               Enviar
             </button>
           </div>
         }
       >
-        <div className="midia-upload-tabs">
-          <button
-            type="button"
-            className={`midia-upload-tab${uploadTab === 'computer' ? ' midia-upload-tab--active' : ''}`}
-            onClick={() => setUploadTab('computer')}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/>
-              <line x1="12" y1="17" x2="12" y2="3"/>
-            </svg>
-            Do computador
-          </button>
-          <button
-            type="button"
-            className={`midia-upload-tab${uploadTab === 'url' ? ' midia-upload-tab--active' : ''}`}
-            onClick={() => setUploadTab('url')}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-            Por URL
-          </button>
-        </div>
+        <div className="midia-pin-layout">
+          {/* Left: source + preview */}
+          <div className="midia-pin-left">
+            <div className="midia-upload-tabs midia-upload-tabs--inline">
+              <button
+                type="button"
+                className={`midia-upload-tab${uploadTab === 'computer' ? ' midia-upload-tab--active' : ''}`}
+                onClick={() => setUploadTab('computer')}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/>
+                  <line x1="12" y1="17" x2="12" y2="3"/>
+                </svg>
+                Computador
+              </button>
+              <button
+                type="button"
+                className={`midia-upload-tab${uploadTab === 'url' ? ' midia-upload-tab--active' : ''}`}
+                onClick={() => setUploadTab('url')}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                URL
+              </button>
+            </div>
 
-        {uploadTab === 'computer' ? (
-          <FileDropzone
-            file={pendingFile}
-            onChange={setPendingFile}
-            accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-            hint="Imagens, PDF, Word, Planilha, Apresentação, Vídeo"
-          />
-        ) : (
-          <div className="midia-url-upload">
-            <label className="midia-url-label">URL do arquivo</label>
-            <input
-              className="midia-url-input"
-              type="url"
-              placeholder="https://exemplo.com/arquivo.pdf"
-              value={pendingUrl}
-              onChange={e => setPendingUrl(e.target.value)}
-            />
-            <p className="midia-url-hint">Cole o link direto para um arquivo público (JPG, PNG, PDF, MP4…)</p>
+            <div className="midia-pin-drop">
+              {uploadTab === 'computer' ? (
+                pendingFile && detectType(pendingFile) === 'image' ? (
+                  <div className="midia-pin-preview">
+                    <img
+                      className="midia-pin-preview__img"
+                      src={URL.createObjectURL(pendingFile)}
+                      alt="preview"
+                    />
+                    <button
+                      type="button"
+                      className="midia-pin-preview__change"
+                      onClick={() => setPendingFile(null)}
+                    >Trocar arquivo</button>
+                  </div>
+                ) : pendingFile ? (
+                  <div className="midia-pin-preview midia-pin-preview--doc">
+                    <DocThumb type={detectType(pendingFile)} size="lg" />
+                    <p className="midia-pin-preview__name">{pendingFile.name}</p>
+                    <button
+                      type="button"
+                      className="midia-pin-preview__change"
+                      onClick={() => setPendingFile(null)}
+                    >Trocar arquivo</button>
+                  </div>
+                ) : (
+                  <FileDropzone
+                    file={null}
+                    onChange={setPendingFile}
+                    accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                    hint="Imagens, PDF, Word, Planilha, Apresentação, Vídeo"
+                  />
+                )
+              ) : (
+                <div className="midia-url-upload">
+                  <label className="midia-url-label">URL do arquivo</label>
+                  <input
+                    className="midia-url-input"
+                    type="url"
+                    placeholder="https://exemplo.com/arquivo.pdf"
+                    value={pendingUrl}
+                    onChange={e => setPendingUrl(e.target.value)}
+                  />
+                  <p className="midia-url-hint">Cole o link direto para um arquivo público (JPG, PNG, PDF, MP4…)</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Right: metadata form */}
+          <div className="midia-pin-right">
+            <label className="midia-pin-field">
+              <span className="midia-pin-label">Título</span>
+              <input
+                className="midia-pin-input"
+                type="text"
+                placeholder="Ex: Banner institucional 2026"
+                value={uploadForm.titulo}
+                onChange={e => setUploadForm(f => ({ ...f, titulo: e.target.value }))}
+              />
+            </label>
+
+            {(uploadTab === 'computer' ? (pendingFile && detectType(pendingFile) === 'image') : !!pendingUrl) && (
+              <label className="midia-pin-field">
+                <span className="midia-pin-label">Texto alternativo (Alt)</span>
+                <input
+                  className="midia-pin-input"
+                  type="text"
+                  placeholder="Descreva a imagem para acessibilidade"
+                  value={uploadForm.alt}
+                  onChange={e => setUploadForm(f => ({ ...f, alt: e.target.value }))}
+                />
+              </label>
+            )}
+
+            <label className="midia-pin-field">
+              <span className="midia-pin-label">Descrição</span>
+              <textarea
+                className="midia-pin-textarea"
+                placeholder="Adicione uma descrição ou contexto…"
+                rows={3}
+                value={uploadForm.descricao}
+                onChange={e => setUploadForm(f => ({ ...f, descricao: e.target.value }))}
+              />
+            </label>
+
+            <div className="midia-pin-field">
+              <span className="midia-pin-label">Tags</span>
+              <div className="midia-pin-tags">
+                {uploadForm.tags.map(t => (
+                  <span key={t} className="midia-chip midia-chip--tag" onClick={() => setUploadForm(f => ({ ...f, tags: f.tags.filter(x => x !== t) }))}>
+                    {t} ×
+                  </span>
+                ))}
+                <input
+                  className="midia-pin-tag-input"
+                  type="text"
+                  placeholder="Adicionar tag…"
+                  value={uploadForm.tagInput}
+                  onChange={e => setUploadForm(f => ({ ...f, tagInput: e.target.value }))}
+                  onKeyDown={e => {
+                    if ((e.key === 'Enter' || e.key === ',') && uploadForm.tagInput.trim()) {
+                      e.preventDefault();
+                      const tag = uploadForm.tagInput.trim().replace(/,$/, '');
+                      if (tag && !uploadForm.tags.includes(tag)) {
+                        setUploadForm(f => ({ ...f, tags: [...f.tags, tag], tagInput: '' }));
+                      } else {
+                        setUploadForm(f => ({ ...f, tagInput: '' }));
+                      }
+                    }
+                  }}
+                />
+              </div>
+              <p className="midia-pin-hint">Pressione Enter ou vírgula para adicionar</p>
+            </div>
+
+            <label className="midia-pin-field">
+              <span className="midia-pin-label">Link de destino</span>
+              <input
+                className="midia-pin-input"
+                type="url"
+                placeholder="https://exemplo.com"
+                value={uploadForm.link}
+                onChange={e => setUploadForm(f => ({ ...f, link: e.target.value }))}
+              />
+            </label>
+          </div>
+        </div>
       </Modal>
 
       {/* Replace modal */}
