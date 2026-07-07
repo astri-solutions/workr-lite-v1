@@ -36,6 +36,7 @@ interface DocRow {
   tags: string[];
   publicadoPor: string;
   ultimaEdicao: string;
+  ultimoEditor: string;
 }
 
 const MOCK_DOCS: DocRow[] = [
@@ -50,6 +51,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: ['CVM', '2 canais'],
     publicadoPor: 'MA',
     ultimaEdicao: '23/03/2026',
+    ultimoEditor: 'MA',
   },
   {
     id: 2,
@@ -62,6 +64,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: ['CVM'],
     publicadoPor: 'CT',
     ultimaEdicao: '10/02/2026',
+    ultimoEditor: 'CT',
   },
   {
     id: 3,
@@ -74,6 +77,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: ['CVM'],
     publicadoPor: 'DS',
     ultimaEdicao: '05/03/2026',
+    ultimoEditor: 'DS',
   },
   {
     id: 4,
@@ -86,6 +90,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: ['CVM'],
     publicadoPor: 'MA',
     ultimaEdicao: '18/02/2026',
+    ultimoEditor: 'CT',
   },
   {
     id: 5,
@@ -98,6 +103,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: [],
     publicadoPor: 'CT',
     ultimaEdicao: '30/04/2026',
+    ultimoEditor: 'DS',
   },
   {
     id: 6,
@@ -110,6 +116,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: [],
     publicadoPor: 'DS',
     ultimaEdicao: '30/04/2026',
+    ultimoEditor: 'DS',
   },
   {
     id: 7,
@@ -122,6 +129,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: [],
     publicadoPor: 'MA',
     ultimaEdicao: '15/04/2026',
+    ultimoEditor: 'MA',
   },
   {
     id: 8,
@@ -134,6 +142,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: [],
     publicadoPor: 'CT',
     ultimaEdicao: '14/03/2026',
+    ultimoEditor: 'MA',
   },
   {
     id: 9,
@@ -146,6 +155,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: [],
     publicadoPor: 'DS',
     ultimaEdicao: '28/04/2026',
+    ultimoEditor: 'CT',
   },
   {
     id: 10,
@@ -158,6 +168,7 @@ const MOCK_DOCS: DocRow[] = [
     tags: ['CVM'],
     publicadoPor: 'MA',
     ultimaEdicao: '14/05/2026',
+    ultimoEditor: 'MA',
   },
 ];
 
@@ -250,6 +261,7 @@ export default function DocumentosPage() {
       tags: [],
       publicadoPor: 'MA',
       ultimaEdicao: dateStr,
+      ultimoEditor: 'MA',
     };
     setDocs(prev => [newDoc, ...prev]);
     closeDrawer();
@@ -386,13 +398,14 @@ export default function DocumentosPage() {
               <th className={`th-sort${col === 'pagina' ? ' th-sort--active' : ''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col === 'pagina' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publicadoPor' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'ultimaEdicao' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col === 'ultimaEdicao' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'ultimoEditor' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimoEditor')}><span className="th-sort-inner">Editado por <SortIcon dir={col === 'ultimoEditor' ? dir : null} /></span></th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="table-empty">Nenhum documento encontrado.</td>
+                <td colSpan={9} className="table-empty">Nenhum documento encontrado.</td>
               </tr>
             ) : (
               filtered.map((doc) => (
@@ -426,6 +439,9 @@ export default function DocumentosPage() {
                     <div className="docs-avatar" title={doc.publicadoPor}>{doc.publicadoPor}</div>
                   </td>
                   <td className="table-cell--muted">{doc.ultimaEdicao}</td>
+                  <td>
+                    <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor}</div>
+                  </td>
                   <td>
                     <button type="button" className="btn-action btn-action--enter" onClick={() => { setReplaceDoc(doc); setReplaceFile(null); }}>Editar</button>
                   </td>
@@ -481,6 +497,12 @@ export default function DocumentosPage() {
                     <span className="docs-rcard__label">Última edição</span>
                     <span className="docs-rcard__value">{doc.ultimaEdicao}</span>
                   </div>
+                  <div className="docs-rcard__row">
+                    <span className="docs-rcard__label">Editado por</span>
+                    <span className="docs-rcard__value">
+                      <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor}</div>
+                    </span>
+                  </div>
                 </div>
                 <div className="rcard__footer">
                   <button type="button" className="btn-action btn-action--enter" onClick={() => { setReplaceDoc(doc); setReplaceFile(null); }}>Editar</button>
@@ -505,7 +527,7 @@ export default function DocumentosPage() {
               className="btn-primary"
               disabled={!replaceFile}
               onClick={() => {
-                setDocs(prev => prev.map(d => d.id === replaceDoc!.id ? { ...d, ultimaEdicao: new Date().toLocaleDateString('pt-BR') } : d));
+                setDocs(prev => prev.map(d => d.id === replaceDoc!.id ? { ...d, ultimaEdicao: new Date().toLocaleDateString('pt-BR'), ultimoEditor: 'MA' } : d));
                 setReplaceDoc(null);
               }}
             >
