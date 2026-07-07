@@ -141,6 +141,11 @@
 
 .docs-col-center {
   text-align: center;
+  vertical-align: middle;
+}
+
+.docs-col-center > * {
+  margin: 0 auto;
 }
 
 .docs-avatar--cvm {
