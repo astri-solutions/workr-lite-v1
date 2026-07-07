@@ -139,6 +139,10 @@
   font-family: var(--font-heading);
 }
 
+.docs-col-center {
+  text-align: center;
+}
+
 .docs-avatar--cvm {
   background: #e8f7ef;
   color: #0a6e3a;

@@ -299,9 +299,9 @@ export default function DocumentosPage() {
               <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
               <th className={`th-sort docs-col-pub${col === 'dataPub' ? ' th-sort--active' : ''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Publicação <SortIcon dir={col === 'dataPub' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'pagina' ? ' th-sort--active' : ''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col === 'pagina' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publicadoPor' ? dir : null} /></span></th>
+              <th className={`th-sort docs-col-center${col === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publicadoPor' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'ultimaEdicao' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col === 'ultimaEdicao' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'ultimoEditor' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimoEditor')}><span className="th-sort-inner">Editado por <SortIcon dir={col === 'ultimoEditor' ? dir : null} /></span></th>
+              <th className={`th-sort docs-col-center${col === 'ultimoEditor' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimoEditor')}><span className="th-sort-inner">Editado por <SortIcon dir={col === 'ultimoEditor' ? dir : null} /></span></th>
               <th></th>
             </tr>
           </thead>
@@ -338,11 +338,11 @@ export default function DocumentosPage() {
                   </td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
                   <td className="table-cell--muted">{doc.pagina}</td>
-                  <td>
+                  <td className="docs-col-center">
                     <div className={`docs-avatar${doc.fromCvm ? ' docs-avatar--cvm' : ''}`} title={doc.fromCvm ? 'Auto CVM' : doc.publicadoPor}>{doc.publicadoPor}</div>
                   </td>
                   <td className="table-cell--muted">{doc.ultimaEdicao}</td>
-                  <td>
+                  <td className="docs-col-center">
                     <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor}</div>
                   </td>
                   <td>
