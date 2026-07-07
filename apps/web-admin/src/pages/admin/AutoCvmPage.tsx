@@ -3,6 +3,8 @@ import './AdminPages.css';
 import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { useAuth } from '../../contexts/AuthContext';
+import { cvmService } from '../../services/cvm.service';
+import type { CvmPortal, CvmEntity, EntityStatus } from '../../services/cvm.types';
 
 const ChevronIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -13,86 +15,6 @@ const ChevronIcon = ({ open }: { open: boolean }) => (
     <polyline points="6 9 12 15 18 9" />
   </svg>
 );
-
-type EntityStatus = 'ativo' | 'pausado' | 'erro';
-
-interface CvmEntity {
-  id: string;
-  nome: string;
-  tipo: 'empresa' | 'fundo';
-  cnpj: string;
-  cvmCode: string;
-  status: EntityStatus;
-  importarDesde: string;
-  ultimaSync: string;
-}
-
-interface Portal {
-  id: string;
-  nome: string;
-  entidades: CvmEntity[];
-}
-
-const PORTAIS: Portal[] = [
-  {
-    id: 'imc',
-    nome: 'International Meal Company',
-    entidades: [
-      {
-        id: '1',
-        nome: 'International Meal Company',
-        tipo: 'empresa',
-        cnpj: '17.314.329/0001-20',
-        cvmCode: '23574',
-        status: 'ativo',
-        importarDesde: '01/01/2024',
-        ultimaSync: 'hoje 08:12',
-      },
-      {
-        id: '2',
-        nome: 'IMC Recebíveis FII',
-        tipo: 'fundo',
-        cnpj: '44.123.456/0001-77',
-        cvmCode: '45012',
-        status: 'ativo',
-        importarDesde: '01/06/2025',
-        ultimaSync: 'hoje 08:12',
-      },
-      {
-        id: '3',
-        nome: 'IMC Crédito Estruturado FII',
-        tipo: 'fundo',
-        cnpj: '44.987.654/0001-11',
-        cvmCode: '45990',
-        status: 'pausado',
-        importarDesde: '',
-        ultimaSync: '—',
-      },
-    ],
-  },
-  {
-    id: 'aurora',
-    nome: 'Construtora Aurora',
-    entidades: [
-      {
-        id: '4',
-        nome: 'Construtora Aurora S.A.',
-        tipo: 'empresa',
-        cnpj: '12.345.678/0001-90',
-        cvmCode: '18920',
-        status: 'ativo',
-        importarDesde: '01/01/2023',
-        ultimaSync: 'hoje 08:05',
-      },
-    ],
-  },
-  {
-    id: 'vetra',
-    nome: 'Vetra Energia',
-    entidades: [],
-  },
-];
-
 
 const SYNC_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -121,34 +43,72 @@ function NextSyncCountdown({ lastSyncedAt, active }: { lastSyncedAt: number; act
   );
 }
 
-function EntityCard({ entity }: { entity: CvmEntity }) {
+function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: string) => void }) {
   const [status, setStatus] = useState<EntityStatus>(entity.status);
   const [syncing, setSyncing] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState(() => Date.now() - 2 * 60_000); // simulate synced 2 min ago
-  const [importDate, setImportDate] = useState(() => {
-    if (!entity.importarDesde) return '';
-    const [d, m, y] = entity.importarDesde.split('/');
-    return y && m && d ? `${y}-${m}-${d}` : '';
-  });
+  const [deleting, setDeleting] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(() =>
+    entity.ultimaSync ? Date.parse(entity.ultimaSync) : Date.now() - 2 * 60_000
+  );
+  const [importDate, setImportDate] = useState(entity.importarDesde ?? '');
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{ queued: number; minutes: number } | null>(null);
 
   const isAtivo = status === 'ativo';
 
-  function handleSync() {
+  async function handleSync() {
     setSyncing(true);
-    setTimeout(() => {
+    setSyncError(null);
+    try {
+      const res = await cvmService.syncNow(entity.id);
+      setLastSyncedAt(Date.parse(res.syncedAt));
+    } catch {
+      setSyncError('Falha ao sincronizar. Tente novamente.');
+    } finally {
       setSyncing(false);
-      setLastSyncedAt(Date.now());
-    }, 2200);
+    }
   }
 
-  function handleImport() {
+  async function handleImport() {
+    if (!importDate) return;
     setImporting(true);
-    setTimeout(() => setImporting(false), 3000);
+    setImportResult(null);
+    try {
+      const res = await cvmService.importHistory(entity.id, { desde: importDate });
+      setImportResult({ queued: res.documentsQueued, minutes: res.estimatedMinutes });
+    } finally {
+      setImporting(false);
+    }
   }
 
-  function toggleStatus() {
-    setStatus((s) => (s === 'ativo' ? 'pausado' : 'ativo'));
+  async function toggleStatus() {
+    const next: EntityStatus = status === 'ativo' ? 'pausado' : 'ativo';
+    try {
+      const updated = await cvmService.updateStatus(entity.id, { status: next });
+      setStatus(updated.status);
+    } catch {
+      // revert handled by not updating state
+    }
+  }
+
+  async function handleImportDateBlur() {
+    try {
+      await cvmService.updateImportDate(entity.id, { importarDesde: importDate || null });
+    } catch {
+      // silent — field remains editable
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Remover "${entity.nome}" permanentemente?`)) return;
+    setDeleting(true);
+    try {
+      await cvmService.deleteEntity(entity.id);
+      onDeleted(entity.id);
+    } catch {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -171,6 +131,20 @@ function EntityCard({ entity }: { entity: CvmEntity }) {
               <span className="cvm-toggle__thumb" />
             </span>
             <span className="cvm-toggle__label">{isAtivo ? 'Ativo' : 'Pausado'}</span>
+          </button>
+          <button
+            className="cvm-delete-btn"
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Remover entidade"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6" />
+              <path d="M9 6V4h6v2" />
+            </svg>
           </button>
         </div>
       </div>
@@ -201,18 +175,26 @@ function EntityCard({ entity }: { entity: CvmEntity }) {
             type="date"
             value={importDate}
             onChange={(e) => setImportDate(e.target.value)}
+            onBlur={handleImportDateBlur}
             disabled={!isAtivo}
           />
         </div>
       </div>
+
+      {syncError && <p className="cvm-error-msg">{syncError}</p>}
+      {importResult && (
+        <p className="cvm-import-result">
+          {importResult.queued} documentos enfileirados · estimativa: ~{importResult.minutes} min
+        </p>
+      )}
 
       <div className="cvm-entity-card__footer">
         <span className="cvm-entity-card__sync-info">
           {isAtivo ? (
             <>
               varredura automática a cada <strong>10 min</strong>
-              {entity.ultimaSync !== '—' && (
-                <> · última: <strong>{entity.ultimaSync}</strong></>
+              {entity.ultimaSync && (
+                <> · última: <strong>{new Date(entity.ultimaSync).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong></>
               )}
               {' · '}<NextSyncCountdown lastSyncedAt={lastSyncedAt} active={isAtivo} />
             </>
@@ -267,34 +249,49 @@ interface NewEntityForm {
 
 const EMPTY_NEW_ENTITY: NewEntityForm = { nome: '', tipo: 'empresa', cnpj: '', cvmCode: '', importarDesde: '' };
 
-function PortalAccordion({ portal }: { portal: Portal }) {
+function PortalAccordion({ portal, onEntityAdded }: { portal: CvmPortal; onEntityAdded: (portalId: string, entity: CvmEntity) => void }) {
   const [open, setOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [entities, setEntities] = useState<CvmEntity[]>(portal.entidades);
   const [addModal, setAddModal] = useState(false);
   const [form, setForm] = useState<NewEntityForm>(EMPTY_NEW_ENTITY);
+  const [saving, setSaving] = useState(false);
 
-  function handleSync(e: React.MouseEvent) {
-    e.stopPropagation();
-    setSyncing(true);
-    setTimeout(() => setSyncing(false), 2200);
+  function handleEntityDeleted(id: string) {
+    setEntities(prev => prev.filter(e => e.id !== id));
   }
 
-  function handleAdd() {
+  async function handleSync(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSyncing(true);
+    try {
+      await Promise.all(
+        entities.filter(e => e.status === 'ativo').map(e => cvmService.syncNow(e.id))
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleAdd() {
     if (!form.nome.trim() || !form.cnpj.trim() || !form.cvmCode.trim()) return;
-    const entity: CvmEntity = {
-      id: String(Date.now()),
-      nome: form.nome.trim(),
-      tipo: form.tipo,
-      cnpj: form.cnpj.trim(),
-      cvmCode: form.cvmCode.trim(),
-      status: 'ativo',
-      importarDesde: form.importarDesde,
-      ultimaSync: '—',
-    };
-    setEntities(prev => [...prev, entity]);
-    setForm(EMPTY_NEW_ENTITY);
-    setAddModal(false);
+    setSaving(true);
+    try {
+      const entity = await cvmService.createEntity({
+        portalId: portal.id,
+        nome: form.nome.trim(),
+        tipo: form.tipo,
+        cnpj: form.cnpj.trim(),
+        cvmCode: form.cvmCode.trim(),
+        importarDesde: form.importarDesde || null,
+      });
+      setEntities(prev => [...prev, entity]);
+      onEntityAdded(portal.id, entity);
+      setForm(EMPTY_NEW_ENTITY);
+      setAddModal(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -338,7 +335,7 @@ function PortalAccordion({ portal }: { portal: Portal }) {
             ) : (
               <div className="cvm-entity-list cvm-entity-list--ingroup">
                 {entities.map((entity) => (
-                  <EntityCard key={entity.id} entity={entity} />
+                  <EntityCard key={entity.id} entity={entity} onDeleted={handleEntityDeleted} />
                 ))}
               </div>
             )}
@@ -395,8 +392,8 @@ function PortalAccordion({ portal }: { portal: Portal }) {
               <button className="btn-outline" type="button" onClick={() => setAddModal(false)}>Cancelar</button>
               <button className="btn-primary" type="button"
                 onClick={handleAdd}
-                disabled={!form.nome.trim() || !form.cnpj.trim() || !form.cvmCode.trim()}>
-                Adicionar e ativar
+                disabled={saving || !form.nome.trim() || !form.cnpj.trim() || !form.cvmCode.trim()}>
+                {saving ? 'Salvando…' : 'Adicionar e ativar'}
               </button>
             </div>
           </div>
@@ -410,16 +407,31 @@ export default function AutoCvmPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'super_admin';
 
+  const [portais, setPortais] = useState<CvmPortal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [portalId, setPortalId] = useState('');
 
-  const clientPortal = PORTAIS[0];
+  useEffect(() => {
+    cvmService.listPortais()
+      .then(data => { setPortais(data); setLoading(false); })
+      .catch(() => { setError('Falha ao carregar dados da CVM.'); setLoading(false); });
+  }, []);
+
+  function handleEntityAdded(pid: string, entity: CvmEntity) {
+    setPortais(prev => prev.map(p =>
+      p.id === pid ? { ...p, entidades: [...p.entidades, entity] } : p
+    ));
+  }
+
+  const clientPortal = portais[0] ?? null;
   const selectedPortal = isAdmin
-    ? (portalId ? PORTAIS.find((p) => p.id === portalId) : null)
+    ? (portalId ? portais.find((p) => p.id === portalId) : null)
     : clientPortal;
 
   const visibleEntidades = selectedPortal
     ? selectedPortal.entidades
-    : PORTAIS.flatMap((p) => p.entidades);
+    : portais.flatMap((p) => p.entidades);
 
   return (
     <div className="page cvm-page">
@@ -446,50 +458,62 @@ export default function AutoCvmPage() {
         action={undefined}
       />
 
-      {/* ── Portal selector (admin only) ── */}
-      {isAdmin && (
-        <div className="cvm-section">
-          <label className="cvm-label" htmlFor="portal-select">Portal</label>
-          <select
-            id="portal-select"
-            className="cvm-select"
-            value={portalId}
-            onChange={(e) => setPortalId(e.target.value)}
-          >
-            <option value="">Todos os portais</option>
-            {PORTAIS.map((p) => (
-              <option key={p.id} value={p.id}>{p.nome}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      {loading && <p className="cvm-loading">Carregando…</p>}
+      {error && <p className="cvm-error-msg">{error}</p>}
 
-      {/* ── Entities ── */}
-      <div className="cvm-entities-header">
-        <h2 className="cvm-entities-title">Entidades conectadas (por CNPJ)</h2>
-      </div>
+      {!loading && !error && (
+        <>
+          {/* ── Portal selector (admin only) ── */}
+          {isAdmin && (
+            <div className="cvm-section">
+              <label className="cvm-label" htmlFor="portal-select">Portal</label>
+              <select
+                id="portal-select"
+                className="cvm-select"
+                value={portalId}
+                onChange={(e) => setPortalId(e.target.value)}
+              >
+                <option value="">Todos os portais</option>
+                {portais.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-      {visibleEntidades.length === 0 && selectedPortal ? (
-        <div className="cvm-empty">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <p>Nenhuma entidade conectada neste portal.</p>
-        </div>
-      ) : (!isAdmin || selectedPortal) ? (
-        /* ── Single portal view: flat list ── */
-        <div className="cvm-entity-list">
-          {visibleEntidades.map((entity) => (
-            <EntityCard key={entity.id} entity={entity} />
-          ))}
-        </div>
-      ) : (
-        /* ── All portals (admin): accordion per portal ── */
-        <div className="cvm-groups">
-          {PORTAIS.map((portal) => (
-            <PortalAccordion key={portal.id} portal={portal} />
-          ))}
-        </div>
+          {/* ── Entities ── */}
+          <div className="cvm-entities-header">
+            <h2 className="cvm-entities-title">Entidades conectadas (por CNPJ)</h2>
+          </div>
+
+          {visibleEntidades.length === 0 && selectedPortal ? (
+            <div className="cvm-empty">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+              <p>Nenhuma entidade conectada neste portal.</p>
+            </div>
+          ) : (!isAdmin || selectedPortal) ? (
+            /* ── Single portal view: flat list ── */
+            <div className="cvm-entity-list">
+              {visibleEntidades.map((entity) => (
+                <EntityCard key={entity.id} entity={entity} onDeleted={(id) => {
+                  setPortais(prev => prev.map(p => ({
+                    ...p,
+                    entidades: p.entidades.filter(e => e.id !== id),
+                  })));
+                }} />
+              ))}
+            </div>
+          ) : (
+            /* ── All portals (admin): accordion per portal ── */
+            <div className="cvm-groups">
+              {portais.map((portal) => (
+                <PortalAccordion key={portal.id} portal={portal} onEntityAdded={handleEntityAdded} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import './AdminPages.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
@@ -135,7 +137,7 @@ export default function UsuariosPage() {
     setUsuarios((list) => list.filter((u) => u.id !== id));
   }
 
-  const filtered = usuarios.filter((u) => {
+  const _filtered = usuarios.filter((u) => {
     if (search) {
       const q = search.toLowerCase();
       if (!u.nome.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
@@ -145,6 +147,7 @@ export default function UsuariosPage() {
     if (filters.status !== 'all' && u.status !== filters.status) return false;
     return true;
   });
+  const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
   return (
     <div className="page">
@@ -222,12 +225,12 @@ export default function UsuariosPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Email</th>
+              <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'email' ? ' th-sort--active' : ''}`} onClick={() => toggle('email')}><span className="th-sort-inner">Email <SortIcon dir={col === 'email' ? dir : null} /></span></th>
               <th>Organização</th>
-              <th>Tipo</th>
+              <th className={`th-sort${col === 'role' ? ' th-sort--active' : ''}`} onClick={() => toggle('role')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'role' ? dir : null} /></span></th>
               <th>Portal</th>
-              <th>Status</th>
+              <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
               <th>Ações</th>
               <th></th>
             </tr>

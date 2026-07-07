@@ -1,4 +1,6 @@
 import PageHeader from '../../components/PageHeader';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import './AreaRestritaPage.css';
 
 const RESTRICTED_CHANNELS = [
@@ -15,6 +17,8 @@ const RESTRICTED_DOCS = [
 ];
 
 export default function AreaRestritaPage() {
+  const { sorted: sortedDocs, col, dir, toggle } = useSort(RESTRICTED_DOCS);
+
   return (
     <div className="page">
       <PageHeader
@@ -66,14 +70,14 @@ export default function AreaRestritaPage() {
           <table className="ar-doc-table">
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>Canal</th>
-                <th>Tipo</th>
-                <th>Publicação</th>
+                <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
+                <th className={`th-sort${col === 'canal' ? ' th-sort--active' : ''}`} onClick={() => toggle('canal')}><span className="th-sort-inner">Canal <SortIcon dir={col === 'canal' ? dir : null} /></span></th>
+                <th className={`th-sort${col === 'tipo' ? ' th-sort--active' : ''}`} onClick={() => toggle('tipo')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'tipo' ? dir : null} /></span></th>
+                <th className={`th-sort${col === 'dataPub' ? ' th-sort--active' : ''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Publicação <SortIcon dir={col === 'dataPub' ? dir : null} /></span></th>
               </tr>
             </thead>
             <tbody>
-              {RESTRICTED_DOCS.map(doc => (
+              {sortedDocs.map(doc => (
                 <tr key={doc.id}>
                   <td>{doc.nome}</td>
                   <td>{doc.canal}</td>

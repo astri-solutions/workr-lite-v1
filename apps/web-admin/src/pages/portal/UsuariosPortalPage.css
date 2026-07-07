@@ -194,6 +194,7 @@
 .up-kebab__item:hover { background: var(--color-gray-50); }
 .up-kebab__item--danger { color: var(--color-error-500); }
 .up-kebab__item--danger:hover { background: var(--color-error-50, #fef2f2); }
+.up-kebab__item--disabled { color: var(--color-gray-400); font-style: italic; cursor: default; pointer-events: none; }
 
 /* Empty state */
 .up-empty {

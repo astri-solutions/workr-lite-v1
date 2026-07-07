@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import './AdminPages.css';
 import './BackupsAdminPage.css';
 
@@ -67,7 +69,9 @@ export default function BackupsAdminPage() {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
   const site = SITES_DB.find(s => s.id === siteId) ?? SITES_DB[0];
-  const backups = BACKUPS_DB[site.id] ?? [];
+  const _backups = BACKUPS_DB[site.id] ?? [];
+  const lastBackup = _backups[0];
+  const { sorted: backups, col, dir, toggle } = useSort(_backups);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
@@ -82,7 +86,7 @@ export default function BackupsAdminPage() {
     setTimeout(() => setRestoring(null), 2200);
   }
 
-  const lastBackup = backups[0];
+  // lastBackup already declared above
 
   return (
     <div className="page bkp-page">
@@ -187,10 +191,10 @@ export default function BackupsAdminPage() {
         <table className="bkp-table">
           <thead>
             <tr>
-              <th>Data / Hora</th>
-              <th>Tipo</th>
-              <th className="bkp-th--num">Tamanho</th>
-              <th>Status</th>
+              <th className={`th-sort${col === 'createdAt' ? ' th-sort--active' : ''}`} onClick={() => toggle('createdAt')}><span className="th-sort-inner">Data / Hora <SortIcon dir={col === 'createdAt' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'type' ? ' th-sort--active' : ''}`} onClick={() => toggle('type')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'type' ? dir : null} /></span></th>
+              <th className={`th-sort bkp-th--num${col === 'size' ? ' th-sort--active' : ''}`} onClick={() => toggle('size')}><span className="th-sort-inner">Tamanho <SortIcon dir={col === 'size' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
               <th></th>
             </tr>
           </thead>

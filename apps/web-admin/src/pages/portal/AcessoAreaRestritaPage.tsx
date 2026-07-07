@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import PageHeader from '../../components/PageHeader';
 import Modal from '../../components/Modal';
 import './AcessoAreaRestritaPage.css';
@@ -27,10 +29,11 @@ export default function AcessoAreaRestritaPage() {
   const [newEmail, setNewEmail] = useState('');
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
-  const filtered = users.filter(u =>
+  const _filtered = users.filter(u =>
     u.nome.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase())
   );
+  const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
   function toggleStatus(id: string) {
     setUsers(prev => prev.map(u =>
@@ -92,9 +95,9 @@ export default function AcessoAreaRestritaPage() {
       <table className="data-table">
         <thead>
           <tr>
-            <th>Usuário</th>
-            <th>Status</th>
-            <th>Desde</th>
+            <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Usuário <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
+            <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
+            <th className={`th-sort${col === 'desde' ? ' th-sort--active' : ''}`} onClick={() => toggle('desde')}><span className="th-sort-inner">Desde <SortIcon dir={col === 'desde' ? dir : null} /></span></th>
             <th>Ações</th>
           </tr>
         </thead>

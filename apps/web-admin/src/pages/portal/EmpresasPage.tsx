@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
@@ -41,10 +43,11 @@ export default function EmpresasPage() {
   const [form, setForm] = useState<EmpForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
 
-  const filtered = empresas.filter(e =>
+  const _filtered = empresas.filter(e =>
     e.nome.toLowerCase().includes(search.toLowerCase()) ||
     e.cnpj.includes(search)
   );
+  const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
   function openCreate() {
     setEditing(null);
@@ -90,8 +93,7 @@ export default function EmpresasPage() {
   const ativos = empresas.filter(e => e.ativo).length;
   const comAutoCvm = empresas.filter(e => e.autoCvm).length;
 
-  const principal = empresas[0];
-  const subsidiarias = empresas.slice(1);
+  const principalId = empresas[0]?.id;
 
   return (
     <div className="page">
@@ -133,11 +135,11 @@ export default function EmpresasPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Tipo</th>
-              <th>CNPJ</th>
+              <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'tipo' ? ' th-sort--active' : ''}`} onClick={() => toggle('tipo')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'tipo' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'cnpj' ? ' th-sort--active' : ''}`} onClick={() => toggle('cnpj')}><span className="th-sort-inner">CNPJ <SortIcon dir={col === 'cnpj' ? dir : null} /></span></th>
               <th>CVM</th>
-              <th>Status</th>
+              <th className={`th-sort${col === 'ativo' ? ' th-sort--active' : ''}`} onClick={() => toggle('ativo')}><span className="th-sort-inner">Status <SortIcon dir={col === 'ativo' ? dir : null} /></span></th>
               <th>Ações</th>
               <th className="emp-col-excluir">Excluir empresa</th>
             </tr>
@@ -151,9 +153,7 @@ export default function EmpresasPage() {
                 <tr className="emp-group-header">
                   <td colSpan={7}>Empresa principal</td>
                 </tr>
-                {[principal].filter(e =>
-                  e.nome.toLowerCase().includes(search.toLowerCase()) || e.cnpj.includes(search)
-                ).map(emp => (
+                {filtered.filter(e => e.id === principalId).map(emp => (
                   <tr key={emp.id}>
                     <td className="table-cell--bold">
                       {emp.nome}
@@ -176,16 +176,12 @@ export default function EmpresasPage() {
                 ))}
 
                 {/* Subsidiárias */}
-                {subsidiarias.filter(e =>
-                  e.nome.toLowerCase().includes(search.toLowerCase()) || e.cnpj.includes(search)
-                ).length > 0 && (
+                {filtered.filter(e => e.id !== principalId).length > 0 && (
                   <tr className="emp-group-header">
                     <td colSpan={7}>Subsidiárias e fundos</td>
                   </tr>
                 )}
-                {subsidiarias.filter(e =>
-                  e.nome.toLowerCase().includes(search.toLowerCase()) || e.cnpj.includes(search)
-                ).map(emp => (
+                {filtered.filter(e => e.id !== principalId).map(emp => (
                   <tr key={emp.id}>
                     <td className="table-cell--bold">{emp.nome}</td>
                     <td><span className={`badge ${emp.tipo === 'FUNDO' ? 'badge--gray' : 'badge--success'}`}>{TIPO_LABEL[emp.tipo]}</span></td>

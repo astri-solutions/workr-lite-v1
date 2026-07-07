@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import './AdminPages.css';
 import './BancoDeDadosPage.css';
 
@@ -62,7 +64,8 @@ export default function BancoDeDadosPage() {
   const [optimizing, setOptimizing] = useState(false);
   const [optimized, setOptimized] = useState(false);
 
-  const filtered = tables.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+  const _filtered = tables.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+  const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
   const totalSize = tables.reduce((acc, t) => acc + parseFloat(t.size), 0).toFixed(1);
   const totalRows = tables.reduce((acc, t) => acc + t.rows, 0);
 
@@ -153,11 +156,11 @@ export default function BancoDeDadosPage() {
         <table className="db-table">
           <thead>
             <tr>
-              <th>Tabela</th>
-              <th className="db-th--num">Linhas</th>
-              <th className="db-th--num">Tamanho</th>
-              <th>Engine</th>
-              <th>Última alteração</th>
+              <th className={`th-sort${col === 'name' ? ' th-sort--active' : ''}`} onClick={() => toggle('name')}><span className="th-sort-inner">Tabela <SortIcon dir={col === 'name' ? dir : null} /></span></th>
+              <th className={`th-sort db-th--num${col === 'rows' ? ' th-sort--active' : ''}`} onClick={() => toggle('rows')}><span className="th-sort-inner">Linhas <SortIcon dir={col === 'rows' ? dir : null} /></span></th>
+              <th className={`th-sort db-th--num${col === 'size' ? ' th-sort--active' : ''}`} onClick={() => toggle('size')}><span className="th-sort-inner">Tamanho <SortIcon dir={col === 'size' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'engine' ? ' th-sort--active' : ''}`} onClick={() => toggle('engine')}><span className="th-sort-inner">Engine <SortIcon dir={col === 'engine' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'updatedAt' ? ' th-sort--active' : ''}`} onClick={() => toggle('updatedAt')}><span className="th-sort-inner">Última alteração <SortIcon dir={col === 'updatedAt' ? dir : null} /></span></th>
               <th></th>
             </tr>
           </thead>

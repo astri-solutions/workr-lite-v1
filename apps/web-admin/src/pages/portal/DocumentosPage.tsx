@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -253,13 +255,14 @@ export default function DocumentosPage() {
     closeDrawer();
   }
 
-  const filtered = docs.filter((d) => {
+  const _filtered = docs.filter((d) => {
     if (search && !d.nome.toLowerCase().includes(search.toLowerCase())) return false;
     if (docFilters.tipo && d.tipo !== docFilters.tipo) return false;
     if (docFilters.ano && !d.dataPub.includes(docFilters.ano)) return false;
     if (docFilters.status && d.status !== docFilters.status) return false;
     return true;
   });
+  const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
   function toggleSelect(id: number) {
     setSelected((prev) => {
@@ -377,12 +380,12 @@ export default function DocumentosPage() {
                   onChange={toggleAll}
                 />
               </th>
-              <th>Status</th>
-              <th>Nome</th>
-              <th>Data de publicação</th>
-              <th>Página</th>
-              <th>Publicado por</th>
-              <th>Última edição</th>
+              <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'dataPub' ? ' th-sort--active' : ''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Data de publicação <SortIcon dir={col === 'dataPub' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'pagina' ? ' th-sort--active' : ''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col === 'pagina' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publicadoPor' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'ultimaEdicao' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col === 'ultimaEdicao' ? dir : null} /></span></th>
               <th></th>
             </tr>
           </thead>

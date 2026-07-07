@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import type { AdminOutletContext } from '../../components/AdminLayout';
 import './AdminPages.css';
 import './DominiosPage.css';
@@ -74,6 +76,10 @@ export default function DominiosPage() {
     { id: '1', from: 'www.' + (site?.domain ?? ''), to: site?.domain ?? '', type: '301', criadoEm: '2026-01-20' },
   ]);
   const [deleteRedId, setDeleteRedId] = useState<string | null>(null);
+
+  const { sorted: sortedSubs, col: subCol, dir: subDir, toggle: toggleSub } = useSort(subdomains);
+  const { sorted: sortedParked, col: parkedCol, dir: parkedDir, toggle: toggleParked } = useSort(parked);
+  const { sorted: sortedRedirects, col: redCol, dir: redDir, toggle: toggleRed } = useSort(redirects);
 
   if (!site) {
     return (
@@ -222,14 +228,14 @@ export default function DominiosPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Subdomínio</th>
-                      <th>Pasta</th>
-                      <th>Criado em</th>
+                      <th className={`th-sort${subCol === 'sub' ? ' th-sort--active' : ''}`} onClick={() => toggleSub('sub')}><span className="th-sort-inner">Subdomínio <SortIcon dir={subCol === 'sub' ? subDir : null} /></span></th>
+                      <th className={`th-sort${subCol === 'folder' ? ' th-sort--active' : ''}`} onClick={() => toggleSub('folder')}><span className="th-sort-inner">Pasta <SortIcon dir={subCol === 'folder' ? subDir : null} /></span></th>
+                      <th className={`th-sort${subCol === 'criadoEm' ? ' th-sort--active' : ''}`} onClick={() => toggleSub('criadoEm')}><span className="th-sort-inner">Criado em <SortIcon dir={subCol === 'criadoEm' ? subDir : null} /></span></th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {subdomains.map(s => (
+                    {sortedSubs.map(s => (
                       <tr key={s.id}>
                         <td><span className="dom-mono">{s.sub}.{s.domain}</span></td>
                         <td><span className="dom-mono dom-mono--muted">{s.folder}</span></td>
@@ -295,14 +301,14 @@ export default function DominiosPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Domínio</th>
+                      <th className={`th-sort${parkedCol === 'domain' ? ' th-sort--active' : ''}`} onClick={() => toggleParked('domain')}><span className="th-sort-inner">Domínio <SortIcon dir={parkedCol === 'domain' ? parkedDir : null} /></span></th>
                       <th>Aponta para</th>
-                      <th>Criado em</th>
+                      <th className={`th-sort${parkedCol === 'criadoEm' ? ' th-sort--active' : ''}`} onClick={() => toggleParked('criadoEm')}><span className="th-sort-inner">Criado em <SortIcon dir={parkedCol === 'criadoEm' ? parkedDir : null} /></span></th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {parked.map(p => (
+                    {sortedParked.map(p => (
                       <tr key={p.id}>
                         <td><span className="dom-mono">{p.domain}</span></td>
                         <td><span className="dom-mono dom-mono--muted">{site.domain}</span></td>
@@ -386,15 +392,15 @@ export default function DominiosPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>De</th>
-                      <th>Para</th>
-                      <th>Tipo</th>
-                      <th>Criado em</th>
+                      <th className={`th-sort${redCol === 'from' ? ' th-sort--active' : ''}`} onClick={() => toggleRed('from')}><span className="th-sort-inner">De <SortIcon dir={redCol === 'from' ? redDir : null} /></span></th>
+                      <th className={`th-sort${redCol === 'to' ? ' th-sort--active' : ''}`} onClick={() => toggleRed('to')}><span className="th-sort-inner">Para <SortIcon dir={redCol === 'to' ? redDir : null} /></span></th>
+                      <th className={`th-sort${redCol === 'type' ? ' th-sort--active' : ''}`} onClick={() => toggleRed('type')}><span className="th-sort-inner">Tipo <SortIcon dir={redCol === 'type' ? redDir : null} /></span></th>
+                      <th className={`th-sort${redCol === 'criadoEm' ? ' th-sort--active' : ''}`} onClick={() => toggleRed('criadoEm')}><span className="th-sort-inner">Criado em <SortIcon dir={redCol === 'criadoEm' ? redDir : null} /></span></th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {redirects.map(r => (
+                    {sortedRedirects.map(r => (
                       <tr key={r.id}>
                         <td><span className="dom-mono">{r.from}</span></td>
                         <td><span className="dom-mono dom-mono--muted">{r.to}</span></td>

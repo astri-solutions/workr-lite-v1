@@ -121,3 +121,23 @@ input, textarea, select {
   width: 100%;
 }
 .filter-select:focus { border-color: var(--color-primary-400); }
+
+/* ─── Sortable table headers ─── */
+.th-sort {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sort:hover { color: var(--color-gray-900); }
+.th-sort-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sort-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+}
+.th-sort--active .sort-icon { color: var(--color-primary-500); }

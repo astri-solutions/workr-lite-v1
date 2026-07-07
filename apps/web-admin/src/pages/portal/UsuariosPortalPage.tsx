@@ -41,8 +41,8 @@ function initials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
-function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin }: {
-  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean; isAdmin: boolean;
+function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage }: {
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean; isAdmin: boolean; canManage: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -62,9 +62,10 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin }: {
       </button>
       {open && (
         <div className="up-kebab__menu">
-          <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onEdit(); }}>Editar acesso</button>
-          {!isAdmin && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>}
-          {!isAdmin && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
+          {canManage && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onEdit(); }}>Editar acesso</button>}
+          {canManage && !isAdmin && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>}
+          {canManage && !isAdmin && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
+          {!canManage && <span className="up-kebab__item up-kebab__item--disabled">Sem permissão</span>}
         </div>
       )}
     </div>
@@ -76,12 +77,13 @@ const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'viewer', empresaIds: 
 
 interface UserCardProps {
   user: PortalUser;
+  canManage: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }
 
-function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
+function UserCard({ user, canManage, onEdit, onToggle, onDelete }: UserCardProps) {
   const empresaNomes = user.empresaIds.length === 0
     ? null
     : user.empresaIds.map(id => EMPRESAS.find(e => e.id === id)?.nome ?? id);
@@ -103,7 +105,7 @@ function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
           </span>
           <span className="up-user-card__date">{user.criadoEm}</span>
         </div>
-        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
+        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
       </div>
       <div className="up-user-card__footer">
         <span className="up-user-card__footer-label">
@@ -126,10 +128,15 @@ function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
 
 export default function UsuariosPortalPage() {
   const { user } = useAuth();
+  const [users, setUsers] = useState<PortalUser[]>(INITIAL_USERS);
+
   const portalName = (user?.portais ?? []).find(p => p.id === user?.activePortalId)?.nome
     ?? user?.portais?.[0]?.nome
     ?? 'este portal';
-  const [users, setUsers] = useState<PortalUser[]>(INITIAL_USERS);
+
+  // Derive current user's portal role; defaults to 'admin' for demo (real auth provides portalRole)
+  const myPortalRole: Role = users.find(u => u.email === user?.email)?.role ?? 'admin';
+  const canInvite = myPortalRole === 'admin';
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -195,12 +202,14 @@ export default function UsuariosPortalPage() {
         title="Usuários do Portal"
         description={<>Usuários com acesso ao portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={openCreate}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Convidar usuário
-          </button>
+          canInvite ? (
+            <button className="btn-primary" type="button" onClick={openCreate}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Convidar usuário
+            </button>
+          ) : undefined
         }
       />
 
@@ -254,6 +263,7 @@ export default function UsuariosPortalPage() {
           <UserCard
             key={u.id}
             user={u}
+            canManage={canInvite}
             onEdit={() => openEdit(u)}
             onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
             onDelete={() => setDeleteTarget(u)}
@@ -261,8 +271,8 @@ export default function UsuariosPortalPage() {
         ))}
       </div>
 
-      {/* Create / Edit modal */}
-      <Modal
+      {/* Create / Edit modal — only admins can invite */}
+      {canInvite && <Modal
         open={modalOpen}
         onClose={closeModal}
         title={editing ? 'Editar acesso' : 'Convidar usuário'}
@@ -332,7 +342,7 @@ export default function UsuariosPortalPage() {
             </div>
           </div>
         )}
-      </Modal>
+      </Modal>}
 
       {deleteTarget && (
         <Modal open onClose={() => setDeleteTarget(null)} title="Remover usuário" size="sm"
