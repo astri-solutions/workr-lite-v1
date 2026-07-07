@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
-import PORTAL_CONFIG from '../../portalConfig';
+import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
 import './UsuariosPortalPage.css';
 
@@ -125,6 +125,10 @@ function UserCard({ user, onEdit, onToggle, onDelete }: UserCardProps) {
 }
 
 export default function UsuariosPortalPage() {
+  const { user } = useAuth();
+  const portalName = (user?.portais ?? []).find(p => p.id === user?.activePortalId)?.nome
+    ?? user?.portais?.[0]?.nome
+    ?? 'este portal';
   const [users, setUsers] = useState<PortalUser[]>(INITIAL_USERS);
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
@@ -189,7 +193,7 @@ export default function UsuariosPortalPage() {
     <div className="page">
       <StickyPageHeader
         title="Usuários do Portal"
-        description={<>Usuários com acesso ao portal <strong>{PORTAL_CONFIG.name}</strong>.</>}
+        description={<>Usuários com acesso ao portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openCreate}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
