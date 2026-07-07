@@ -3,6 +3,7 @@ import { useBlocker } from 'react-router-dom';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 import './FooterPage.css';

@@ -8,6 +8,7 @@ import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 

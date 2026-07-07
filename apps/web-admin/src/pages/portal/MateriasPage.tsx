@@ -7,6 +7,7 @@ import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
 
@@ -78,6 +79,7 @@ const MAT_FILTERS = [
 ];
 
 export default function MateriasPage() {
+  const portalName = usePortalName();
   const navigate = useNavigate();
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [search, setSearch] = useState('');

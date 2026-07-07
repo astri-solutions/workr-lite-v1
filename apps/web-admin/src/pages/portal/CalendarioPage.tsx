@@ -4,6 +4,7 @@ import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './CalendarioPage.css';
 
@@ -71,6 +72,7 @@ const CAL_FILTERS = [
 ];
 
 export default function CalendarioPage() {
+  const portalName = usePortalName();
   const [events, setEvents] = useState<CalEvent[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });

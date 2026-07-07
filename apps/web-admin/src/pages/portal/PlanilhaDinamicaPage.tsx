@@ -4,6 +4,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PlanilhaDinamicaPage.css';
 

@@ -5,6 +5,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
 import './EmpresasPage.css';
@@ -36,6 +37,7 @@ const EMPTY_FORM: EmpForm = { nome: '', tipo: 'EMPRESA', cnpj: '', cvmCodigo: ''
 
 
 export default function EmpresasPage() {
+  const portalName = usePortalName();
   const [empresas, setEmpresas] = useState<Empresa[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

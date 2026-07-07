@@ -4,6 +4,7 @@ import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
 import { Canal, SubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 

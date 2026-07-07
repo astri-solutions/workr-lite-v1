@@ -4,6 +4,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import '../admin/InformacoesPage.css';

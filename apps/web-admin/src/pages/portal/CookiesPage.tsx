@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './CookiesPage.css';
@@ -191,6 +192,7 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
 
 /* ─── Page ───────────────────────────────────────────── */
 export default function CookiesPage() {
+  const portalName = usePortalName();
   const [cfg, setCfg] = useState<CookieConfig>(DEFAULT);
   const [saved, setSaved] = useState(false);
 

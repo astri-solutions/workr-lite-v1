@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 
@@ -95,6 +96,7 @@ function emptyBtn(): SplashBtn {
 }
 
 export default function SplashPage() {
+  const portalName = usePortalName();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [config, setConfig] = useState<SplashConfig>({
     enabled: true,

@@ -3,10 +3,12 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
 export default function LogotipoPage() {
+  const portalName = usePortalName();
   const [logo, setLogo] = useState<string | null>(null);
   const [logoCollapsed, setLogoCollapsed] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);

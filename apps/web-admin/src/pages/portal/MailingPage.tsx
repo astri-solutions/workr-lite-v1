@@ -1,8 +1,10 @@
 import StickyPageHeader from '../../components/StickyPageHeader';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 
 export default function MailingPage() {
+  const portalName = usePortalName();
   return (
     <div className="page">
       <StickyPageHeader

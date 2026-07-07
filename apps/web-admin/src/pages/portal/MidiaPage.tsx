@@ -5,6 +5,7 @@ import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
 
@@ -161,6 +162,7 @@ function IconList() {
 }
 
 export default function MidiaPage() {
+  const portalName = usePortalName();
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '' });

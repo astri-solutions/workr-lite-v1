@@ -4,6 +4,7 @@ import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { PORTAL_LAYOUT_KEY, PortalLayout } from '../../components/ClientLayout';
 import PORTAL_CONFIG, { PortalModel } from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 

@@ -5,6 +5,7 @@ import Modal from '../../components/Modal';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
+import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -41,6 +42,7 @@ const INITIAL_SLIDES: BannerSlide[] = [
 ];
 
 export default function BannerPage() {
+  const portalName = usePortalName();
   const [slides, setSlides] = useState<BannerSlide[]>(INITIAL_SLIDES);
   const [activeId, setActiveId] = useState('b1');
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
