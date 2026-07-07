@@ -6,6 +6,7 @@ import AdminLayout from './components/AdminLayout';
 import ClientLayout from './components/ClientLayout';
 import LoginPage from './pages/LoginPage';
 import SetPasswordPage from './pages/SetPasswordPage';
+import PrimeiroAcessoPage from './pages/PrimeiroAcessoPage';
 import PortaisPage from './pages/admin/PortaisPage';
 import UsuariosPage from './pages/admin/UsuariosPage';
 import AutoCvmPage from './pages/admin/AutoCvmPage';
@@ -63,6 +64,7 @@ const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
   { path: '/login', element: <LoginPage /> },
   { path: '/definir-senha', element: <SetPasswordPage /> },
+  { path: '/primeiro-acesso', element: <PrimeiroAcessoPage /> },
   { path: '/selecionar-portal', element: <SelecionarPortalPage /> },
   {
     path: '/admin',

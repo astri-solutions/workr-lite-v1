@@ -22,6 +22,7 @@ export default function AcessoAreaRestritaPage() {
   const [users, setUsers] = useState<AcrUser[]>(INIT_USERS);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
   const [newNome, setNewNome] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
@@ -42,8 +43,12 @@ export default function AcessoAreaRestritaPage() {
     setConfirmRemoveId(null);
   }
 
-  function handleAdd() {
+  function handleInvite() {
     if (!newNome.trim() || !newEmail.trim()) return;
+    setInviteSent(true);
+  }
+
+  function handleInviteClose() {
     const today = new Date().toISOString().slice(0, 10);
     setUsers(prev => [...prev, {
       id: String(Date.now()),
@@ -54,6 +59,7 @@ export default function AcessoAreaRestritaPage() {
     }]);
     setNewNome('');
     setNewEmail('');
+    setInviteSent(false);
     setModalOpen(false);
   }
 
@@ -130,40 +136,64 @@ export default function AcessoAreaRestritaPage() {
 
       <Modal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Novo acesso"
+        onClose={() => { setModalOpen(false); setInviteSent(false); setNewNome(''); setNewEmail(''); }}
+        title={inviteSent ? 'Convite enviado' : 'Convidar para Área Restrita'}
         size="sm"
         footer={
-          <div className="modal-footer">
-            <button type="button" className="btn-outline" onClick={() => setModalOpen(false)}>Cancelar</button>
-            <button type="button" className="btn-primary" onClick={handleAdd}>Adicionar</button>
-          </div>
+          inviteSent ? (
+            <div className="modal-footer">
+              <button type="button" className="btn-primary" onClick={handleInviteClose}>Concluir</button>
+            </div>
+          ) : (
+            <div className="modal-footer">
+              <button type="button" className="btn-outline" onClick={() => setModalOpen(false)}>Cancelar</button>
+              <button type="button" className="btn-primary" onClick={handleInvite} disabled={!newNome.trim() || !newEmail.trim()}>
+                Enviar convite
+              </button>
+            </div>
+          )
         }
       >
-        <div className="acr-modal-form">
-          <div className="acr-field">
-            <label className="acr-label">Nome</label>
-            <input
-              className="acr-input"
-              type="text"
-              placeholder="Nome completo"
-              value={newNome}
-              onChange={e => setNewNome(e.target.value)}
-              required
-            />
+        {inviteSent ? (
+          <div className="acr-invite-sent">
+            <div className="acr-invite-sent__icon">
+              <span className="material-symbols-outlined">mark_email_read</span>
+            </div>
+            <p className="acr-invite-sent__text">
+              Um link de boas-vindas foi enviado para <strong>{newEmail}</strong>.<br />
+              {newNome} poderá criar sua senha e acessar a área restrita pelo link recebido.
+            </p>
           </div>
-          <div className="acr-field">
-            <label className="acr-label">Email</label>
-            <input
-              className="acr-input"
-              type="email"
-              placeholder="email@exemplo.com"
-              value={newEmail}
-              onChange={e => setNewEmail(e.target.value)}
-              required
-            />
+        ) : (
+          <div className="acr-modal-form">
+            <p className="acr-invite-hint">
+              O usuário receberá um e-mail com um link para criar sua senha no primeiro acesso.
+            </p>
+            <div className="acr-field">
+              <label className="acr-label">Nome</label>
+              <input
+                className="acr-input"
+                type="text"
+                placeholder="Nome completo"
+                value={newNome}
+                onChange={e => setNewNome(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+            <div className="acr-field">
+              <label className="acr-label">Email</label>
+              <input
+                className="acr-input"
+                type="email"
+                placeholder="email@exemplo.com"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   );

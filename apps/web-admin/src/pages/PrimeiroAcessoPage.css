@@ -1,0 +1,33 @@
+.pa-welcome {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-primary-50);
+  border: 1px solid var(--color-primary-100, #b2dce0);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.pa-welcome__lock {
+  font-size: 18px;
+  color: var(--color-primary-500);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pa-welcome__text {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-700);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.pa-portal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-decoration: none;
+}
