@@ -27,6 +27,7 @@ type DocStatus = 'Publicado' | 'Rascunho';
 
 interface DocRow {
   id: number;
+  entityId: string;
   nome: string;
   tipo: string;
   status: DocStatus;
@@ -40,136 +41,16 @@ interface DocRow {
 }
 
 const MOCK_DOCS: DocRow[] = [
-  {
-    id: 1,
-    nome: 'Fato Relevante — Aquisição de Controlada',
-    tipo: 'Fatos Relevantes',
-    status: 'Publicado',
-    dataPub: '23/03/2026',
-    pagina: 'Fatos Relevantes',
-    idiomas: ['PT', 'EN', 'ES'],
-    tags: ['CVM', '2 canais'],
-    publicadoPor: 'MA',
-    ultimaEdicao: '23/03/2026',
-    ultimoEditor: 'MA',
-  },
-  {
-    id: 2,
-    nome: 'Fato Relevante — Reorganização Societária',
-    tipo: 'Fatos Relevantes',
-    status: 'Publicado',
-    dataPub: '10/02/2026',
-    pagina: 'Fatos Relevantes',
-    idiomas: ['PT', 'EN', 'ES'],
-    tags: ['CVM'],
-    publicadoPor: 'CT',
-    ultimaEdicao: '10/02/2026',
-    ultimoEditor: 'CT',
-  },
-  {
-    id: 3,
-    nome: 'Comunicado ao Mercado — Esclarecimento sobre Notícia',
-    tipo: 'Comunicados ao Mercado',
-    status: 'Publicado',
-    dataPub: '05/03/2026',
-    pagina: 'Comunicados ao Mercado',
-    idiomas: ['PT', 'EN', 'ES'],
-    tags: ['CVM'],
-    publicadoPor: 'DS',
-    ultimaEdicao: '05/03/2026',
-    ultimoEditor: 'DS',
-  },
-  {
-    id: 4,
-    nome: 'Aviso aos Acionistas — Pagamento de Dividendos',
-    tipo: 'Avisos aos Acionistas',
-    status: 'Publicado',
-    dataPub: '18/02/2026',
-    pagina: 'Avisos aos Acionistas',
-    idiomas: ['PT', 'EN', 'ES'],
-    tags: ['CVM'],
-    publicadoPor: 'MA',
-    ultimaEdicao: '18/02/2026',
-    ultimoEditor: 'CT',
-  },
-  {
-    id: 5,
-    nome: 'Estatuto Social Consolidado',
-    tipo: 'Documentos Societários',
-    status: 'Publicado',
-    dataPub: '30/04/2026',
-    pagina: 'Documentos Societários',
-    idiomas: ['PT', 'EN', 'ES'],
-    tags: [],
-    publicadoPor: 'CT',
-    ultimaEdicao: '30/04/2026',
-    ultimoEditor: 'DS',
-  },
-  {
-    id: 6,
-    nome: 'Política de Negociação de Valores Mobiliários',
-    tipo: 'Documentos Societários',
-    status: 'Rascunho',
-    dataPub: '30/04/2026',
-    pagina: '—',
-    idiomas: ['PT', 'EN', 'ES'],
-    tags: [],
-    publicadoPor: 'DS',
-    ultimaEdicao: '30/04/2026',
-    ultimoEditor: 'DS',
-  },
-  {
-    id: 7,
-    nome: 'Relatório Anual 2024',
-    tipo: 'Relatórios',
-    status: 'Publicado',
-    dataPub: '15/04/2026',
-    pagina: 'Relatórios',
-    idiomas: ['PT', 'EN'],
-    tags: [],
-    publicadoPor: 'MA',
-    ultimaEdicao: '15/04/2026',
-    ultimoEditor: 'MA',
-  },
-  {
-    id: 8,
-    nome: 'Release de Resultados 4T24',
-    tipo: 'Relatórios',
-    status: 'Publicado',
-    dataPub: '12/03/2026',
-    pagina: 'Relatórios',
-    idiomas: ['PT', 'EN'],
-    tags: [],
-    publicadoPor: 'CT',
-    ultimaEdicao: '14/03/2026',
-    ultimoEditor: 'MA',
-  },
-  {
-    id: 9,
-    nome: 'Apresentação para Investidores 1T25',
-    tipo: 'Apresentações',
-    status: 'Rascunho',
-    dataPub: '28/04/2026',
-    pagina: '—',
-    idiomas: ['PT', 'EN'],
-    tags: [],
-    publicadoPor: 'DS',
-    ultimaEdicao: '28/04/2026',
-    ultimoEditor: 'CT',
-  },
-  {
-    id: 10,
-    nome: 'ITR 1T25',
-    tipo: 'Informações Periódicas',
-    status: 'Publicado',
-    dataPub: '14/05/2026',
-    pagina: 'Informações Periódicas',
-    idiomas: ['PT'],
-    tags: ['CVM'],
-    publicadoPor: 'MA',
-    ultimaEdicao: '14/05/2026',
-    ultimoEditor: 'MA',
-  },
+  { id: 1, entityId: 'imc', nome: 'Fato Relevante — Aquisição de Controlada', tipo: 'Fatos Relevantes', status: 'Publicado', dataPub: '23/03/2026', pagina: 'Fatos Relevantes', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM', '2 canais'], publicadoPor: 'MA', ultimaEdicao: '23/03/2026', ultimoEditor: 'MA' },
+  { id: 2, entityId: 'imc', nome: 'Fato Relevante — Reorganização Societária', tipo: 'Fatos Relevantes', status: 'Publicado', dataPub: '10/02/2026', pagina: 'Fatos Relevantes', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM'], publicadoPor: 'CT', ultimaEdicao: '10/02/2026', ultimoEditor: 'CT' },
+  { id: 3, entityId: 'imc', nome: 'Comunicado ao Mercado — Esclarecimento sobre Notícia', tipo: 'Comunicados ao Mercado', status: 'Publicado', dataPub: '05/03/2026', pagina: 'Comunicados ao Mercado', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM'], publicadoPor: 'DS', ultimaEdicao: '05/03/2026', ultimoEditor: 'DS' },
+  { id: 4, entityId: 'imc', nome: 'Aviso aos Acionistas — Pagamento de Dividendos', tipo: 'Avisos aos Acionistas', status: 'Publicado', dataPub: '18/02/2026', pagina: 'Avisos aos Acionistas', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM'], publicadoPor: 'MA', ultimaEdicao: '18/02/2026', ultimoEditor: 'CT' },
+  { id: 5, entityId: 'imc', nome: 'Estatuto Social Consolidado', tipo: 'Documentos Societários', status: 'Publicado', dataPub: '30/04/2026', pagina: 'Documentos Societários', idiomas: ['PT', 'EN', 'ES'], tags: [], publicadoPor: 'CT', ultimaEdicao: '30/04/2026', ultimoEditor: 'DS' },
+  { id: 6, entityId: 'imc', nome: 'Política de Negociação de Valores Mobiliários', tipo: 'Documentos Societários', status: 'Rascunho', dataPub: '30/04/2026', pagina: '—', idiomas: ['PT', 'EN', 'ES'], tags: [], publicadoPor: 'DS', ultimaEdicao: '30/04/2026', ultimoEditor: 'DS' },
+  { id: 7, entityId: 'imc', nome: 'Relatório Anual 2024', tipo: 'Relatórios', status: 'Publicado', dataPub: '15/04/2026', pagina: 'Relatórios', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'MA', ultimaEdicao: '15/04/2026', ultimoEditor: 'MA' },
+  { id: 8, entityId: 'imc', nome: 'Release de Resultados 4T24', tipo: 'Relatórios', status: 'Publicado', dataPub: '12/03/2026', pagina: 'Relatórios', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'CT', ultimaEdicao: '14/03/2026', ultimoEditor: 'MA' },
+  { id: 9, entityId: 'imc-fii', nome: 'Apresentação para Investidores 1T25', tipo: 'Apresentações', status: 'Rascunho', dataPub: '28/04/2026', pagina: '—', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'DS', ultimaEdicao: '28/04/2026', ultimoEditor: 'CT' },
+  { id: 10, entityId: 'imc-fii', nome: 'ITR 1T25', tipo: 'Informações Periódicas', status: 'Publicado', dataPub: '14/05/2026', pagina: 'Informações Periódicas', idiomas: ['PT'], tags: ['CVM'], publicadoPor: 'MA', ultimaEdicao: '14/05/2026', ultimoEditor: 'MA' },
 ];
 
 // Pages that accept document uploads (list / list-group types)
@@ -194,6 +75,7 @@ const DOC_TIPOS = [
 
 
 interface DocForm {
+  entityId: string;
   titulo: string;
   tipo: string;
   paginaIds: string[];
@@ -204,8 +86,9 @@ interface DocForm {
   file: File | null;
 }
 
-function emptyDocForm(): DocForm {
+function emptyDocForm(entityId = ''): DocForm {
   return {
+    entityId,
     titulo: '', tipo: '', paginaIds: [],
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null,
@@ -213,8 +96,9 @@ function emptyDocForm(): DocForm {
 }
 
 export default function DocumentosPage() {
+  const [activeEntity, setActiveEntity] = useState(ENTITIES[0].id);
   const [search, setSearch] = useState('');
-  const [docFilters, setDocFilters] = useState<Record<string, string>>({ empresa: '', tipo: '', ano: '', status: '' });
+  const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [docs, setDocs] = useState<DocRow[]>(MOCK_DOCS);
@@ -240,7 +124,7 @@ export default function DocumentosPage() {
     if (f) handleFile(f);
   }
 
-  function openDrawer() { setForm(emptyDocForm()); setDocLocale(PORTAL_CONFIG.languages[0]); setPtOnly(false); setDrawerOpen(true); }
+  function openDrawer() { setForm(emptyDocForm(activeEntity)); setDocLocale(PORTAL_CONFIG.languages[0]); setPtOnly(false); setDrawerOpen(true); }
   function closeDrawer() { setDrawerOpen(false); }
 
   function handleSave(asDraft: boolean) {
@@ -252,6 +136,7 @@ export default function DocumentosPage() {
     const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
     const newDoc: DocRow = {
       id: Date.now(),
+      entityId: form.entityId || activeEntity,
       nome: form.titulo,
       tipo: form.tipo || 'Sem tipo',
       status: asDraft ? 'Rascunho' : 'Publicado',
@@ -268,6 +153,7 @@ export default function DocumentosPage() {
   }
 
   const _filtered = docs.filter((d) => {
+    if (d.entityId !== activeEntity) return false;
     if (search && !d.nome.toLowerCase().includes(search.toLowerCase())) return false;
     if (docFilters.tipo && d.tipo !== docFilters.tipo) return false;
     if (docFilters.ano && !d.dataPub.includes(docFilters.ano)) return false;
@@ -303,14 +189,6 @@ export default function DocumentosPage() {
 
   const DOC_FILTERS = [
     {
-      key: 'empresa',
-      label: 'Empresa',
-      options: [
-        { value: '', label: 'Todas as empresas', shortLabel: 'Todas' },
-        ...ENTITIES.map(e => ({ value: e.id, label: e.name })),
-      ],
-    },
-    {
       key: 'tipo',
       label: 'Tipo',
       options: [
@@ -341,7 +219,6 @@ export default function DocumentosPage() {
 
   function handleDocFilter(key: string, value: string) {
     setDocFilters(f => ({ ...f, [key]: value }));
-    if (key === 'empresa') setSelected(new Set());
   }
 
   return (
@@ -356,6 +233,39 @@ export default function DocumentosPage() {
           </button>
         }
       />
+
+      {/* Entity tabmenu */}
+      {ENTITIES.length > 1 && (
+        <>
+          <div className="cdr-entities">
+            {ENTITIES.map(e => (
+              <button
+                key={e.id}
+                type="button"
+                className={`cdr-entity-card${activeEntity === e.id ? ' cdr-entity-card--active' : ''}`}
+                onClick={() => { setActiveEntity(e.id); setSelected(new Set()); }}
+              >
+                <span className="cdr-entity-card__name">{e.name}</span>
+                <span className="cdr-entity-card__tipo">{e.tipo}</span>
+              </button>
+            ))}
+          </div>
+          <div className="cdr-entity-mobile">
+            <div className="filter-wrap">
+              <select
+                className="filter-select"
+                value={activeEntity}
+                onChange={ev => { setActiveEntity(ev.target.value); setSelected(new Set()); }}
+              >
+                {ENTITIES.map(e => (
+                  <option key={e.id} value={e.id}>{e.name} — {e.tipo}</option>
+                ))}
+              </select>
+              <svg className="filter-wrap__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Toolbar */}
       <div className="toolbar">
