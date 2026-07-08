@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, Fragment } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
@@ -144,10 +144,13 @@ const PAGE_TYPES: Array<{
 
 // ── State types ─────────────────────────────────────────────────────────────
 interface NewSubForm {
+  step: 1 | 2 | 3 | 4;
   canalId: string;
   locale: LocaleCode;
   labels: Record<string, string>;
   href: string;
+  headerImageUrl: string | null;
+  hasChildren: boolean;
   pageType: PageType;
   isExternalLink: boolean;
   externalUrl: string;
@@ -161,14 +164,18 @@ interface NewSubForm {
   laCatInput: string;
   laEmpresaCategories: Record<string, string[]>;
   laEmpresaCatInputs: Record<string, string>;
+  laActiveEmpresa: string;
 }
 
 function emptyNewSubForm(canalId: string): NewSubForm {
   return {
+    step: 1,
     canalId,
     locale: PORTAL_CONFIG.languages[0],
     labels: { [PORTAL_CONFIG.languages[0]]: '' },
     href: '',
+    headerImageUrl: null,
+    hasChildren: false,
     pageType: 'show', isExternalLink: false, externalUrl: '',
     draft: false, laStyle: 'accordion',
     laByEmpresa: HAS_MULTIPLE_EMPRESAS,
@@ -176,6 +183,7 @@ function emptyNewSubForm(canalId: string): NewSubForm {
     laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
     laCategories: [], laCatInput: '',
     laEmpresaCategories: {}, laEmpresaCatInputs: {},
+    laActiveEmpresa: PORTAL_EMPRESAS[0]?.id ?? '',
   };
 }
 
@@ -291,6 +299,7 @@ export default function CanaisPage() {
   const [newSubOpen, setNewSubOpen] = useState(false);
   const [newSubForm, setNewSubForm] = useState<NewSubForm>(emptyNewSubForm(''));
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteState | null>(null);
+  const [subConfirming, setSubConfirming] = useState(false);
 
   // Animation
   const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
@@ -425,23 +434,31 @@ export default function CanaisPage() {
     const s: SubCanal = {
       id: genId(), label, href,
       enabled: !newSubForm.draft,
-      pageType: newSubForm.pageType,
+      ...(newSubForm.hasChildren ? {} : { pageType: newSubForm.pageType }),
       ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
       ...(newSubForm.pageType === 'lista-agrupada' ? { listaAgrupadaStyle: newSubForm.laStyle } : {}),
     };
     mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
     setNewSubOpen(false);
+    setSubConfirming(false);
+  }
+
+  function triggerSubConfirm() {
+    setSubConfirming(true);
+    setTimeout(commitNewSub, 900);
   }
 
   // can commit new sub?
   const canCommitSub = !!(
     newSubForm.labels[PORTAL_CONFIG.languages[0]]?.trim() &&
-    (newSubForm.pageType !== 'lista-agrupada' ||
-      (HAS_MULTIPLE_EMPRESAS
-        ? (!newSubForm.laByEmpresa ||
-           newSubForm.laSelectedEmpresas.some(id => (newSubForm.laEmpresaCategories[id]?.length ?? 0) > 0))
-        : newSubForm.laCategories.length > 0))
+    (newSubForm.hasChildren ||
+     newSubForm.pageType !== 'lista-agrupada' ||
+     (HAS_MULTIPLE_EMPRESAS
+       ? newSubForm.laSelectedEmpresas.some(id => (newSubForm.laEmpresaCategories[id]?.length ?? 0) > 0)
+       : newSubForm.laCategories.length > 0))
   );
+
+  const subTotalSteps = newSubForm.hasChildren ? 1 : newSubForm.pageType === 'lista-agrupada' ? 4 : 2;
 
   // ── Canal edit ─────────────────────────────────────────────────────────
   function openCanalEdit(canal: Canal) {
@@ -780,302 +797,452 @@ export default function CanaisPage() {
         </Modal>
       )}
 
-      {/* ── Add page modal ────────────────────────────────────────────── */}
-      <Modal open={newSubOpen} onClose={() => setNewSubOpen(false)} title="Adicionar página" size="lg"
+      {/* ── Add page wizard modal ────────────────────────────────────── */}
+      <Modal
+        open={newSubOpen}
+        onClose={() => { setNewSubOpen(false); setSubConfirming(false); }}
+        title={
+          newSubForm.step === 1 ? 'Adicionar página' :
+          newSubForm.step === 2 ? 'Tipo de página' :
+          newSubForm.step === 3 ? 'Estilo de agrupamento' :
+          'Categorias'
+        }
+        size={newSubForm.step === 2 ? 'lg' : 'md'}
         footer={
           <div className="modal-footer">
-            <button className="btn-outline" type="button" onClick={() => setNewSubOpen(false)}>Cancelar</button>
-            <button className="btn-primary" type="button" onClick={commitNewSub} disabled={!canCommitSub}>
-              Adicionar página
-            </button>
+            {newSubForm.step === 1 && (
+              <>
+                <button className="btn-outline" type="button" onClick={() => setNewSubOpen(false)}>Cancelar</button>
+                {newSubForm.hasChildren ? (
+                  <button className="btn-primary" type="button" onClick={commitNewSub}
+                    disabled={!newSubForm.labels[PORTAL_CONFIG.languages[0]]?.trim()}>
+                    Criar canal
+                  </button>
+                ) : (
+                  <button className="btn-primary" type="button"
+                    onClick={() => patchSub({ step: 2 })}
+                    disabled={!newSubForm.labels[PORTAL_CONFIG.languages[0]]?.trim()}>
+                    Próximo
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                  </button>
+                )}
+              </>
+            )}
+            {newSubForm.step === 2 && !subConfirming && (
+              <>
+                <button className="btn-outline" type="button" onClick={() => patchSub({ step: 1 })}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                  Voltar
+                </button>
+                {newSubForm.pageType === 'lista-agrupada' ? (
+                  <button className="btn-primary" type="button" onClick={() => patchSub({ step: 3 })}>
+                    Próximo
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                  </button>
+                ) : (
+                  <button className="btn-primary" type="button" onClick={triggerSubConfirm}>
+                    Criar página
+                  </button>
+                )}
+              </>
+            )}
+            {newSubForm.step === 3 && (
+              <>
+                <button className="btn-outline" type="button" onClick={() => patchSub({ step: 2 })}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                  Voltar
+                </button>
+                <button className="btn-primary" type="button" onClick={() => patchSub({ step: 4 })}>
+                  Próximo
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                </button>
+              </>
+            )}
+            {newSubForm.step === 4 && (
+              <>
+                <button className="btn-outline" type="button" onClick={() => patchSub({ step: 3 })}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                  Voltar
+                </button>
+                <button className="btn-primary" type="button" onClick={commitNewSub} disabled={!canCommitSub}>
+                  Adicionar página
+                </button>
+              </>
+            )}
           </div>
         }
       >
-        <div className="canais-edit-form">
-          {/* External link */}
-          <label className="canais-new-draft-check">
-            <input type="checkbox" checked={newSubForm.isExternalLink}
-              onChange={e => patchSub({ isExternalLink: e.target.checked, externalUrl: '' })} />
-            <span>Link externo</span>
-          </label>
-
-          {PORTAL_CONFIG.languages.length > 1 && (
-            <LangTabs active={newSubForm.locale} onChange={l => patchSub({ locale: l })} />
-          )}
-
-          {!newSubForm.isExternalLink ? (
-            <div key={newSubForm.locale} className="canais-edit-row">
-              <label className="canais-edit-form__label lang-fade">
-                <span>Nome da página <span className="ct-required">*</span></span>
-                <input className="canais-edit-form__input" type="text" placeholder="Ex: Atas e Assembleias" autoFocus
-                  value={newSubForm.labels[newSubForm.locale] ?? ''}
-                  onChange={e => {
-                    const val = e.target.value;
-                    const newLabels = { ...newSubForm.labels, [newSubForm.locale]: val };
-                    const primaryLabel = newLabels[PORTAL_CONFIG.languages[0]] ?? '';
-                    const href = '/' + primaryLabel.toLowerCase()
-                      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-                      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
-                    patchSub({ labels: newLabels, href });
-                  }} />
-              </label>
-              <label className="canais-edit-form__label">
-                URL (slug)
-                <input className="canais-edit-form__input" type="text" placeholder="/exemplo.html"
-                  value={newSubForm.href}
-                  onChange={e => patchSub({ href: e.target.value })} />
-              </label>
-            </div>
-          ) : (
-            <div key={newSubForm.locale} className="canais-edit-row">
-              <label className="canais-edit-form__label lang-fade">
-                <span>Nome da página <span className="ct-required">*</span></span>
-                <input className="canais-edit-form__input" type="text" placeholder="Ex: Site da empresa" autoFocus
-                  value={newSubForm.labels[newSubForm.locale] ?? ''}
-                  onChange={e => patchSub({ labels: { ...newSubForm.labels, [newSubForm.locale]: e.target.value } })} />
-              </label>
-              <label className="canais-edit-form__label">
-                URL externa
-                <input className="canais-edit-form__input" type="url" placeholder="https://..."
-                  value={newSubForm.externalUrl}
-                  onChange={e => patchSub({ externalUrl: e.target.value })} />
-              </label>
-            </div>
-          )}
-
-          {/* Page type */}
-          <div className="canais-edit-divider" />
-          <p className="canais-edit-section-title">Tipo de página</p>
-          <div className="ct-pt-grid">
-            {PAGE_TYPES.map(pt => (
-              <button key={pt.id} type="button"
-                className={`ct-pt-card${newSubForm.pageType === pt.id ? ' ct-pt-card--active' : ''}`}
-                onClick={() => patchSub({ pageType: pt.id })}
-              >
-                <div className="ct-pt-card__thumb">{pt.thumb}</div>
-                <div className="ct-pt-card__body">
-                  <span className="material-symbols-outlined ct-pt-card__icon">{pt.icon}</span>
-                  <span className="ct-pt-card__label">{pt.label}</span>
+        {/* Step indicator */}
+        {!subConfirming && subTotalSteps > 1 && (
+          <div className="ct-wizard-steps">
+            {Array.from({ length: subTotalSteps }, (_, i) => (
+              <Fragment key={i}>
+                <div className={`ct-wizard-step${newSubForm.step > i + 1 ? ' ct-wizard-step--done' : newSubForm.step === i + 1 ? ' ct-wizard-step--active' : ''}`}>
+                  <div className="ct-wizard-step__dot">
+                    {newSubForm.step > i + 1
+                      ? <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>check</span>
+                      : <span>{i + 1}</span>}
+                  </div>
                 </div>
-                {newSubForm.pageType === pt.id && (
-                  <span className="ct-pt-card__check">
-                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
-                  </span>
-                )}
-              </button>
+                {i < subTotalSteps - 1 && <div className="ct-wizard-step__line" />}
+              </Fragment>
             ))}
           </div>
+        )}
 
-          {/* Lista Agrupada flow */}
-          {newSubForm.pageType === 'lista-agrupada' && (
-            <div className="ct-la-flow">
-              {HAS_MULTIPLE_EMPRESAS ? (
-                <>
-                  <div className="ct-la-flow__header">
-                    <span className="material-symbols-outlined ct-la-flow__header-icon">domain</span>
-                    <span>Este portal tem <strong>{PORTAL_EMPRESAS.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
-                  </div>
+        {/* ── Step 1: Basic info ──────────────────────────────────── */}
+        {newSubForm.step === 1 && (
+          <div className="canais-edit-form">
+            <label className="canais-new-draft-check">
+              <input type="checkbox" checked={newSubForm.isExternalLink}
+                onChange={e => patchSub({ isExternalLink: e.target.checked, externalUrl: '' })} />
+              <span>Link externo</span>
+            </label>
 
-                  <label className="ct-la-check ct-la-check--featured">
-                    <input type="checkbox" checked={newSubForm.laByEmpresa}
-                      onChange={e => patchSub({ laByEmpresa: e.target.checked })} />
-                    <div>
-                      <span className="ct-la-check__label">Dividir por empresa</span>
-                      <span className="ct-la-check__desc">Cada empresa exibe sua própria lista de documentos nesta página</span>
-                    </div>
-                  </label>
+            {PORTAL_CONFIG.languages.length > 1 && (
+              <LangTabs active={newSubForm.locale} onChange={l => patchSub({ locale: l })} />
+            )}
 
-                  {newSubForm.laByEmpresa && (
-                    <>
-                      <p className="ct-la-sub-title">Empresas incluídas</p>
-                      <div className="ct-la-empresas">
-                        {PORTAL_EMPRESAS.map(e => (
-                          <label key={e.id} className="ct-la-check">
-                            <input type="checkbox"
-                              checked={newSubForm.laSelectedEmpresas.includes(e.id)}
-                              onChange={ev => patchSub({
-                                laSelectedEmpresas: ev.target.checked
-                                  ? [...newSubForm.laSelectedEmpresas, e.id]
-                                  : newSubForm.laSelectedEmpresas.filter(id => id !== e.id),
-                              })}
-                            />
-                            <span className="ct-la-check__label">{e.label}</span>
-                          </label>
-                        ))}
-                      </div>
+            {!newSubForm.isExternalLink ? (
+              <div key={newSubForm.locale} className="canais-edit-row">
+                <label className="canais-edit-form__label lang-fade">
+                  <span>Nome da página <span className="ct-required">*</span></span>
+                  <input className="canais-edit-form__input" type="text" placeholder="Ex: Atas e Assembleias" autoFocus
+                    value={newSubForm.labels[newSubForm.locale] ?? ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const newLabels = { ...newSubForm.labels, [newSubForm.locale]: val };
+                      const primaryLabel = newLabels[PORTAL_CONFIG.languages[0]] ?? '';
+                      const href = '/' + primaryLabel.toLowerCase()
+                        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                        .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
+                      patchSub({ labels: newLabels, href });
+                    }} />
+                </label>
+                <label className="canais-edit-form__label">
+                  URL (slug)
+                  <input className="canais-edit-form__input" type="text" placeholder="/exemplo.html"
+                    value={newSubForm.href}
+                    onChange={e => patchSub({ href: e.target.value })} />
+                </label>
+              </div>
+            ) : (
+              <div key={newSubForm.locale} className="canais-edit-row">
+                <label className="canais-edit-form__label lang-fade">
+                  <span>Nome da página <span className="ct-required">*</span></span>
+                  <input className="canais-edit-form__input" type="text" placeholder="Ex: Site da empresa" autoFocus
+                    value={newSubForm.labels[newSubForm.locale] ?? ''}
+                    onChange={e => patchSub({ labels: { ...newSubForm.labels, [newSubForm.locale]: e.target.value } })} />
+                </label>
+                <label className="canais-edit-form__label">
+                  URL externa
+                  <input className="canais-edit-form__input" type="url" placeholder="https://..."
+                    value={newSubForm.externalUrl}
+                    onChange={e => patchSub({ externalUrl: e.target.value })} />
+                </label>
+              </div>
+            )}
 
-                      <label className="ct-la-check">
-                        <input type="checkbox" checked={newSubForm.laFiltroEmpresa}
-                          onChange={e => patchSub({ laFiltroEmpresa: e.target.checked })} />
-                        <div>
-                          <span className="ct-la-check__label">Exibir filtro por empresa</span>
-                          <span className="ct-la-check__desc">Usuário pode filtrar documentos por empresa no site</span>
-                        </div>
-                      </label>
+            {!newSubForm.isExternalLink && (
+              <>
+                <div className="canais-edit-divider" />
+                <p className="canais-edit-section-title">
+                  Imagem do header
+                  <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)', marginLeft: 6 }}>(opcional)</span>
+                </p>
+                <HeaderImageEditor
+                  value={newSubForm.headerImageUrl}
+                  onChange={v => patchSub({ headerImageUrl: v })}
+                />
+              </>
+            )}
 
-                      {/* Per-empresa categories */}
-                      {newSubForm.laSelectedEmpresas.length > 0 && (
-                        <>
-                          <div className="canais-edit-divider" style={{ margin: 'var(--space-1) 0' }} />
-                          <p className="ct-la-sub-title">
-                            Categorias por empresa
-                            <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', marginLeft: 4 }}>— ao menos 1</span>
-                          </p>
-                          {PORTAL_EMPRESAS.filter(e => newSubForm.laSelectedEmpresas.includes(e.id)).map(emp => {
-                            const cats = newSubForm.laEmpresaCategories[emp.id] ?? [];
-                            const catInput = newSubForm.laEmpresaCatInputs[emp.id] ?? '';
-                            return (
-                              <div key={emp.id} className="ct-la-emp-cats">
-                                <p className="ct-la-emp-cats__name">{emp.label}</p>
-                                <div className="ct-la-cat-input">
-                                  <input className="canais-edit-form__input" type="text"
-                                    placeholder="Ex: ITR, DFP, Fatos Relevantes"
-                                    value={catInput}
-                                    onChange={e => patchSub({ laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [emp.id]: e.target.value } })}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter' && catInput.trim()) {
-                                        e.preventDefault();
-                                        patchSub({
-                                          laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
-                                          laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [emp.id]: '' },
-                                        });
-                                      }
-                                    }}
-                                  />
-                                  <button className="btn-outline" type="button"
-                                    disabled={!catInput.trim()}
-                                    onClick={() => patchSub({
-                                      laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
-                                      laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [emp.id]: '' },
-                                    })}>
-                                    Adicionar
-                                  </button>
-                                </div>
-                                {cats.length > 0 && (
-                                  <div className="ct-la-cats">
-                                    {cats.map((cat, i) => (
-                                      <span key={i} className="ct-la-cat-chip">
-                                        {cat}
-                                        <button type="button" onClick={() => patchSub({
-                                          laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [emp.id]: cats.filter((_, j) => j !== i) },
-                                        })}>
-                                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                                        </button>
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </>
-                      )}
-
-                      {/* Style picker */}
-                      <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
-                      <div className="canais-agrupada-grid">
-                        {(['accordion', 'secao'] as const).map(s => (
-                          <button key={s} type="button"
-                            className={`canais-agrupada-opt${newSubForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                            onClick={() => patchSub({ laStyle: s })}
-                          >
-                            <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
+            <div className="canais-edit-divider" />
+            <p className="canais-edit-section-title">Estrutura</p>
+            <div className="canais-new-type-row">
+              {([
+                { key: false as boolean, icon: 'article', label: 'Página simples', desc: 'Link direto, sem sub-páginas' },
+                { key: true as boolean, icon: 'account_tree', label: 'Canal com filhos', desc: 'Agrupa sub-páginas na navegação' },
+              ]).map(opt => (
+                <button key={String(opt.key)} type="button"
+                  className={`canais-new-type-btn${newSubForm.hasChildren === opt.key ? ' canais-new-type-btn--active' : ''}`}
+                  onClick={() => patchSub({ hasChildren: opt.key })}
+                >
+                  <span className="material-symbols-outlined canais-new-type-btn__icon">{opt.icon}</span>
+                  <span className="canais-new-type-btn__label">{opt.label}</span>
+                  <span className="canais-new-type-btn__desc">{opt.desc}</span>
+                  {newSubForm.hasChildren === opt.key && (
+                    <span className="canais-new-type-btn__check">
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
+                    </span>
                   )}
+                </button>
+              ))}
+            </div>
+            <p className="ct-wizard-hint">
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+              {newSubForm.hasChildren
+                ? 'Sub-páginas podem ser adicionadas após a criação na árvore de canais.'
+                : 'Você escolherá o tipo de conteúdo no próximo passo.'}
+            </p>
 
-                  {!newSubForm.laByEmpresa && (
-                    <div className="ct-la-style-row">
-                      <p className="ct-la-sub-title">Estilo de agrupamento</p>
-                      <div className="canais-agrupada-grid">
-                        {(['accordion', 'secao'] as const).map(s => (
-                          <button key={s} type="button"
-                            className={`canais-agrupada-opt${newSubForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                            onClick={() => patchSub({ laStyle: s })}
-                          >
-                            <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                /* Single empresa: must define categories */
-                <>
-                  <div className="ct-la-flow__header">
-                    <span className="material-symbols-outlined ct-la-flow__header-icon">category</span>
-                    <span>Defina as categorias que organizarão os documentos desta página.</span>
-                  </div>
-                  <p className="ct-la-sub-title">
-                    <span>Categorias <span className="ct-required">*</span></span>
-                    <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
-                  </p>
-                  <div className="ct-la-cat-input">
-                    <input
-                      className="canais-edit-form__input"
-                      type="text"
-                      placeholder="Ex: Demonstrações Financeiras"
-                      value={newSubForm.laCatInput}
-                      onChange={e => patchSub({ laCatInput: e.target.value })}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && newSubForm.laCatInput.trim()) {
-                          e.preventDefault();
-                          patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' });
-                        }
-                      }}
-                    />
-                    <button
-                      className="btn-outline"
-                      type="button"
-                      disabled={!newSubForm.laCatInput.trim()}
-                      onClick={() => patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' })}
+            <div className="canais-edit-divider" />
+            <label className="canais-new-draft-check">
+              <input type="checkbox" checked={newSubForm.draft}
+                onChange={e => patchSub({ draft: e.target.checked })} />
+              <span>Salvar como rascunho (não publicar ainda)</span>
+            </label>
+          </div>
+        )}
+
+        {/* ── Step 2: Page type ───────────────────────────────────── */}
+        {newSubForm.step === 2 && (
+          <div className="canais-edit-form">
+            {subConfirming ? (
+              <div className="ct-confirm-anim">
+                <div className="ct-confirm-anim__circle">
+                  <span className="material-symbols-outlined">check</span>
+                </div>
+                <p className="ct-confirm-anim__label">Criando página...</p>
+              </div>
+            ) : (
+              <>
+                <p className="ct-step2-label">Selecione como o conteúdo será exibido nesta página.</p>
+                <div className="ct-pt-grid">
+                  {PAGE_TYPES.map(pt => (
+                    <button key={pt.id} type="button"
+                      className={`ct-pt-card${newSubForm.pageType === pt.id ? ' ct-pt-card--active' : ''}`}
+                      onClick={() => patchSub({ pageType: pt.id })}
                     >
-                      Adicionar
-                    </button>
-                  </div>
-                  {newSubForm.laCategories.length > 0 && (
-                    <div className="ct-la-cats">
-                      {newSubForm.laCategories.map((cat, i) => (
-                        <span key={i} className="ct-la-cat-chip">
-                          {cat}
-                          <button type="button" onClick={() => patchSub({ laCategories: newSubForm.laCategories.filter((_, j) => j !== i) })}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                          </button>
+                      <div className="ct-pt-card__thumb">{pt.thumb}</div>
+                      <div className="ct-pt-card__body">
+                        <span className="material-symbols-outlined ct-pt-card__icon">{pt.icon}</span>
+                        <span className="ct-pt-card__label">{pt.label}</span>
+                      </div>
+                      {newSubForm.pageType === pt.id && (
+                        <span className="ct-pt-card__check">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
                         </span>
-                      ))}
-                    </div>
-                  )}
-                  {newSubForm.laCategories.length === 0 && (
-                    <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
-                  )}
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {newSubForm.pageType !== 'lista-agrupada' && (
+                  <div className="ct-flow-box">
+                    <p className="ct-flow-box__desc">
+                      <span className="material-symbols-outlined ct-flow-box__icon">
+                        {PAGE_TYPES.find(p => p.id === newSubForm.pageType)?.icon}
+                      </span>
+                      {PAGE_TYPES.find(p => p.id === newSubForm.pageType)?.flow}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
-                  <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
-                  <div className="canais-agrupada-grid">
-                    {(['accordion', 'secao'] as const).map(s => (
-                      <button key={s} type="button"
-                        className={`canais-agrupada-opt${newSubForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                        onClick={() => patchSub({ laStyle: s })}
+        {/* ── Step 3: Grouping style (LA only) ───────────────────── */}
+        {newSubForm.step === 3 && (
+          <div className="canais-edit-form">
+            <p className="ct-step2-label">Escolha como os grupos serão exibidos visualmente na página.</p>
+            <div className="ct-style-cards">
+              {([
+                {
+                  id: 'accordion' as ListaAgrupadaStyle,
+                  label: 'Accordion',
+                  desc: 'Grupos colapsáveis — o usuário clica para expandir cada categoria.',
+                  icon: 'unfold_more',
+                  thumb: (
+                    <svg width="100%" height="52" viewBox="0 0 200 52" fill="none">
+                      <rect x="2" y="2" width="196" height="13" rx="3" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
+                      <rect x="8" y="6" width="70" height="4" rx="1" fill="#b0bec5"/>
+                      <rect x="180" y="6" width="14" height="4" rx="1" fill="#c8d2db"/>
+                      <rect x="2" y="19" width="196" height="13" rx="3" fill="#f5f7fa" stroke="#e0e5ea" strokeWidth="1"/>
+                      <rect x="8" y="23" width="55" height="4" rx="1" fill="#cfd8dc"/>
+                      <rect x="180" y="23" width="14" height="4" rx="1" fill="#dde3ea"/>
+                      <rect x="2" y="36" width="196" height="13" rx="3" fill="#f5f7fa" stroke="#e0e5ea" strokeWidth="1"/>
+                      <rect x="8" y="40" width="65" height="4" rx="1" fill="#cfd8dc"/>
+                      <rect x="180" y="40" width="14" height="4" rx="1" fill="#dde3ea"/>
+                    </svg>
+                  ),
+                },
+                {
+                  id: 'secao' as ListaAgrupadaStyle,
+                  label: 'Seção',
+                  desc: 'Grupos sempre visíveis, separados por título de seção.',
+                  icon: 'view_agenda',
+                  thumb: (
+                    <svg width="100%" height="52" viewBox="0 0 200 52" fill="none">
+                      <rect x="2" y="2" width="80" height="6" rx="2" fill="#c8d2db"/>
+                      <rect x="2" y="12" width="196" height="1" fill="#e0e5ea"/>
+                      <rect x="2" y="17" width="160" height="5" rx="1" fill="#eef1f5"/>
+                      <rect x="2" y="26" width="130" height="5" rx="1" fill="#eef1f5"/>
+                      <rect x="2" y="36" width="80" height="6" rx="2" fill="#c8d2db"/>
+                      <rect x="2" y="46" width="196" height="1" fill="#e0e5ea"/>
+                    </svg>
+                  ),
+                },
+              ]).map(s => (
+                <button key={s.id} type="button"
+                  className={`ct-style-card${newSubForm.laStyle === s.id ? ' ct-style-card--active' : ''}`}
+                  onClick={() => patchSub({ laStyle: s.id })}
+                >
+                  <div className="ct-style-card__thumb">{s.thumb}</div>
+                  <div className="ct-style-card__body">
+                    <div className="ct-style-card__head">
+                      <span className="material-symbols-outlined ct-style-card__icon">{s.icon}</span>
+                      <span className="ct-style-card__label">{s.label}</span>
+                      {newSubForm.laStyle === s.id && (
+                        <span className="ct-pt-card__check">
+                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
+                        </span>
+                      )}
+                    </div>
+                    <span className="ct-style-card__desc">{s.desc}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 4: Categories (LA only) ────────────────────────── */}
+        {newSubForm.step === 4 && (
+          <div className="canais-edit-form">
+            {PORTAL_CONFIG.languages.length > 1 && (
+              <LangTabs active={newSubForm.locale} onChange={l => patchSub({ locale: l })} />
+            )}
+
+            {HAS_MULTIPLE_EMPRESAS ? (
+              <>
+                <p className="ct-la-sub-title">Selecione a empresa e defina as categorias</p>
+                <div className="ct-la-emp-boxes">
+                  {PORTAL_EMPRESAS.filter(e => newSubForm.laSelectedEmpresas.includes(e.id)).map(emp => {
+                    const cats = newSubForm.laEmpresaCategories[emp.id] ?? [];
+                    const isActive = newSubForm.laActiveEmpresa === emp.id;
+                    return (
+                      <button key={emp.id} type="button"
+                        className={`ct-la-emp-box${isActive ? ' ct-la-emp-box--active' : ''}`}
+                        onClick={() => patchSub({ laActiveEmpresa: emp.id })}
                       >
-                        <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                        <div className="ct-la-emp-box__head">
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px', color: isActive ? 'var(--color-primary-500)' : 'var(--color-gray-400)' }}>domain</span>
+                          <span className="ct-la-emp-box__name">{emp.label}</span>
+                          {cats.length > 0
+                            ? <span className="ct-la-emp-box__count">{cats.length} cat.</span>
+                            : <span className="ct-la-emp-box__empty">Sem categorias</span>}
+                        </div>
+                        {cats.length > 0 && (
+                          <div className="ct-la-emp-box__chips">
+                            {cats.slice(0, 4).map((cat, i) => (
+                              <span key={i} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                            ))}
+                            {cats.length > 4 && <span className="ct-la-emp-box__more">+{cats.length - 4}</span>}
+                          </div>
+                        )}
                       </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active empresa category input */}
+                {(() => {
+                  const empId = newSubForm.laActiveEmpresa;
+                  const emp = PORTAL_EMPRESAS.find(e => e.id === empId);
+                  if (!emp || !newSubForm.laSelectedEmpresas.includes(empId)) return null;
+                  const cats = newSubForm.laEmpresaCategories[empId] ?? [];
+                  const catInput = newSubForm.laEmpresaCatInputs[empId] ?? '';
+                  return (
+                    <div className="ct-la-active-emp">
+                      <p className="ct-la-sub-title">{emp.label}</p>
+                      <div className="ct-la-cat-input">
+                        <input className="canais-edit-form__input" type="text"
+                          placeholder="Ex: ITR, DFP, Fatos Relevantes"
+                          value={catInput}
+                          onChange={e => patchSub({ laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [empId]: e.target.value } })}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && catInput.trim()) {
+                              e.preventDefault();
+                              patchSub({
+                                laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
+                                laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [empId]: '' },
+                              });
+                            }
+                          }}
+                        />
+                        <button className="btn-outline" type="button"
+                          disabled={!catInput.trim()}
+                          onClick={() => patchSub({
+                            laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
+                            laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [empId]: '' },
+                          })}>
+                          Adicionar
+                        </button>
+                      </div>
+                      {cats.length > 0 ? (
+                        <div className="ct-la-cats">
+                          {cats.map((cat, i) => (
+                            <span key={i} className="ct-la-cat-chip">
+                              {cat}
+                              <button type="button" onClick={() => patchSub({
+                                laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: cats.filter((_, j) => j !== i) },
+                              })}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </>
+            ) : (
+              /* Single empresa */
+              <>
+                <p className="ct-la-sub-title">
+                  <span>Categorias <span className="ct-required">*</span></span>
+                  <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
+                </p>
+                <div className="ct-la-cat-input">
+                  <input className="canais-edit-form__input" type="text"
+                    placeholder="Ex: Demonstrações Financeiras"
+                    value={newSubForm.laCatInput}
+                    onChange={e => patchSub({ laCatInput: e.target.value })}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && newSubForm.laCatInput.trim()) {
+                        e.preventDefault();
+                        patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' });
+                      }
+                    }}
+                  />
+                  <button className="btn-outline" type="button"
+                    disabled={!newSubForm.laCatInput.trim()}
+                    onClick={() => patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' })}>
+                    Adicionar
+                  </button>
+                </div>
+                {newSubForm.laCategories.length > 0 ? (
+                  <div className="ct-la-cats">
+                    {newSubForm.laCategories.map((cat, i) => (
+                      <span key={i} className="ct-la-cat-chip">
+                        {cat}
+                        <button type="button" onClick={() => patchSub({ laCategories: newSubForm.laCategories.filter((_, j) => j !== i) })}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                        </button>
+                      </span>
                     ))}
                   </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Draft */}
-          <div className="canais-edit-divider" />
-          <label className="canais-new-draft-check">
-            <input type="checkbox" checked={newSubForm.draft}
-              onChange={e => patchSub({ draft: e.target.checked })} />
-            <span>Salvar como rascunho (não publicar ainda)</span>
-          </label>
-        </div>
+                ) : (
+                  <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* ── Canal edit modal ──────────────────────────────────────────── */}
