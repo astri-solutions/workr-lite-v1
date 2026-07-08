@@ -7,7 +7,7 @@ import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
-import { Canal, DEFAULT_CANAIS, CANAIS_KEY, PageType } from '../../components/ChannelEditor';
+import { Canal, DEFAULT_CANAIS, CANAIS_KEY } from '../../components/ChannelEditor';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
 
@@ -24,14 +24,6 @@ interface Materia {
   ultimoEditor: string;
 }
 
-// Page types that can receive a matéria, by matéria type.
-// Lista, Lista Agrupada, Tabela, Blog, Galeria cannot receive a Show matéria.
-const MATERIA_COMPAT: Record<string, Set<PageType>> = {
-  show:       new Set<PageType>(['show']),
-  galeria:    new Set<PageType>(['galeria']),
-  formulario: new Set<PageType>(['formulario']),
-};
-
 function loadCanais(): Canal[] {
   try {
     const raw = localStorage.getItem(CANAIS_KEY);
@@ -44,16 +36,15 @@ function loadCanais(): Canal[] {
 interface PaginaOption {
   value: string;
   label: string;
-  pageType: PageType | undefined;
 }
 
 function buildPaginaOptions(canais: Canal[]): PaginaOption[] {
   const result: PaginaOption[] = [];
   for (const c of canais) {
     for (const s of c.children) {
-      result.push({ value: s.label, label: `${c.label} → ${s.label}`, pageType: s.pageType });
+      result.push({ value: s.label, label: `${c.label} → ${s.label}` });
       for (const ss of s.children ?? []) {
-        result.push({ value: ss.label, label: `${c.label} → ${s.label} → ${ss.label}`, pageType: ss.pageType });
+        result.push({ value: ss.label, label: `${c.label} → ${s.label} → ${ss.label}` });
       }
     }
   }
@@ -123,10 +114,8 @@ export default function MateriasPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'formulario'>('show');
-  const [selectedPagina, setSelectedPagina] = useState('');
 
-  const allPaginaOptions = buildPaginaOptions(loadCanais());
-  const matFilters = buildMatFilters(allPaginaOptions);
+  const matFilters = buildMatFilters(buildPaginaOptions(loadCanais()));
 
   const _filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
@@ -209,17 +198,17 @@ export default function MateriasPage() {
         open={typePickerOpen}
         onClose={() => setTypePickerOpen(false)}
         title="Nova matéria"
-        description="Escolha o tipo de conteúdo e onde publicar."
+        description="Escolha como o conteúdo desta matéria será estruturado."
         size="sm"
         footer={
           <div className="modal-footer">
             <button className="btn-outline" type="button" onClick={() => setTypePickerOpen(false)}>Cancelar</button>
-            <button className="btn-primary" type="button" disabled={!selectedPagina && selectedType !== 'formulario'} onClick={() => {
+            <button className="btn-primary" type="button" onClick={() => {
               setTypePickerOpen(false);
               if (selectedType === 'formulario') {
-                navigate('/portal/materias/formulario', { state: { pagina: selectedPagina } });
+                navigate('/portal/materias/formulario');
               } else {
-                navigate('/portal/materias/nova', { state: { pageType: selectedType, pagina: selectedPagina } });
+                navigate('/portal/materias/nova', { state: { pageType: selectedType } });
               }
             }}>
               Continuar
@@ -227,60 +216,26 @@ export default function MateriasPage() {
           </div>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-          <div className="mat-type-picker">
-            {PAGE_TYPES.map(t => (
-              <button
-                key={t.id}
-                type="button"
-                className={`mat-type-card${selectedType === t.id ? ' mat-type-card--active' : ''}`}
-                onClick={() => { setSelectedType(t.id); setSelectedPagina(''); }}
-              >
-                <span className="material-symbols-outlined mat-type-card__icon">{t.icon}</span>
-                <div className="mat-type-card__info">
-                  <span className="mat-type-card__label">{t.label}</span>
-                  <span className="mat-type-card__desc">{t.desc}</span>
-                </div>
-                {selectedType === t.id && (
-                  <span className="mat-type-card__check">
-                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Pagina picker — pages filtered by matéria type compatibility */}
-          <div>
-            <p className="mat-section-title">Publicar em</p>
-            <div className="mat-pagina-list">
-              {allPaginaOptions.length === 0 ? (
-                <p className="mat-pagina-empty">Nenhuma página configurada no portal ainda.</p>
-              ) : (
-                allPaginaOptions.map(opt => {
-                  const compat = !opt.pageType || (MATERIA_COMPAT[selectedType]?.has(opt.pageType) ?? true);
-                  return (
-                    <button key={opt.value} type="button"
-                      disabled={!compat}
-                      className={`mat-pagina-opt${selectedPagina === opt.value ? ' mat-pagina-opt--active' : ''}${!compat ? ' mat-pagina-opt--blocked' : ''}`}
-                      onClick={() => compat && setSelectedPagina(opt.value)}
-                    >
-                      <span className="mat-pagina-opt__label">{opt.label}</span>
-                      {!compat && (
-                        <span className="mat-pagina-opt__badge">
-                          <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>block</span>
-                          incompatível
-                        </span>
-                      )}
-                      {compat && selectedPagina === opt.value && (
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-500)', marginLeft: 'auto' }}>check</span>
-                      )}
-                    </button>
-                  );
-                })
+        <div className="mat-type-picker">
+          {PAGE_TYPES.map(t => (
+            <button
+              key={t.id}
+              type="button"
+              className={`mat-type-card${selectedType === t.id ? ' mat-type-card--active' : ''}`}
+              onClick={() => setSelectedType(t.id)}
+            >
+              <span className="material-symbols-outlined mat-type-card__icon">{t.icon}</span>
+              <div className="mat-type-card__info">
+                <span className="mat-type-card__label">{t.label}</span>
+                <span className="mat-type-card__desc">{t.desc}</span>
+              </div>
+              {selectedType === t.id && (
+                <span className="mat-type-card__check">
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
+                </span>
               )}
-            </div>
-          </div>
+            </button>
+          ))}
         </div>
       </Modal>
 
