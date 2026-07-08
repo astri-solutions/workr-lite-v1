@@ -962,7 +962,7 @@ export default function CanaisPage() {
             <div className="canais-new-type-row">
               {([
                 { key: false as boolean, icon: 'article', label: 'Página simples', desc: 'Link direto, sem sub-páginas' },
-                { key: true as boolean, icon: 'account_tree', label: 'Canal com filhos', desc: 'Agrupa sub-páginas na navegação' },
+                { key: true as boolean, icon: 'account_tree', label: 'Terceiro nível', desc: 'Agrupa sub-páginas na navegação' },
               ]).map(opt => (
                 <button key={String(opt.key)} type="button"
                   className={`canais-new-type-btn${newSubForm.hasChildren === opt.key ? ' canais-new-type-btn--active' : ''}`}
