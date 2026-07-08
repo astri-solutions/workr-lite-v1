@@ -737,7 +737,7 @@ export default function CanaisPage() {
           {!newSubForm.isExternalLink ? (
             <div className="canais-edit-row">
               <label className="canais-edit-form__label">
-                Nome da página <span className="ct-required">*</span>
+                <span>Nome da página <span className="ct-required">*</span></span>
                 <input className="canais-edit-form__input" type="text" placeholder="Ex: Atas e Assembleias" autoFocus
                   value={newSubForm.label}
                   onChange={e => {
@@ -758,7 +758,7 @@ export default function CanaisPage() {
           ) : (
             <div className="canais-edit-row">
               <label className="canais-edit-form__label">
-                Nome da página <span className="ct-required">*</span>
+                <span>Nome da página <span className="ct-required">*</span></span>
                 <input className="canais-edit-form__input" type="text" placeholder="Ex: Site da empresa" autoFocus
                   value={newSubForm.label}
                   onChange={e => patchSub({ label: e.target.value })} />
@@ -868,7 +868,7 @@ export default function CanaisPage() {
                     <span>Defina as categorias que organizarão os documentos desta página.</span>
                   </div>
                   <p className="ct-la-sub-title">
-                    Categorias <span className="ct-required">*</span>
+                    <span>Categorias <span className="ct-required">*</span></span>
                     <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
                   </p>
                   <div className="ct-la-cat-input">
@@ -1294,7 +1294,7 @@ export default function CanaisPage() {
                       <span>Defina as categorias que organizarão os documentos desta página.</span>
                     </div>
                     <p className="ct-la-sub-title">
-                      Categorias <span className="ct-required">*</span>
+                      <span>Categorias <span className="ct-required">*</span></span>
                       <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
                     </p>
                     <div className="ct-la-cat-input">
