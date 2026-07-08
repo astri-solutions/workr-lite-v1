@@ -855,7 +855,6 @@ select.canais-edit-form__input,
   height: 2px;
   background: var(--color-gray-200);
   min-width: 20px;
-  max-width: 60px;
   margin: 0 var(--space-1);
 }
 

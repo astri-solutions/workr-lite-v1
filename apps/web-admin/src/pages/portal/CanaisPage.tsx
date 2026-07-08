@@ -210,6 +210,7 @@ interface EditState {
   laCatInput: string;
   laEmpresaCategories: Record<string, string[]>;
   laEmpresaCatInputs: Record<string, string>;
+  laActiveEmpresa: string;
 }
 
 interface CanalEditState {
@@ -517,6 +518,7 @@ export default function CanaisPage() {
     laCatInput: '',
     laEmpresaCategories: {} as Record<string, string[]>,
     laEmpresaCatInputs: {} as Record<string, string>,
+    laActiveEmpresa: PORTAL_EMPRESAS[0]?.id ?? '',
   };
 
   function openEdit(cid: string, sub: SubCanal, parentSubId?: string) {
@@ -858,13 +860,13 @@ export default function CanaisPage() {
                 </button>
               </>
             )}
-            {newSubForm.step === 4 && (
+            {newSubForm.step === 4 && !subConfirming && (
               <>
                 <button className="btn-outline" type="button" onClick={() => patchSub({ step: 3 })}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                   Voltar
                 </button>
-                <button className="btn-primary" type="button" onClick={commitNewSub} disabled={!canCommitSub}>
+                <button className="btn-primary" type="button" onClick={triggerSubConfirm} disabled={!canCommitSub}>
                   Adicionar página
                 </button>
               </>
@@ -1110,11 +1112,19 @@ export default function CanaisPage() {
         {/* ── Step 4: Categories (LA only) ────────────────────────── */}
         {newSubForm.step === 4 && (
           <div className="canais-edit-form">
-            {PORTAL_CONFIG.languages.length > 1 && (
+            {subConfirming && (
+              <div className="ct-confirm-anim">
+                <div className="ct-confirm-anim__circle">
+                  <span className="material-symbols-outlined">check</span>
+                </div>
+                <p className="ct-confirm-anim__label">Criando página...</p>
+              </div>
+            )}
+            {!subConfirming && PORTAL_CONFIG.languages.length > 1 && (
               <LangTabs active={newSubForm.locale} onChange={l => patchSub({ locale: l })} />
             )}
 
-            {HAS_MULTIPLE_EMPRESAS ? (
+            {!subConfirming && HAS_MULTIPLE_EMPRESAS ? (
               <>
                 <p className="ct-la-sub-title">Selecione a empresa e defina as categorias</p>
                 <div className="ct-la-emp-boxes">
@@ -1356,149 +1366,116 @@ export default function CanaisPage() {
             <p className="canais-edit-section-title">Tipo de página</p>
             <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v, ..._laDefaults } : m)} />
 
-            {/* Lista Agrupada full flow */}
+            {/* Lista Agrupada flow */}
             {editModal.pageType === 'lista-agrupada' && (
               <div className="ct-la-flow">
+                {/* Style picker */}
+                <p className="ct-la-sub-title">Estilo de agrupamento</p>
+                <div className="canais-agrupada-grid">
+                  {(['accordion', 'secao'] as const).map(s => (
+                    <button key={s} type="button"
+                      className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                      onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
+                    >
+                      <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="canais-edit-divider" style={{ margin: 'var(--space-2) 0' }} />
+
+                {/* Categories */}
                 {HAS_MULTIPLE_EMPRESAS ? (
                   <>
-                    <div className="ct-la-flow__header">
-                      <span className="material-symbols-outlined ct-la-flow__header-icon">domain</span>
-                      <span>Este portal tem <strong>{PORTAL_EMPRESAS.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
+                    <p className="ct-la-sub-title">Categorias por empresa</p>
+                    <div className="ct-la-emp-boxes">
+                      {PORTAL_EMPRESAS.filter(e => editModal.laSelectedEmpresas.includes(e.id)).map(emp => {
+                        const cats = editModal.laEmpresaCategories[emp.id] ?? [];
+                        const isActive = editModal.laActiveEmpresa === emp.id;
+                        return (
+                          <button key={emp.id} type="button"
+                            className={`ct-la-emp-box${isActive ? ' ct-la-emp-box--active' : ''}`}
+                            onClick={() => setEditModal(m => m ? { ...m, laActiveEmpresa: emp.id } : m)}
+                          >
+                            <div className="ct-la-emp-box__head">
+                              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: isActive ? 'var(--color-primary-500)' : 'var(--color-gray-400)' }}>domain</span>
+                              <span className="ct-la-emp-box__name">{emp.label}</span>
+                              {cats.length > 0
+                                ? <span className="ct-la-emp-box__count">{cats.length} cat.</span>
+                                : <span className="ct-la-emp-box__empty">Sem categorias</span>}
+                            </div>
+                            {cats.length > 0 && (
+                              <div className="ct-la-emp-box__chips">
+                                {cats.slice(0, 4).map((cat, i) => (
+                                  <span key={i} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                                ))}
+                                {cats.length > 4 && <span className="ct-la-emp-box__more">+{cats.length - 4}</span>}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <label className="ct-la-check ct-la-check--featured">
-                      <input type="checkbox" checked={editModal.laByEmpresa}
-                        onChange={e => setEditModal(m => m ? { ...m, laByEmpresa: e.target.checked } : m)} />
-                      <div>
-                        <span className="ct-la-check__label">Dividir por empresa</span>
-                        <span className="ct-la-check__desc">Cada empresa exibe sua própria lista de documentos nesta página</span>
-                      </div>
-                    </label>
 
-                    {editModal.laByEmpresa && (
-                      <>
-                        <p className="ct-la-sub-title">Empresas incluídas</p>
-                        <div className="ct-la-empresas">
-                          {PORTAL_EMPRESAS.map(e => (
-                            <label key={e.id} className="ct-la-check">
-                              <input type="checkbox"
-                                checked={editModal.laSelectedEmpresas.includes(e.id)}
-                                onChange={ev => setEditModal(m => m ? {
-                                  ...m,
-                                  laSelectedEmpresas: ev.target.checked
-                                    ? [...m.laSelectedEmpresas, e.id]
-                                    : m.laSelectedEmpresas.filter(id => id !== e.id),
-                                } : m)}
-                              />
-                              <span className="ct-la-check__label">{e.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                        <label className="ct-la-check">
-                          <input type="checkbox" checked={editModal.laFiltroEmpresa}
-                            onChange={e => setEditModal(m => m ? { ...m, laFiltroEmpresa: e.target.checked } : m)} />
-                          <div>
-                            <span className="ct-la-check__label">Exibir filtro por empresa</span>
-                            <span className="ct-la-check__desc">Usuário pode filtrar documentos por empresa no site</span>
+                    {(() => {
+                      const empId = editModal.laActiveEmpresa;
+                      const emp = PORTAL_EMPRESAS.find(e => e.id === empId);
+                      if (!emp || !editModal.laSelectedEmpresas.includes(empId)) return null;
+                      const cats = editModal.laEmpresaCategories[empId] ?? [];
+                      const catInput = editModal.laEmpresaCatInputs[empId] ?? '';
+                      return (
+                        <div className="ct-la-active-emp">
+                          <p className="ct-la-sub-title">{emp.label}</p>
+                          <div className="ct-la-cat-input">
+                            <input className="canais-edit-form__input" type="text"
+                              placeholder="Ex: ITR, DFP, Fatos Relevantes"
+                              value={catInput}
+                              onChange={e => setEditModal(m => m ? { ...m, laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [empId]: e.target.value } } : m)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && catInput.trim()) {
+                                  e.preventDefault();
+                                  setEditModal(m => m ? {
+                                    ...m,
+                                    laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
+                                    laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [empId]: '' },
+                                  } : m);
+                                }
+                              }}
+                            />
+                            <button className="btn-outline" type="button"
+                              disabled={!catInput.trim()}
+                              onClick={() => setEditModal(m => m ? {
+                                ...m,
+                                laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
+                                laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [empId]: '' },
+                              } : m)}>
+                              Adicionar
+                            </button>
                           </div>
-                        </label>
-
-                        {editModal.laSelectedEmpresas.length > 0 && (
-                          <>
-                            <div className="canais-edit-divider" style={{ margin: 'var(--space-1) 0' }} />
-                            <p className="ct-la-sub-title">
-                              Categorias por empresa
-                              <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', marginLeft: 4 }}>— ao menos 1</span>
-                            </p>
-                            {PORTAL_EMPRESAS.filter(e => editModal.laSelectedEmpresas.includes(e.id)).map(emp => {
-                              const cats = editModal.laEmpresaCategories[emp.id] ?? [];
-                              const catInput = editModal.laEmpresaCatInputs[emp.id] ?? '';
-                              return (
-                                <div key={emp.id} className="ct-la-emp-cats">
-                                  <p className="ct-la-emp-cats__name">{emp.label}</p>
-                                  <div className="ct-la-cat-input">
-                                    <input className="canais-edit-form__input" type="text"
-                                      placeholder="Ex: ITR, DFP, Fatos Relevantes"
-                                      value={catInput}
-                                      onChange={e => setEditModal(m => m ? { ...m, laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [emp.id]: e.target.value } } : m)}
-                                      onKeyDown={e => {
-                                        if (e.key === 'Enter' && catInput.trim()) {
-                                          e.preventDefault();
-                                          setEditModal(m => m ? {
-                                            ...m,
-                                            laEmpresaCategories: { ...m.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
-                                            laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [emp.id]: '' },
-                                          } : m);
-                                        }
-                                      }}
-                                    />
-                                    <button className="btn-outline" type="button"
-                                      disabled={!catInput.trim()}
-                                      onClick={() => setEditModal(m => m ? {
-                                        ...m,
-                                        laEmpresaCategories: { ...m.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
-                                        laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [emp.id]: '' },
-                                      } : m)}>
-                                      Adicionar
-                                    </button>
-                                  </div>
-                                  {cats.length > 0 && (
-                                    <div className="ct-la-cats">
-                                      {cats.map((cat, i) => (
-                                        <span key={i} className="ct-la-cat-chip">
-                                          {cat}
-                                          <button type="button" onClick={() => setEditModal(m => m ? {
-                                            ...m,
-                                            laEmpresaCategories: { ...m.laEmpresaCategories, [emp.id]: cats.filter((_, j) => j !== i) },
-                                          } : m)}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                                          </button>
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </>
-                        )}
-
-                        <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
-                        <div className="canais-agrupada-grid">
-                          {(['accordion', 'secao'] as const).map(s => (
-                            <button key={s} type="button"
-                              className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                              onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
-                            >
-                              <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
-                            </button>
-                          ))}
+                          {cats.length > 0 ? (
+                            <div className="ct-la-cats">
+                              {cats.map((cat, i) => (
+                                <span key={i} className="ct-la-cat-chip">
+                                  {cat}
+                                  <button type="button" onClick={() => setEditModal(m => m ? {
+                                    ...m,
+                                    laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: cats.filter((_, j) => j !== i) },
+                                  } : m)}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
+                          )}
                         </div>
-                      </>
-                    )}
-
-                    {!editModal.laByEmpresa && (
-                      <>
-                        <p className="ct-la-sub-title">Estilo de agrupamento</p>
-                        <div className="canais-agrupada-grid">
-                          {(['accordion', 'secao'] as const).map(s => (
-                            <button key={s} type="button"
-                              className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                              onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
-                            >
-                              <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
+                      );
+                    })()}
                   </>
                 ) : (
-                  /* Single empresa path */
+                  /* Single empresa */
                   <>
-                    <div className="ct-la-flow__header">
-                      <span className="material-symbols-outlined ct-la-flow__header-icon">category</span>
-                      <span>Defina as categorias que organizarão os documentos desta página.</span>
-                    </div>
                     <p className="ct-la-sub-title">
                       <span>Categorias <span className="ct-required">*</span></span>
                       <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
@@ -1521,7 +1498,7 @@ export default function CanaisPage() {
                         Adicionar
                       </button>
                     </div>
-                    {editModal.laCategories.length > 0 && (
+                    {editModal.laCategories.length > 0 ? (
                       <div className="ct-la-cats">
                         {editModal.laCategories.map((cat, i) => (
                           <span key={i} className="ct-la-cat-chip">
@@ -1532,21 +1509,9 @@ export default function CanaisPage() {
                           </span>
                         ))}
                       </div>
-                    )}
-                    {editModal.laCategories.length === 0 && (
+                    ) : (
                       <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
                     )}
-                    <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
-                    <div className="canais-agrupada-grid">
-                      {(['accordion', 'secao'] as const).map(s => (
-                        <button key={s} type="button"
-                          className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                          onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
-                        >
-                          <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
-                        </button>
-                      ))}
-                    </div>
                   </>
                 )}
               </div>
@@ -1556,7 +1521,7 @@ export default function CanaisPage() {
               <>
                 <div className="canais-edit-divider" />
                 <label className="canais-edit-form__label">
-                  Mover para seção
+                  Mudar canal
                   <select className="canais-edit-form__input filter-select" value={editModal.targetCanalId}
                     onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}>
                     {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
