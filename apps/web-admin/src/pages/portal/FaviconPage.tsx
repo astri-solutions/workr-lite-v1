@@ -3,6 +3,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
+import { processImage } from '../../utils/imageProcessor';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -15,12 +16,12 @@ export default function FaviconPage() {
   const isDirty = !saved && favicon !== null;
   const blocker = useUnsavedChanges(isDirty);
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => { setFavicon(ev.target?.result as string); setSaved(false); };
-    reader.readAsDataURL(file);
+    const result = await processImage(file, 'favicon');
+    setFavicon(result.objectUrl);
+    setSaved(false);
   }
 
   function handleSave() {

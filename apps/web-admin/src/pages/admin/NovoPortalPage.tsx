@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { processImage, ImageSlot } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import './AdminPages.css';
@@ -667,14 +668,12 @@ function Dropzone({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = useCallback((file: File) => {
+  const processFile = useCallback(async (file: File) => {
     if (!file.type.match(/image\/(png|svg\+xml|jpeg|webp|x-icon|vnd.microsoft.icon)/)) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) onFile(file, e.target.result as string);
-    };
-    reader.readAsDataURL(file);
-  }, [onFile]);
+    const slot: ImageSlot = size === 'favicon' ? 'favicon' : 'logo';
+    const result = await processImage(file, slot);
+    onFile(result.file, result.objectUrl);
+  }, [onFile, size]);
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();

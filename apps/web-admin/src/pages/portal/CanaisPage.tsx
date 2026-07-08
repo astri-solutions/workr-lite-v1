@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, Fragment } from 'react';
+import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
@@ -1922,14 +1923,19 @@ function PageTypePicker({ value, onChange }: { value: PageType; onChange: (v: Pa
 }
 
 function HeaderImageEditor({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const result = await processImage(f, 'channel-header');
+    onChange(result.objectUrl);
+  }
   if (value) return (
     <div className="canal-header-img-preview">
       <img src={value} alt="Header" className="canal-header-img-preview__img" />
       <div className="canal-header-img-preview__actions">
         <label className="btn-action btn-action--enter canais-img-file-label">
           Substituir
-          <input type="file" accept="image/*" style={{ display: 'none' }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) onChange(URL.createObjectURL(f)); }} />
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
         </label>
         <button className="btn-action btn-action--danger" type="button" onClick={() => onChange(null)}>Remover</button>
       </div>
@@ -1937,8 +1943,7 @@ function HeaderImageEditor({ value, onChange }: { value: string | null; onChange
   );
   return (
     <label className="canal-header-img-empty canais-img-file-label">
-      <input type="file" accept="image/*" style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) onChange(URL.createObjectURL(f)); }} />
+      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
       <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
       <span>Clique para adicionar imagem de header</span>
     </label>

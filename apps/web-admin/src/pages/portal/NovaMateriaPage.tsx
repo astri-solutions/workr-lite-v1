@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { processImage } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
@@ -331,9 +332,9 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; rat
   const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(file: File) {
-    const url = URL.createObjectURL(file);
-    setPreview(url);
+  async function handleFile(file: File) {
+    const result = await processImage(file, 'article-image');
+    setPreview(result.objectUrl);
   }
 
   return (
@@ -378,11 +379,11 @@ function ImageEditor() {
   const [alt, setAlt] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(f: File) {
-    const url = URL.createObjectURL(f);
+  async function handleFile(f: File) {
+    const result = await processImage(f, 'article-image');
     const img = new Image();
-    img.onload = () => setFile({ name: f.name, url, w: img.naturalWidth, h: img.naturalHeight });
-    img.src = url;
+    img.onload = () => setFile({ name: result.file.name, url: result.objectUrl, w: img.naturalWidth, h: img.naturalHeight });
+    img.src = result.objectUrl;
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -523,7 +524,7 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
                     <label className="btn-action btn-action--enter galeria-img-label">
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>cached</span>
                       <input type="file" accept="image/*" style={{ display: 'none' }}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) update(card.id, { imageUrl: URL.createObjectURL(f) }); }} />
+                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); update(card.id, { imageUrl: r.objectUrl }); } }} />
                     </label>
                     <button type="button" className="btn-action btn-action--danger" onClick={() => update(card.id, { imageUrl: null })}>
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
@@ -533,7 +534,7 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
               ) : (
                 <label className="galeria-card-img-empty galeria-img-label">
                   <input type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) update(card.id, { imageUrl: URL.createObjectURL(f) }); }} />
+                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); update(card.id, { imageUrl: r.objectUrl }); } }} />
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
                   <span>Imagem (opcional)</span>
                 </label>

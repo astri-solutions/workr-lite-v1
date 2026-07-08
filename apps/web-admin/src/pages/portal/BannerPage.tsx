@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import Modal from '../../components/Modal';
@@ -94,12 +95,11 @@ export default function BannerPage() {
     
   }
 
-  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => updateImage(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    const result = await processImage(file, 'banner');
+    updateImage(result.objectUrl);
   }
 
   function handleDraft() {

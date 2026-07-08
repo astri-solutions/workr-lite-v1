@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
@@ -214,9 +215,11 @@ export default function SplashPage() {
                 onClick={() => imageInputRef.current?.click()}
               >
                 <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                  onChange={e => {
+                  onChange={async e => {
                     const f = e.target.files?.[0];
-                    if (f) patch('imageUrl', URL.createObjectURL(f));
+                    if (!f) return;
+                    const result = await processImage(f, 'splash-header');
+                    patch('imageUrl', result.objectUrl);
                   }} />
                 {config.imageUrl ? (
                   <>

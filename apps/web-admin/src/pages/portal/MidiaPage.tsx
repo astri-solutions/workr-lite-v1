@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FileDropzone from '../../components/FileDropzone';
@@ -192,22 +193,29 @@ export default function MidiaPage() {
     return true;
   });
 
-  function fileToMedia(file: File, existingId?: string): MediaFile {
+  async function fileToMedia(file: File, existingId?: string): Promise<MediaFile> {
     const type = detectType(file);
+    let processedFile = file;
+    let previewUrl: string | undefined;
+    if (type === 'image') {
+      const result = await processImage(file, 'media-library');
+      processedFile = result.file;
+      previewUrl = result.objectUrl;
+    }
     return {
       id: existingId ?? ('u' + Math.random().toString(36).slice(2)),
-      name: file.name,
+      name: processedFile.name,
       type,
-      size: fmtSize(file.size),
+      size: fmtSize(processedFile.size),
       url: null,
-      previewUrl: type === 'image' ? URL.createObjectURL(file) : undefined,
+      previewUrl,
       uploadedAt: new Date().toLocaleDateString('pt-BR'),
       tags: [],
       uploadedBy: 'Carlos Souza',
     };
   }
 
-  function confirmUpload() {
+  async function confirmUpload() {
     const meta = {
       titulo: uploadForm.titulo || undefined,
       alt: uploadForm.alt || undefined,
@@ -216,7 +224,7 @@ export default function MidiaPage() {
       link: uploadForm.link || undefined,
     };
     if (uploadTab === 'computer' && pendingFile) {
-      const base = fileToMedia(pendingFile);
+      const base = await fileToMedia(pendingFile);
       const m: MediaFile = { ...base, ...meta };
       setFiles(prev => [m, ...prev]);
       setSelectedId(m.id);
@@ -247,9 +255,9 @@ export default function MidiaPage() {
     setReplaceTargetId(id);
   }
 
-  function confirmReplace() {
+  async function confirmReplace() {
     if (!replacePendingFile || !replaceTargetId) return;
-    const updated = fileToMedia(replacePendingFile, replaceTargetId);
+    const updated = await fileToMedia(replacePendingFile, replaceTargetId);
     setFiles(prev => prev.map(f => f.id === replaceTargetId ? updated : f));
     setReplaceTargetId(null);
     setReplacePendingFile(null);

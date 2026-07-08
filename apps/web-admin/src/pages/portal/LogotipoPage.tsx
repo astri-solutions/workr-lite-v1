@@ -3,6 +3,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
+import { processImage } from '../../utils/imageProcessor';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -13,16 +14,25 @@ export default function LogotipoPage() {
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
+  const logoUrlRef = useRef<string | null>(null);
+  const logoCollUrlRef = useRef<string | null>(null);
 
   const isDirty = !saved && (logo !== null || logoCollapsed !== null);
   const blocker = useUnsavedChanges(isDirty);
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) {
+  async function handleFile(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (v: string) => void,
+    prevUrlRef: React.MutableRefObject<string | null>,
+    slot: 'logo' | 'logo-compact',
+  ) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => { setter(ev.target?.result as string); setSaved(false); };
-    reader.readAsDataURL(file);
+    const result = await processImage(file, slot);
+    if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
+    prevUrlRef.current = result.objectUrl;
+    setter(result.objectUrl);
+    setSaved(false);
   }
 
   function handleSave() {
@@ -52,7 +62,7 @@ export default function LogotipoPage() {
           onPickFile={() => inputRef.current?.click()}
           onClear={() => { setLogo(null); setSaved(false); }}
           inputEl={<input ref={inputRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
-            onChange={e => handleFile(e, setLogo)} />}
+            onChange={e => handleFile(e, setLogo, logoUrlRef, 'logo')} />}
         />
         <UploadArea
           title="Logo compacto (sidebar/favicon nav)"
@@ -63,7 +73,7 @@ export default function LogotipoPage() {
           onPickFile={() => inputCollRef.current?.click()}
           onClear={() => { setLogoCollapsed(null); setSaved(false); }}
           inputEl={<input ref={inputCollRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
-            onChange={e => handleFile(e, setLogoCollapsed)} />}
+            onChange={e => handleFile(e, setLogoCollapsed, logoCollUrlRef, 'logo-compact')} />}
         />
       </div>
 
