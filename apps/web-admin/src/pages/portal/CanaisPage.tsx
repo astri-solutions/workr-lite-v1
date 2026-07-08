@@ -145,7 +145,8 @@ const PAGE_TYPES: Array<{
 // ── State types ─────────────────────────────────────────────────────────────
 interface NewSubForm {
   canalId: string;
-  label: string;
+  locale: LocaleCode;
+  labels: Record<string, string>;
   href: string;
   pageType: PageType;
   isExternalLink: boolean;
@@ -164,7 +165,10 @@ interface NewSubForm {
 
 function emptyNewSubForm(canalId: string): NewSubForm {
   return {
-    canalId, label: '', href: '',
+    canalId,
+    locale: PORTAL_CONFIG.languages[0],
+    labels: { [PORTAL_CONFIG.languages[0]]: '' },
+    href: '',
     pageType: 'show', isExternalLink: false, externalUrl: '',
     draft: false, laStyle: 'accordion',
     laByEmpresa: HAS_MULTIPLE_EMPRESAS,
@@ -179,6 +183,8 @@ interface EditState {
   canalId: string;
   parentSubId?: string;
   subId: string;
+  locale: LocaleCode;
+  labels: Record<string, string>;
   label: string;
   href: string;
   targetCanalId: string;
@@ -188,6 +194,14 @@ interface EditState {
   externalUrl: string;
   showInFooter: boolean;
   transferTo: string;
+  // lista-agrupada
+  laByEmpresa: boolean;
+  laSelectedEmpresas: string[];
+  laFiltroEmpresa: boolean;
+  laCategories: string[];
+  laCatInput: string;
+  laEmpresaCategories: Record<string, string[]>;
+  laEmpresaCatInputs: Record<string, string>;
 }
 
 interface CanalEditState {
@@ -402,7 +416,8 @@ export default function CanaisPage() {
   }
 
   function commitNewSub() {
-    const label = newSubForm.label.trim() || 'Nova página';
+    const primaryLang = PORTAL_CONFIG.languages[0];
+    const label = newSubForm.labels[primaryLang]?.trim() || 'Nova página';
     const href = newSubForm.href.trim() || '/' + label.toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
@@ -420,7 +435,7 @@ export default function CanaisPage() {
 
   // can commit new sub?
   const canCommitSub = !!(
-    newSubForm.label.trim() &&
+    newSubForm.labels[PORTAL_CONFIG.languages[0]]?.trim() &&
     (newSubForm.pageType !== 'lista-agrupada' ||
       (HAS_MULTIPLE_EMPRESAS
         ? (!newSubForm.laByEmpresa ||
@@ -477,25 +492,48 @@ export default function CanaisPage() {
   }
 
   // ── Sub/SubSub edit ────────────────────────────────────────────────────
+  const _laDefaults = {
+    laByEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laSelectedEmpresas: PORTAL_EMPRESAS.map(e => e.id),
+    laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laCategories: [] as string[],
+    laCatInput: '',
+    laEmpresaCategories: {} as Record<string, string[]>,
+    laEmpresaCatInputs: {} as Record<string, string>,
+  };
+
   function openEdit(cid: string, sub: SubCanal, parentSubId?: string) {
+    const primaryLang = PORTAL_CONFIG.languages[0];
     setEditModal({
-      canalId: cid, parentSubId, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
+      canalId: cid, parentSubId, subId: sub.id,
+      locale: primaryLang,
+      labels: { [primaryLang]: sub.label },
+      label: sub.label, href: sub.href, targetCanalId: cid,
       pageType: sub.pageType ?? 'show', listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
       isExternalLink: sub.isExternalLink ?? false, externalUrl: sub.externalUrl ?? '',
       showInFooter: sub.showInFooter ?? false, transferTo: '',
+      ..._laDefaults,
     });
   }
   function openEditSubSub(cid: string, sid: string, ss: SubSubCanal) {
+    const primaryLang = PORTAL_CONFIG.languages[0];
     setEditModal({
-      canalId: cid, parentSubId: sid, subId: ss.id, label: ss.label, href: ss.href, targetCanalId: cid,
+      canalId: cid, parentSubId: sid, subId: ss.id,
+      locale: primaryLang,
+      labels: { [primaryLang]: ss.label },
+      label: ss.label, href: ss.href, targetCanalId: cid,
       pageType: ss.pageType ?? 'show', listaAgrupadaStyle: 'accordion',
       isExternalLink: ss.isExternalLink ?? false, externalUrl: ss.externalUrl ?? '',
       showInFooter: false, transferTo: '',
+      ..._laDefaults,
     });
   }
   function commitEdit() {
     if (!editModal) return;
-    const { canalId, parentSubId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
+    const primaryLang = PORTAL_CONFIG.languages[0];
+    const resolvedLabel = editModal.labels[primaryLang]?.trim() || editModal.label;
+    const { canalId, parentSubId, subId, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
+    const label = resolvedLabel;
     if (parentSubId) {
       setCanais(prev => {
         const next = prev.map(c => c.id !== canalId ? c : {
@@ -761,18 +799,24 @@ export default function CanaisPage() {
             <span>Link externo</span>
           </label>
 
+          {PORTAL_CONFIG.languages.length > 1 && (
+            <LangTabs active={newSubForm.locale} onChange={l => patchSub({ locale: l })} />
+          )}
+
           {!newSubForm.isExternalLink ? (
-            <div className="canais-edit-row">
-              <label className="canais-edit-form__label">
+            <div key={newSubForm.locale} className="canais-edit-row">
+              <label className="canais-edit-form__label lang-fade">
                 <span>Nome da página <span className="ct-required">*</span></span>
                 <input className="canais-edit-form__input" type="text" placeholder="Ex: Atas e Assembleias" autoFocus
-                  value={newSubForm.label}
+                  value={newSubForm.labels[newSubForm.locale] ?? ''}
                   onChange={e => {
-                    const label = e.target.value;
-                    const href = '/' + label.toLowerCase()
+                    const val = e.target.value;
+                    const newLabels = { ...newSubForm.labels, [newSubForm.locale]: val };
+                    const primaryLabel = newLabels[PORTAL_CONFIG.languages[0]] ?? '';
+                    const href = '/' + primaryLabel.toLowerCase()
                       .normalize('NFD').replace(/[̀-ͯ]/g, '')
                       .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
-                    patchSub({ label, href });
+                    patchSub({ labels: newLabels, href });
                   }} />
               </label>
               <label className="canais-edit-form__label">
@@ -783,12 +827,12 @@ export default function CanaisPage() {
               </label>
             </div>
           ) : (
-            <div className="canais-edit-row">
-              <label className="canais-edit-form__label">
+            <div key={newSubForm.locale} className="canais-edit-row">
+              <label className="canais-edit-form__label lang-fade">
                 <span>Nome da página <span className="ct-required">*</span></span>
                 <input className="canais-edit-form__input" type="text" placeholder="Ex: Site da empresa" autoFocus
-                  value={newSubForm.label}
-                  onChange={e => patchSub({ label: e.target.value })} />
+                  value={newSubForm.labels[newSubForm.locale] ?? ''}
+                  onChange={e => patchSub({ labels: { ...newSubForm.labels, [newSubForm.locale]: e.target.value } })} />
               </label>
               <label className="canais-edit-form__label">
                 URL externa
@@ -1099,47 +1143,245 @@ export default function CanaisPage() {
                 onChange={e => setEditModal(m => m ? { ...m, isExternalLink: e.target.checked, externalUrl: '' } : m)} />
               <span>Link externo</span>
             </label>
-            {editModal.isExternalLink && (
-              <label className="canais-edit-form__label">
-                URL externa
-                <input className="canais-edit-form__input" type="url" placeholder="https://..."
-                  value={editModal.externalUrl}
-                  onChange={e => setEditModal(m => m ? { ...m, externalUrl: e.target.value } : m)} />
-              </label>
+
+            {PORTAL_CONFIG.languages.length > 1 && (
+              <LangTabs active={editModal.locale} onChange={l => setEditModal(m => m ? { ...m, locale: l } : m)} />
             )}
-            <div className="canais-edit-row">
-              <label className="canais-edit-form__label">
-                Nome da página
-                <input className="canais-edit-form__input" type="text" value={editModal.label} autoFocus
-                  onChange={e => {
-                    const label = e.target.value;
-                    const slug = '/' + label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
-                    setEditModal(m => m ? { ...m, label, href: slug } : m);
-                  }} />
-              </label>
-              <label className="canais-edit-form__label">
-                URL (slug)
-                <input className="canais-edit-form__input" type="text" value={editModal.href}
-                  onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)} />
-              </label>
-            </div>
+
+            {editModal.isExternalLink ? (
+              <div key={editModal.locale} className="canais-edit-row">
+                <label className="canais-edit-form__label lang-fade">
+                  Nome da página
+                  <input className="canais-edit-form__input" type="text" autoFocus
+                    value={editModal.labels[editModal.locale] ?? ''}
+                    onChange={e => setEditModal(m => m ? { ...m, labels: { ...m.labels, [m.locale]: e.target.value } } : m)} />
+                </label>
+                <label className="canais-edit-form__label">
+                  URL externa
+                  <input className="canais-edit-form__input" type="url" placeholder="https://..."
+                    value={editModal.externalUrl}
+                    onChange={e => setEditModal(m => m ? { ...m, externalUrl: e.target.value } : m)} />
+                </label>
+              </div>
+            ) : (
+              <div key={editModal.locale} className="canais-edit-row">
+                <label className="canais-edit-form__label lang-fade">
+                  Nome da página
+                  <input className="canais-edit-form__input" type="text" autoFocus
+                    value={editModal.labels[editModal.locale] ?? ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const newLabels = { ...editModal.labels, [editModal.locale]: val };
+                      const primaryLabel = newLabels[PORTAL_CONFIG.languages[0]] ?? '';
+                      const slug = '/' + primaryLabel.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+                      setEditModal(m => m ? { ...m, labels: newLabels, label: primaryLabel, href: slug } : m);
+                    }} />
+                </label>
+                <label className="canais-edit-form__label">
+                  URL (slug)
+                  <input className="canais-edit-form__input" type="text" value={editModal.href}
+                    onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)} />
+                </label>
+              </div>
+            )}
+
             <div className="canais-edit-divider" />
             <p className="canais-edit-section-title">Tipo de página</p>
-            <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v } : m)} />
+            <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v, ..._laDefaults } : m)} />
 
+            {/* Lista Agrupada full flow */}
             {editModal.pageType === 'lista-agrupada' && (
-              <div className="canais-agrupada-opts">
-                <p className="canais-edit-section-title" style={{ marginBottom: 'var(--space-3)' }}>Estilo de agrupamento</p>
-                <div className="canais-agrupada-grid">
-                  {(['accordion', 'secao'] as const).map(s => (
-                    <button key={s} type="button"
-                      className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
-                      onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
-                    >
-                      <span>{s === 'accordion' ? 'Accordion' : 'Seção com subtítulo'}</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="ct-la-flow">
+                {HAS_MULTIPLE_EMPRESAS ? (
+                  <>
+                    <div className="ct-la-flow__header">
+                      <span className="material-symbols-outlined ct-la-flow__header-icon">domain</span>
+                      <span>Este portal tem <strong>{PORTAL_EMPRESAS.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
+                    </div>
+                    <label className="ct-la-check ct-la-check--featured">
+                      <input type="checkbox" checked={editModal.laByEmpresa}
+                        onChange={e => setEditModal(m => m ? { ...m, laByEmpresa: e.target.checked } : m)} />
+                      <div>
+                        <span className="ct-la-check__label">Dividir por empresa</span>
+                        <span className="ct-la-check__desc">Cada empresa exibe sua própria lista de documentos nesta página</span>
+                      </div>
+                    </label>
+
+                    {editModal.laByEmpresa && (
+                      <>
+                        <p className="ct-la-sub-title">Empresas incluídas</p>
+                        <div className="ct-la-empresas">
+                          {PORTAL_EMPRESAS.map(e => (
+                            <label key={e.id} className="ct-la-check">
+                              <input type="checkbox"
+                                checked={editModal.laSelectedEmpresas.includes(e.id)}
+                                onChange={ev => setEditModal(m => m ? {
+                                  ...m,
+                                  laSelectedEmpresas: ev.target.checked
+                                    ? [...m.laSelectedEmpresas, e.id]
+                                    : m.laSelectedEmpresas.filter(id => id !== e.id),
+                                } : m)}
+                              />
+                              <span className="ct-la-check__label">{e.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <label className="ct-la-check">
+                          <input type="checkbox" checked={editModal.laFiltroEmpresa}
+                            onChange={e => setEditModal(m => m ? { ...m, laFiltroEmpresa: e.target.checked } : m)} />
+                          <div>
+                            <span className="ct-la-check__label">Exibir filtro por empresa</span>
+                            <span className="ct-la-check__desc">Usuário pode filtrar documentos por empresa no site</span>
+                          </div>
+                        </label>
+
+                        {editModal.laSelectedEmpresas.length > 0 && (
+                          <>
+                            <div className="canais-edit-divider" style={{ margin: 'var(--space-1) 0' }} />
+                            <p className="ct-la-sub-title">
+                              Categorias por empresa
+                              <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', marginLeft: 4 }}>— ao menos 1</span>
+                            </p>
+                            {PORTAL_EMPRESAS.filter(e => editModal.laSelectedEmpresas.includes(e.id)).map(emp => {
+                              const cats = editModal.laEmpresaCategories[emp.id] ?? [];
+                              const catInput = editModal.laEmpresaCatInputs[emp.id] ?? '';
+                              return (
+                                <div key={emp.id} className="ct-la-emp-cats">
+                                  <p className="ct-la-emp-cats__name">{emp.label}</p>
+                                  <div className="ct-la-cat-input">
+                                    <input className="canais-edit-form__input" type="text"
+                                      placeholder="Ex: ITR, DFP, Fatos Relevantes"
+                                      value={catInput}
+                                      onChange={e => setEditModal(m => m ? { ...m, laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [emp.id]: e.target.value } } : m)}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter' && catInput.trim()) {
+                                          e.preventDefault();
+                                          setEditModal(m => m ? {
+                                            ...m,
+                                            laEmpresaCategories: { ...m.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
+                                            laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [emp.id]: '' },
+                                          } : m);
+                                        }
+                                      }}
+                                    />
+                                    <button className="btn-outline" type="button"
+                                      disabled={!catInput.trim()}
+                                      onClick={() => setEditModal(m => m ? {
+                                        ...m,
+                                        laEmpresaCategories: { ...m.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
+                                        laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [emp.id]: '' },
+                                      } : m)}>
+                                      Adicionar
+                                    </button>
+                                  </div>
+                                  {cats.length > 0 && (
+                                    <div className="ct-la-cats">
+                                      {cats.map((cat, i) => (
+                                        <span key={i} className="ct-la-cat-chip">
+                                          {cat}
+                                          <button type="button" onClick={() => setEditModal(m => m ? {
+                                            ...m,
+                                            laEmpresaCategories: { ...m.laEmpresaCategories, [emp.id]: cats.filter((_, j) => j !== i) },
+                                          } : m)}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
+
+                        <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
+                        <div className="canais-agrupada-grid">
+                          {(['accordion', 'secao'] as const).map(s => (
+                            <button key={s} type="button"
+                              className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                              onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
+                            >
+                              <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {!editModal.laByEmpresa && (
+                      <>
+                        <p className="ct-la-sub-title">Estilo de agrupamento</p>
+                        <div className="canais-agrupada-grid">
+                          {(['accordion', 'secao'] as const).map(s => (
+                            <button key={s} type="button"
+                              className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                              onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
+                            >
+                              <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  /* Single empresa path */
+                  <>
+                    <div className="ct-la-flow__header">
+                      <span className="material-symbols-outlined ct-la-flow__header-icon">category</span>
+                      <span>Defina as categorias que organizarão os documentos desta página.</span>
+                    </div>
+                    <p className="ct-la-sub-title">
+                      <span>Categorias <span className="ct-required">*</span></span>
+                      <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
+                    </p>
+                    <div className="ct-la-cat-input">
+                      <input className="canais-edit-form__input" type="text"
+                        placeholder="Ex: Demonstrações Financeiras"
+                        value={editModal.laCatInput}
+                        onChange={e => setEditModal(m => m ? { ...m, laCatInput: e.target.value } : m)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && editModal.laCatInput.trim()) {
+                            e.preventDefault();
+                            setEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m);
+                          }
+                        }}
+                      />
+                      <button className="btn-outline" type="button"
+                        disabled={!editModal.laCatInput.trim()}
+                        onClick={() => setEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m)}>
+                        Adicionar
+                      </button>
+                    </div>
+                    {editModal.laCategories.length > 0 && (
+                      <div className="ct-la-cats">
+                        {editModal.laCategories.map((cat, i) => (
+                          <span key={i} className="ct-la-cat-chip">
+                            {cat}
+                            <button type="button" onClick={() => setEditModal(m => m ? { ...m, laCategories: m.laCategories.filter((_, j) => j !== i) } : m)}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {editModal.laCategories.length === 0 && (
+                      <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
+                    )}
+                    <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
+                    <div className="canais-agrupada-grid">
+                      {(['accordion', 'secao'] as const).map(s => (
+                        <button key={s} type="button"
+                          className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                          onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
+                        >
+                          <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
