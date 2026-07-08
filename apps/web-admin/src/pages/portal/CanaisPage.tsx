@@ -127,6 +127,19 @@ const PAGE_TYPES: Array<{
       </svg>
     ),
   },
+  {
+    id: 'formulario', label: 'Formulário', icon: 'assignment',
+    desc: 'Fale com RI, cadastro no mailing, trabalhe conosco.',
+    flow: 'Formulário de contato configurável com campos e e-mail de recebimento.',
+    thumb: (
+      <svg width="100%" height="48" viewBox="0 0 160 48" fill="none">
+        <rect x="2" y="2" width="156" height="8" rx="2" fill="#e8edf2"/>
+        <rect x="2" y="14" width="156" height="8" rx="2" fill="#e8edf2"/>
+        <rect x="2" y="26" width="100" height="8" rx="2" fill="#e8edf2"/>
+        <rect x="2" y="38" width="44" height="8" rx="4" fill="#c8d2db"/>
+      </svg>
+    ),
+  },
 ];
 
 // ── State types ─────────────────────────────────────────────────────────────

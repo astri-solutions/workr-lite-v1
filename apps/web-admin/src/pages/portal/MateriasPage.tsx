@@ -29,7 +29,7 @@ interface Materia {
 const MATERIA_COMPAT: Record<string, Set<PageType>> = {
   show:       new Set<PageType>(['show']),
   galeria:    new Set<PageType>(['galeria']),
-  formulario: new Set<PageType>(['show']),
+  formulario: new Set<PageType>(['formulario']),
 };
 
 function loadCanais(): Canal[] {
