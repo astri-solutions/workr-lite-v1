@@ -198,6 +198,13 @@ interface NewCanalForm {
   isExternalLink: boolean;
   externalUrl: string;
   restrito: boolean;
+  // lista-agrupada config (same as NewSubForm)
+  laStyle: ListaAgrupadaStyle;
+  laByEmpresa: boolean;
+  laSelectedEmpresas: string[];
+  laFiltroEmpresa: boolean;
+  laCategories: string[];
+  laCatInput: string;
 }
 
 function emptyNewCanalForm(): NewCanalForm {
@@ -213,6 +220,12 @@ function emptyNewCanalForm(): NewCanalForm {
     isExternalLink: false,
     externalUrl: '',
     restrito: false,
+    laStyle: 'accordion',
+    laByEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laSelectedEmpresas: PORTAL_EMPRESAS.map(e => e.id),
+    laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laCategories: [],
+    laCatInput: '',
   };
 }
 
@@ -504,6 +517,7 @@ export default function CanaisPage() {
   ]);
 
   const canAdvanceNewCanal = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim();
+  const canCommitNewCanal = newCanalForm.tipo !== 'pagina' || newCanalForm.pageType !== 'lista-agrupada' || HAS_MULTIPLE_EMPRESAS || newCanalForm.laCategories.length > 0;
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -1094,7 +1108,7 @@ export default function CanaisPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                   Voltar
                 </button>
-                <button className="btn-primary" type="button" onClick={commitNewCanal}>Criar página</button>
+                <button className="btn-primary" type="button" onClick={commitNewCanal} disabled={!canCommitNewCanal}>Criar página</button>
               </>
             )}
           </div>
@@ -1166,11 +1180,13 @@ export default function CanaisPage() {
                 onChange={e => setNewCanalForm(f => ({ ...f, draft: e.target.checked }))} />
               <span>Salvar como rascunho (não exibir no portal ainda)</span>
             </label>
-            <label className="canais-check-label">
+            <label className="canais-new-draft-check">
               <input type="checkbox" checked={newCanalForm.restrito}
                 onChange={e => setNewCanalForm(f => ({ ...f, restrito: e.target.checked }))} />
-              <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)' }}>lock</span>
-              Acesso restrito — exige login para visualizar
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)' }}>lock</span>
+                Acesso restrito — exige login para visualizar
+              </span>
             </label>
           </div>
         ) : (
@@ -1195,7 +1211,7 @@ export default function CanaisPage() {
                 </button>
               ))}
             </div>
-            {newCanalForm.pageType && (
+            {newCanalForm.pageType && newCanalForm.pageType !== 'lista-agrupada' && (
               <div className="ct-flow-box">
                 <p className="ct-flow-box__desc">
                   <span className="material-symbols-outlined ct-flow-box__icon">
@@ -1203,6 +1219,130 @@ export default function CanaisPage() {
                   </span>
                   {PAGE_TYPES.find(p => p.id === newCanalForm.pageType)?.flow}
                 </p>
+              </div>
+            )}
+
+            {/* Lista Agrupada: configuração de empresas/categorias */}
+            {newCanalForm.pageType === 'lista-agrupada' && (
+              <div className="ct-la-flow">
+                {HAS_MULTIPLE_EMPRESAS ? (
+                  <>
+                    <div className="ct-la-flow__header">
+                      <span className="material-symbols-outlined ct-la-flow__header-icon">domain</span>
+                      <span>Este portal tem <strong>{PORTAL_EMPRESAS.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
+                    </div>
+
+                    <label className="ct-la-check ct-la-check--featured">
+                      <input type="checkbox" checked={newCanalForm.laByEmpresa}
+                        onChange={e => setNewCanalForm(f => ({ ...f, laByEmpresa: e.target.checked }))} />
+                      <div>
+                        <span className="ct-la-check__label">Dividir por empresa</span>
+                        <span className="ct-la-check__desc">Cada empresa exibe sua própria lista de documentos nesta página</span>
+                      </div>
+                    </label>
+
+                    {newCanalForm.laByEmpresa && (
+                      <>
+                        <p className="ct-la-sub-title">Empresas incluídas</p>
+                        <div className="ct-la-empresas">
+                          {PORTAL_EMPRESAS.map(e => (
+                            <label key={e.id} className="ct-la-check">
+                              <input type="checkbox"
+                                checked={newCanalForm.laSelectedEmpresas.includes(e.id)}
+                                onChange={ev => setNewCanalForm(f => ({
+                                  ...f,
+                                  laSelectedEmpresas: ev.target.checked
+                                    ? [...f.laSelectedEmpresas, e.id]
+                                    : f.laSelectedEmpresas.filter(id => id !== e.id),
+                                }))}
+                              />
+                              <span className="ct-la-check__label">{e.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <label className="ct-la-check">
+                          <input type="checkbox" checked={newCanalForm.laFiltroEmpresa}
+                            onChange={e => setNewCanalForm(f => ({ ...f, laFiltroEmpresa: e.target.checked }))} />
+                          <div>
+                            <span className="ct-la-check__label">Exibir filtro por empresa</span>
+                            <span className="ct-la-check__desc">Usuário pode filtrar documentos por empresa no site</span>
+                          </div>
+                        </label>
+                      </>
+                    )}
+
+                    {!newCanalForm.laByEmpresa && (
+                      <div className="ct-la-style-row">
+                        <p className="ct-la-sub-title">Estilo de agrupamento</p>
+                        <div className="canais-agrupada-grid">
+                          {(['accordion', 'secao'] as const).map(s => (
+                            <button key={s} type="button"
+                              className={`canais-agrupada-opt${newCanalForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                              onClick={() => setNewCanalForm(f => ({ ...f, laStyle: s }))}
+                            >
+                              <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="ct-la-flow__header">
+                      <span className="material-symbols-outlined ct-la-flow__header-icon">category</span>
+                      <span>Defina as categorias que organizarão os documentos desta página.</span>
+                    </div>
+                    <p className="ct-la-sub-title">
+                      Categorias <span className="ct-required">*</span>
+                      <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
+                    </p>
+                    <div className="ct-la-cat-input">
+                      <input className="canais-edit-form__input" type="text"
+                        placeholder="Ex: Demonstrações Financeiras"
+                        value={newCanalForm.laCatInput}
+                        onChange={e => setNewCanalForm(f => ({ ...f, laCatInput: e.target.value }))}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newCanalForm.laCatInput.trim()) {
+                            e.preventDefault();
+                            setNewCanalForm(f => ({ ...f, laCategories: [...f.laCategories, f.laCatInput.trim()], laCatInput: '' }));
+                          }
+                        }}
+                      />
+                      <button className="btn-outline" type="button"
+                        disabled={!newCanalForm.laCatInput.trim()}
+                        onClick={() => setNewCanalForm(f => ({ ...f, laCategories: [...f.laCategories, f.laCatInput.trim()], laCatInput: '' }))}>
+                        Adicionar
+                      </button>
+                    </div>
+                    {newCanalForm.laCategories.length > 0 && (
+                      <div className="ct-la-cats">
+                        {newCanalForm.laCategories.map((cat, i) => (
+                          <span key={i} className="ct-la-cat-chip">
+                            {cat}
+                            <button type="button" onClick={() => setNewCanalForm(f => ({ ...f, laCategories: f.laCategories.filter((_, j) => j !== i) }))}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {newCanalForm.laCategories.length === 0 && (
+                      <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
+                    )}
+                    <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
+                    <div className="canais-agrupada-grid">
+                      {(['accordion', 'secao'] as const).map(s => (
+                        <button key={s} type="button"
+                          className={`canais-agrupada-opt${newCanalForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                          onClick={() => setNewCanalForm(f => ({ ...f, laStyle: s }))}
+                        >
+                          <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
