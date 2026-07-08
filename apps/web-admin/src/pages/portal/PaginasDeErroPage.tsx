@@ -4,12 +4,28 @@ import Modal from '../../components/Modal';
 import '../admin/AdminPages.css';
 import './PaginasDeErroPage.css';
 
+interface ErrorPageTexts {
+  title: string;
+  description: string;
+  cta: string;
+}
+
 interface ErrorPage {
   code: number;
   desc: string;
   descPt: string;
-  custom: string | null;
+  texts: ErrorPageTexts | null;
 }
+
+const DEFAULT_TEXTS: Record<number, ErrorPageTexts> = {
+  400: { title: 'Requisição inválida.', description: 'Os dados enviados não puderam ser processados. Verifique as informações e tente novamente.', cta: 'Voltar para home' },
+  401: { title: 'Acesso não autorizado.', description: 'Você precisa estar autenticado para acessar esta página.', cta: 'Fazer login' },
+  403: { title: 'Acesso negado.', description: 'Você não tem permissão para acessar este conteúdo.', cta: 'Voltar para home' },
+  404: { title: 'Ops! Não conseguimos encontrar essa página.', description: 'Não conseguimos encontrar a página que você está procurando. Provavelmente o link está quebrado.', cta: 'Voltar para home' },
+  500: { title: 'Erro interno do servidor.', description: 'Algo deu errado do nosso lado. Já estamos trabalhando para resolver. Tente novamente em instantes.', cta: 'Voltar para home' },
+  502: { title: 'Gateway inválido.', description: 'O servidor recebeu uma resposta inválida. Tente novamente em alguns instantes.', cta: 'Voltar para home' },
+  503: { title: 'Serviço temporariamente indisponível.', description: 'O servidor está em manutenção ou sobrecarregado. Tente novamente em alguns minutos.', cta: 'Voltar para home' },
+};
 
 const ERROR_ICONS: Record<number, JSX.Element> = {
   400: (
@@ -68,38 +84,44 @@ function getErrorIcon(code: number): JSX.Element {
 }
 
 const DEFAULT_PAGES: ErrorPage[] = [
-  { code: 400, desc: 'Bad Request',           descPt: 'Requisição inválida',     custom: null },
-  { code: 401, desc: 'Authorization Required', descPt: 'Não autorizado',          custom: null },
-  { code: 403, desc: 'Forbidden',              descPt: 'Acesso negado',           custom: null },
-  { code: 404, desc: 'Not Found',              descPt: 'Página não encontrada',   custom: null },
-  { code: 500, desc: 'Internal Server Error',  descPt: 'Erro interno do servidor',custom: null },
-  { code: 502, desc: 'Bad Gateway',            descPt: 'Gateway inválido',        custom: null },
-  { code: 503, desc: 'Service Unavailable',    descPt: 'Serviço indisponível',    custom: null },
+  { code: 400, desc: 'Bad Request',            descPt: 'Requisição inválida',      texts: null },
+  { code: 401, desc: 'Authorization Required',  descPt: 'Não autorizado',           texts: null },
+  { code: 403, desc: 'Forbidden',               descPt: 'Acesso negado',            texts: null },
+  { code: 404, desc: 'Not Found',               descPt: 'Página não encontrada',    texts: null },
+  { code: 500, desc: 'Internal Server Error',   descPt: 'Erro interno do servidor', texts: null },
+  { code: 502, desc: 'Bad Gateway',             descPt: 'Gateway inválido',         texts: null },
+  { code: 503, desc: 'Service Unavailable',     descPt: 'Serviço indisponível',     texts: null },
 ];
 
 export default function PaginasDeErroPage() {
   const [pages, setPages] = useState<ErrorPage[]>(DEFAULT_PAGES);
   const [editing, setEditing] = useState<ErrorPage | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [editTexts, setEditTexts] = useState<ErrorPageTexts>({ title: '', description: '', cta: '' });
   const [resetConfirm, setResetConfirm] = useState<number | null>(null);
 
   function openEdit(p: ErrorPage) {
     setEditing(p);
-    setEditValue(p.custom ?? '');
+    setEditTexts(p.texts ?? DEFAULT_TEXTS[p.code] ?? { title: '', description: '', cta: 'Voltar para home' });
   }
 
   function saveEdit() {
     if (!editing) return;
+    const hasChanges =
+      editTexts.title !== (DEFAULT_TEXTS[editing.code]?.title ?? '') ||
+      editTexts.description !== (DEFAULT_TEXTS[editing.code]?.description ?? '') ||
+      editTexts.cta !== (DEFAULT_TEXTS[editing.code]?.cta ?? '');
     setPages(prev => prev.map(p =>
-      p.code === editing.code ? { ...p, custom: editValue.trim() || null } : p
+      p.code === editing.code ? { ...p, texts: hasChanges ? { ...editTexts } : null } : p
     ));
     setEditing(null);
   }
 
   function resetPage(code: number) {
-    setPages(prev => prev.map(p => p.code === code ? { ...p, custom: null } : p));
+    setPages(prev => prev.map(p => p.code === code ? { ...p, texts: null } : p));
     setResetConfirm(null);
   }
+
+  const isCustomized = (p: ErrorPage) => p.texts !== null;
 
   return (
     <div className="page">
@@ -119,18 +141,13 @@ export default function PaginasDeErroPage() {
                 <span className="ep-item__code">{p.code}</span>
                 <span className="ep-item__desc-pt">{p.descPt}</span>
                 <span className="ep-item__desc-en">{p.desc}</span>
+                {isCustomized(p) && <span className="ep-item__badge">Personalizado</span>}
               </div>
-              {p.custom && (
-                <div className="ep-item__custom">
-                  <span className="ep-item__custom-label">Página personalizada:</span>
-                  <span className="ep-item__val ep-item__val--custom">{p.custom}</span>
-                </div>
-              )}
               <div className="ep-item__actions">
                 <button className="ep-action-btn" type="button" onClick={() => openEdit(p)}>
                   Editar
                 </button>
-                {p.custom && (
+                {isCustomized(p) && (
                   <button
                     className="ep-action-btn ep-action-btn--reset"
                     type="button"
@@ -149,9 +166,9 @@ export default function PaginasDeErroPage() {
       <Modal
         open={!!editing}
         onClose={() => setEditing(null)}
-        title={`Editar página de erro ${editing?.code}`}
-        description={`Informe o caminho ou URL da página personalizada para o erro ${editing?.code} — ${editing?.desc}.`}
-        size="sm"
+        title={`Editar página ${editing?.code}`}
+        description={`${editing?.code} — ${editing?.descPt}`}
+        size="md"
         footer={
           <div className="modal-footer">
             <button className="btn-outline" type="button" onClick={() => setEditing(null)}>
@@ -163,17 +180,35 @@ export default function PaginasDeErroPage() {
           </div>
         }
       >
-        <div className="ep-modal-field">
-          <label className="ep-modal-label">URL ou caminho da página</label>
-          <input
-            className="ep-modal-input"
-            type="text"
-            placeholder="ex: /erro/404.html"
-            value={editValue}
-            onChange={e => setEditValue(e.target.value)}
-            autoFocus
-          />
-          <p className="ep-modal-hint">Deixe em branco para usar a página padrão do servidor.</p>
+        <div className="ep-modal-fields">
+          <div className="ep-modal-field">
+            <label className="ep-modal-label">Título</label>
+            <input
+              className="ep-modal-input"
+              type="text"
+              value={editTexts.title}
+              onChange={e => setEditTexts(t => ({ ...t, title: e.target.value }))}
+              autoFocus
+            />
+          </div>
+          <div className="ep-modal-field">
+            <label className="ep-modal-label">Descrição</label>
+            <textarea
+              className="ep-modal-input ep-modal-textarea"
+              value={editTexts.description}
+              onChange={e => setEditTexts(t => ({ ...t, description: e.target.value }))}
+              rows={3}
+            />
+          </div>
+          <div className="ep-modal-field">
+            <label className="ep-modal-label">Texto do botão</label>
+            <input
+              className="ep-modal-input"
+              type="text"
+              value={editTexts.cta}
+              onChange={e => setEditTexts(t => ({ ...t, cta: e.target.value }))}
+            />
+          </div>
         </div>
       </Modal>
 
@@ -182,7 +217,7 @@ export default function PaginasDeErroPage() {
         open={resetConfirm !== null}
         onClose={() => setResetConfirm(null)}
         title="Redefinir página de erro"
-        description={`Tem certeza que deseja remover a página personalizada para o erro ${resetConfirm}? A página padrão do servidor será restaurada.`}
+        description={`Tem certeza que deseja restaurar o texto padrão para o erro ${resetConfirm}?`}
         size="sm"
         footer={
           <div className="modal-footer">
