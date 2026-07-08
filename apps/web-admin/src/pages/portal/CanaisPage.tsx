@@ -12,7 +12,16 @@ function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-// ── Page type definitions ──────────────────────────────────────────────────
+// ── Portal empresas (mock — real app loads from context/API) ────────────────
+// These are the active empresas for this portal instance.
+// Used to drive the Lista Agrupada flow.
+const PORTAL_EMPRESAS = [
+  { id: 'imc', label: 'International Meal Company' },
+  { id: 'imc-fii', label: 'IMC Recebíveis FII' },
+];
+const HAS_MULTIPLE_EMPRESAS = PORTAL_EMPRESAS.length > 1;
+
+// ── Page type definitions ───────────────────────────────────────────────────
 const PAGE_TYPES: Array<{
   id: PageType;
   label: string;
@@ -22,9 +31,7 @@ const PAGE_TYPES: Array<{
   thumb: React.ReactNode;
 }> = [
   {
-    id: 'show',
-    label: 'Show',
-    icon: 'article',
+    id: 'show', label: 'Show', icon: 'article',
     desc: 'Conteúdos variados: texto, imagem, tabelas e listas.',
     flow: 'Página livre para edição de conteúdo rico.',
     thumb: (
@@ -38,9 +45,7 @@ const PAGE_TYPES: Array<{
     ),
   },
   {
-    id: 'lista',
-    label: 'Lista',
-    icon: 'list_alt',
+    id: 'lista', label: 'Lista', icon: 'list_alt',
     desc: 'Lista de documentos com filtro por ano.',
     flow: 'Exibe documentos vinculados com filtro de ano e categoria.',
     thumb: (
@@ -55,11 +60,11 @@ const PAGE_TYPES: Array<{
     ),
   },
   {
-    id: 'lista-agrupada',
-    label: 'Lista Agrupada',
-    icon: 'folder_open',
+    id: 'lista-agrupada', label: 'Lista Agrupada', icon: 'folder_open',
     desc: 'Documentos organizados por seção ou accordion.',
-    flow: 'Documentos agrupados por categorias, exibidos em accordion ou por seção.',
+    flow: HAS_MULTIPLE_EMPRESAS
+      ? 'Documentos agrupados por empresa — cada empresa exibe sua própria lista.'
+      : 'Documentos organizados em categorias definidas por você.',
     thumb: (
       <svg width="100%" height="48" viewBox="0 0 160 48" fill="none">
         <rect x="2" y="2" width="156" height="12" rx="2" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
@@ -72,9 +77,7 @@ const PAGE_TYPES: Array<{
     ),
   },
   {
-    id: 'tabela',
-    label: 'Tabela',
-    icon: 'table_chart',
+    id: 'tabela', label: 'Tabela', icon: 'table_chart',
     desc: 'Dados estruturados em linhas e colunas.',
     flow: 'Tabela de dados editável com colunas personalizáveis.',
     thumb: (
@@ -94,9 +97,7 @@ const PAGE_TYPES: Array<{
     ),
   },
   {
-    id: 'blog',
-    label: 'Blog',
-    icon: 'newspaper',
+    id: 'blog', label: 'Blog', icon: 'newspaper',
     desc: 'Artigos e matérias com capa, título e resumo.',
     flow: 'Feed de artigos com capa, data e categorias.',
     thumb: (
@@ -109,9 +110,7 @@ const PAGE_TYPES: Array<{
     ),
   },
   {
-    id: 'galeria',
-    label: 'Galeria',
-    icon: 'photo_library',
+    id: 'galeria', label: 'Galeria', icon: 'photo_library',
     desc: 'Imagens, vídeos e apresentações em cards.',
     flow: 'Grade de mídia com imagens, vídeos e PDFs.',
     thumb: (
@@ -130,122 +129,33 @@ const PAGE_TYPES: Array<{
   },
 ];
 
-// ── Type-specific config fields ─────────────────────────────────────────────
-function PageTypeConfig({ pageType, config, onChange }: {
+// ── State types ─────────────────────────────────────────────────────────────
+interface NewSubForm {
+  canalId: string;
+  label: string;
+  href: string;
   pageType: PageType;
-  config: PageTypeConfigState;
-  onChange: (c: Partial<PageTypeConfigState>) => void;
-}) {
-  if (pageType === 'lista-agrupada') return (
-    <div className="ptc-block">
-      <p className="canais-edit-section-title">Estilo de agrupamento</p>
-      <div className="ptc-duo">
-        {(['accordion', 'secao'] as const).map(s => (
-          <button
-            key={s} type="button"
-            className={`ptc-opt${config.listaAgrupadaStyle === s ? ' ptc-opt--active' : ''}`}
-            onClick={() => onChange({ listaAgrupadaStyle: s })}
-          >
-            {s === 'accordion' ? (
-              <svg width="100%" height="56" viewBox="0 0 200 56" fill="none">
-                <rect x="1" y="1" width="198" height="18" rx="3" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
-                <path d="M186 9l-4 5-4-5" stroke="#6F6F6F" strokeWidth="1.5" fill="none"/>
-                <rect x="6" y="5" width="60" height="8" rx="2" fill="#c8d2db"/>
-                <rect x="1" y="23" width="198" height="18" rx="3" fill="#f5f7fa" stroke="#dde3ea" strokeWidth="1"/>
-                <rect x="6" y="28" width="50" height="6" rx="2" fill="#dde3ea"/>
-                <rect x="8" y="44" width="140" height="4" rx="1" fill="#e8edf2"/>
-              </svg>
-            ) : (
-              <svg width="100%" height="56" viewBox="0 0 200 56" fill="none">
-                <rect x="6" y="2" width="80" height="10" rx="2" fill="#c8d2db"/>
-                <rect x="1" y="16" width="198" height="1" fill="#dde3ea"/>
-                <rect x="6" y="22" width="140" height="5" rx="1" fill="#e8edf2"/>
-                <rect x="6" y="31" width="100" height="5" rx="1" fill="#e8edf2"/>
-                <rect x="6" y="42" width="70" height="10" rx="2" fill="#c8d2db"/>
-              </svg>
-            )}
-            <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  if (pageType === 'lista') return (
-    <div className="ptc-block">
-      <p className="canais-edit-section-title">Opções da lista</p>
-      <label className="ptc-check">
-        <input type="checkbox" checked={config.filtroEmpresa} onChange={e => onChange({ filtroEmpresa: e.target.checked })} />
-        Filtrar por empresa
-      </label>
-      <label className="ptc-check">
-        <input type="checkbox" checked={config.filtroPeriodo} onChange={e => onChange({ filtroPeriodo: e.target.checked })} />
-        Exibir filtro de período (trimestre/semestre)
-      </label>
-    </div>
-  );
-
-  if (pageType === 'blog') return (
-    <div className="ptc-block">
-      <p className="canais-edit-section-title">Opções do blog</p>
-      <label className="ptc-check">
-        <input type="checkbox" checked={config.exibirBusca} onChange={e => onChange({ exibirBusca: e.target.checked })} />
-        Exibir campo de busca
-      </label>
-      <label className="ptc-check">
-        <input type="checkbox" checked={config.filtroCategoria} onChange={e => onChange({ filtroCategoria: e.target.checked })} />
-        Filtrar por categoria
-      </label>
-    </div>
-  );
-
-  return null;
-}
-
-// ── Types ───────────────────────────────────────────────────────────────────
-interface PageTypeConfigState {
-  listaAgrupadaStyle: ListaAgrupadaStyle;
-  filtroEmpresa: boolean;
-  filtroPeriodo: boolean;
-  exibirBusca: boolean;
-  filtroCategoria: boolean;
-}
-
-function defaultPageTypeConfig(): PageTypeConfigState {
-  return { listaAgrupadaStyle: 'accordion', filtroEmpresa: false, filtroPeriodo: false, exibirBusca: false, filtroCategoria: false };
-}
-
-type CanalType = 'pagina' | 'pai';
-
-interface NewCanalForm {
-  step: 1 | 2;
-  titles: Record<string, string>;
-  subtitles: Record<string, string>;
-  headerImageUrl: string | null;
-  tipo: CanalType;
-  pageType: PageType;
-  ptConfig: PageTypeConfigState;
-  draft: boolean;
-  locale: LocaleCode;
   isExternalLink: boolean;
   externalUrl: string;
-  restrito: boolean;
+  draft: boolean;
+  // lista-agrupada
+  laStyle: ListaAgrupadaStyle;
+  laByEmpresa: boolean;
+  laSelectedEmpresas: string[];
+  laFiltroEmpresa: boolean;
+  laCategories: string[];
+  laCatInput: string;
 }
 
-function emptyNewCanalForm(): NewCanalForm {
+function emptyNewSubForm(canalId: string): NewSubForm {
   return {
-    step: 1,
-    titles: { [PORTAL_CONFIG.languages[0]]: '' },
-    subtitles: {},
-    headerImageUrl: null,
-    tipo: 'pai',
-    pageType: 'show',
-    ptConfig: defaultPageTypeConfig(),
-    draft: false,
-    locale: PORTAL_CONFIG.languages[0],
-    isExternalLink: false,
-    externalUrl: '',
-    restrito: false,
+    canalId, label: '', href: '',
+    pageType: 'show', isExternalLink: false, externalUrl: '',
+    draft: false, laStyle: 'accordion',
+    laByEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laSelectedEmpresas: PORTAL_EMPRESAS.map(e => e.id),
+    laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laCategories: [], laCatInput: '',
   };
 }
 
@@ -261,7 +171,7 @@ interface EditState {
   isExternalLink: boolean;
   externalUrl: string;
   showInFooter: boolean;
-  transferTo: string; // '' = no transfer
+  transferTo: string;
 }
 
 interface CanalEditState {
@@ -272,6 +182,46 @@ interface CanalEditState {
   applyHeaderToChildren: boolean;
   isLeaf: boolean;
   showInFooter: boolean;
+}
+
+type CanalType = 'pagina' | 'pai';
+
+interface NewCanalForm {
+  step: 1 | 2;
+  titles: Record<string, string>;
+  subtitles: Record<string, string>;
+  headerImageUrl: string | null;
+  tipo: CanalType;
+  pageType: PageType;
+  draft: boolean;
+  locale: LocaleCode;
+  isExternalLink: boolean;
+  externalUrl: string;
+  restrito: boolean;
+}
+
+function emptyNewCanalForm(): NewCanalForm {
+  return {
+    step: 1,
+    titles: { [PORTAL_CONFIG.languages[0]]: '' },
+    subtitles: {},
+    headerImageUrl: null,
+    tipo: 'pai',
+    pageType: 'show',
+    draft: false,
+    locale: PORTAL_CONFIG.languages[0],
+    isExternalLink: false,
+    externalUrl: '',
+    restrito: false,
+  };
+}
+
+interface ConfirmDeleteState {
+  type: 'canal' | 'sub' | 'subsub';
+  label: string;
+  canalId: string;
+  subId?: string;
+  subSubId?: string;
 }
 
 function orderKey(list: Canal[]): string {
@@ -285,10 +235,17 @@ export default function CanaisPage() {
   const portalName = usePortalName();
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
   const [savedOrderKey, setSavedOrderKey] = useState(() => orderKey(DEFAULT_CANAIS));
+
+  // Modals
   const [editModal, setEditModal] = useState<EditState | null>(null);
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
   const [newCanalOpen, setNewCanalOpen] = useState(false);
   const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
+  const [newSubOpen, setNewSubOpen] = useState(false);
+  const [newSubForm, setNewSubForm] = useState<NewSubForm>(emptyNewSubForm(''));
+  const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteState | null>(null);
+
+  // Animation
   const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
   const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -299,19 +256,17 @@ export default function CanaisPage() {
   }
 
   const orderChanged = orderKey(canais) !== savedOrderKey;
-
   const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => setCanais(fn), []);
 
   function saveToStorage(updated: Canal[]) {
     localStorage.setItem(CANAIS_KEY, JSON.stringify(updated));
   }
-
   function handleSaveOrder() {
     saveToStorage(canais);
     setSavedOrderKey(orderKey(canais));
   }
 
-  // ── Canal ──────────────────────────────────────────────────────────────
+  // ── Canal actions ──────────────────────────────────────────────────────
   function toggleCanal(cid: string) {
     mutate(prev => prev.map(c => c.id === cid ? { ...c, enabled: !c.enabled } : c));
   }
@@ -327,23 +282,6 @@ export default function CanaisPage() {
       [next[idx], next[t]] = [next[t], next[idx]];
       return next;
     });
-  }
-
-  function commitNewCanal() {
-    const primaryLang = PORTAL_CONFIG.languages[0];
-    const label = newCanalForm.titles[primaryLang]?.trim() || 'Novo canal';
-    const isLeaf = newCanalForm.tipo === 'pagina';
-    const c: Canal = {
-      id: genId(),
-      label,
-      enabled: !newCanalForm.draft,
-      children: [],
-      ...(isLeaf ? { pageType: newCanalForm.pageType } : {}),
-      ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
-    };
-    mutate(prev => [...prev, c]);
-    setNewCanalOpen(false);
-    setNewCanalForm(emptyNewCanalForm());
   }
 
   // ── SubCanal (L2) ──────────────────────────────────────────────────────
@@ -366,10 +304,6 @@ export default function CanaisPage() {
       [ch[idx], ch[t]] = [ch[t], ch[idx]];
       return { ...c, children: ch };
     }));
-  }
-  function addSub(cid: string) {
-    const s: SubCanal = { id: genId(), label: 'Nova página', href: `/${genId()}.html`, enabled: false };
-    mutate(prev => prev.map(c => c.id !== cid ? c : { ...c, children: [...c.children, s] }));
   }
 
   // ── SubSubCanal (L3) ───────────────────────────────────────────────────
@@ -408,11 +342,61 @@ export default function CanaisPage() {
     }));
   }
 
+  // ── Delete with confirmation ───────────────────────────────────────────
+  function openConfirmDelete(state: ConfirmDeleteState) {
+    setConfirmDelete(state);
+  }
+  function doDelete() {
+    if (!confirmDelete) return;
+    if (confirmDelete.type === 'canal') {
+      removeCanal(confirmDelete.canalId);
+    } else if (confirmDelete.type === 'sub') {
+      removeSub(confirmDelete.canalId, confirmDelete.subId!);
+    } else {
+      removeSubSub(confirmDelete.canalId, confirmDelete.subId!, confirmDelete.subSubId!);
+    }
+    setConfirmDelete(null);
+  }
+
+  // ── New sub-page (Add page) modal ──────────────────────────────────────
+  function openNewSub(canalId: string) {
+    setNewSubForm(emptyNewSubForm(canalId));
+    setNewSubOpen(true);
+  }
+
+  function patchSub(patch: Partial<NewSubForm>) {
+    setNewSubForm(f => ({ ...f, ...patch }));
+  }
+
+  function commitNewSub() {
+    const label = newSubForm.label.trim() || 'Nova página';
+    const href = newSubForm.href.trim() || '/' + label.toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
+
+    const s: SubCanal = {
+      id: genId(), label, href,
+      enabled: !newSubForm.draft,
+      pageType: newSubForm.pageType,
+      ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
+      ...(newSubForm.pageType === 'lista-agrupada' ? { listaAgrupadaStyle: newSubForm.laStyle } : {}),
+    };
+    mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
+    setNewSubOpen(false);
+  }
+
+  // can commit new sub?
+  const canCommitSub = !!(
+    newSubForm.label.trim() &&
+    (newSubForm.pageType !== 'lista-agrupada' ||
+      HAS_MULTIPLE_EMPRESAS ||
+      newSubForm.laCategories.length > 0)
+  );
+
   // ── Canal edit ─────────────────────────────────────────────────────────
   function openCanalEdit(canal: Canal) {
     setCanalEditModal({
-      canalId: canal.id,
-      label: canal.label,
+      canalId: canal.id, label: canal.label,
       pageType: canal.pageType ?? 'show',
       headerImageUrl: canal.headerImage ?? null,
       applyHeaderToChildren: false,
@@ -427,11 +411,9 @@ export default function CanaisPage() {
       const next = prev.map(c => {
         if (c.id !== canalId) return c;
         const updated: Canal = {
-          ...c,
-          label: label.trim() || c.label,
+          ...c, label: label.trim() || c.label,
           pageType: isLeaf ? pageType : c.pageType,
-          headerImage: headerImageUrl ?? undefined,
-          showInFooter,
+          headerImage: headerImageUrl ?? undefined, showInFooter,
         };
         if (applyHeaderToChildren && headerImageUrl) {
           updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl } as SubCanal & { headerImage?: string }));
@@ -444,32 +426,38 @@ export default function CanaisPage() {
     setCanalEditModal(null);
   }
 
+  // ── New canal wizard ───────────────────────────────────────────────────
+  function commitNewCanal() {
+    const primaryLang = PORTAL_CONFIG.languages[0];
+    const label = newCanalForm.titles[primaryLang]?.trim() || 'Novo canal';
+    const isLeaf = newCanalForm.tipo === 'pagina';
+    const c: Canal = {
+      id: genId(), label, enabled: !newCanalForm.draft, children: [],
+      ...(isLeaf ? { pageType: newCanalForm.pageType } : {}),
+      ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
+    };
+    mutate(prev => [...prev, c]);
+    setNewCanalOpen(false);
+    setNewCanalForm(emptyNewCanalForm());
+  }
+
   // ── Sub/SubSub edit ────────────────────────────────────────────────────
   function openEdit(cid: string, sub: SubCanal, parentSubId?: string) {
     setEditModal({
-      canalId: cid, parentSubId,
-      subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
-      pageType: sub.pageType ?? 'show',
-      listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
-      isExternalLink: sub.isExternalLink ?? false,
-      externalUrl: sub.externalUrl ?? '',
-      showInFooter: sub.showInFooter ?? false,
-      transferTo: '',
+      canalId: cid, parentSubId, subId: sub.id, label: sub.label, href: sub.href, targetCanalId: cid,
+      pageType: sub.pageType ?? 'show', listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
+      isExternalLink: sub.isExternalLink ?? false, externalUrl: sub.externalUrl ?? '',
+      showInFooter: sub.showInFooter ?? false, transferTo: '',
     });
   }
   function openEditSubSub(cid: string, sid: string, ss: SubSubCanal) {
     setEditModal({
-      canalId: cid, parentSubId: sid,
-      subId: ss.id, label: ss.label, href: ss.href, targetCanalId: cid,
-      pageType: ss.pageType ?? 'show',
-      listaAgrupadaStyle: 'accordion',
-      isExternalLink: ss.isExternalLink ?? false,
-      externalUrl: ss.externalUrl ?? '',
-      showInFooter: false,
-      transferTo: '',
+      canalId: cid, parentSubId: sid, subId: ss.id, label: ss.label, href: ss.href, targetCanalId: cid,
+      pageType: ss.pageType ?? 'show', listaAgrupadaStyle: 'accordion',
+      isExternalLink: ss.isExternalLink ?? false, externalUrl: ss.externalUrl ?? '',
+      showInFooter: false, transferTo: '',
     });
   }
-
   function commitEdit() {
     if (!editModal) return;
     const { canalId, parentSubId, subId, label, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
@@ -478,17 +466,12 @@ export default function CanaisPage() {
         const next = prev.map(c => c.id !== canalId ? c : {
           ...c, children: c.children.map(s => s.id !== parentSubId ? s : {
             ...s, children: (s.children ?? []).map(ss => ss.id !== subId ? ss : {
-              ...ss,
-              label: label.trim() || ss.label,
-              href: href.trim() || ss.href,
-              pageType,
-              isExternalLink,
-              externalUrl: isExternalLink ? externalUrl : undefined,
+              ...ss, label: label.trim() || ss.label, href: href.trim() || ss.href,
+              pageType, isExternalLink, externalUrl: isExternalLink ? externalUrl : undefined,
             }),
           }),
         });
-        saveToStorage(next);
-        return next;
+        saveToStorage(next); return next;
       });
     } else {
       setCanais(prev => {
@@ -497,45 +480,32 @@ export default function CanaisPage() {
           if (c.id !== canalId) return c;
           const sub = c.children.find(s => s.id === subId);
           if (sub) movingSub = {
-            ...sub,
-            label: label.trim() || sub.label,
-            href: href.trim() || sub.href,
-            pageType,
-            listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
-            isExternalLink,
-            externalUrl: isExternalLink ? externalUrl : undefined,
-            showInFooter,
+            ...sub, label: label.trim() || sub.label, href: href.trim() || sub.href,
+            pageType, listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
+            isExternalLink, externalUrl: isExternalLink ? externalUrl : undefined, showInFooter,
           };
           return { ...c, children: c.children.filter(s => s.id !== subId) };
         });
         if (!movingSub) return prev;
         const ms = movingSub as SubCanal;
         const next = without.map(c => c.id !== targetCanalId ? c : { ...c, children: [...c.children, ms] });
-        saveToStorage(next);
-        return next;
+        saveToStorage(next); return next;
       });
     }
     setEditModal(null);
   }
 
-  // ── All pages flat list for transfer picker ────────────────────────────
+  // All pages for transfer picker
   const allPages = canais.flatMap(c => [
     ...c.children.map(s => ({ id: `${c.id}::${s.id}`, label: `${c.label} → ${s.label}` })),
     ...(c.children.flatMap(s => (s.children ?? []).map(ss => ({
-      id: `${c.id}::${s.id}::${ss.id}`,
-      label: `${c.label} → ${s.label} → ${ss.label}`,
+      id: `${c.id}::${s.id}::${ss.id}`, label: `${c.label} → ${s.label} → ${ss.label}`,
     })))),
   ]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────
-  function patchForm(patch: Partial<NewCanalForm>) {
-    setNewCanalForm(f => ({ ...f, ...patch }));
-  }
+  const canAdvanceNewCanal = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim();
 
-  const selectedPT = PAGE_TYPES.find(p => p.id === newCanalForm.pageType);
-  const canAdvance = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim();
-
-  // ── Render ─────────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="page">
       <StickyPageHeader
@@ -581,21 +551,17 @@ export default function CanaisPage() {
               </div>
               <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
               <span className="ct-section__name">{canal.label}</span>
-              {canal.children.length > 0 && (
-                <span className="ct-section__count">{canal.children.length}</span>
-              )}
+              {canal.children.length > 0 && <span className="ct-section__count">{canal.children.length}</span>}
               <div className="ct-section__acts">
                 <button className="btn-toolbar" type="button" onClick={() => openCanalEdit(canal)}>
                   <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span>
                   Editar
                 </button>
-                <button
-                  className={`btn-toolbar${canal.enabled ? '' : ' btn-toolbar--success'}`}
-                  type="button" onClick={() => toggleCanal(canal.id)}
-                >
+                <button className={`btn-toolbar${canal.enabled ? '' : ' btn-toolbar--success'}`} type="button" onClick={() => toggleCanal(canal.id)}>
                   {canal.enabled ? 'Despublicar' : 'Publicar'}
                 </button>
-                <button className="btn-toolbar btn-toolbar--danger" type="button" onClick={() => removeCanal(canal.id)}>
+                <button className="btn-toolbar btn-toolbar--danger" type="button"
+                  onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
                   Excluir
                 </button>
               </div>
@@ -633,19 +599,15 @@ export default function CanaisPage() {
                     {sub.pageType && <span className="ct-row__type">{sub.pageType}</span>}
                     <div className="ct-row__acts">
                       <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
-                      <button
-                        className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
-                        type="button" onClick={() => toggleSub(canal.id, sub.id)}
-                      >
+                      <button className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSub(canal.id, sub.id)}>
                         {sub.enabled ? 'Despublicar' : 'Publicar'}
                       </button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => removeSub(canal.id, sub.id)}>Excluir</button>
-                      <button
-                        className="ct-icon-btn ct-add-sub-btn"
-                        type="button"
-                        title={`Adicionar sub-página em ${sub.label}`}
-                        onClick={() => addSubSub(canal.id, sub.id)}
-                      >
+                      <button className="btn-action btn-action--danger" type="button"
+                        onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
+                        Excluir
+                      </button>
+                      <button className="ct-icon-btn ct-add-sub-btn" type="button" title={`Adicionar sub-página em ${sub.label}`}
+                        onClick={() => addSubSub(canal.id, sub.id)}>
                         <span className="material-symbols-outlined">subdirectory_arrow_right</span>
                       </button>
                     </div>
@@ -679,13 +641,13 @@ export default function CanaisPage() {
                           </div>
                           <div className="ct-row__acts">
                             <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
-                            <button
-                              className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`}
-                              type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}
-                            >
+                            <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
                               {ss.enabled ? 'Despublicar' : 'Publicar'}
                             </button>
-                            <button className="btn-action btn-action--danger" type="button" onClick={() => removeSubSub(canal.id, sub.id, ss.id)}>Excluir</button>
+                            <button className="btn-action btn-action--danger" type="button"
+                              onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
+                              Excluir
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -694,8 +656,8 @@ export default function CanaisPage() {
                 </div>
               ))}
 
-              {/* Add page */}
-              <button className="ct-add-page" type="button" onClick={() => addSub(canal.id)}>
+              {/* Add page — opens form */}
+              <button className="ct-add-page" type="button" onClick={() => openNewSub(canal.id)}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                 Adicionar página
               </button>
@@ -703,6 +665,262 @@ export default function CanaisPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Confirm delete modal ──────────────────────────────────────── */}
+      {confirmDelete && (
+        <Modal open onClose={() => setConfirmDelete(null)}
+          title={
+            confirmDelete.type === 'canal' ? 'Excluir canal'
+            : confirmDelete.type === 'sub' ? 'Excluir página'
+            : 'Excluir sub-página'
+          }
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => setConfirmDelete(null)}>Cancelar</button>
+              <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} type="button" onClick={doDelete}>Excluir</button>
+            </div>
+          }
+        >
+          <div className="ct-confirm-delete">
+            <span className="material-symbols-outlined ct-confirm-delete__icon">delete_forever</span>
+            <p className="ct-confirm-delete__msg">
+              Tem certeza que deseja excluir <strong>"{confirmDelete.label}"</strong>?
+            </p>
+            {confirmDelete.type === 'canal' && (
+              <p className="ct-confirm-delete__warn">
+                Todas as páginas e sub-páginas deste canal também serão removidas.
+              </p>
+            )}
+            {confirmDelete.type === 'sub' && (
+              <p className="ct-confirm-delete__warn">
+                As sub-páginas desta página também serão removidas.
+              </p>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Add page modal ────────────────────────────────────────────── */}
+      <Modal open={newSubOpen} onClose={() => setNewSubOpen(false)} title="Adicionar página" size="lg"
+        footer={
+          <div className="modal-footer">
+            <button className="btn-outline" type="button" onClick={() => setNewSubOpen(false)}>Cancelar</button>
+            <button className="btn-primary" type="button" onClick={commitNewSub} disabled={!canCommitSub}>
+              Adicionar página
+            </button>
+          </div>
+        }
+      >
+        <div className="canais-edit-form">
+          {/* External link */}
+          <label className="canais-new-draft-check">
+            <input type="checkbox" checked={newSubForm.isExternalLink}
+              onChange={e => patchSub({ isExternalLink: e.target.checked, externalUrl: '' })} />
+            <span>Link externo</span>
+          </label>
+
+          {!newSubForm.isExternalLink ? (
+            <div className="canais-edit-row">
+              <label className="canais-edit-form__label">
+                Nome da página <span className="ct-required">*</span>
+                <input className="canais-edit-form__input" type="text" placeholder="Ex: Atas e Assembleias" autoFocus
+                  value={newSubForm.label}
+                  onChange={e => {
+                    const label = e.target.value;
+                    const href = '/' + label.toLowerCase()
+                      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
+                    patchSub({ label, href });
+                  }} />
+              </label>
+              <label className="canais-edit-form__label">
+                URL (slug)
+                <input className="canais-edit-form__input" type="text" placeholder="/exemplo.html"
+                  value={newSubForm.href}
+                  onChange={e => patchSub({ href: e.target.value })} />
+              </label>
+            </div>
+          ) : (
+            <div className="canais-edit-row">
+              <label className="canais-edit-form__label">
+                Nome da página <span className="ct-required">*</span>
+                <input className="canais-edit-form__input" type="text" placeholder="Ex: Site da empresa" autoFocus
+                  value={newSubForm.label}
+                  onChange={e => patchSub({ label: e.target.value })} />
+              </label>
+              <label className="canais-edit-form__label">
+                URL externa
+                <input className="canais-edit-form__input" type="url" placeholder="https://..."
+                  value={newSubForm.externalUrl}
+                  onChange={e => patchSub({ externalUrl: e.target.value })} />
+              </label>
+            </div>
+          )}
+
+          {/* Page type */}
+          <div className="canais-edit-divider" />
+          <p className="canais-edit-section-title">Tipo de página</p>
+          <div className="ct-pt-grid">
+            {PAGE_TYPES.map(pt => (
+              <button key={pt.id} type="button"
+                className={`ct-pt-card${newSubForm.pageType === pt.id ? ' ct-pt-card--active' : ''}`}
+                onClick={() => patchSub({ pageType: pt.id })}
+              >
+                <div className="ct-pt-card__thumb">{pt.thumb}</div>
+                <div className="ct-pt-card__body">
+                  <span className="material-symbols-outlined ct-pt-card__icon">{pt.icon}</span>
+                  <span className="ct-pt-card__label">{pt.label}</span>
+                </div>
+                {newSubForm.pageType === pt.id && (
+                  <span className="ct-pt-card__check">
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>check</span>
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Lista Agrupada flow */}
+          {newSubForm.pageType === 'lista-agrupada' && (
+            <div className="ct-la-flow">
+              {HAS_MULTIPLE_EMPRESAS ? (
+                <>
+                  <div className="ct-la-flow__header">
+                    <span className="material-symbols-outlined ct-la-flow__header-icon">domain</span>
+                    <span>Este portal tem <strong>{PORTAL_EMPRESAS.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
+                  </div>
+
+                  <label className="ct-la-check ct-la-check--featured">
+                    <input type="checkbox" checked={newSubForm.laByEmpresa}
+                      onChange={e => patchSub({ laByEmpresa: e.target.checked })} />
+                    <div>
+                      <span className="ct-la-check__label">Dividir por empresa</span>
+                      <span className="ct-la-check__desc">Cada empresa exibe sua própria lista de documentos nesta página</span>
+                    </div>
+                  </label>
+
+                  {newSubForm.laByEmpresa && (
+                    <>
+                      <p className="ct-la-sub-title">Empresas incluídas</p>
+                      <div className="ct-la-empresas">
+                        {PORTAL_EMPRESAS.map(e => (
+                          <label key={e.id} className="ct-la-check">
+                            <input type="checkbox"
+                              checked={newSubForm.laSelectedEmpresas.includes(e.id)}
+                              onChange={ev => patchSub({
+                                laSelectedEmpresas: ev.target.checked
+                                  ? [...newSubForm.laSelectedEmpresas, e.id]
+                                  : newSubForm.laSelectedEmpresas.filter(id => id !== e.id),
+                              })}
+                            />
+                            <span className="ct-la-check__label">{e.label}</span>
+                          </label>
+                        ))}
+                      </div>
+
+                      <label className="ct-la-check">
+                        <input type="checkbox" checked={newSubForm.laFiltroEmpresa}
+                          onChange={e => patchSub({ laFiltroEmpresa: e.target.checked })} />
+                        <div>
+                          <span className="ct-la-check__label">Exibir filtro por empresa</span>
+                          <span className="ct-la-check__desc">Usuário pode filtrar documentos por empresa no site</span>
+                        </div>
+                      </label>
+                    </>
+                  )}
+
+                  {!newSubForm.laByEmpresa && (
+                    <div className="ct-la-style-row">
+                      <p className="ct-la-sub-title">Estilo de agrupamento</p>
+                      <div className="canais-agrupada-grid">
+                        {(['accordion', 'secao'] as const).map(s => (
+                          <button key={s} type="button"
+                            className={`canais-agrupada-opt${newSubForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                            onClick={() => patchSub({ laStyle: s })}
+                          >
+                            <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Single empresa: must define categories */
+                <>
+                  <div className="ct-la-flow__header">
+                    <span className="material-symbols-outlined ct-la-flow__header-icon">category</span>
+                    <span>Defina as categorias que organizarão os documentos desta página.</span>
+                  </div>
+                  <p className="ct-la-sub-title">
+                    Categorias <span className="ct-required">*</span>
+                    <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
+                  </p>
+                  <div className="ct-la-cat-input">
+                    <input
+                      className="canais-edit-form__input"
+                      type="text"
+                      placeholder="Ex: Demonstrações Financeiras"
+                      value={newSubForm.laCatInput}
+                      onChange={e => patchSub({ laCatInput: e.target.value })}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && newSubForm.laCatInput.trim()) {
+                          e.preventDefault();
+                          patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' });
+                        }
+                      }}
+                    />
+                    <button
+                      className="btn-outline"
+                      type="button"
+                      disabled={!newSubForm.laCatInput.trim()}
+                      onClick={() => patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' })}
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                  {newSubForm.laCategories.length > 0 && (
+                    <div className="ct-la-cats">
+                      {newSubForm.laCategories.map((cat, i) => (
+                        <span key={i} className="ct-la-cat-chip">
+                          {cat}
+                          <button type="button" onClick={() => patchSub({ laCategories: newSubForm.laCategories.filter((_, j) => j !== i) })}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {newSubForm.laCategories.length === 0 && (
+                    <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
+                  )}
+
+                  <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
+                  <div className="canais-agrupada-grid">
+                    {(['accordion', 'secao'] as const).map(s => (
+                      <button key={s} type="button"
+                        className={`canais-agrupada-opt${newSubForm.laStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                        onClick={() => patchSub({ laStyle: s })}
+                      >
+                        <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Draft */}
+          <div className="canais-edit-divider" />
+          <label className="canais-new-draft-check">
+            <input type="checkbox" checked={newSubForm.draft}
+              onChange={e => patchSub({ draft: e.target.checked })} />
+            <span>Salvar como rascunho (não publicar ainda)</span>
+          </label>
+        </div>
+      </Modal>
 
       {/* ── Canal edit modal ──────────────────────────────────────────── */}
       {canalEditModal && (
@@ -764,7 +982,6 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
-            {/* External link */}
             <label className="canais-new-draft-check">
               <input type="checkbox" checked={editModal.isExternalLink}
                 onChange={e => setEditModal(m => m ? { ...m, isExternalLink: e.target.checked, externalUrl: '' } : m)} />
@@ -778,16 +995,13 @@ export default function CanaisPage() {
                   onChange={e => setEditModal(m => m ? { ...m, externalUrl: e.target.value } : m)} />
               </label>
             )}
-
             <div className="canais-edit-row">
               <label className="canais-edit-form__label">
                 Nome da página
                 <input className="canais-edit-form__input" type="text" value={editModal.label} autoFocus
                   onChange={e => {
                     const label = e.target.value;
-                    const slug = '/' + label.toLowerCase()
-                      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-                      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+                    const slug = '/' + label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
                     setEditModal(m => m ? { ...m, label, href: slug } : m);
                   }} />
               </label>
@@ -797,13 +1011,9 @@ export default function CanaisPage() {
                   onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)} />
               </label>
             </div>
-
             <div className="canais-edit-divider" />
             <p className="canais-edit-section-title">Tipo de página</p>
-            <PageTypePicker
-              value={editModal.pageType}
-              onChange={v => setEditModal(m => m ? { ...m, pageType: v } : m)}
-            />
+            <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v } : m)} />
 
             {editModal.pageType === 'lista-agrupada' && (
               <div className="canais-agrupada-opts">
@@ -814,24 +1024,6 @@ export default function CanaisPage() {
                       className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
                       onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
                     >
-                      {s === 'accordion' ? (
-                        <svg width="100%" height="56" viewBox="0 0 200 72" fill="none">
-                          <rect x="1" y="1" width="198" height="20" rx="3" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
-                          <path d="M186 10l-4 5-4-5" stroke="#6F6F6F" strokeWidth="1.5" fill="none"/>
-                          <rect x="6" y="6" width="60" height="8" rx="2" fill="#c8d2db"/>
-                          <rect x="1" y="25" width="198" height="20" rx="3" fill="#f5f7fa" stroke="#dde3ea" strokeWidth="1"/>
-                          <rect x="6" y="30" width="50" height="8" rx="2" fill="#dde3ea"/>
-                          <rect x="8" y="49" width="140" height="5" rx="1" fill="#e8edf2"/>
-                        </svg>
-                      ) : (
-                        <svg width="100%" height="56" viewBox="0 0 200 72" fill="none">
-                          <rect x="6" y="2" width="80" height="10" rx="2" fill="#c8d2db"/>
-                          <rect x="1" y="16" width="198" height="1" fill="#dde3ea"/>
-                          <rect x="6" y="22" width="140" height="5" rx="1" fill="#e8edf2"/>
-                          <rect x="6" y="31" width="100" height="5" rx="1" fill="#e8edf2"/>
-                          <rect x="6" y="42" width="70" height="10" rx="2" fill="#c8d2db"/>
-                        </svg>
-                      )}
                       <span>{s === 'accordion' ? 'Accordion' : 'Seção com subtítulo'}</span>
                     </button>
                   ))}
@@ -839,16 +1031,13 @@ export default function CanaisPage() {
               </div>
             )}
 
-            {/* Only for L2: move + footer */}
             {!editModal.parentSubId && (
               <>
                 <div className="canais-edit-divider" />
                 <label className="canais-edit-form__label">
                   Mover para seção
-                  <select className="canais-edit-form__input filter-select"
-                    value={editModal.targetCanalId}
-                    onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}
-                  >
+                  <select className="canais-edit-form__input filter-select" value={editModal.targetCanalId}
+                    onChange={e => setEditModal(m => m ? { ...m, targetCanalId: e.target.value } : m)}>
                     {canais.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                   </select>
                 </label>
@@ -862,17 +1051,11 @@ export default function CanaisPage() {
                 <div className="canais-edit-divider" />
                 <div className="ct-transfer">
                   <p className="canais-edit-section-title">Transferir conteúdo</p>
-                  <p className="ct-transfer__hint">Move todo o conteúdo desta página (documentos, artigos, mídia) para outra página. A página de origem será esvaziada após a transferência.</p>
-                  <select
-                    className="canais-edit-form__input filter-select"
-                    value={editModal.transferTo}
-                    onChange={e => setEditModal(m => m ? { ...m, transferTo: e.target.value } : m)}
-                  >
+                  <p className="ct-transfer__hint">Move todo o conteúdo desta página (documentos, artigos, mídia) para outra página. A origem será esvaziada.</p>
+                  <select className="canais-edit-form__input filter-select" value={editModal.transferTo}
+                    onChange={e => setEditModal(m => m ? { ...m, transferTo: e.target.value } : m)}>
                     <option value="">— Não transferir —</option>
-                    {allPages
-                      .filter(p => !p.id.includes(editModal.subId))
-                      .map(p => <option key={p.id} value={p.id}>{p.label}</option>)
-                    }
+                    {allPages.filter(p => !p.id.includes(editModal.subId)).map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                   {editModal.transferTo && (
                     <div className="ct-transfer__warn">
@@ -888,9 +1071,7 @@ export default function CanaisPage() {
       )}
 
       {/* ── New canal wizard modal ────────────────────────────────────── */}
-      <Modal
-        open={newCanalOpen}
-        onClose={() => setNewCanalOpen(false)}
+      <Modal open={newCanalOpen} onClose={() => setNewCanalOpen(false)}
         title={newCanalForm.step === 1 ? 'Novo canal' : 'Tipo de página'}
         size={newCanalForm.step === 2 ? 'lg' : 'md'}
         footer={
@@ -899,11 +1080,9 @@ export default function CanaisPage() {
               <>
                 <button className="btn-outline" type="button" onClick={() => setNewCanalOpen(false)}>Cancelar</button>
                 {newCanalForm.tipo === 'pai' ? (
-                  <button className="btn-primary" type="button" onClick={commitNewCanal} disabled={!canAdvance}>
-                    Criar canal
-                  </button>
+                  <button className="btn-primary" type="button" onClick={commitNewCanal} disabled={!canAdvanceNewCanal}>Criar canal</button>
                 ) : (
-                  <button className="btn-primary" type="button" onClick={() => patchForm({ step: 2 })} disabled={!canAdvance}>
+                  <button className="btn-primary" type="button" onClick={() => setNewCanalForm(f => ({ ...f, step: 2 }))} disabled={!canAdvanceNewCanal}>
                     Próximo
                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
                   </button>
@@ -911,24 +1090,21 @@ export default function CanaisPage() {
               </>
             ) : (
               <>
-                <button className="btn-outline" type="button" onClick={() => patchForm({ step: 1 })}>
+                <button className="btn-outline" type="button" onClick={() => setNewCanalForm(f => ({ ...f, step: 1 }))}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                   Voltar
                 </button>
-                <button className="btn-primary" type="button" onClick={commitNewCanal}>
-                  Criar página
-                </button>
+                <button className="btn-primary" type="button" onClick={commitNewCanal}>Criar página</button>
               </>
             )}
           </div>
         }
       >
         {newCanalForm.step === 1 ? (
-          /* ── Step 1 ── */
           <div className="canais-edit-form">
             <label className="canais-new-draft-check">
               <input type="checkbox" checked={newCanalForm.isExternalLink}
-                onChange={e => patchForm({ isExternalLink: e.target.checked, externalUrl: '' })} />
+                onChange={e => setNewCanalForm(f => ({ ...f, isExternalLink: e.target.checked, externalUrl: '' }))} />
               <span>Link externo</span>
             </label>
             {newCanalForm.isExternalLink && (
@@ -936,50 +1112,40 @@ export default function CanaisPage() {
                 URL externa
                 <input className="canais-edit-form__input" type="url" placeholder="https://..."
                   value={newCanalForm.externalUrl}
-                  onChange={e => patchForm({ externalUrl: e.target.value })} />
+                  onChange={e => setNewCanalForm(f => ({ ...f, externalUrl: e.target.value }))} />
               </label>
             )}
-
-            <LangTabs active={newCanalForm.locale} onChange={l => patchForm({ locale: l })} />
-
+            <LangTabs active={newCanalForm.locale} onChange={l => setNewCanalForm(f => ({ ...f, locale: l }))} />
             <div className="canal-header-img-wrap">
               <p className="canais-edit-section-title">Imagem do header</p>
-              <HeaderImageEditor
-                value={newCanalForm.headerImageUrl}
-                onChange={v => patchForm({ headerImageUrl: v })}
-              />
+              <HeaderImageEditor value={newCanalForm.headerImageUrl}
+                onChange={v => setNewCanalForm(f => ({ ...f, headerImageUrl: v }))} />
             </div>
-
             <div key={newCanalForm.locale} className="canais-edit-form__label-group">
               <label className="canais-edit-form__label lang-fade">
                 Título
                 <input className="canais-edit-form__input" type="text" placeholder="Ex: Governança" autoFocus
                   value={newCanalForm.titles[newCanalForm.locale] ?? ''}
-                  onChange={e => patchForm({ titles: { ...newCanalForm.titles, [newCanalForm.locale]: e.target.value } })} />
+                  onChange={e => setNewCanalForm(f => ({ ...f, titles: { ...f.titles, [f.locale]: e.target.value } }))} />
               </label>
               <label className="canais-edit-form__label lang-fade" style={{ marginTop: '12px' }}>
                 Subtítulo <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(opcional)</span>
                 <input className="canais-edit-form__input" type="text" placeholder="Breve descrição do canal"
                   value={newCanalForm.subtitles[newCanalForm.locale] ?? ''}
-                  onChange={e => patchForm({ subtitles: { ...newCanalForm.subtitles, [newCanalForm.locale]: e.target.value } })} />
+                  onChange={e => setNewCanalForm(f => ({ ...f, subtitles: { ...f.subtitles, [f.locale]: e.target.value } }))} />
               </label>
             </div>
-
             <div>
               <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Tipo de canal</p>
               <div className="canais-new-type-row">
                 {(['pai', 'pagina'] as const).map(t => (
                   <button key={t} type="button"
                     className={`canais-new-type-btn${newCanalForm.tipo === t ? ' canais-new-type-btn--active' : ''}`}
-                    onClick={() => patchForm({ tipo: t })}
+                    onClick={() => setNewCanalForm(f => ({ ...f, tipo: t }))}
                   >
-                    <span className="material-symbols-outlined canais-new-type-btn__icon">
-                      {t === 'pai' ? 'account_tree' : 'article'}
-                    </span>
+                    <span className="material-symbols-outlined canais-new-type-btn__icon">{t === 'pai' ? 'account_tree' : 'article'}</span>
                     <span className="canais-new-type-btn__label">{t === 'pai' ? 'Canal pai' : 'Página direta'}</span>
-                    <span className="canais-new-type-btn__desc">
-                      {t === 'pai' ? 'Agrupa páginas filhas na navegação' : 'Link direto sem filhos na navegação'}
-                    </span>
+                    <span className="canais-new-type-btn__desc">{t === 'pai' ? 'Agrupa páginas filhas na navegação' : 'Link direto sem filhos na navegação'}</span>
                     {newCanalForm.tipo === t && (
                       <span className="canais-new-type-btn__check">
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
@@ -995,30 +1161,26 @@ export default function CanaisPage() {
                 </p>
               )}
             </div>
-
             <label className="canais-new-draft-check">
               <input type="checkbox" checked={newCanalForm.draft}
-                onChange={e => patchForm({ draft: e.target.checked })} />
+                onChange={e => setNewCanalForm(f => ({ ...f, draft: e.target.checked }))} />
               <span>Salvar como rascunho (não exibir no portal ainda)</span>
             </label>
             <label className="canais-check-label">
               <input type="checkbox" checked={newCanalForm.restrito}
-                onChange={e => patchForm({ restrito: e.target.checked })} />
+                onChange={e => setNewCanalForm(f => ({ ...f, restrito: e.target.checked }))} />
               <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary-400)' }}>lock</span>
               Acesso restrito — exige login para visualizar
             </label>
           </div>
         ) : (
-          /* ── Step 2: page type picker ── */
           <div className="canais-edit-form">
-            <p className="ct-step2-label">
-              Selecione como o conteúdo será exibido nesta página.
-            </p>
+            <p className="ct-step2-label">Selecione como o conteúdo será exibido nesta página.</p>
             <div className="ct-pt-grid">
               {PAGE_TYPES.map(pt => (
                 <button key={pt.id} type="button"
                   className={`ct-pt-card${newCanalForm.pageType === pt.id ? ' ct-pt-card--active' : ''}`}
-                  onClick={() => patchForm({ pageType: pt.id })}
+                  onClick={() => setNewCanalForm(f => ({ ...f, pageType: pt.id }))}
                 >
                   <div className="ct-pt-card__thumb">{pt.thumb}</div>
                   <div className="ct-pt-card__body">
@@ -1033,19 +1195,14 @@ export default function CanaisPage() {
                 </button>
               ))}
             </div>
-
-            {/* Flow description + type-specific config */}
-            {selectedPT && (
+            {newCanalForm.pageType && (
               <div className="ct-flow-box">
                 <p className="ct-flow-box__desc">
-                  <span className="material-symbols-outlined ct-flow-box__icon">{selectedPT.icon}</span>
-                  {selectedPT.flow}
+                  <span className="material-symbols-outlined ct-flow-box__icon">
+                    {PAGE_TYPES.find(p => p.id === newCanalForm.pageType)?.icon}
+                  </span>
+                  {PAGE_TYPES.find(p => p.id === newCanalForm.pageType)?.flow}
                 </p>
-                <PageTypeConfig
-                  pageType={newCanalForm.pageType}
-                  config={newCanalForm.ptConfig}
-                  onChange={patch => patchForm({ ptConfig: { ...newCanalForm.ptConfig, ...patch } })}
-                />
               </div>
             )}
           </div>
@@ -1056,7 +1213,6 @@ export default function CanaisPage() {
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
-
 function PageTypePicker({ value, onChange }: { value: PageType; onChange: (v: PageType) => void }) {
   return (
     <div className="canais-page-types">
