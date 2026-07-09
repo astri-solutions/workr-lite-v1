@@ -113,29 +113,37 @@ export default function AcessoAreaRestritaPage() {
                   {u.status}
                 </span>
               </td>
-              <td style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>{u.desde}</td>
+              <td className="table-cell--muted">{u.desde}</td>
               <td>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className="table-actions">
                   {u.status === 'Ativo' ? (
                     <button className="btn-action btn-action--secondary" onClick={() => toggleStatus(u.id)}>Suspender</button>
                   ) : (
                     <button className="btn-action btn-action--enter" onClick={() => toggleStatus(u.id)}>Reativar</button>
                   )}
-                  {confirmRemoveId === u.id ? (
-                    <>
-                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)' }}>Remover?</span>
-                      <button className="btn-action btn-action--danger" onClick={() => removeUser(u.id)}>Sim</button>
-                      <button className="btn-action btn-action--secondary" onClick={() => setConfirmRemoveId(null)}>Não</button>
-                    </>
-                  ) : (
-                    <button className="btn-action btn-action--danger" onClick={() => setConfirmRemoveId(u.id)}>Remover</button>
-                  )}
+                  <button className="btn-action btn-action--danger" onClick={() => setConfirmRemoveId(u.id)}>Remover</button>
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <Modal
+        open={confirmRemoveId !== null}
+        onClose={() => setConfirmRemoveId(null)}
+        title="Remover acesso"
+        description={`Tem certeza que deseja remover o acesso de ${users.find(u => u.id === confirmRemoveId)?.nome ?? ''}? Esta ação não pode ser desfeita.`}
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setConfirmRemoveId(null)}>Cancelar</button>
+            <button type="button" className="btn-action btn-action--danger" onClick={() => removeUser(confirmRemoveId!)}>Remover</button>
+          </div>
+        }
+      >
+        <></>
+      </Modal>
 
       <Modal
         open={modalOpen}
