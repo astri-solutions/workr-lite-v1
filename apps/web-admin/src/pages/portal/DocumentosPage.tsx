@@ -87,7 +87,7 @@ interface DocForm {
 function emptyDocForm(entityId = ''): DocForm {
   return {
     entityId,
-    titulo: '', allPages: true, paginaIds: [], subGroupIds: {},
+    titulo: '', allPages: false, paginaIds: [], subGroupIds: {},
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null, isExternalLink: false, externalUrl: '',
   };
@@ -485,7 +485,7 @@ export default function DocumentosPage() {
                 Salvar rascunho
               </button>
               <button type="button" className="btn-primary" onClick={() => handleSave(false)}
-                disabled={!form.titulo.trim()}>
+                disabled={!form.titulo.trim() || (!form.allPages && form.paginaIds.length === 0)}>
                 Publicar
               </button>
             </div>
@@ -498,8 +498,8 @@ export default function DocumentosPage() {
             const ent = ENTITIES.find(e => e.id === (form.entityId || activeEntity));
             return ent ? (
               <div className="doc-entity-badge">
-                <span className="doc-entity-badge__name">{ent.name}</span>
                 <span className="doc-entity-badge__tipo">{ent.tipo}</span>
+                <span className="doc-entity-badge__name">{ent.name}</span>
               </div>
             ) : null;
           })()}
