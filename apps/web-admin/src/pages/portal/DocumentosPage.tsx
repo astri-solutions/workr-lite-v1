@@ -338,9 +338,6 @@ export default function DocumentosPage() {
                       {doc.idiomas.map(lang => (
                         <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>
                       ))}
-                      {doc.tags.includes('CVM') && (
-                        <span className="docs-badge docs-badge--cvm">Auto CVM</span>
-                      )}
                     </div>
                   </td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
@@ -393,9 +390,6 @@ export default function DocumentosPage() {
                     {doc.idiomas.map(lang => (
                       <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>
                     ))}
-                    {doc.tags.includes('CVM') && (
-                      <span className="docs-badge docs-badge--cvm">Auto CVM</span>
-                    )}
                   </div>
                 </div>
                 <div className="docs-rcard__rows">
