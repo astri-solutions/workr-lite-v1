@@ -255,6 +255,16 @@
   display: flex;
   flex-direction: column;
 }
+.nm-header-inherited {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: var(--text-sm);
+  color: var(--color-gray-500);
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-100);
+}
 
 /* Image upload area */
 .img-upload {

@@ -4,20 +4,20 @@ export interface Destino {
   id: string;
   label: string;
   parentLabel: string | null;
+  canalHasHeaderImage: boolean;
 }
 
 function buildDestinos(canais: Canal[]): Destino[] {
   const result: Destino[] = [];
   for (const canal of canais) {
     if (!canal.enabled) continue;
+    const canalHasHeaderImage = !!(canal.headerImage);
     if (canal.children.length === 0) {
-      // Single-page canal — directly selectable
-      result.push({ id: canal.id, label: canal.label, parentLabel: null });
+      result.push({ id: canal.id, label: canal.label, parentLabel: null, canalHasHeaderImage });
     } else {
-      // Has sub-pages — only enabled children are selectable destinations
       for (const sub of canal.children) {
         if (!sub.enabled) continue;
-        result.push({ id: sub.id, label: sub.label, parentLabel: canal.label });
+        result.push({ id: sub.id, label: sub.label, parentLabel: canal.label, canalHasHeaderImage });
       }
     }
   }

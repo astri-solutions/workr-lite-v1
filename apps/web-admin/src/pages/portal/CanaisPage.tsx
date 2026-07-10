@@ -147,6 +147,8 @@ const PAGE_TYPES: Array<{
 interface NewSubForm {
   step: 1 | 2 | 3 | 4;
   canalId: string;
+  parentSubId: string | null; // set when adding L3 (sub-sub-page)
+  canalHasHeaderImage: boolean; // true when parent canal has a header image
   locale: LocaleCode;
   labels: Record<string, string>;
   href: string;
@@ -168,10 +170,12 @@ interface NewSubForm {
   laActiveEmpresa: string;
 }
 
-function emptyNewSubForm(canalId: string): NewSubForm {
+function emptyNewSubForm(canalId: string, parentSubId: string | null = null, canalHasHeaderImage = false): NewSubForm {
   return {
     step: 1,
     canalId,
+    parentSubId,
+    canalHasHeaderImage,
     locale: PORTAL_CONFIG.languages[0],
     labels: { [PORTAL_CONFIG.languages[0]]: '' },
     href: '',
@@ -391,13 +395,11 @@ export default function CanaisPage() {
       }),
     }));
   }
-  function addSubSub(cid: string, sid: string) {
-    const ss: SubSubCanal = { id: genId(), label: 'Nova sub-página', href: `/${genId()}.html`, enabled: false };
-    mutate(prev => prev.map(c => c.id !== cid ? c : {
-      ...c, children: c.children.map(s => s.id !== sid ? s : {
-        ...s, children: [...(s.children ?? []), ss],
-      }),
-    }));
+  function openNewSubSub(canalId: string, subId: string) {
+    const canal = canais.find(c => c.id === canalId);
+    const canalHasHeaderImage = !!(canal?.headerImage);
+    setNewSubForm(emptyNewSubForm(canalId, subId, canalHasHeaderImage));
+    setNewSubOpen(true);
   }
 
   // ── Delete with confirmation ───────────────────────────────────────────
@@ -418,7 +420,9 @@ export default function CanaisPage() {
 
   // ── New sub-page (Add page) modal ──────────────────────────────────────
   function openNewSub(canalId: string) {
-    setNewSubForm(emptyNewSubForm(canalId));
+    const canal = canais.find(c => c.id === canalId);
+    const canalHasHeaderImage = !!(canal?.headerImage);
+    setNewSubForm(emptyNewSubForm(canalId, null, canalHasHeaderImage));
     setNewSubOpen(true);
   }
 
@@ -433,14 +437,24 @@ export default function CanaisPage() {
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
 
-    const s: SubCanal = {
-      id: genId(), label, href,
-      enabled: !newSubForm.draft,
-      ...(newSubForm.hasChildren ? {} : { pageType: newSubForm.pageType }),
-      ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
-      ...(newSubForm.pageType === 'lista-agrupada' ? { listaAgrupadaStyle: newSubForm.laStyle } : {}),
-    };
-    mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
+    if (newSubForm.parentSubId) {
+      // L3: add as sub-sub-page
+      const ss: SubSubCanal = { id: genId(), label, href, enabled: !newSubForm.draft };
+      mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : {
+        ...c, children: c.children.map(s => s.id !== newSubForm.parentSubId ? s : {
+          ...s, children: [...(s.children ?? []), ss],
+        }),
+      }));
+    } else {
+      const s: SubCanal = {
+        id: genId(), label, href,
+        enabled: !newSubForm.draft,
+        ...(newSubForm.hasChildren ? {} : { pageType: newSubForm.pageType }),
+        ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
+        ...(newSubForm.pageType === 'lista-agrupada' ? { listaAgrupadaStyle: newSubForm.laStyle } : {}),
+      };
+      mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
+    }
     setNewSubOpen(false);
     setSubConfirming(false);
   }
@@ -750,7 +764,7 @@ export default function CanaisPage() {
                   )}
 
                   {/* Add sub-page — below L3 children */}
-                  <button className="ct-add-page ct-add-page--sub" type="button" onClick={() => addSubSub(canal.id, sub.id)}>
+                  <button className="ct-add-page ct-add-page--sub" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                     Adicionar sub-página
                   </button>
@@ -807,7 +821,7 @@ export default function CanaisPage() {
         open={newSubOpen}
         onClose={() => { setNewSubOpen(false); setSubConfirming(false); }}
         title={
-          newSubForm.step === 1 ? 'Adicionar página' :
+          newSubForm.step === 1 ? (newSubForm.parentSubId ? 'Adicionar sub-página' : 'Adicionar página') :
           newSubForm.step === 2 ? 'Tipo de página' :
           newSubForm.step === 3 ? 'Estilo de agrupamento' :
           'Categorias'
@@ -955,41 +969,52 @@ export default function CanaisPage() {
                   Imagem do header
                   <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)', marginLeft: 6 }}>(opcional)</span>
                 </p>
-                <HeaderImageEditor
-                  value={newSubForm.headerImageUrl}
-                  onChange={v => patchSub({ headerImageUrl: v })}
-                />
+                {newSubForm.canalHasHeaderImage ? (
+                  <p className="ct-wizard-hint">
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>photo_library</span>
+                    Esta página herda a imagem do canal pai.
+                  </p>
+                ) : (
+                  <HeaderImageEditor
+                    value={newSubForm.headerImageUrl}
+                    onChange={v => patchSub({ headerImageUrl: v })}
+                  />
+                )}
               </>
             )}
 
-            <div className="canais-edit-divider" />
-            <p className="canais-edit-section-title">Estrutura</p>
-            <div className="canais-new-type-row">
-              {([
-                { key: false as boolean, icon: 'article', label: 'Página simples', desc: 'Link direto, sem sub-páginas' },
-                { key: true as boolean, icon: 'account_tree', label: 'Terceiro nível', desc: 'Agrupa sub-páginas na navegação' },
-              ]).map(opt => (
-                <button key={String(opt.key)} type="button"
-                  className={`canais-new-type-btn${newSubForm.hasChildren === opt.key ? ' canais-new-type-btn--active' : ''}`}
-                  onClick={() => patchSub({ hasChildren: opt.key })}
-                >
-                  <span className="material-symbols-outlined canais-new-type-btn__icon">{opt.icon}</span>
-                  <span className="canais-new-type-btn__label">{opt.label}</span>
-                  <span className="canais-new-type-btn__desc">{opt.desc}</span>
-                  {newSubForm.hasChildren === opt.key && (
-                    <span className="canais-new-type-btn__check">
-                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-            <p className="ct-wizard-hint">
-              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
-              {newSubForm.hasChildren
-                ? 'Sub-páginas podem ser adicionadas após a criação na árvore de canais.'
-                : 'Você escolherá o tipo de conteúdo no próximo passo.'}
-            </p>
+            {!newSubForm.parentSubId && (
+              <>
+                <div className="canais-edit-divider" />
+                <p className="canais-edit-section-title">Estrutura</p>
+                <div className="canais-new-type-row">
+                  {([
+                    { key: false as boolean, icon: 'article', label: 'Página simples', desc: 'Link direto, sem sub-páginas' },
+                    { key: true as boolean, icon: 'account_tree', label: 'Terceiro nível', desc: 'Agrupa sub-páginas na navegação' },
+                  ]).map(opt => (
+                    <button key={String(opt.key)} type="button"
+                      className={`canais-new-type-btn${newSubForm.hasChildren === opt.key ? ' canais-new-type-btn--active' : ''}`}
+                      onClick={() => patchSub({ hasChildren: opt.key })}
+                    >
+                      <span className="material-symbols-outlined canais-new-type-btn__icon">{opt.icon}</span>
+                      <span className="canais-new-type-btn__label">{opt.label}</span>
+                      <span className="canais-new-type-btn__desc">{opt.desc}</span>
+                      {newSubForm.hasChildren === opt.key && (
+                        <span className="canais-new-type-btn__check">
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="ct-wizard-hint">
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                  {newSubForm.hasChildren
+                    ? 'Sub-páginas podem ser adicionadas após a criação na árvore de canais.'
+                    : 'Você escolherá o tipo de conteúdo no próximo passo.'}
+                </p>
+              </>
+            )}
 
             <div className="canais-edit-divider" />
             <label className="canais-new-draft-check">

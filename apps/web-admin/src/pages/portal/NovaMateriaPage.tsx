@@ -675,6 +675,7 @@ export default function NovaMateriaPage() {
   const [pickerCat, setPickerCat] = useState<'all' | SectionCategory>('all');
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [page, setPage] = useState(editing?.pagina ?? '');
+  const pageInheritsHeaderImage = destinos.find(d => d.id === page)?.canalHasHeaderImage ?? false;
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
@@ -841,7 +842,16 @@ export default function NovaMateriaPage() {
           <div key={locale} className="lang-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
-              {!isGaleria && <ImageUpload label="Imagem de header" ratio="21/5" />}
+              {!isGaleria && (
+                pageInheritsHeaderImage ? (
+                  <div className="nm-header-inherited">
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-gray-400)' }}>photo_library</span>
+                    <span>Esta página herda a imagem de header do canal.</span>
+                  </div>
+                ) : (
+                  <ImageUpload label="Imagem de header" ratio="21/5" />
+                )
+              )}
               <input
                 className="nm-field nm-field--title"
                 value={title}
