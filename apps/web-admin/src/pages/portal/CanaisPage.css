@@ -16,80 +16,102 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ── Column header ──────────────────────────────── */
+/* ── Column headers ─────────────────────────────── */
 .ct-thead {
-  display: grid;
-  grid-template-columns: 1fr 120px 48px;
+  display: flex;
   align-items: center;
-  padding: 0 var(--space-4);
-  height: 36px;
+  padding: 0 var(--space-3);
+  height: 34px;
   background: var(--color-gray-50);
   border-bottom: 1px solid var(--color-gray-200);
-  gap: var(--space-3);
 }
 
-.ct-thead__title,
-.ct-thead__type,
-.ct-thead__status {
+.ct-thead__title {
+  flex: 1;
+  min-width: 0;
+  padding-left: 28px; /* aligns with row name (after expand btn) */
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: var(--font-semibold);
   color: var(--color-gray-500);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
-.ct-thead__type  { text-align: center; }
-.ct-thead__status { text-align: center; }
+.ct-thead__type {
+  width: 136px;
+  flex-shrink: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ct-thead__status {
+  width: 60px;
+  flex-shrink: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 /* ── Base row ───────────────────────────────────── */
 .ct-row {
-  display: grid;
-  grid-template-columns: 28px auto 1fr 120px 48px auto;
+  display: flex;
   align-items: center;
   min-height: 44px;
   border-bottom: 1px solid var(--color-gray-100);
-  gap: 0;
   position: relative;
   transition: background 0.1s;
 }
 .ct-row:last-child { border-bottom: none; }
 .ct-row:hover { background: var(--color-gray-50); }
-.ct-row:hover .ct-row__acts { opacity: 1; pointer-events: auto; }
+.ct-row:hover .ct-row__acts {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 /* ── L1 canal row ───────────────────────────────── */
 .ct-row--l1 {
   background: var(--color-gray-50);
   border-bottom: 1px solid var(--color-gray-200);
-  grid-template-columns: 28px 1fr 120px 48px auto;
 }
-.ct-row--l1:hover { background: #f0f4f7; }
+.ct-row--l1:hover { background: #eef2f5; }
+.ct-row--l1 .ct-row__name {
+  font-family: var(--font-heading);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+}
 
 /* ── L2 sub row ─────────────────────────────────── */
-.ct-row--l2 {
-  grid-template-columns: 28px 16px 22px 1fr 120px 48px auto;
-  background: #fff;
-}
+.ct-row--l2 { background: #fff; }
+.ct-row--l2 .ct-row__title { padding-left: 20px; }
 
 /* ── L3 sub-sub row ─────────────────────────────── */
-.ct-row--l3 {
-  grid-template-columns: 28px 32px 22px 1fr 120px 48px auto;
-  background: #fafbfc;
-}
+.ct-row--l3 { background: #fafbfc; }
+.ct-row--l3 .ct-row__title { padding-left: 40px; }
 
 /* ── Off state ──────────────────────────────────── */
 .ct-row--off .ct-row__name,
-.ct-row--off .ct-row__path { opacity: 0.4; }
+.ct-row--off .ct-row__path { opacity: 0.38; }
 .ct-row--off .ct-status-dot { background: var(--color-gray-200) !important; }
 
-/* ── Moved animations ───────────────────────────── */
+/* ── Animations ─────────────────────────────────── */
 .ct-row--moved-up   { animation: canal-moved-up   350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 .ct-row--moved-down { animation: canal-moved-down 350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 
 /* ── Empty row ──────────────────────────────────── */
 .ct-row--empty {
-  grid-template-columns: 28px 1fr;
   background: #fff;
+  min-height: 36px;
+  padding-left: 28px;
 }
 
 /* ── Expand toggle ──────────────────────────────── */
@@ -99,46 +121,49 @@
   justify-content: center;
   width: 28px;
   min-height: 44px;
+  flex-shrink: 0;
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-gray-500);
-  flex-shrink: 0;
+  color: var(--color-gray-400);
   padding: 0;
-  transition: color 0.1s;
+  transition: color 0.15s;
 }
-.ct-expand:hover { color: var(--color-gray-900); }
-.ct-expand .material-symbols-outlined { font-size: 14px !important; }
+.ct-expand .material-symbols-outlined {
+  font-size: 14px !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ct-expand--open .material-symbols-outlined {
+  transform: rotate(45deg); /* + rotates to × when open */
+}
+.ct-expand:hover { color: var(--color-gray-800); }
 
-.ct-expand--spacer { cursor: default; pointer-events: none; }
+.ct-expand--sub .material-symbols-outlined { font-size: 12px !important; }
 
+/* Leaf dot — no children, no interaction */
 .ct-expand--leaf {
   cursor: default;
   pointer-events: none;
   color: var(--color-gray-300);
+  position: relative;
 }
-.ct-expand--leaf .material-symbols-outlined { font-size: 6px !important; }
-
-.ct-expand--sub .material-symbols-outlined { font-size: 12px !important; }
-
-/* ── Indent rail ────────────────────────────────── */
-.ct-indent {
+.ct-expand--leaf::after {
+  content: '';
   display: block;
-  width: 100%;
-  height: 100%;
-  border-left: 2px solid var(--color-gray-200);
-  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-gray-300);
 }
-.ct-indent--l2 { width: 16px; }
-.ct-indent--l3 { width: 32px; }
 
 /* ── Title cell ─────────────────────────────────── */
 .ct-row__title {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  min-width: 0;
-  padding: 10px var(--space-2) 10px var(--space-1);
+  padding: 10px var(--space-2) 10px 0;
 }
 
 .ct-row__name {
@@ -150,10 +175,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ct-row--l1 .ct-row__name {
-  font-family: var(--font-heading);
-  font-weight: var(--font-semibold);
-}
 
 .ct-row__path {
   font-family: var(--font-body);
@@ -164,46 +185,54 @@
   text-overflow: ellipsis;
 }
 
-/* ── Type column ────────────────────────────────── */
+/* ── Type column (fixed 136px) ──────────────────── */
 .ct-row__type-col {
+  width: 136px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-body);
   font-size: 11px;
   color: var(--color-gray-400);
-  padding: 0 var(--space-2);
 }
 
 .ct-type-badge {
   font-family: var(--font-body);
   font-size: 10px;
   font-weight: var(--font-semibold);
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   background: var(--color-gray-100);
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
   text-transform: capitalize;
   white-space: nowrap;
 }
 
-/* ── Status dot ─────────────────────────────────── */
+/* ── Status column (fixed 60px) ─────────────────── */
+.ct-row__status-col {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .ct-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--color-gray-300);
   flex-shrink: 0;
-  justify-self: center;
 }
 .ct-status-dot--on { background: #00D865; }
 
-/* ── Actions (hover reveal) ─────────────────────── */
+/* ── Actions (hover-reveal) ─────────────────────── */
 .ct-row__acts {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 0 var(--space-3) 0 var(--space-2);
+  padding: 0 var(--space-3) 0 var(--space-1);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s;
@@ -215,8 +244,7 @@
   display: flex;
   flex-direction: row;
   gap: 1px;
-  flex-shrink: 0;
-  margin-right: var(--space-1);
+  margin-right: 4px;
 }
 
 /* ── Icon button ────────────────────────────────── */
@@ -244,15 +272,43 @@
 .ct-icon-btn:disabled { opacity: 0.2; cursor: not-allowed; }
 .ct-icon-btn--sm { width: 18px; height: 18px; }
 
-/* ── Empty state text ───────────────────────────── */
+/* ── Accordion animation — canal body ───────────── */
+/*
+  Same pattern as _accordion.scss in cliente-workr-lite:
+  max-height: 0 → large value, overflow: hidden,
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1)
+*/
+.ct-canal-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ct-canal-body--open {
+  max-height: 4000px;
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ct-canal-body__inner { /* no extra styles needed; overflow handled by parent */ }
+
+/* ── Accordion animation — sub body (L3) ────────── */
+.ct-sub-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ct-sub-body--open {
+  max-height: 2000px;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Empty state ────────────────────────────────── */
 .ct-empty {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-400);
-  padding: 10px var(--space-3);
+  padding: 8px 0;
 }
 
-/* ── Confirm delete modal content ───────────────── */
+/* ── Confirm delete modal ───────────────────────── */
 .ct-confirm-delete {
   display: flex;
   flex-direction: column;

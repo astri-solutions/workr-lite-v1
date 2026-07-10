@@ -687,31 +687,22 @@ export default function CanaisPage() {
                   movedInfo ? `ct-row--moved-${movedInfo.dir === -1 ? 'up' : 'down'}` : '',
                 ].filter(Boolean).join(' ')}
               >
-                {/* Expand toggle */}
                 <button
-                  className="ct-expand"
+                  className={`ct-expand${canalExpanded ? ' ct-expand--open' : ''}`}
                   type="button"
                   aria-label={canalExpanded ? 'Recolher' : 'Expandir'}
                   onClick={() => toggleExpandCanal(canal.id)}
                 >
-                  <span className="material-symbols-outlined">
-                    {canalExpanded ? 'remove' : 'add'}
-                  </span>
+                  <span className="material-symbols-outlined">add</span>
                 </button>
-
-                {/* Title + path */}
                 <div className="ct-row__title">
                   <span className="ct-row__name">{canal.label}</span>
                   <span className="ct-row__path">Canal raiz</span>
                 </div>
-
-                {/* Type */}
                 <span className="ct-row__type-col">—</span>
-
-                {/* Status dot */}
-                <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
-
-                {/* Inline actions (hover-reveal) */}
+                <span className="ct-row__status-col">
+                  <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
+                </span>
                 <div className="ct-row__acts">
                   <div className="ct-row__reorder">
                     <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
@@ -736,12 +727,11 @@ export default function CanaisPage() {
                 </div>
               </div>
 
-              {/* L2 + L3 rows (visible when canal expanded) */}
-              {canalExpanded && (
-                <>
+              {/* Animated canal body — always rendered, height animated */}
+              <div className={`ct-canal-body${canalExpanded ? ' ct-canal-body--open' : ''}`}>
+                <div className="ct-canal-body__inner">
                   {canal.children.length === 0 && (
                     <div className="ct-row ct-row--empty">
-                      <span className="ct-expand ct-expand--spacer" aria-hidden="true" />
                       <span className="ct-empty">Nenhuma página neste canal.</span>
                     </div>
                   )}
@@ -753,23 +743,17 @@ export default function CanaisPage() {
                       <Fragment key={sub.id}>
                         {/* L2 row */}
                         <div className={`ct-row ct-row--l2${!sub.enabled ? ' ct-row--off' : ''}`}>
-                          <span className="ct-expand ct-expand--spacer" aria-hidden="true" />
-                          <span className="ct-indent ct-indent--l2" aria-hidden="true" />
                           {hasL3 ? (
                             <button
-                              className="ct-expand ct-expand--sub"
+                              className={`ct-expand ct-expand--sub${subExpanded ? ' ct-expand--open' : ''}`}
                               type="button"
                               aria-label={subExpanded ? 'Recolher' : 'Expandir'}
                               onClick={() => toggleExpandSub(sub.id)}
                             >
-                              <span className="material-symbols-outlined">
-                                {subExpanded ? 'remove' : 'add'}
-                              </span>
+                              <span className="material-symbols-outlined">add</span>
                             </button>
                           ) : (
-                            <span className="ct-expand ct-expand--leaf" aria-hidden="true">
-                              <span className="material-symbols-outlined">fiber_manual_record</span>
-                            </span>
+                            <span className="ct-expand ct-expand--leaf" aria-hidden="true" />
                           )}
                           <div className="ct-row__title">
                             <span className="ct-row__name">{sub.label}</span>
@@ -778,7 +762,9 @@ export default function CanaisPage() {
                           <span className="ct-row__type-col">
                             {sub.pageType ? <span className="ct-type-badge">{sub.pageType}</span> : '—'}
                           </span>
-                          <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
+                          <span className="ct-row__status-col">
+                            <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
+                          </span>
                           <div className="ct-row__acts">
                             <div className="ct-row__reorder">
                               <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
@@ -803,47 +789,51 @@ export default function CanaisPage() {
                           </div>
                         </div>
 
-                        {/* L3 rows */}
-                        {hasL3 && subExpanded && (sub.children ?? []).map((ss, ssi) => (
-                          <div key={ss.id} className={`ct-row ct-row--l3${!ss.enabled ? ' ct-row--off' : ''}`}>
-                            <span className="ct-expand ct-expand--spacer" aria-hidden="true" />
-                            <span className="ct-indent ct-indent--l3" aria-hidden="true" />
-                            <span className="ct-expand ct-expand--leaf" aria-hidden="true">
-                              <span className="material-symbols-outlined">fiber_manual_record</span>
-                            </span>
-                            <div className="ct-row__title">
-                              <span className="ct-row__name">{ss.label}</span>
-                              <span className="ct-row__path">{canal.label} › {sub.label} › {ss.label}</span>
-                            </div>
-                            <span className="ct-row__type-col">
-                              {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : '—'}
-                            </span>
-                            <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />
-                            <div className="ct-row__acts">
-                              <div className="ct-row__reorder">
-                                <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
-                                  <span className="material-symbols-outlined">expand_less</span>
-                                </button>
-                                <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
-                                  <span className="material-symbols-outlined">expand_more</span>
-                                </button>
-                              </div>
-                              <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
-                              <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
-                                {ss.enabled ? 'Despublicar' : 'Publicar'}
-                              </button>
-                              <button className="btn-action btn-action--danger" type="button"
-                                onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
-                                Excluir
-                              </button>
+                        {/* Animated L3 body */}
+                        {hasL3 && (
+                          <div className={`ct-sub-body${subExpanded ? ' ct-sub-body--open' : ''}`}>
+                            <div className="ct-sub-body__inner">
+                              {(sub.children ?? []).map((ss, ssi) => (
+                                <div key={ss.id} className={`ct-row ct-row--l3${!ss.enabled ? ' ct-row--off' : ''}`}>
+                                  <span className="ct-expand ct-expand--leaf" aria-hidden="true" />
+                                  <div className="ct-row__title">
+                                    <span className="ct-row__name">{ss.label}</span>
+                                    <span className="ct-row__path">{canal.label} › {sub.label} › {ss.label}</span>
+                                  </div>
+                                  <span className="ct-row__type-col">
+                                    {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : '—'}
+                                  </span>
+                                  <span className="ct-row__status-col">
+                                    <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />
+                                  </span>
+                                  <div className="ct-row__acts">
+                                    <div className="ct-row__reorder">
+                                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
+                                        <span className="material-symbols-outlined">expand_less</span>
+                                      </button>
+                                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
+                                        <span className="material-symbols-outlined">expand_more</span>
+                                      </button>
+                                    </div>
+                                    <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
+                                    <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
+                                      {ss.enabled ? 'Despublicar' : 'Publicar'}
+                                    </button>
+                                    <button className="btn-action btn-action--danger" type="button"
+                                      onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
+                                      Excluir
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
+                        )}
                       </Fragment>
                     );
                   })}
-                </>
-              )}
+                </div>
+              </div>
             </Fragment>
           );
         })}
