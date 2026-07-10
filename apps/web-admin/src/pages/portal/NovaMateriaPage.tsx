@@ -3,6 +3,7 @@ import { processImage } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
+import { persistMateria, type MateriaPageType } from '../../hooks/useMateriasStore';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
@@ -661,7 +662,14 @@ export default function NovaMateriaPage() {
   const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
   const isGaleria = pageType === 'galeria';
 
-  const destinos = useCanaisDestinos();
+  const allDestinos = useCanaisDestinos();
+
+  // Filter destinations by article type compatibility
+  const compatiblePageTypes: (string | undefined)[] = isGaleria
+    ? ['galeria', 'lista-agrupada', 'lista', 'blog']
+    : ['show', undefined];
+  const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
+
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
   const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
   const [sections, setSections] = useState<ContentSection[]>(
@@ -675,7 +683,9 @@ export default function NovaMateriaPage() {
   const [pickerCat, setPickerCat] = useState<'all' | SectionCategory>('all');
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [page, setPage] = useState(editing?.pagina ?? '');
-  const pageInheritsHeaderImage = destinos.find(d => d.id === page)?.canalHasHeaderImage ?? false;
+  const selectedDestino = destinos.find(d => d.id === page);
+  const pageInheritsHeaderImage = selectedDestino?.canalHasHeaderImage ?? false;
+  const pageOccupied = !isGaleria && (selectedDestino?.hasPublishedMateria ?? false);
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
@@ -727,6 +737,25 @@ export default function NovaMateriaPage() {
     setSaved(true);
     setDirty(false);
     setTimeout(() => setSaved(false), 2500);
+
+    if (page) {
+      const dest = destinos.find(d => d.id === page);
+      const today = new Date().toLocaleDateString('pt-BR');
+      persistMateria({
+        id: editing?.id ?? Math.random().toString(36).slice(2),
+        titulo: title || 'Sem título',
+        subtitulo: subtitle,
+        pageId: page,
+        pageLabel: dest?.label ?? page,
+        pageType: (isGaleria ? 'galeria' : 'show') as MateriaPageType,
+        pageSlugType: dest?.pageType,
+        status: newStatus === 'published' ? 'publicado' : newStatus === 'scheduled' ? 'agendado' : 'rascunho',
+        data: today,
+        autor: 'Usuário',
+        ultimaEdicao: today,
+        ultimoEditor: 'Usuário',
+      });
+    }
   }
 
   const statusLabel: Record<PublishStatus, string> = {
@@ -788,6 +817,8 @@ export default function NovaMateriaPage() {
               <button
                 type="button"
                 className="btn-primary"
+                disabled={pageOccupied}
+                title={pageOccupied ? 'Esta página já possui uma matéria publicada.' : undefined}
                 onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
               >
                 {saved && status !== 'draft' ? (status === 'scheduled' ? 'Agendado!' : 'Publicado!') : (scheduleDate ? 'Agendar' : 'Publicar')}
@@ -934,12 +965,16 @@ export default function NovaMateriaPage() {
                 return (
                   <>
                     {ungrouped.map((d) => (
-                      <option key={d.id} value={d.id}>{d.label}</option>
+                      <option key={d.id} value={d.id} disabled={d.hasPublishedMateria}>
+                        {d.label}{d.hasPublishedMateria ? ' (ocupada)' : ''}
+                      </option>
                     ))}
                     {Object.entries(groups).map(([parent, items]) => (
                       <optgroup key={parent} label={parent}>
                         {items.map((d) => (
-                          <option key={d.id} value={d.id}>{d.label}</option>
+                          <option key={d.id} value={d.id} disabled={d.hasPublishedMateria}>
+                            {d.label}{d.hasPublishedMateria ? ' (ocupada)' : ''}
+                          </option>
                         ))}
                       </optgroup>
                     ))}
@@ -947,6 +982,18 @@ export default function NovaMateriaPage() {
                 );
               })()}
             </select>
+            {pageOccupied && (
+              <p className="nm-page-conflict">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>warning</span>
+                Esta página já tem uma matéria publicada. Remova-a antes de publicar outra.
+              </p>
+            )}
+            {destinos.length === 0 && (
+              <p className="nm-page-conflict nm-page-conflict--info">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                Nenhuma página compatível com este tipo de matéria foi encontrada.
+              </p>
+            )}
           </div>
 
           {/* Content type */}

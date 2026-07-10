@@ -8,6 +8,7 @@ import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { Canal, DEFAULT_CANAIS, CANAIS_KEY } from '../../components/ChannelEditor';
+import { loadMaterias, deleteMateria as deleteMateriaFromStore, type StoredMateria } from '../../hooks/useMateriasStore';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
 
@@ -105,10 +106,27 @@ function buildMatFilters(paginaOptions: PaginaOption[]) {
   ];
 }
 
+function mergeWithStored(): Materia[] {
+  const stored = loadMaterias();
+  const storedIds = new Set(stored.map(m => m.id));
+  const initial = INITIAL.filter(m => !storedIds.has(m.id));
+  const fromStore: Materia[] = stored.map((m: StoredMateria) => ({
+    id: m.id,
+    titulo: m.titulo,
+    pagina: m.pageLabel,
+    status: m.status,
+    data: m.data,
+    autor: m.autor,
+    ultimaEdicao: m.ultimaEdicao,
+    ultimoEditor: m.ultimoEditor,
+  }));
+  return [...initial, ...fromStore];
+}
+
 export default function MateriasPage() {
   const portalName = usePortalName();
   const navigate = useNavigate();
-  const [materias, setMaterias] = useState<Materia[]>(INITIAL);
+  const [materias, setMaterias] = useState<Materia[]>(mergeWithStored);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ pagina: '', status: '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -127,6 +145,7 @@ export default function MateriasPage() {
 
   function confirmDelete() {
     if (!deleteId) return;
+    deleteMateriaFromStore(deleteId);
     setMaterias(prev => prev.filter(m => m.id !== deleteId));
     setDeleteId(null);
   }

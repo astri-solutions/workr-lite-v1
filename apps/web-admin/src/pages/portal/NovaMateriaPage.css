@@ -857,6 +857,18 @@
 .nm-meta-select {
   width: 100%;
 }
+.nm-page-conflict {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--text-xs);
+  color: #b45309;
+  line-height: 1.4;
+}
+.nm-page-conflict--info {
+  color: var(--color-gray-500);
+}
 
 .nm-date-input {
   width: 100%;
