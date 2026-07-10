@@ -115,17 +115,7 @@
 .ct-icon-btn--sm:hover:not(:disabled) { border-color: var(--color-gray-200); }
 
 /* Add sub-page icon button next to actions */
-.ct-add-sub-btn {
-  width: 24px;
-  height: 24px;
-  border-color: var(--color-gray-200);
-  color: var(--color-gray-400);
-  opacity: 0;
-  transition: opacity 0.12s, background 0.1s, color 0.1s, border-color 0.1s;
-}
-.ct-add-sub-btn .material-symbols-outlined { font-size: 13px !important; }
-.ct-row:hover .ct-add-sub-btn { opacity: 1; }
-.ct-add-sub-btn:hover { background: var(--color-primary-50, #e8f5f7) !important; color: var(--color-primary-600) !important; border-color: var(--color-primary-300) !important; }
+
 
 /* ── Body ───────────────────────────────────────── */
 .ct-body { padding: 0 0 var(--space-2); }
@@ -257,6 +247,7 @@
   width: 100%;
 }
 .ct-add-page:hover { color: var(--color-primary-700); }
+.ct-add-page--sub { padding-left: calc(var(--space-4) + 28px); border-top: none; border-top: 1px dashed var(--color-gray-200); }
 
 /* ── Secondary action button ───────────────────── */
 .btn-action--secondary {

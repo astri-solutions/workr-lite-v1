@@ -705,10 +705,6 @@ export default function CanaisPage() {
                         onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
                         Excluir
                       </button>
-                      <button className="ct-icon-btn ct-add-sub-btn" type="button" title={`Adicionar sub-página em ${sub.label}`}
-                        onClick={() => addSubSub(canal.id, sub.id)}>
-                        <span className="material-symbols-outlined">subdirectory_arrow_right</span>
-                      </button>
                     </div>
                   </div>
 
@@ -752,6 +748,12 @@ export default function CanaisPage() {
                       ))}
                     </div>
                   )}
+
+                  {/* Add sub-page — below L3 children */}
+                  <button className="ct-add-page ct-add-page--sub" type="button" onClick={() => addSubSub(canal.id, sub.id)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                    Adicionar sub-página
+                  </button>
                 </div>
               ))}
 
