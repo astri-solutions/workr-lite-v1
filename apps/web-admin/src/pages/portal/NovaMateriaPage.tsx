@@ -814,6 +814,7 @@ export default function NovaMateriaPage() {
   const selectedDestino = destinos.find(d => d.id === page);
   const pageInheritsHeaderImage = selectedDestino?.canalHasHeaderImage ?? false;
   const pageOccupied = !isGaleria && !isTabela && (selectedDestino?.hasPublishedMateria ?? false);
+  const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
@@ -915,11 +916,19 @@ export default function NovaMateriaPage() {
         />
 
         <div className="nm-topbar-actions">
+          {!canPublish && !pageOccupied && (
+            <span className="nm-validation-hint">
+              {!title.trim() && !page ? 'Título e página são obrigatórios' :
+               !title.trim() ? 'Título obrigatório' :
+               'Selecione a página de destino'}
+            </span>
+          )}
           {editing ? (
             <>
               <button
                 type="button"
                 className="btn-outline"
+                disabled={!canPublish}
                 onClick={() => handlePublish('draft')}
               >
                 Salvar rascunho
@@ -927,7 +936,7 @@ export default function NovaMateriaPage() {
               <button
                 type="button"
                 className="btn-primary"
-                disabled={!dirty}
+                disabled={!dirty || !canPublish}
                 onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
               >
                 {saved ? 'Salvo!' : 'Salvar alterações'}
@@ -938,6 +947,7 @@ export default function NovaMateriaPage() {
               <button
                 type="button"
                 className="btn-outline"
+                disabled={!canPublish}
                 onClick={() => handlePublish('draft')}
               >
                 {saved && status === 'draft' ? 'Salvo!' : 'Salvar como Rascunho'}
@@ -945,7 +955,7 @@ export default function NovaMateriaPage() {
               <button
                 type="button"
                 className="btn-primary"
-                disabled={pageOccupied}
+                disabled={!canPublish}
                 title={pageOccupied ? 'Esta página já possui uma matéria publicada.' : undefined}
                 onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
               >
