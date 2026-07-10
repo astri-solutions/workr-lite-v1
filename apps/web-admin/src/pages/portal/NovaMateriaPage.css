@@ -1317,3 +1317,156 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Tabela editor ─────────────────────────────────────────── */
+.tabela-editor {
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.tabela-editor__scroll {
+  overflow-x: auto;
+}
+.tabela-editor__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  table-layout: auto;
+}
+.tabela-editor__th {
+  background: var(--color-gray-50);
+  border-bottom: 2px solid var(--color-gray-200);
+  border-right: 1px solid var(--color-gray-100);
+  padding: 0;
+  white-space: nowrap;
+  min-width: 140px;
+}
+.tabela-editor__th:last-child { border-right: none; }
+.tabela-editor__th-inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+}
+.tabela-editor__header-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-700);
+  outline: none;
+  min-width: 80px;
+}
+.tabela-editor__header-input::placeholder { color: var(--color-gray-400); font-weight: 400; }
+.tabela-editor__col-del {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-400);
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.12s, color 0.1s;
+}
+.tabela-editor__th:hover .tabela-editor__col-del { opacity: 1; }
+.tabela-editor__col-del:hover { color: var(--color-danger, #c0392b); }
+.tabela-editor__add-col-th {
+  background: var(--color-gray-50);
+  border-bottom: 2px solid var(--color-gray-200);
+  padding: 0;
+  width: 36px;
+}
+.tabela-editor__add-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  min-height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary-500);
+  border-left: 1px dashed var(--color-gray-200);
+  transition: background 0.1s;
+}
+.tabela-editor__add-col:hover { background: var(--color-primary-50, #e8f5f7); }
+.tabela-editor__row-num {
+  width: 36px;
+  min-width: 36px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-gray-400);
+  background: var(--color-gray-50);
+  border-right: 1px solid var(--color-gray-100);
+  font-variant-numeric: tabular-nums;
+  padding: 0 6px;
+}
+thead .tabela-editor__row-num { border-bottom: 2px solid var(--color-gray-200); }
+.tabela-editor__td {
+  border-right: 1px solid var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-100);
+  padding: 0;
+}
+.tabela-editor__td:last-child { border-right: none; }
+.tabela-editor__cell-input {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-gray-800);
+  outline: none;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+.tabela-editor__cell-input:focus { background: var(--color-primary-50, #e8f5f7); }
+.tabela-editor__cell-input::placeholder { color: var(--color-gray-300); }
+.tabela-editor__row-actions {
+  width: 36px;
+  text-align: center;
+  border-bottom: 1px solid var(--color-gray-100);
+  border-left: 1px dashed var(--color-gray-200);
+  padding: 0;
+}
+.tabela-editor__row-del {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  min-height: 36px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-300);
+  transition: color 0.1s;
+  opacity: 0;
+}
+tr:hover .tabela-editor__row-del { opacity: 1; }
+.tabela-editor__row-del:hover:not(:disabled) { color: var(--color-danger, #c0392b); }
+.tabela-editor__row-del:disabled { cursor: default; }
+.tabela-editor__add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-primary-500);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px dashed var(--color-gray-200);
+  transition: background 0.1s, color 0.1s;
+}
+.tabela-editor__add-row:hover { background: var(--color-primary-50, #e8f5f7); color: var(--color-primary-700); }

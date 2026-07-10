@@ -63,7 +63,7 @@ const LIST_PAGES = [
   { id: 'composicao', label: 'Composição Acionária', group: 'Governança', subGroups: [] as string[] },
   { id: 'atas', label: 'Atas e Assembleias', group: 'Governança', subGroups: ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'] },
   { id: 'docs-cvm', label: 'Documentos CVM', group: 'Governança', subGroups: ['Fatos Relevantes', 'Comunicados ao Mercado', 'Avisos aos Acionistas', 'Documentos Societários', 'Informações Periódicas'] },
-  { id: 'resultados', label: 'Central de Resultados', group: 'Investidores', subGroups: [] as string[] },
+  { id: 'resultados', label: 'Resultados', group: 'Investidores', subGroups: [] as string[] },
   { id: 'calendario', label: 'Calendário de Eventos', group: 'Investidores', subGroups: [] as string[] },
   { id: 'ratings', label: 'Ratings', group: 'Investidores', subGroups: [] as string[] },
 ];

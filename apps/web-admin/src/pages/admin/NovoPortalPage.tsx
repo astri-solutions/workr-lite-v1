@@ -8,7 +8,7 @@ import '../../components/InviteUserModal.css';
 
 /* ─── Default canais por tipo ──────────────────────────────────────────── */
 const DEFAULT_CANAIS_SIDEBAR: Canal[] = [
-  { id: 'central-resultados', label: 'Central de Resultados', href: '/central-resultados.html', enabled: true, children: [] },
+  { id: 'central-resultados', label: 'Resultados', href: '/central-resultados.html', enabled: true, children: [] },
   { id: 'docs-cvm', label: 'Documentos CVM', href: '/documentos-cvm.html', enabled: true, children: [] },
   { id: 'atas-assembleias', label: 'Atas e Assembleias', href: '/atas-assembleias.html', enabled: true, children: [] },
   { id: 'fale-ri', label: 'Fale com RI', href: '/fale-com-ri.html', enabled: true, children: [] },

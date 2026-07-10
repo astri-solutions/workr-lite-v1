@@ -406,7 +406,7 @@ export default function FooterPage() {
                 {[
                   { title: 'A COMPANHIA', links: ['A Companhia'] },
                   { title: 'GOVERNANÇA', links: ['Composição Acionária', 'Atas e Assembleias', 'Documentos CVM'] },
-                  { title: 'INVESTIDORES', links: ['Central de Resultados', 'Calendário de Eventos', 'Ratings'] },
+                  { title: 'INVESTIDORES', links: ['Resultados', 'Calendário de Eventos', 'Ratings'] },
                   { title: 'CONTATO', links: ['Fale com RI', 'Mailing'] },
                 ].map(col => (
                   <div key={col.title} className="fp__nav-col">

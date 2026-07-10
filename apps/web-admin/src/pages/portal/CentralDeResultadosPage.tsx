@@ -286,7 +286,7 @@ export default function CentralDeResultadosPage() {
   return (
     <div className="page cdr-page">
       <StickyPageHeader
-        title="Central de Resultados"
+        title="Resultados"
         description={<>Resultados de <strong>{portalName}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
         action={
           /* resultados-1: botão oculto — usar resultados-2 */

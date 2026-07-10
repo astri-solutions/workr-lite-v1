@@ -51,7 +51,7 @@ export const DEFAULT_CANAIS: Canal[] = [
   },
   {
     id: 'investidores', label: 'Investidores', enabled: true, children: [
-      { id: 'resultados', label: 'Central de Resultados', href: '/central-resultados.html', enabled: true },
+      { id: 'resultados', label: 'Resultados', href: '/central-resultados.html', enabled: true },
       { id: 'calendario', label: 'Calendário de Eventos', href: '/calendario-eventos.html', enabled: true },
       { id: 'ratings', label: 'Ratings', href: '/ratings.html', enabled: true },
     ],

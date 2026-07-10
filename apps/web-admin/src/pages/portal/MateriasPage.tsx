@@ -76,6 +76,12 @@ const PAGE_TYPES = [
     icon: 'grid_view',
   },
   {
+    id: 'tabela' as const,
+    label: 'Tabela',
+    desc: 'Planilha com colunas e linhas editáveis, ideal para dados tabulares.',
+    icon: 'table',
+  },
+  {
     id: 'formulario' as const,
     label: 'Formulário',
     desc: 'Página com formulário de contato configurável e e-mail de recebimento.',
@@ -131,7 +137,7 @@ export default function MateriasPage() {
   const [filters, setFilters] = useState<Record<string, string>>({ pagina: '', status: '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'formulario'>('show');
+  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'tabela' | 'formulario'>('show');
 
   const matFilters = buildMatFilters(buildPaginaOptions(loadCanais()));
 

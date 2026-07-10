@@ -612,7 +612,7 @@ export default function CentralDeResultadosPage2() {
         </div>
       </>) : (<>
       <StickyPageHeader
-        title="Central de Resultados"
+        title="Resultados"
         description={<>Resultados de <strong>{portalName}</strong> · organização <strong>{PORTAL_CONFIG.orgType}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={openWizard}>

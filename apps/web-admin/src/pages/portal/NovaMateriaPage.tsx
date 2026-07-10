@@ -570,6 +570,126 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
   );
 }
 
+/* ── Tabela editor ────────────────────────────────────────── */
+interface TabelaCell { value: string; }
+interface TabelaRow { id: string; cells: TabelaCell[]; }
+
+function genRowId() { return Math.random().toString(36).slice(2); }
+
+function makeCells(n: number): TabelaCell[] {
+  return Array.from({ length: n }, () => ({ value: '' }));
+}
+
+function TabelaEditor({ rows, headers, onChange }: {
+  rows: TabelaRow[];
+  headers: string[];
+  onChange: (rows: TabelaRow[], headers: string[]) => void;
+}) {
+  const colCount = headers.length;
+
+  function addCol() {
+    onChange(
+      rows.map(r => ({ ...r, cells: [...r.cells, { value: '' }] })),
+      [...headers, `Coluna ${colCount + 1}`],
+    );
+  }
+
+  function removeCol(ci: number) {
+    if (colCount <= 1) return;
+    onChange(
+      rows.map(r => ({ ...r, cells: r.cells.filter((_, i) => i !== ci) })),
+      headers.filter((_, i) => i !== ci),
+    );
+  }
+
+  function addRow() {
+    onChange([...rows, { id: genRowId(), cells: makeCells(colCount) }], headers);
+  }
+
+  function removeRow(ri: number) {
+    onChange(rows.filter((_, i) => i !== ri), headers);
+  }
+
+  function setHeader(ci: number, value: string) {
+    const next = [...headers];
+    next[ci] = value;
+    onChange(rows, next);
+  }
+
+  function setCell(ri: number, ci: number, value: string) {
+    const next = rows.map((r, i) => {
+      if (i !== ri) return r;
+      const cells = r.cells.map((c, j) => j === ci ? { value } : c);
+      return { ...r, cells };
+    });
+    onChange(next, headers);
+  }
+
+  return (
+    <div className="tabela-editor">
+      <div className="tabela-editor__scroll">
+        <table className="tabela-editor__table">
+          <thead>
+            <tr>
+              <th className="tabela-editor__row-num" />
+              {headers.map((h, ci) => (
+                <th key={ci} className="tabela-editor__th">
+                  <div className="tabela-editor__th-inner">
+                    <input
+                      className="tabela-editor__header-input"
+                      value={h}
+                      onChange={e => setHeader(ci, e.target.value)}
+                      placeholder={`Coluna ${ci + 1}`}
+                    />
+                    {colCount > 1 && (
+                      <button className="tabela-editor__col-del" type="button" title="Remover coluna"
+                        onClick={() => removeCol(ci)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                      </button>
+                    )}
+                  </div>
+                </th>
+              ))}
+              <th className="tabela-editor__add-col-th">
+                <button className="tabela-editor__add-col" type="button" title="Adicionar coluna" onClick={addCol}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add</span>
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={row.id}>
+                <td className="tabela-editor__row-num">{ri + 1}</td>
+                {row.cells.map((cell, ci) => (
+                  <td key={ci} className="tabela-editor__td">
+                    <input
+                      className="tabela-editor__cell-input"
+                      value={cell.value}
+                      onChange={e => setCell(ri, ci, e.target.value)}
+                      placeholder="—"
+                    />
+                  </td>
+                ))}
+                <td className="tabela-editor__row-actions">
+                  <button className="tabela-editor__row-del" type="button" title="Remover linha"
+                    onClick={() => removeRow(ri)} disabled={rows.length <= 1}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button className="tabela-editor__add-row" type="button" onClick={addRow}>
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+        Nova linha
+      </button>
+    </div>
+  );
+}
+
 /* ── Section editor ───────────────────────────────────────── */
 function SectionEditor({ section, index, onRemove, onUpdateSection }: {
   section: ContentSection;
@@ -657,27 +777,35 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
 export default function NovaMateriaPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' } | null;
+  const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' | 'tabela' } | null;
   const editing = routeState?.editing ?? null;
-  const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
+  const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' | 'tabela' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
   const isGaleria = pageType === 'galeria';
+  const isTabela = pageType === 'tabela';
 
   const allDestinos = useCanaisDestinos();
 
   // Filter destinations by article type compatibility
   const compatiblePageTypes: (string | undefined)[] = isGaleria
     ? ['galeria', 'lista-agrupada', 'lista', 'blog']
+    : isTabela
+    ? ['tabela']
     : ['show', undefined];
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
   const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
   const [sections, setSections] = useState<ContentSection[]>(
-    isGaleria ? [] : [{ id: 'init', type: 'text' }]
+    isGaleria || isTabela ? [] : [{ id: 'init', type: 'text' }]
   );
   const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>(
     isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()]
   );
+  const [tabelaHeaders, setTabelaHeaders] = useState<string[]>(['Coluna 1', 'Coluna 2', 'Coluna 3']);
+  const [tabelaRows, setTabelaRows] = useState<TabelaRow[]>([
+    { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
+    { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
+  ]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerCat, setPickerCat] = useState<'all' | SectionCategory>('all');
@@ -685,7 +813,7 @@ export default function NovaMateriaPage() {
   const [page, setPage] = useState(editing?.pagina ?? '');
   const selectedDestino = destinos.find(d => d.id === page);
   const pageInheritsHeaderImage = selectedDestino?.canalHasHeaderImage ?? false;
-  const pageOccupied = !isGaleria && (selectedDestino?.hasPublishedMateria ?? false);
+  const pageOccupied = !isGaleria && !isTabela && (selectedDestino?.hasPublishedMateria ?? false);
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
@@ -832,9 +960,9 @@ export default function NovaMateriaPage() {
       <LangTabs active={locale} onChange={setLocale} />
 
       {/* ── Body: 3 columns (show) or 2 columns (galeria) ── */}
-      <div className={`nm-body${isGaleria ? ' nm-body--galeria' : ''}`}>
+      <div className={`nm-body${isGaleria || isTabela ? ' nm-body--galeria' : ''}`}>
         {/* Left: sections list (show only) */}
-        {!isGaleria && (
+        {!isGaleria && !isTabela && (
           <aside className="nm-sections-panel">
             <p className="nm-panel-heading">Seções</p>
 
@@ -873,7 +1001,7 @@ export default function NovaMateriaPage() {
           <div key={locale} className="lang-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
-              {!isGaleria && (
+              {!isGaleria && !isTabela && (
                 pageInheritsHeaderImage ? (
                   <div className="nm-header-inherited">
                     <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-gray-400)' }}>photo_library</span>
@@ -897,7 +1025,13 @@ export default function NovaMateriaPage() {
               />
             </div>
 
-            {isGaleria ? (
+            {isTabela ? (
+              <TabelaEditor
+                rows={tabelaRows}
+                headers={tabelaHeaders}
+                onChange={(rows, headers) => { setTabelaRows(rows); setTabelaHeaders(headers); markDirty(); }}
+              />
+            ) : isGaleria ? (
               <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} />
             ) : (
               <>

@@ -88,7 +88,7 @@ const SECTIONS: NavSection[] = [
     items: [
       {
         to: '/portal/central-de-resultados',
-        label: 'Central de Resultados',
+        label: 'Resultados',
         icon: (
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>dashboard</span>
         ),
