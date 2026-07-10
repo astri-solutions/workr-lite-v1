@@ -307,6 +307,31 @@ export default function CanaisPage() {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteState | null>(null);
   const [subConfirming, setSubConfirming] = useState(false);
 
+  // Accordion expand state — L1 canals and L2 subs with children
+  const [expandedCanals, setExpandedCanals] = useState<Set<string>>(
+    () => new Set(DEFAULT_CANAIS.map(c => c.id))
+  );
+  const [expandedSubs, setExpandedSubs] = useState<Set<string>>(
+    () => new Set(
+      DEFAULT_CANAIS.flatMap(c => c.children.filter(s => (s.children?.length ?? 0) > 0).map(s => s.id))
+    )
+  );
+
+  function toggleExpandCanal(id: string) {
+    setExpandedCanals(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+  function toggleExpandSub(id: string) {
+    setExpandedSubs(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
   // Animation
   const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
   const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -640,145 +665,188 @@ export default function CanaisPage() {
         }
       />
 
-      {/* ── Tree ──────────────────────────────────────────────────────── */}
+      {/* ── Accordion tree ────────────────────────────────────────────── */}
       <div className="ct-tree">
-        {canais.map((canal, ci) => (
-          <div
-            key={canal.id}
-            className={[
-              'ct-section',
-              movedCanals.find(x => x.id === canal.id)
-                ? `ct-section--moved-${movedCanals.find(x => x.id === canal.id)!.dir === -1 ? 'up' : 'down'}`
-                : '',
-            ].filter(Boolean).join(' ')}
-          >
-            {/* Section header */}
-            <div className="ct-section__head">
-              <div className="ct-section__reorder">
-                <button className="ct-icon-btn" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
-                  <span className="material-symbols-outlined">expand_less</span>
-                </button>
-                <button className="ct-icon-btn" type="button" title="Descer" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
-                  <span className="material-symbols-outlined">expand_more</span>
-                </button>
-              </div>
-              <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
-              <span className="ct-section__name">{canal.label}</span>
-              {canal.children.length > 0 && <span className="ct-section__count">{canal.children.length}</span>}
-              <div className="ct-section__acts">
-                <button className="btn-toolbar" type="button" onClick={() => openCanalEdit(canal)}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span>
-                  Editar
-                </button>
-                <button className={`btn-toolbar${canal.enabled ? '' : ' btn-toolbar--success'}`} type="button" onClick={() => toggleCanal(canal.id)}>
-                  {canal.enabled ? 'Despublicar' : 'Publicar'}
-                </button>
-                <button className="btn-toolbar btn-toolbar--danger" type="button"
-                  onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
-                  Excluir
-                </button>
-              </div>
-            </div>
+        {/* Column headers */}
+        <div className="ct-thead">
+          <span className="ct-thead__title">Título</span>
+          <span className="ct-thead__type">Tipo de página</span>
+          <span className="ct-thead__status">Status</span>
+        </div>
 
-            {/* Pages */}
-            <div className="ct-body">
-              {canal.children.length === 0 && (
-                <p className="ct-empty">Nenhuma página nesta seção.</p>
-              )}
-              {canal.children.map((sub, si) => (
-                <div key={sub.id} className={`ct-item${!sub.enabled ? ' ct-item--off' : ''}`}>
-                  {/* L2 row */}
-                  <div className="ct-row">
-                    <div className="ct-row__reorder">
-                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
-                        <span className="material-symbols-outlined">expand_less</span>
-                      </button>
-                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSub(canal.id, si, 1)} disabled={si === canal.children.length - 1}>
-                        <span className="material-symbols-outlined">expand_more</span>
-                      </button>
-                    </div>
-                    <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
-                    <div className="ct-row__info">
-                      <span className="ct-row__label">{sub.label}</span>
-                      {sub.isExternalLink ? (
-                        <span className="ct-row__ext">
-                          <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>open_in_new</span>
-                          {sub.externalUrl || 'link externo'}
-                        </span>
-                      ) : (
-                        <span className="ct-row__href">{sub.href}</span>
-                      )}
-                    </div>
-                    {sub.pageType && <span className="ct-row__type">{sub.pageType}</span>}
-                    <div className="ct-row__acts">
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
-                      <button className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSub(canal.id, sub.id)}>
-                        {sub.enabled ? 'Despublicar' : 'Publicar'}
-                      </button>
-                      <button className="btn-action btn-action--danger" type="button"
-                        onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
-                        Excluir
-                      </button>
-                    </div>
+        {canais.map((canal, ci) => {
+          const canalExpanded = expandedCanals.has(canal.id);
+          const movedInfo = movedCanals.find(x => x.id === canal.id);
+          return (
+            <Fragment key={canal.id}>
+              {/* L1 — Canal row */}
+              <div
+                className={[
+                  'ct-row ct-row--l1',
+                  !canal.enabled ? 'ct-row--off' : '',
+                  movedInfo ? `ct-row--moved-${movedInfo.dir === -1 ? 'up' : 'down'}` : '',
+                ].filter(Boolean).join(' ')}
+              >
+                {/* Expand toggle */}
+                <button
+                  className="ct-expand"
+                  type="button"
+                  aria-label={canalExpanded ? 'Recolher' : 'Expandir'}
+                  onClick={() => toggleExpandCanal(canal.id)}
+                >
+                  <span className="material-symbols-outlined">
+                    {canalExpanded ? 'remove' : 'add'}
+                  </span>
+                </button>
+
+                {/* Title + path */}
+                <div className="ct-row__title">
+                  <span className="ct-row__name">{canal.label}</span>
+                  <span className="ct-row__path">Canal raiz</span>
+                </div>
+
+                {/* Type */}
+                <span className="ct-row__type-col">—</span>
+
+                {/* Status dot */}
+                <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
+
+                {/* Inline actions (hover-reveal) */}
+                <div className="ct-row__acts">
+                  <div className="ct-row__reorder">
+                    <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
+                      <span className="material-symbols-outlined">expand_less</span>
+                    </button>
+                    <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Descer" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
+                      <span className="material-symbols-outlined">expand_more</span>
+                    </button>
                   </div>
+                  <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>Editar</button>
+                  <button className={`btn-action ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleCanal(canal.id)}>
+                    {canal.enabled ? 'Despublicar' : 'Publicar'}
+                  </button>
+                  <button className="btn-action btn-action--danger" type="button"
+                    onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
+                    Excluir
+                  </button>
+                  <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                    Página
+                  </button>
+                </div>
+              </div>
 
-                  {/* L3 children */}
-                  {(sub.children ?? []).length > 0 && (
-                    <div className="ct-l3">
-                      {(sub.children ?? []).map((ss, ssi) => (
-                        <div key={ss.id} className={`ct-row ct-row--l3${!ss.enabled ? ' ct-item--off' : ''}`}>
-                          <div className="ct-row__reorder">
-                            <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
-                              <span className="material-symbols-outlined">expand_less</span>
-                            </button>
-                            <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
-                              <span className="material-symbols-outlined">expand_more</span>
-                            </button>
-                          </div>
-                          <span className="ct-l3-rail" aria-hidden="true" />
-                          <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />
-                          <div className="ct-row__info">
-                            <span className="ct-row__label">{ss.label}</span>
-                            {ss.isExternalLink ? (
-                              <span className="ct-row__ext">
-                                <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>open_in_new</span>
-                                {ss.externalUrl || 'link externo'}
-                              </span>
-                            ) : (
-                              <span className="ct-row__href">{ss.href}</span>
-                            )}
-                          </div>
-                          <div className="ct-row__acts">
-                            <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
-                            <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
-                              {ss.enabled ? 'Despublicar' : 'Publicar'}
-                            </button>
-                            <button className="btn-action btn-action--danger" type="button"
-                              onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
-                              Excluir
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+              {/* L2 + L3 rows (visible when canal expanded) */}
+              {canalExpanded && (
+                <>
+                  {canal.children.length === 0 && (
+                    <div className="ct-row ct-row--empty">
+                      <span className="ct-expand ct-expand--spacer" aria-hidden="true" />
+                      <span className="ct-empty">Nenhuma página neste canal.</span>
                     </div>
                   )}
 
-                  {/* Add sub-page — below L3 children */}
-                  <button className="ct-add-page ct-add-page--sub" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                    Adicionar sub-página
-                  </button>
-                </div>
-              ))}
+                  {canal.children.map((sub, si) => {
+                    const hasL3 = (sub.children?.length ?? 0) > 0;
+                    const subExpanded = expandedSubs.has(sub.id);
+                    return (
+                      <Fragment key={sub.id}>
+                        {/* L2 row */}
+                        <div className={`ct-row ct-row--l2${!sub.enabled ? ' ct-row--off' : ''}`}>
+                          <span className="ct-expand ct-expand--spacer" aria-hidden="true" />
+                          <span className="ct-indent ct-indent--l2" aria-hidden="true" />
+                          {hasL3 ? (
+                            <button
+                              className="ct-expand ct-expand--sub"
+                              type="button"
+                              aria-label={subExpanded ? 'Recolher' : 'Expandir'}
+                              onClick={() => toggleExpandSub(sub.id)}
+                            >
+                              <span className="material-symbols-outlined">
+                                {subExpanded ? 'remove' : 'add'}
+                              </span>
+                            </button>
+                          ) : (
+                            <span className="ct-expand ct-expand--leaf" aria-hidden="true">
+                              <span className="material-symbols-outlined">fiber_manual_record</span>
+                            </span>
+                          )}
+                          <div className="ct-row__title">
+                            <span className="ct-row__name">{sub.label}</span>
+                            <span className="ct-row__path">{canal.label} › {sub.label}</span>
+                          </div>
+                          <span className="ct-row__type-col">
+                            {sub.pageType ? <span className="ct-type-badge">{sub.pageType}</span> : '—'}
+                          </span>
+                          <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
+                          <div className="ct-row__acts">
+                            <div className="ct-row__reorder">
+                              <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
+                                <span className="material-symbols-outlined">expand_less</span>
+                              </button>
+                              <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSub(canal.id, si, 1)} disabled={si === canal.children.length - 1}>
+                                <span className="material-symbols-outlined">expand_more</span>
+                              </button>
+                            </div>
+                            <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
+                            <button className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSub(canal.id, sub.id)}>
+                              {sub.enabled ? 'Despublicar' : 'Publicar'}
+                            </button>
+                            <button className="btn-action btn-action--danger" type="button"
+                              onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
+                              Excluir
+                            </button>
+                            <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                              Sub-página
+                            </button>
+                          </div>
+                        </div>
 
-              {/* Add page — opens form */}
-              <button className="ct-add-page" type="button" onClick={() => openNewSub(canal.id)}>
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                Adicionar página
-              </button>
-            </div>
-          </div>
-        ))}
+                        {/* L3 rows */}
+                        {hasL3 && subExpanded && (sub.children ?? []).map((ss, ssi) => (
+                          <div key={ss.id} className={`ct-row ct-row--l3${!ss.enabled ? ' ct-row--off' : ''}`}>
+                            <span className="ct-expand ct-expand--spacer" aria-hidden="true" />
+                            <span className="ct-indent ct-indent--l3" aria-hidden="true" />
+                            <span className="ct-expand ct-expand--leaf" aria-hidden="true">
+                              <span className="material-symbols-outlined">fiber_manual_record</span>
+                            </span>
+                            <div className="ct-row__title">
+                              <span className="ct-row__name">{ss.label}</span>
+                              <span className="ct-row__path">{canal.label} › {sub.label} › {ss.label}</span>
+                            </div>
+                            <span className="ct-row__type-col">
+                              {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : '—'}
+                            </span>
+                            <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />
+                            <div className="ct-row__acts">
+                              <div className="ct-row__reorder">
+                                <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
+                                  <span className="material-symbols-outlined">expand_less</span>
+                                </button>
+                                <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
+                                  <span className="material-symbols-outlined">expand_more</span>
+                                </button>
+                              </div>
+                              <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
+                              <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
+                                {ss.enabled ? 'Despublicar' : 'Publicar'}
+                              </button>
+                              <button className="btn-action btn-action--danger" type="button"
+                                onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
+                                Excluir
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </Fragment>
+                    );
+                  })}
+                </>
+              )}
+            </Fragment>
+          );
+        })}
       </div>
 
       {/* ── Confirm delete modal ──────────────────────────────────────── */}
