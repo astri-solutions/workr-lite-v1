@@ -29,27 +29,9 @@ interface AuthContextValue {
 // ── Fallback para desenvolvimento sem Supabase ────────────────────────────────
 const DEMO_CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
   {
-    email: 'admin@astri.solutions',
-    password: 'workr2025',
-    user: { email: 'admin@astri.solutions', name: 'Admin Astri', role: 'super_admin' },
-  },
-  {
     email: 'projetos@astri.solutions',
     password: 'workr2025',
     user: { email: 'projetos@astri.solutions', name: 'Astri Projetos', role: 'super_admin' },
-  },
-  {
-    email: 'cliente@demo.com',
-    password: 'demo2025',
-    user: {
-      email: 'cliente@demo.com', name: 'Cliente Demo', role: 'client_user', tenantId: 'demo',
-      portais: [
-        { id: '1', nome: 'Construtora Aurora' },
-        { id: '2', nome: 'International Meal Company' },
-        { id: '3', nome: 'Vetra Energia' },
-      ],
-      activePortalId: '1',
-    },
   },
 ];
 
