@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import './AdminPages.css';
@@ -8,6 +8,7 @@ import SearchInput from '../../components/SearchInput';
 import InviteUserModal, { InviteFormData, PortalWithEmpresas } from '../../components/InviteUserModal';
 import EditUserModal, { EditableUser } from '../../components/EditUserModal';
 import Modal from '../../components/Modal';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface UsuarioItem {
   id: string;
@@ -18,48 +19,88 @@ interface UsuarioItem {
   status: 'Ativo' | 'Suspenso';
 }
 
-const PORTAIS_MAP: Record<string, string> = {};
-
-const INITIAL_USUARIOS: UsuarioItem[] = [];
-
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Admin',
   client_user: 'Cliente',
 };
 
-const PORTAIS: PortalWithEmpresas[] = [];
+const USUARIOS_STORAGE_KEY = 'workr_usuarios';
 
-const FILTER_GROUPS = [
-  {
-    key: 'role',
-    label: 'Tipo',
-    options: [
-      { value: 'all', label: 'Todos os tipos', shortLabel: 'Todos' },
-      { value: 'super_admin', label: 'Admin' },
-      { value: 'client_user', label: 'Cliente' },
-    ],
-  },
-  {
-    key: 'portal',
-    label: 'Portal',
-    options: [
-      { value: 'all', label: 'Todos os portais', shortLabel: 'Todos' },
-      ...PORTAIS.map((p) => ({ value: p.id, label: p.nome })),
-    ],
-  },
-  {
-    key: 'status',
-    label: 'Status',
-    options: [
-      { value: 'all', label: 'Todos os status', shortLabel: 'Todos' },
-      { value: 'Ativo', label: 'Ativo' },
-      { value: 'Suspenso', label: 'Suspenso' },
-    ],
-  },
-];
+function loadPortaisFromStorage(): PortalWithEmpresas[] {
+  try {
+    const raw = localStorage.getItem('workr_portais');
+    const portais: Array<{ id: string; cliente: string }> = raw ? JSON.parse(raw) : [];
+    return portais.map(p => ({ id: p.id, nome: p.cliente, empresas: [] }));
+  } catch {
+    return [];
+  }
+}
+
+function loadUsuariosFromStorage(): UsuarioItem[] {
+  try {
+    const raw = localStorage.getItem(USUARIOS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveUsuarios(list: UsuarioItem[]) {
+  localStorage.setItem(USUARIOS_STORAGE_KEY, JSON.stringify(list));
+}
 
 export default function UsuariosPage() {
-  const [usuarios, setUsuarios] = useState<UsuarioItem[]>(INITIAL_USUARIOS);
+  const { user: authUser } = useAuth();
+  const portais = useMemo(() => loadPortaisFromStorage(), []);
+  const portaisMap = useMemo(() => Object.fromEntries(portais.map(p => [p.id, p.nome])), [portais]);
+
+  // Seed the list with the logged-in super_admin if not already stored
+  const [usuarios, setUsuarios] = useState<UsuarioItem[]>(() => {
+    const stored = loadUsuariosFromStorage();
+    if (authUser && !stored.find(u => u.email === authUser.email)) {
+      const me: UsuarioItem = {
+        id: 'me',
+        nome: authUser.name || authUser.email,
+        email: authUser.email,
+        role: 'super_admin',
+        portais: [],
+        status: 'Ativo',
+      };
+      const withMe = [me, ...stored];
+      saveUsuarios(withMe);
+      return withMe;
+    }
+    return stored;
+  });
+
+  const filterGroups = useMemo(() => [
+    {
+      key: 'role',
+      label: 'Tipo',
+      options: [
+        { value: 'all', label: 'Todos os tipos', shortLabel: 'Todos' },
+        { value: 'super_admin', label: 'Admin' },
+        { value: 'client_user', label: 'Cliente' },
+      ],
+    },
+    {
+      key: 'portal',
+      label: 'Portal',
+      options: [
+        { value: 'all', label: 'Todos os portais', shortLabel: 'Todos' },
+        ...portais.map((p) => ({ value: p.id, label: p.nome })),
+      ],
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      options: [
+        { value: 'all', label: 'Todos os status', shortLabel: 'Todos' },
+        { value: 'Ativo', label: 'Ativo' },
+        { value: 'Suspenso', label: 'Suspenso' },
+      ],
+    },
+  ], [portais]);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', portal: 'all', status: 'all' });
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -80,17 +121,19 @@ export default function UsuariosPage() {
       portais: data.portaisIds,
       status: 'Ativo',
     };
-    setUsuarios(prev => [...prev, newUser]);
+    setUsuarios(prev => { const next = [...prev, newUser]; saveUsuarios(next); return next; });
   }
 
-  function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portais: string[]) {
-    setUsuarios((list) => list.map((u) => u.id === id ? { ...u, role, portais } : u));
+  function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portaisIds: string[]) {
+    setUsuarios((list) => { const next = list.map((u) => u.id === id ? { ...u, role, portais: portaisIds } : u); saveUsuarios(next); return next; });
   }
 
   function handleToggleStatus(id: string) {
-    setUsuarios((list) =>
-      list.map((u) => u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Suspenso' : 'Ativo' } : u)
-    );
+    setUsuarios((list) => {
+      const next = list.map((u) => u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Suspenso' as const : 'Ativo' as const } : u);
+      saveUsuarios(next);
+      return next;
+    });
   }
 
   function confirmDesativar() {
@@ -106,7 +149,7 @@ export default function UsuariosPage() {
   }
 
   function handleDelete(id: string) {
-    setUsuarios((list) => list.filter((u) => u.id !== id));
+    setUsuarios((list) => { const next = list.filter((u) => u.id !== id); saveUsuarios(next); return next; });
   }
 
   const _filtered = usuarios.filter((u) => {
@@ -137,12 +180,12 @@ export default function UsuariosPage() {
       />
 
       <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou e-mail…" className="usu-admin-search" />
-      <FilterBar groups={FILTER_GROUPS} value={filters} onChange={handleFilter} />
+      <FilterBar groups={filterGroups} value={filters} onChange={handleFilter} />
 
       <InviteUserModal
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
-        portais={PORTAIS}
+        portais={portais}
         onSubmit={handleInvite}
       />
 
@@ -220,7 +263,7 @@ export default function UsuariosPage() {
                       <span className="table-cell--muted" style={{ fontSize: '13px' }}>
                         {u.portais.length === 0
                           ? '—'
-                          : (PORTAIS_MAP[u.portais[0]] ?? u.portais[0])}
+                          : (portaisMap[u.portais[0]] ?? u.portais[0])}
                       </span>
                     )}
                   </td>
@@ -237,7 +280,7 @@ export default function UsuariosPage() {
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span className="badge badge--gray" style={{ fontSize: '11px' }}>
-                          {PORTAIS_MAP[u.portais[0]] ?? u.portais[0]}
+                          {portaisMap[u.portais[0]] ?? u.portais[0]}
                         </span>
                         {u.portais.length > 1 && (
                           <span className="badge badge--gray" style={{ fontSize: '11px' }}>

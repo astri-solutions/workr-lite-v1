@@ -28,86 +28,20 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 // Flip to false when the real backend is live.
 const MOCK_MODE = true;
 
-// ─── Mock seed data (replace with DB rows) ───────────────────────────────────
+// ─── Mock seed data — loaded from workr_portais localStorage ─────────────────
 
-const _mockPortais: CvmPortal[] = [
-  {
-    id: 'imc',
-    nome: 'International Meal Company',
-    entidades: [
-      {
-        id: 'ent-1',
-        portalId: 'imc',
-        nome: 'International Meal Company',
-        tipo: 'empresa',
-        cnpj: '17.314.329/0001-20',
-        cvmCode: '23574',
-        status: 'ativo',
-        importarDesde: '2024-01-01',
-        ultimaSync: new Date(Date.now() - 2 * 60_000).toISOString(),
-        proximaSync: new Date(Date.now() + 8 * 60_000).toISOString(),
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'ent-2',
-        portalId: 'imc',
-        nome: 'IMC Recebíveis FII',
-        tipo: 'fundo',
-        cnpj: '44.123.456/0001-77',
-        cvmCode: '45012',
-        status: 'ativo',
-        importarDesde: '2025-06-01',
-        ultimaSync: new Date(Date.now() - 2 * 60_000).toISOString(),
-        proximaSync: new Date(Date.now() + 8 * 60_000).toISOString(),
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'ent-3',
-        portalId: 'imc',
-        nome: 'IMC Crédito Estruturado FII',
-        tipo: 'fundo',
-        cnpj: '44.987.654/0001-11',
-        cvmCode: '45990',
-        status: 'pausado',
-        importarDesde: null,
-        ultimaSync: null,
-        proximaSync: null,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'aurora',
-    nome: 'Construtora Aurora',
-    entidades: [
-      {
-        id: 'ent-4',
-        portalId: 'aurora',
-        nome: 'Construtora Aurora S.A.',
-        tipo: 'empresa',
-        cnpj: '12.345.678/0001-90',
-        cvmCode: '18920',
-        status: 'ativo',
-        importarDesde: '2023-01-01',
-        ultimaSync: new Date(Date.now() - 5 * 60_000).toISOString(),
-        proximaSync: new Date(Date.now() + 5 * 60_000).toISOString(),
-        createdAt: '2023-01-01T00:00:00Z',
-        updatedAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'vetra',
-    nome: 'Vetra Energia',
-    entidades: [],
-  },
-];
+function _loadPortaisFromStorage(): CvmPortal[] {
+  try {
+    const raw = localStorage.getItem('workr_portais');
+    const portais: Array<{ id: string; cliente: string }> = raw ? JSON.parse(raw) : [];
+    return portais.map(p => ({ id: p.id, nome: p.cliente, entidades: [] }));
+  } catch {
+    return [];
+  }
+}
 
-// Mutable in-memory store for mock mode
-let _store: CvmPortal[] = JSON.parse(JSON.stringify(_mockPortais));
+// Mutable in-memory store for mock mode — seeded from localStorage portals
+let _store: CvmPortal[] = _loadPortaisFromStorage();
 
 export function _findEntity(entityId: string): CvmEntity | undefined {
   for (const p of _store) {

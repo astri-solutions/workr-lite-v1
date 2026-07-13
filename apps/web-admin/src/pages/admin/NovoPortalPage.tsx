@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { processImage, ImageSlot } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
 import './NovoPortalPage.css';
 import '../../components/InviteUserModal.css';
@@ -278,7 +279,6 @@ function StepIdentificacao({
           <label className="np-label">Subdomínio</label>
           <p className="np-field__hint">Escolha o endereço do portal. Pode ser alterado depois.</p>
           <div className="np-url-wrap">
-            <span className="np-url-prefix">astri.solutions /</span>
             <input
               className="np-input np-input--url"
               type="text"
@@ -287,6 +287,7 @@ function StepIdentificacao({
               onChange={(e) => handleUrl(e.target.value)}
               maxLength={40}
             />
+            <span className="np-url-prefix">.vercel.app</span>
           </div>
           {slug && (
             <div className="np-url-preview">
@@ -295,7 +296,7 @@ function StepIdentificacao({
                 <line x1="2" y1="12" x2="22" y2="12" />
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
-              <span>https://astri.solutions/<strong>{slug}</strong></span>
+              <span>https://<strong>{slug}</strong>.vercel.app</span>
             </div>
           )}
         </div>
@@ -585,6 +586,30 @@ function StepFonte({
   );
 }
 
+/* ─── Color picker helpers ─────────────────────────────────────────────── */
+function hexToHsv(hex: string): [number, number, number] {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+    else if (max === g) h = ((b - r) / d + 2) * 60;
+    else h = ((r - g) / d + 4) * 60;
+  }
+  return [h, max ? d / max : 0, max];
+}
+
+function hsvToHex(h: number, s: number, v: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    const val = v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+    return Math.round(val * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(5)}${f(3)}${f(1)}`;
+}
+
 /* ─── Step: Cores ─────────────────────────────────────────────────────── */
 function StepCores({
   primaria, secundaria, terciaria,
@@ -597,29 +622,78 @@ function StepCores({
     label: string; value: string; onChange: (v: string) => void; hint: string; required?: boolean;
   }) {
     const [hex, setHex] = useState(value);
+    const [open, setOpen] = useState(false);
+    const [hsv, setHsv] = useState<[number, number, number]>(() => {
+      if (/^#[0-9a-fA-F]{6}$/.test(value)) return hexToHsv(value);
+      return [0, 1, 1];
+    });
+    const wrapRef = useRef<HTMLDivElement>(null);
+    const svRef = useRef<HTMLDivElement>(null);
+    const hueRef = useRef<HTMLDivElement>(null);
+    const svDragging = useRef(false);
+    const hueDragging = useRef(false);
+    const [h, s, v] = hsv;
+
+    useEffect(() => {
+      setHex(value);
+      if (/^#[0-9a-fA-F]{6}$/.test(value)) setHsv(hexToHsv(value));
+    }, [value]);
+
+    useEffect(() => {
+      if (!open) return;
+      function onOutside(e: MouseEvent) {
+        if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      }
+      document.addEventListener('mousedown', onOutside);
+      return () => document.removeEventListener('mousedown', onOutside);
+    }, [open]);
+
+    function applyHsv(newHsv: [number, number, number]) {
+      setHsv(newHsv);
+      const newHex = hsvToHex(...newHsv);
+      setHex(newHex);
+      onChange(newHex);
+    }
+
+    function getSvFromEvent(e: React.PointerEvent | PointerEvent) {
+      const el = svRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+      applyHsv([h, nx, 1 - ny]);
+    }
+
+    function getHueFromEvent(e: React.PointerEvent | PointerEvent) {
+      const el = hueRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      applyHsv([nx * 360, s, v]);
+    }
 
     function handleHex(raw: string) {
       setHex(raw);
-      if (/^#[0-9a-fA-F]{6}$/.test(raw)) onChange(raw);
+      if (/^#[0-9a-fA-F]{6}$/.test(raw)) {
+        onChange(raw);
+        setHsv(hexToHsv(raw));
+      }
     }
 
-    useEffect(() => { setHex(value); }, [value]);
+    const pureHue = `hsl(${h}, 100%, 50%)`;
 
     return (
-      <div className="np-color-item">
+      <div className="np-color-item" ref={wrapRef}>
         <label className="np-color-item__label">
           {label}{required && <span className="np-label__required"> *</span>}
         </label>
         <p className="np-color-item__hint">{hint}</p>
         <div className="np-color-item__row">
-          <div className="np-color-swatch-wrap">
+          <div
+            className="np-color-swatch-wrap"
+            onClick={() => setOpen((o) => !o)}
+          >
             <div className="np-color-swatch" style={{ background: value }} />
-            <input
-              type="color"
-              className="np-color-native"
-              value={value}
-              onChange={(e) => { onChange(e.target.value); setHex(e.target.value); }}
-            />
           </div>
           <input
             className="np-input np-input--hex"
@@ -630,6 +704,44 @@ function StepCores({
             spellCheck={false}
           />
         </div>
+        {open && (
+          <div className="np-cpicker">
+            {/* Saturation–Value square */}
+            <div
+              ref={svRef}
+              className="np-cpicker__sv"
+              style={{ background: pureHue }}
+              onPointerDown={(e) => {
+                svDragging.current = true;
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                getSvFromEvent(e);
+              }}
+              onPointerMove={(e) => { if (svDragging.current) getSvFromEvent(e); }}
+              onPointerUp={() => { svDragging.current = false; }}
+            >
+              <div className="np-cpicker__sv-white" />
+              <div className="np-cpicker__sv-black" />
+              <div
+                className="np-cpicker__cursor"
+                style={{ left: `${s * 100}%`, top: `${(1 - v) * 100}%` }}
+              />
+            </div>
+            {/* Hue bar */}
+            <div
+              ref={hueRef}
+              className="np-cpicker__hue"
+              onPointerDown={(e) => {
+                hueDragging.current = true;
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                getHueFromEvent(e);
+              }}
+              onPointerMove={(e) => { if (hueDragging.current) getHueFromEvent(e); }}
+              onPointerUp={() => { hueDragging.current = false; }}
+            >
+              <div className="np-cpicker__hue-cursor" style={{ left: `${(h / 360) * 100}%` }} />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1184,7 +1296,7 @@ export default function NovoPortalPage() {
       if (i < CREATION_STEPS.length) {
         setTimeout(() => { setCreatingStep(i); advance(); }, 900);
       } else {
-        setTimeout(() => {
+        setTimeout(async () => {
           setCreatingStep(CREATION_STEPS.length); // "done"
 
           // Persiste o portal no localStorage para aparecer na lista
@@ -1196,19 +1308,43 @@ export default function NovoPortalPage() {
             criadoEm: new Date().toLocaleDateString('pt-BR'),
             empresa: {
               cnpj: form.cnpj,
-              responsavel: '',
-              email: '',
+              responsavel: form.adminNome,
+              email: form.adminEmail,
               status: 'Ativa' as const,
             },
             sites: [{
               id: `s${Date.now()}`,
-              link: form.url || `${form.nome.toLowerCase().replace(/\s+/g, '-')}.workr.com.br`,
+              link: form.url ? `${form.url}.vercel.app` : `${form.nome.toLowerCase().replace(/\s+/g, '-')}.vercel.app`,
               status: 'Ativo' as const,
               ip: '',
               tipo: (form.tipoSite as 'RI' | 'Institucional' | 'Fundo' | 'Landing Page') || 'RI',
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
+
+          // Convida o usuário admin via Supabase Edge Function
+          if (isSupabaseConfigured && supabase && form.adminEmail) {
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              const token = session?.access_token;
+              if (token) {
+                await fetch(
+                  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+                    },
+                    body: JSON.stringify({ email: form.adminEmail, nome: form.adminNome }),
+                  }
+                );
+              }
+            } catch {
+              // invite failure is non-blocking — portal is already created
+            }
+          }
 
           setTimeout(() => navigate('/admin/portais'), 1800);
         }, 900);
