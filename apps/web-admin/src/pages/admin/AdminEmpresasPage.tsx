@@ -376,9 +376,18 @@ export default function AdminEmpresasPage() {
               <input
                 className="np-input"
                 type="text"
-                placeholder="00.000.000/0000-00"
+                placeholder="00.000.000/0001-00"
                 value={editForm.cnpj}
-                onChange={e => setEditForm(f => ({ ...f, cnpj: e.target.value }))}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
+                  let masked = digits;
+                  if (digits.length > 12) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
+                  else if (digits.length > 8) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8)}`;
+                  else if (digits.length > 5) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5)}`;
+                  else if (digits.length > 2) masked = `${digits.slice(0,2)}.${digits.slice(2)}`;
+                  setEditForm(f => ({ ...f, cnpj: masked }));
+                }}
+                maxLength={18}
               />
             </div>
             <div className="np-field">

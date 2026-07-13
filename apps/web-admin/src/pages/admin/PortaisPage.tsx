@@ -31,7 +31,16 @@ interface Portal {
   sites: Site[];
 }
 
-const PORTAIS: Portal[] = [];
+const PORTAIS_STORAGE_KEY = 'workr_portais';
+
+function loadPortais(): Portal[] {
+  try {
+    const raw = localStorage.getItem(PORTAIS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
@@ -183,7 +192,7 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
 export default function PortaisPage() {
   const navigate = useNavigate();
   const { enterPortal } = useAuth();
-  const [portais, setPortais] = useState(PORTAIS);
+  const [portais, setPortais] = useState<Portal[]>(loadPortais);
   const [search, setSearch] = useState('');
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
@@ -194,10 +203,14 @@ export default function PortaisPage() {
   }
 
   function toggleEmpresaStatus(portalId: string) {
-    setPortais(prev => prev.map(p => p.id !== portalId ? p : {
-      ...p,
-      empresa: { ...p.empresa, status: p.empresa.status === 'Ativa' ? 'Suspensa' : 'Ativa' },
-    }));
+    setPortais(prev => {
+      const updated = prev.map(p => p.id !== portalId ? p : {
+        ...p,
+        empresa: { ...p.empresa, status: p.empresa.status === 'Ativa' ? 'Suspensa' as const : 'Ativa' as const },
+      });
+      localStorage.setItem(PORTAIS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
   }
 
   const totalPortais = portais.length;

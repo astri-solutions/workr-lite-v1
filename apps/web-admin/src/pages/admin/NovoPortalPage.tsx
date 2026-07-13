@@ -308,7 +308,15 @@ function StepIdentificacao({
               type="text"
               placeholder="00.000.000/0001-00"
               value={cnpj}
-              onChange={(e) => onCnpj(e.target.value)}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
+                let masked = digits;
+                if (digits.length > 12) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
+                else if (digits.length > 8) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8)}`;
+                else if (digits.length > 5) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5)}`;
+                else if (digits.length > 2) masked = `${digits.slice(0,2)}.${digits.slice(2)}`;
+                onCnpj(masked);
+              }}
               maxLength={18}
             />
           </div>
@@ -1178,6 +1186,30 @@ export default function NovoPortalPage() {
       } else {
         setTimeout(() => {
           setCreatingStep(CREATION_STEPS.length); // "done"
+
+          // Persiste o portal no localStorage para aparecer na lista
+          const stored = localStorage.getItem('workr_portais');
+          const existing = stored ? JSON.parse(stored) : [];
+          const newPortal = {
+            id: Date.now().toString(),
+            cliente: form.nome,
+            criadoEm: new Date().toLocaleDateString('pt-BR'),
+            empresa: {
+              cnpj: form.cnpj,
+              responsavel: '',
+              email: '',
+              status: 'Ativa' as const,
+            },
+            sites: [{
+              id: `s${Date.now()}`,
+              link: form.url || `${form.nome.toLowerCase().replace(/\s+/g, '-')}.workr.com.br`,
+              status: 'Ativo' as const,
+              ip: '',
+              tipo: (form.tipoSite as 'RI' | 'Institucional' | 'Fundo' | 'Landing Page') || 'RI',
+            }],
+          };
+          localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
+
           setTimeout(() => navigate('/admin/portais'), 1800);
         }, 900);
       }
