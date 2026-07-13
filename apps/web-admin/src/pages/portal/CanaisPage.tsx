@@ -6,6 +6,7 @@ import LangTabs from '../../components/LangTabs';
 import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -143,6 +144,9 @@ const PAGE_TYPES: Array<{
   },
 ];
 
+// Page types that support a matérias linking step
+const MATERIA_STEP_TYPES: PageType[] = ['show', 'galeria', 'tabela', 'blog'];
+
 // ── State types ─────────────────────────────────────────────────────────────
 interface NewSubForm {
   step: 1 | 2 | 3 | 4;
@@ -168,6 +172,7 @@ interface NewSubForm {
   laEmpresaCategories: Record<string, string[]>;
   laEmpresaCatInputs: Record<string, string>;
   laActiveEmpresa: string;
+  linkedMateriaIds: string[];
 }
 
 function emptyNewSubForm(canalId: string, parentSubId: string | null = null, canalHasHeaderImage = false): NewSubForm {
@@ -189,6 +194,7 @@ function emptyNewSubForm(canalId: string, parentSubId: string | null = null, can
     laCategories: [], laCatInput: '',
     laEmpresaCategories: {}, laEmpresaCatInputs: {},
     laActiveEmpresa: PORTAL_EMPRESAS[0]?.id ?? '',
+    linkedMateriaIds: [],
   };
 }
 
@@ -231,7 +237,7 @@ interface CanalEditState {
 type CanalType = 'pagina' | 'pai';
 
 interface NewCanalForm {
-  step: 1 | 2;
+  step: 1 | 2 | 3;
   titles: Record<string, string>;
   subtitles: Record<string, string>;
   headerImageUrl: string | null;
@@ -251,6 +257,7 @@ interface NewCanalForm {
   laCatInput: string;
   laEmpresaCategories: Record<string, string[]>;
   laEmpresaCatInputs: Record<string, string>;
+  linkedMateriaIds: string[];
 }
 
 function emptyNewCanalForm(): NewCanalForm {
@@ -274,6 +281,7 @@ function emptyNewCanalForm(): NewCanalForm {
     laCatInput: '',
     laEmpresaCategories: {},
     laEmpresaCatInputs: {},
+    linkedMateriaIds: [],
   };
 }
 
@@ -461,10 +469,11 @@ export default function CanaisPage() {
     const href = newSubForm.href.trim() || '/' + label.toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') + '.html';
+    const newId = genId();
 
     if (newSubForm.parentSubId) {
       // L3: add as sub-sub-page
-      const ss: SubSubCanal = { id: genId(), label, href, enabled: !newSubForm.draft };
+      const ss: SubSubCanal = { id: newId, label, href, enabled: !newSubForm.draft };
       mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : {
         ...c, children: c.children.map(s => s.id !== newSubForm.parentSubId ? s : {
           ...s, children: [...(s.children ?? []), ss],
@@ -472,7 +481,7 @@ export default function CanaisPage() {
       }));
     } else {
       const s: SubCanal = {
-        id: genId(), label, href,
+        id: newId, label, href,
         enabled: !newSubForm.draft,
         ...(newSubForm.hasChildren ? {} : { pageType: newSubForm.pageType }),
         ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
@@ -480,6 +489,15 @@ export default function CanaisPage() {
       };
       mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
     }
+
+    if (newSubForm.linkedMateriaIds.length > 0) {
+      const all = loadMaterias();
+      for (const mid of newSubForm.linkedMateriaIds) {
+        const m = all.find(x => x.id === mid);
+        if (m) persistMateria({ ...m, pageId: newId, pageLabel: label });
+      }
+    }
+
     setNewSubOpen(false);
     setSubConfirming(false);
   }
@@ -499,7 +517,9 @@ export default function CanaisPage() {
        : newSubForm.laCategories.length > 0))
   );
 
-  const subTotalSteps = newSubForm.hasChildren ? 1 : newSubForm.pageType === 'lista-agrupada' ? 4 : 2;
+  const subHasMatStep = !newSubForm.hasChildren && MATERIA_STEP_TYPES.includes(newSubForm.pageType);
+  const subTotalSteps = newSubForm.hasChildren ? 1 : newSubForm.pageType === 'lista-agrupada' ? 4 : subHasMatStep ? 3 : 2;
+  const canalHasMatStep = newCanalForm.tipo === 'pagina' && MATERIA_STEP_TYPES.includes(newCanalForm.pageType);
 
   // ── Canal edit ─────────────────────────────────────────────────────────
   function openCanalEdit(canal: Canal) {
@@ -539,12 +559,22 @@ export default function CanaisPage() {
     const primaryLang = PORTAL_CONFIG.languages[0];
     const label = newCanalForm.titles[primaryLang]?.trim() || 'Novo canal';
     const isLeaf = newCanalForm.tipo === 'pagina';
+    const newId = genId();
     const c: Canal = {
-      id: genId(), label, enabled: !newCanalForm.draft, children: [],
+      id: newId, label, enabled: !newCanalForm.draft, children: [],
       ...(isLeaf ? { pageType: newCanalForm.pageType } : {}),
       ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
     };
     mutate(prev => [...prev, c]);
+
+    if (newCanalForm.linkedMateriaIds.length > 0) {
+      const all = loadMaterias();
+      for (const mid of newCanalForm.linkedMateriaIds) {
+        const m = all.find(x => x.id === mid);
+        if (m) persistMateria({ ...m, pageId: newId, pageLabel: label });
+      }
+    }
+
     setNewCanalOpen(false);
     setNewCanalForm(emptyNewCanalForm());
   }
@@ -876,7 +906,7 @@ export default function CanaisPage() {
         title={
           newSubForm.step === 1 ? (newSubForm.parentSubId ? 'Adicionar sub-página' : 'Adicionar página') :
           newSubForm.step === 2 ? 'Tipo de página' :
-          newSubForm.step === 3 ? 'Estilo de agrupamento' :
+          newSubForm.step === 3 ? (newSubForm.pageType === 'lista-agrupada' ? 'Estilo de agrupamento' : 'Vincular matéria') :
           'Categorias'
         }
         size={newSubForm.step === 2 ? 'lg' : 'md'}
@@ -906,7 +936,7 @@ export default function CanaisPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                   Voltar
                 </button>
-                {newSubForm.pageType === 'lista-agrupada' ? (
+                {newSubForm.pageType === 'lista-agrupada' || subHasMatStep ? (
                   <button className="btn-primary" type="button" onClick={() => patchSub({ step: 3 })}>
                     Próximo
                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
@@ -924,10 +954,16 @@ export default function CanaisPage() {
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                   Voltar
                 </button>
-                <button className="btn-primary" type="button" onClick={() => patchSub({ step: 4 })}>
-                  Próximo
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
-                </button>
+                {newSubForm.pageType === 'lista-agrupada' ? (
+                  <button className="btn-primary" type="button" onClick={() => patchSub({ step: 4 })}>
+                    Próximo
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                  </button>
+                ) : (
+                  <button className="btn-primary" type="button" onClick={triggerSubConfirm}>
+                    Criar página
+                  </button>
+                )}
               </>
             )}
             {newSubForm.step === 4 && !subConfirming && (
@@ -1125,9 +1161,16 @@ export default function CanaisPage() {
           </div>
         )}
 
-        {/* ── Step 3: Grouping style (LA only) ───────────────────── */}
+        {/* ── Step 3: Matérias link (non-LA) OR Grouping style (LA) ─ */}
         {newSubForm.step === 3 && (
           <div className="canais-edit-form">
+            {newSubForm.pageType !== 'lista-agrupada' ? (
+              <MateriasLinkPicker
+                selected={newSubForm.linkedMateriaIds}
+                onChange={ids => patchSub({ linkedMateriaIds: ids })}
+              />
+            ) : (
+            <>
             <p className="ct-step2-label">Escolha como os grupos serão exibidos visualmente na página.</p>
             <div className="ct-style-cards">
               {([
@@ -1187,6 +1230,8 @@ export default function CanaisPage() {
                 </button>
               ))}
             </div>
+            </>
+            )}
           </div>
         )}
 
@@ -1639,11 +1684,11 @@ export default function CanaisPage() {
 
       {/* ── New canal wizard modal ────────────────────────────────────── */}
       <Modal open={newCanalOpen} onClose={() => setNewCanalOpen(false)}
-        title={newCanalForm.step === 1 ? 'Novo canal' : 'Tipo de página'}
+        title={newCanalForm.step === 1 ? 'Novo canal' : newCanalForm.step === 2 ? 'Tipo de página' : 'Vincular matéria'}
         size={newCanalForm.step === 2 ? 'lg' : 'md'}
         footer={
           <div className="modal-footer">
-            {newCanalForm.step === 1 ? (
+            {newCanalForm.step === 1 && (
               <>
                 <button className="btn-outline" type="button" onClick={() => setNewCanalOpen(false)}>Cancelar</button>
                 {newCanalForm.tipo === 'pai' ? (
@@ -1655,19 +1700,43 @@ export default function CanaisPage() {
                   </button>
                 )}
               </>
-            ) : (
+            )}
+            {newCanalForm.step === 2 && (
               <>
                 <button className="btn-outline" type="button" onClick={() => setNewCanalForm(f => ({ ...f, step: 1 }))}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                   Voltar
                 </button>
-                <button className="btn-primary" type="button" onClick={commitNewCanal} disabled={!canCommitNewCanal}>Criar página</button>
+                {canalHasMatStep ? (
+                  <button className="btn-primary" type="button" onClick={() => setNewCanalForm(f => ({ ...f, step: 3 }))} disabled={!canCommitNewCanal}>
+                    Próximo
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                  </button>
+                ) : (
+                  <button className="btn-primary" type="button" onClick={commitNewCanal} disabled={!canCommitNewCanal}>Criar página</button>
+                )}
+              </>
+            )}
+            {newCanalForm.step === 3 && (
+              <>
+                <button className="btn-outline" type="button" onClick={() => setNewCanalForm(f => ({ ...f, step: 2 }))}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
+                  Voltar
+                </button>
+                <button className="btn-primary" type="button" onClick={commitNewCanal}>Criar página</button>
               </>
             )}
           </div>
         }
       >
-        {newCanalForm.step === 1 ? (
+        {newCanalForm.step === 3 ? (
+          <div className="canais-edit-form">
+            <MateriasLinkPicker
+              selected={newCanalForm.linkedMateriaIds}
+              onChange={ids => setNewCanalForm(f => ({ ...f, linkedMateriaIds: ids }))}
+            />
+          </div>
+        ) : newCanalForm.step === 1 ? (
           <div className="canais-edit-form">
             <label className="canais-new-draft-check">
               <input type="checkbox" checked={newCanalForm.isExternalLink}
@@ -1999,6 +2068,51 @@ function PageTypePicker({ value, onChange }: { value: PageType; onChange: (v: Pa
         </button>
       ))}
     </div>
+  );
+}
+
+function MateriasLinkPicker({ selected, onChange }: { selected: string[]; onChange: (ids: string[]) => void }) {
+  const materias = loadMaterias();
+  return (
+    <>
+      <p className="ct-step2-label">
+        Selecione matérias existentes para vincular automaticamente a esta página. É opcional — você pode vincular mais matérias a qualquer momento pelo menu Matérias.
+      </p>
+      {materias.length === 0 ? (
+        <p className="ct-mat-empty">
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>article</span>
+          Nenhuma matéria cadastrada ainda. Você pode vincular matérias pelo menu Matérias após criar a página.
+        </p>
+      ) : (
+        <div className="ct-mat-list">
+          {materias.map(m => {
+            const isSel = selected.includes(m.id);
+            return (
+              <label key={m.id} className={`ct-mat-item${isSel ? ' ct-mat-item--selected' : ''}`}>
+                <input type="checkbox" checked={isSel}
+                  onChange={e => onChange(e.target.checked ? [...selected, m.id] : selected.filter(id => id !== m.id))} />
+                <div className="ct-mat-item__info">
+                  <span className="ct-mat-item__title">{m.titulo}</span>
+                  {m.pageLabel && (
+                    <span className="ct-mat-item__page">
+                      <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>link</span>
+                      Vinculada a: {m.pageLabel}
+                    </span>
+                  )}
+                  <span className={`badge ${m.status === 'publicado' ? 'badge--success' : m.status === 'agendado' ? 'badge--warning' : 'badge--gray'}`}>
+                    {m.status === 'publicado' ? 'Publicado' : m.status === 'agendado' ? 'Agendado' : 'Rascunho'}
+                  </span>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+      <p className="ct-wizard-hint">
+        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+        Matérias já vinculadas a outras páginas serão movidas para esta nova página.
+      </p>
+    </>
   );
 }
 
