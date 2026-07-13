@@ -292,20 +292,20 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [recovery, setRecovery] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-    const success = login(email, password);
+    const success = await login(email, password);
     if (!success) {
       setError('Usuário ou senha inválidos.');
       return;
     }
     const raw = localStorage.getItem('workr_auth');
     if (raw) {
-      const user = JSON.parse(raw);
-      if (user.role === 'super_admin' && !user.portais?.length) {
+      const u = JSON.parse(raw);
+      if (u.role === 'super_admin' && !u.portais?.length) {
         navigate('/admin/portais');
-      } else if ((user.portais ?? []).length > 1) {
+      } else if ((u.portais ?? []).length > 1) {
         navigate('/selecionar-portal');
       } else {
         navigate('/portal');

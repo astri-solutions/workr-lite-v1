@@ -39,9 +39,9 @@ export default function UserMenu() {
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  function handleLogout() {
+  async function handleLogout() {
     setOpen(false);
-    logout();
+    await logout();
     navigate('/login');
   }
 

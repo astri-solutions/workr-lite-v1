@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 type Role = 'super_admin' | 'admin' | 'editor' | 'viewer' | 'client_user';
 
@@ -16,32 +17,26 @@ interface User {
   activePortalId?: string;
 }
 
-interface AuthState {
+interface AuthContextValue {
   user: User | null;
-}
-
-interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   switchPortal: (portalId: string) => void;
   enterPortal: (id: string, nome: string) => void;
 }
 
-const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
+// ── Fallback para desenvolvimento sem Supabase ────────────────────────────────
+const DEMO_CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
   {
     email: 'admin@astri.solutions',
     password: 'workr2025',
     user: { email: 'admin@astri.solutions', name: 'Admin Astri', role: 'super_admin' },
   },
   {
-    email: 'g.santos@astri.solutions',
+    email: 'projetos@astri.solutions',
     password: 'workr2025',
-    user: {
-      email: 'g.santos@astri.solutions', name: 'G. Santos', role: 'admin',
-      tenantId: 'aurora',
-      portais: [{ id: '1', nome: 'Construtora Aurora' }],
-      activePortalId: '1',
-    },
+    user: { email: 'projetos@astri.solutions', name: 'Astri Projetos', role: 'super_admin' },
   },
   {
     email: 'cliente@demo.com',
@@ -60,45 +55,88 @@ const CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
 
 const STORAGE_KEY = 'workr_auth';
 
-function loadFromStorage(): User | null {
+function userFromStorage(): User | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as User;
+    return raw ? (JSON.parse(raw) as User) : null;
   } catch {
     return null;
   }
 }
 
+function persist(user: User | null) {
+  if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  else localStorage.removeItem(STORAGE_KEY);
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(loadFromStorage);
+  const [user, setUser] = useState<User | null>(userFromStorage);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
 
-  function login(email: string, password: string): boolean {
-    const match = CREDENTIALS.find(
-      (c) => c.email === email && c.password === password
-    );
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const u = supabaseUserToUser(session.user);
+        setUser(u);
+        persist(u);
+      } else {
+        setUser(null);
+        persist(null);
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const u = supabaseUserToUser(session.user);
+        setUser(u);
+        persist(u);
+      } else {
+        setUser(null);
+        persist(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function login(email: string, password: string): Promise<boolean> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data.user) return false;
+      const u = supabaseUserToUser(data.user);
+      setUser(u);
+      persist(u);
+      return true;
+    }
+
+    // Fallback demo
+    const match = DEMO_CREDENTIALS.find(c => c.email === email && c.password === password);
     if (!match) return false;
     setUser(match.user);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(match.user));
+    persist(match.user);
     return true;
   }
 
-  function logout() {
+  async function logout() {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
+    persist(null);
   }
 
   function enterPortal(id: string, nome: string) {
     setUser(prev => {
       if (!prev) return prev;
-      const existingPortals = prev.portais ?? [];
-      const portais = existingPortals.some(p => p.id === id)
-        ? existingPortals
-        : [...existingPortals, { id, nome }];
+      const existing = prev.portais ?? [];
+      const portais = existing.some(p => p.id === id) ? existing : [...existing, { id, nome }];
       const updated = { ...prev, portais, activePortalId: id };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      persist(updated);
       return updated;
     });
   }
@@ -107,13 +145,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(prev => {
       if (!prev) return prev;
       const updated = { ...prev, activePortalId: portalId };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      persist(updated);
       return updated;
     });
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, switchPortal, enterPortal }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, switchPortal, enterPortal }}>
       {children}
     </AuthContext.Provider>
   );
@@ -123,4 +161,14 @@ export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
   return ctx;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function supabaseUserToUser(sbUser: { email?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }): User {
+  const meta = sbUser.user_metadata ?? {};
+  const appMeta = sbUser.app_metadata ?? {};
+  const role = (appMeta['role'] as Role | undefined) ?? 'client_user';
+  const name = (meta['name'] as string | undefined) ?? (meta['full_name'] as string | undefined) ?? sbUser.email ?? '';
+  return { email: sbUser.email ?? '', name, role };
 }

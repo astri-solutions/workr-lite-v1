@@ -22,8 +22,8 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState('dashboard')
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login', { replace: true })
   }
 
