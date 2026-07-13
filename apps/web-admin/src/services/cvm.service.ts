@@ -17,7 +17,9 @@ import type {
   ImportHistoryRequest,
   ImportHistoryResponse,
   EntityStatus,
+  CvmRoutingRule,
 } from './cvm.types';
+import { CVM_ROUTING_KEY } from './cvm.types';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -205,7 +207,7 @@ export const cvmService = {
         status: 'ativo',
         importarDesde: req.importarDesde ?? null,
         ultimaSync: null,
-        proximaSync: new Date(Date.now() + 10 * 60_000).toISOString(),
+        proximaSync: new Date(Date.now() + 5 * 60_000).toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -223,7 +225,7 @@ export const cvmService = {
       return JSON.parse(JSON.stringify(_updateEntity(entityId, {
         status: req.status,
         proximaSync: req.status === 'ativo'
-          ? new Date(Date.now() + 10 * 60_000).toISOString()
+          ? new Date(Date.now() + 5 * 60_000).toISOString()
           : null,
       })));
     }
@@ -246,7 +248,7 @@ export const cvmService = {
       const now = new Date().toISOString();
       _updateEntity(entityId, {
         ultimaSync: now,
-        proximaSync: new Date(Date.now() + 10 * 60_000).toISOString(),
+        proximaSync: new Date(Date.now() + 5 * 60_000).toISOString(),
       });
       return {
         entityId,
@@ -296,6 +298,47 @@ export const cvmService = {
       importarDesde: null,
     });
   },
+
+  /** Get routing rules for one entity (stored in localStorage). */
+  getRouting(entityId: string): CvmRoutingRule[] {
+    try {
+      const raw = localStorage.getItem(CVM_ROUTING_KEY);
+      const all: Record<string, CvmRoutingRule[]> = raw ? JSON.parse(raw) : {};
+      return all[entityId] ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  /** Persist routing rules for one entity to localStorage. */
+  async updateRouting(entityId: string, rules: CvmRoutingRule[]): Promise<void> {
+    if (MOCK_MODE) {
+      await _delay(300);
+      try {
+        const raw = localStorage.getItem(CVM_ROUTING_KEY);
+        const all: Record<string, CvmRoutingRule[]> = raw ? JSON.parse(raw) : {};
+        all[entityId] = rules;
+        localStorage.setItem(CVM_ROUTING_KEY, JSON.stringify(all));
+      } catch {
+        // silent
+      }
+      return;
+    }
+    await _patch<void>(`/api/cvm/entidades/${entityId}/routing`, { rules });
+  },
 } as const;
+
+/** Returns all pageIds referenced in any entity's CVM routing config. */
+export function loadCvmRoutedPageIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(CVM_ROUTING_KEY);
+    if (!raw) return new Set();
+    const all: Record<string, CvmRoutingRule[]> = JSON.parse(raw);
+    const ids = Object.values(all).flatMap(rules => rules.map(r => r.pageId));
+    return new Set(ids);
+  } catch {
+    return new Set();
+  }
+}
 
 export type { EntityStatus };

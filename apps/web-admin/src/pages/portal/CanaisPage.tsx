@@ -7,6 +7,7 @@ import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, Lis
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
+import { loadCvmRoutedPageIds } from '../../services/cvm.service';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -302,6 +303,7 @@ function orderKey(list: Canal[]): string {
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
+  const cvmPageIds = loadCvmRoutedPageIds();
   const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
   const [savedOrderKey, setSavedOrderKey] = useState(() => orderKey(DEFAULT_CANAIS));
 
@@ -786,6 +788,7 @@ export default function CanaisPage() {
                           </div>
                           <span className="ct-row__type-col">
                             {sub.pageType ? <span className="ct-type-badge">{sub.pageType}</span> : '—'}
+                            {cvmPageIds.has(sub.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
                           </span>
                           <span className="ct-row__status-col">
                             <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
@@ -827,6 +830,7 @@ export default function CanaisPage() {
                                   </div>
                                   <span className="ct-row__type-col">
                                     {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : '—'}
+                                    {cvmPageIds.has(ss.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
                                   </span>
                                   <span className="ct-row__status-col">
                                     <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />

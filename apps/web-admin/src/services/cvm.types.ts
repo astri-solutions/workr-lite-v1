@@ -6,6 +6,17 @@
 export type EntityStatus = 'ativo' | 'pausado' | 'erro';
 export type EntityTipo = 'empresa' | 'fundo';
 
+/** Maps one CVM document category to a portal page (pageId from the canal tree). */
+export interface CvmRoutingRule {
+  cvmCategoryId: string;   // e.g. 'fato-relevante'
+  cvmCategoryLabel: string; // e.g. 'Fato Relevante'
+  pageId: string;          // SubCanal.id
+  pageLabel: string;       // human-readable page name
+}
+
+/** Storage key for entity routing config in localStorage */
+export const CVM_ROUTING_KEY = 'cvm_routing';
+
 /** Matches `cvm_entities` table row */
 export interface CvmEntity {
   id: string;

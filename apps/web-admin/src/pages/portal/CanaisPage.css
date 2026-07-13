@@ -1101,3 +1101,19 @@ select.canais-edit-form__input,
   text-align: center;
   justify-content: center;
 }
+
+/* ─── Auto CVM badge ──────────────────────────────────── */
+.ct-cvm-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #0b5b68;
+  background: #e0f5f7;
+  border: 1px solid #b2e4ea;
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+  margin-left: 4px;
+}

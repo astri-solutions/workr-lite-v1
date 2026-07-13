@@ -4,7 +4,9 @@ import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { cvmService } from '../../services/cvm.service';
-import type { CvmPortal, CvmEntity, EntityStatus } from '../../services/cvm.types';
+import type { CvmPortal, CvmEntity, EntityStatus, CvmRoutingRule } from '../../services/cvm.types';
+import { CANAIS_KEY, DEFAULT_CANAIS } from '../../components/ChannelEditor';
+import type { Canal } from '../../components/ChannelEditor';
 
 const ChevronIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -16,7 +18,7 @@ const ChevronIcon = ({ open }: { open: boolean }) => (
   </svg>
 );
 
-const SYNC_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 function NextSyncCountdown({ lastSyncedAt, active }: { lastSyncedAt: number; active: boolean }) {
   const [remaining, setRemaining] = useState(0);
@@ -40,6 +42,150 @@ function NextSyncCountdown({ lastSyncedAt, active }: { lastSyncedAt: number; act
     <span className="cvm-next-sync">
       próxima varredura em <strong>{mins}:{String(secs).padStart(2, '0')}</strong>
     </span>
+  );
+}
+
+const CVM_ROUTABLE_CATEGORIES = [
+  { id: 'fato-relevante',           label: 'Fato Relevante' },
+  { id: 'comunicado',               label: 'Comunicado ao Mercado' },
+  { id: 'aviso-acionistas',         label: 'Aviso aos Acionistas' },
+  { id: 'ata-ago',                  label: 'Ata de AGO' },
+  { id: 'ata-age',                  label: 'Ata de AGE' },
+  { id: 'convocacao',               label: 'Convocação' },
+  { id: 'documentos-societarios',   label: 'Documentos Societários' },
+  { id: 'informacoes-periodicas',   label: 'Informações Periódicas' },
+  { id: 'informe-mensal',           label: 'Informe Mensal' },
+  { id: 'informe-trimestral',       label: 'Informe Trimestral' },
+  { id: 'formulario-referencia',    label: 'Formulário de Referência' },
+  { id: 'prospecto',                label: 'Prospecto' },
+];
+
+interface RoutablePage { id: string; label: string; path: string; }
+
+function loadRoutablePages(): RoutablePage[] {
+  const LIST_TYPES = new Set(['lista', 'lista-agrupada']);
+  try {
+    const raw = localStorage.getItem(CANAIS_KEY);
+    const canais: Canal[] = raw ? JSON.parse(raw) : DEFAULT_CANAIS;
+    const pages: RoutablePage[] = [];
+    for (const c of canais) {
+      for (const s of c.children) {
+        if (LIST_TYPES.has(s.pageType ?? '')) {
+          pages.push({ id: s.id, label: s.label, path: `${c.label} › ${s.label}` });
+        }
+        for (const ss of s.children ?? []) {
+          if (LIST_TYPES.has(ss.pageType ?? '')) {
+            pages.push({ id: ss.id, label: ss.label, path: `${c.label} › ${s.label} › ${ss.label}` });
+          }
+        }
+      }
+    }
+    return pages;
+  } catch {
+    return [];
+  }
+}
+
+function RoutingSection({ entityId }: { entityId: string }) {
+  const [open, setOpen] = useState(false);
+  const [rules, setRules] = useState<CvmRoutingRule[]>(() => cvmService.getRouting(entityId));
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const pages = loadRoutablePages();
+
+  function getRule(catId: string): CvmRoutingRule | undefined {
+    return rules.find(r => r.cvmCategoryId === catId);
+  }
+
+  function setPageForCat(cat: { id: string; label: string }, pageId: string) {
+    const page = pages.find(p => p.id === pageId);
+    setRules(prev => {
+      const without = prev.filter(r => r.cvmCategoryId !== cat.id);
+      if (!pageId) return without;
+      return [...without, {
+        cvmCategoryId: cat.id,
+        cvmCategoryLabel: cat.label,
+        pageId,
+        pageLabel: page?.label ?? '',
+      }];
+    });
+    setSaved(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await cvmService.updateRouting(entityId, rules);
+      setSaved(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const configuredCount = rules.length;
+
+  return (
+    <div className="cvm-routing">
+      <button
+        type="button"
+        className="cvm-routing__toggle"
+        onClick={() => setOpen(v => !v)}
+      >
+        <span className="cvm-routing__toggle-label">
+          Destinos de importação
+          {configuredCount > 0 && (
+            <span className="cvm-routing__count">{configuredCount} categoria{configuredCount !== 1 ? 's' : ''} mapeada{configuredCount !== 1 ? 's' : ''}</span>
+          )}
+        </span>
+        <ChevronIcon open={open} />
+      </button>
+
+      {open && (
+        <div className="cvm-routing__body">
+          <p className="cvm-routing__hint">
+            Defina para qual página do portal cada categoria de documento CVM deve ser importada.
+            Categorias sem destino serão ignoradas na importação automática.
+          </p>
+          {pages.length === 0 ? (
+            <p className="cvm-routing__no-pages">
+              Nenhuma página de lista encontrada no canal. Crie páginas do tipo "Lista" ou "Lista agrupada" em Canais primeiro.
+            </p>
+          ) : (
+            <div className="cvm-routing__table">
+              {CVM_ROUTABLE_CATEGORIES.map(cat => {
+                const rule = getRule(cat.id);
+                return (
+                  <div key={cat.id} className="cvm-routing__row">
+                    <span className="cvm-routing__cat">{cat.label}</span>
+                    <select
+                      className="cvm-select cvm-select--sm cvm-routing__select"
+                      value={rule?.pageId ?? ''}
+                      onChange={e => setPageForCat(cat, e.target.value)}
+                    >
+                      <option value="">— não importar —</option>
+                      {pages.map(p => (
+                        <option key={p.id} value={p.id}>{p.path}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="cvm-routing__footer">
+            {saved && <span className="cvm-routing__saved">Destinos salvos</span>}
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleSave}
+              disabled={saving || pages.length === 0}
+            >
+              {saving ? 'Salvando…' : 'Salvar destinos'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -188,11 +334,13 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
         </p>
       )}
 
+      <RoutingSection entityId={entity.id} />
+
       <div className="cvm-entity-card__footer">
         <span className="cvm-entity-card__sync-info">
           {isAtivo ? (
             <>
-              varredura automática a cada <strong>10 min</strong>
+              varredura automática a cada <strong>5 min</strong>
               {entity.ultimaSync && (
                 <> · última: <strong>{new Date(entity.ultimaSync).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong></>
               )}
