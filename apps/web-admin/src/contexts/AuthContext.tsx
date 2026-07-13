@@ -36,18 +36,26 @@ const DEMO_CREDENTIALS: Array<{ email: string; password: string; user: User }> =
 ];
 
 const STORAGE_KEY = 'workr_auth';
+const SESSION_VERSION = 2; // bump to invalidate all existing sessions
 
 function userFromStorage(): User | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as User & { _v?: number };
+    if (parsed._v !== SESSION_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
+    localStorage.removeItem(STORAGE_KEY);
     return null;
   }
 }
 
 function persist(user: User | null) {
-  if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+  if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...user, _v: SESSION_VERSION }));
   else localStorage.removeItem(STORAGE_KEY);
 }
 
