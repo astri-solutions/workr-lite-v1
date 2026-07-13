@@ -18,44 +18,16 @@ interface UsuarioItem {
   status: 'Ativo' | 'Suspenso';
 }
 
-const PORTAIS_MAP: Record<string, string> = {
-  '1': 'Construtora Aurora',
-  '2': 'International Meal Company',
-  '3': 'Vetra Energia',
-};
+const PORTAIS_MAP: Record<string, string> = {};
 
-const INITIAL_USUARIOS: UsuarioItem[] = [
-  { id: '1', nome: 'G. Santos', email: 'g.santos@astri.solutions', role: 'super_admin', portais: [], status: 'Ativo' },
-  { id: '2', nome: 'Rafael Lima', email: 'rafael@astri.solutions', role: 'super_admin', portais: [], status: 'Ativo' },
-  { id: '3', nome: 'Ana Souza', email: 'ana@construtoraaurora.com', role: 'client_user', portais: ['1'], status: 'Ativo' },
-  { id: '4', nome: 'Carlos Melo', email: 'carlos@imc.com.br', role: 'client_user', portais: ['2'], status: 'Ativo' },
-  { id: '5', nome: 'Fernanda Costa', email: 'fcosta@vetraenergia.com', role: 'client_user', portais: ['3'], status: 'Suspenso' },
-  { id: '6', nome: 'Bruno Almeida', email: 'bruno@astri.solutions', role: 'client_user', portais: ['1', '2', '3'], status: 'Ativo' },
-];
+const INITIAL_USUARIOS: UsuarioItem[] = [];
 
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Admin',
   client_user: 'Cliente',
 };
 
-const PORTAIS: PortalWithEmpresas[] = [
-  {
-    id: '1', nome: 'Construtora Aurora',
-    empresas: [
-      { id: '1a', nome: 'Aurora Incorporadora' },
-      { id: '1b', nome: 'Aurora Imóveis' },
-    ],
-  },
-  {
-    id: '2', nome: 'International Meal Company',
-    empresas: [
-      { id: '2a', nome: 'IMC Brasil' },
-      { id: '2b', nome: 'IMC São Paulo' },
-      { id: '2c', nome: 'IMC Nordeste' },
-    ],
-  },
-  { id: '3', nome: 'Vetra Energia' },
-];
+const PORTAIS: PortalWithEmpresas[] = [];
 
 const FILTER_GROUPS = [
   {
@@ -313,7 +285,11 @@ export default function UsuariosPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="table-empty">Nenhum usuário encontrado para os filtros selecionados.</td>
+                <td colSpan={8} className="table-empty">
+                  {usuarios.length === 0
+                    ? 'Nenhum usuário cadastrado. Convide o primeiro usuário com o botão acima.'
+                    : 'Nenhum usuário encontrado para os filtros selecionados.'}
+                </td>
               </tr>
             )}
           </tbody>

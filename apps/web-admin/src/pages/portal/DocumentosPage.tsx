@@ -18,11 +18,7 @@ interface Entity {
   tipo: 'EMPRESA' | 'FUNDO';
 }
 
-const ENTITIES: Entity[] = [
-  { id: 'imc', name: 'International Meal Company', tipo: 'EMPRESA' },
-  { id: 'imc-fii', name: 'IMC Recebíveis FII', tipo: 'FUNDO' },
-  { id: 'imc-ce', name: 'IMC Crédito Estruturado FII', tipo: 'FUNDO' },
-];
+const ENTITIES: Entity[] = [];
 
 type DocStatus = 'Publicado' | 'Rascunho';
 
@@ -43,19 +39,7 @@ interface DocRow {
   externalLink?: string;
 }
 
-const MOCK_DOCS: DocRow[] = [
-  { id: 1, entityId: 'imc', nome: 'Fato Relevante — Aquisição de Controlada', tipo: 'Fatos Relevantes', status: 'Publicado', dataPub: '23/03/2026', pagina: 'Fatos Relevantes', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM', '2 canais'], publicadoPor: 'CVM', ultimaEdicao: '23/03/2026', ultimoEditor: 'MA', fromCvm: true },
-  { id: 2, entityId: 'imc', nome: 'Fato Relevante — Reorganização Societária', tipo: 'Fatos Relevantes', status: 'Publicado', dataPub: '10/02/2026', pagina: 'Fatos Relevantes', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM'], publicadoPor: 'CVM', ultimaEdicao: '10/02/2026', ultimoEditor: 'CT', fromCvm: true },
-  { id: 3, entityId: 'imc', nome: 'Comunicado ao Mercado — Esclarecimento sobre Notícia', tipo: 'Comunicados ao Mercado', status: 'Publicado', dataPub: '05/03/2026', pagina: 'Comunicados ao Mercado', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM'], publicadoPor: 'CVM', ultimaEdicao: '05/03/2026', ultimoEditor: 'DS', fromCvm: true },
-  { id: 4, entityId: 'imc', nome: 'Aviso aos Acionistas — Pagamento de Dividendos', tipo: 'Avisos aos Acionistas', status: 'Publicado', dataPub: '18/02/2026', pagina: 'Avisos aos Acionistas', idiomas: ['PT', 'EN', 'ES'], tags: ['CVM'], publicadoPor: 'CVM', ultimaEdicao: '18/02/2026', ultimoEditor: 'CT', fromCvm: true },
-  { id: 5, entityId: 'imc', nome: 'Estatuto Social Consolidado', tipo: 'Documentos Societários', status: 'Publicado', dataPub: '30/04/2026', pagina: 'Documentos Societários', idiomas: ['PT', 'EN', 'ES'], tags: [], publicadoPor: 'CT', ultimaEdicao: '30/04/2026', ultimoEditor: 'DS' },
-  { id: 6, entityId: 'imc', nome: 'Política de Negociação de Valores Mobiliários', tipo: 'Documentos Societários', status: 'Rascunho', dataPub: '30/04/2026', pagina: '—', idiomas: ['PT', 'EN', 'ES'], tags: [], publicadoPor: 'DS', ultimaEdicao: '30/04/2026', ultimoEditor: 'DS' },
-  { id: 7, entityId: 'imc', nome: 'Relatório Anual 2024', tipo: 'Relatórios', status: 'Publicado', dataPub: '15/04/2026', pagina: 'Relatórios', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'MA', ultimaEdicao: '15/04/2026', ultimoEditor: 'MA' },
-  { id: 8, entityId: 'imc', nome: 'Release de Resultados 4T24', tipo: 'Relatórios', status: 'Publicado', dataPub: '12/03/2026', pagina: 'Relatórios', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'CT', ultimaEdicao: '14/03/2026', ultimoEditor: 'MA' },
-  { id: 11, entityId: 'imc', nome: 'Formulário de Referência 2025', tipo: 'Documentos Societários', status: 'Publicado', dataPub: '20/04/2026', pagina: 'Documentos Societários', idiomas: ['PT'], tags: [], publicadoPor: 'MA', ultimaEdicao: '20/04/2026', ultimoEditor: 'MA', externalLink: 'https://www.rad.cvm.gov.br/ENET/frmExibirArquivoIPEExterno.aspx' },
-  { id: 9, entityId: 'imc-fii', nome: 'Apresentação para Investidores 1T25', tipo: 'Apresentações', status: 'Rascunho', dataPub: '28/04/2026', pagina: '—', idiomas: ['PT', 'EN'], tags: [], publicadoPor: 'DS', ultimaEdicao: '28/04/2026', ultimoEditor: 'CT' },
-  { id: 10, entityId: 'imc-fii', nome: 'ITR 1T25', tipo: 'Informações Periódicas', status: 'Publicado', dataPub: '14/05/2026', pagina: 'Informações Periódicas', idiomas: ['PT'], tags: ['CVM'], publicadoPor: 'CVM', ultimaEdicao: '14/05/2026', ultimoEditor: 'MA', fromCvm: true },
-];
+const MOCK_DOCS: DocRow[] = [];
 
 // Pages that accept document uploads (list / list-group types)
 // subGroups: pages that have internal content divisions

@@ -160,12 +160,7 @@ export default function DashboardPage() {
           </thead>
           <tbody>
             <tr>
-              <td data-label="Empresa">IMC S.A.</td>
-              <td data-label="Domínio">ri.imc.com.br</td>
-              <td data-label="Layout">Banner com menu</td>
-              <td data-label="Status"><span className="badge badge--success">Publicado</span></td>
-              <td data-label="Última atualização">29/06/2026</td>
-              <td data-label="Plano">Workr Lite Pro</td>
+              <td colSpan={6} className="table-empty">Nenhum site configurado ainda.</td>
             </tr>
           </tbody>
         </table></div>

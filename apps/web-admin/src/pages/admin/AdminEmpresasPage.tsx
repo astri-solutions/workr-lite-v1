@@ -24,44 +24,7 @@ interface AdminEmpresa {
   portais: Portal[];
 }
 
-const EMPRESAS_DATA: AdminEmpresa[] = [
-  {
-    id: 'aurora',
-    nome: 'Construtora Aurora',
-    cnpj: '12.345.678/0001-90',
-    codigoCvm: '21234',
-    responsavel: 'Marcos Oliveira',
-    email: 'marcos@aurora.com.br',
-    criadoEm: '03/03/2026',
-    status: 'ativa',
-    portais: [{ id: 's1', link: 'aurora.workr.com.br', ativo: true }],
-  },
-  {
-    id: 'imc',
-    nome: 'International Meal Company',
-    cnpj: '17.314.329/0001-20',
-    codigoCvm: '8133',
-    responsavel: 'Carlos Souza',
-    email: 'carlos@imc.com.br',
-    criadoEm: '12/02/2026',
-    status: 'ativa',
-    portais: [
-      { id: 's2', link: 'imc.workr.com.br', ativo: true },
-      { id: 's3', link: 'imc-en.workr.com.br', ativo: true },
-    ],
-  },
-  {
-    id: 'vetra',
-    nome: 'Vetra Energia',
-    cnpj: '98.765.432/0001-10',
-    codigoCvm: '',
-    responsavel: 'Patrícia Mendes',
-    email: 'patricia@vetra.com.br',
-    criadoEm: '21/01/2026',
-    status: 'suspensa',
-    portais: [{ id: 's4', link: 'vetra.workr.com.br', ativo: false }],
-  },
-];
+const EMPRESAS_DATA: AdminEmpresa[] = [];
 
 const STATUS_LABEL: Record<ContaStatus, string> = {
   ativa: 'Ativa',
@@ -101,7 +64,7 @@ function EmpresaKebabMenu({ onEditar, onEncerrar }: { onEditar: () => void; onEn
 export default function AdminEmpresasPage() {
   const [empresas, setEmpresas] = useState<AdminEmpresa[]>(EMPRESAS_DATA);
   const [search, setSearch] = useState('');
-  const [openIds, setOpenIds] = useState<Set<string>>(new Set(['aurora']));
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [suspendTarget, setSuspendTarget] = useState<AdminEmpresa | null>(null);
   const [suspendPortalTarget, setSuspendPortalTarget] = useState<{ empresa: AdminEmpresa; portal: Portal } | null>(null);
   const [encerrarTarget, setEncerrarTarget] = useState<AdminEmpresa | null>(null);
@@ -300,7 +263,15 @@ export default function AdminEmpresasPage() {
           </div>
         ))}
 
-        {filtered.length === 0 && (
+        {empresas.length === 0 && (
+          <div className="page-placeholder">
+            <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>business</span>
+            <h2>Nenhuma empresa cadastrada</h2>
+            <p>As empresas são criadas automaticamente ao provisionar um novo portal.</p>
+          </div>
+        )}
+
+        {empresas.length > 0 && filtered.length === 0 && (
           <div className="page-placeholder">
             <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>search</span>
             <h2>Nenhuma empresa encontrada</h2>

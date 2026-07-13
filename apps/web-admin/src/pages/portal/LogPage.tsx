@@ -56,6 +56,8 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 const MOCK_LOGS: LogEntry[] = [
+  // Logs serão carregados do Supabase futuramente
+  /*
   {
     id: 'l001', timestamp: '2026-07-07T09:15:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
     action: 'publicou', category: 'documento', entity: 'Apresentação de Resultados 1T26',
@@ -156,6 +158,7 @@ const MOCK_LOGS: LogEntry[] = [
     action: 'alterou', category: 'configuracao', entity: 'Logotipo',
     detail: 'Logotipo principal substituído.',
   },
+  */
 ];
 
 const ALL_USERS = Array.from(new Set(MOCK_LOGS.map(l => l.user))).sort();

@@ -18,10 +18,7 @@ function genId() {
 // ── Portal empresas (mock — real app loads from context/API) ────────────────
 // These are the active empresas for this portal instance.
 // Used to drive the Lista Agrupada flow.
-const PORTAL_EMPRESAS = [
-  { id: 'imc', label: 'International Meal Company' },
-  { id: 'imc-fii', label: 'IMC Recebíveis FII' },
-];
+const PORTAL_EMPRESAS: { id: string; label: string }[] = [];
 const HAS_MULTIPLE_EMPRESAS = PORTAL_EMPRESAS.length > 1;
 
 // ── Page type definitions ───────────────────────────────────────────────────

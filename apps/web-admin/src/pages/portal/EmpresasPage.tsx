@@ -22,11 +22,7 @@ interface Empresa {
   ativo: boolean;
 }
 
-const INITIAL: Empresa[] = [
-  { id: 'imc', nome: 'International Meal Company', tipo: 'EMPRESA', cnpj: '10.629.105/0001-68', cvmCodigo: '23574', autoCvm: true, importarDesde: '', ativo: true },
-  { id: 'imc-fii', nome: 'IMC Recebíveis FII', tipo: 'FUNDO', cnpj: '37.412.300/0001-55', cvmCodigo: '', autoCvm: false, importarDesde: '', ativo: true },
-  { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII', tipo: 'FUNDO', cnpj: '44.891.220/0001-12', cvmCodigo: '', autoCvm: false, importarDesde: '', ativo: false },
-];
+const INITIAL: Empresa[] = [];
 
 const TIPO_OPTIONS: Tipo[] = ['EMPRESA', 'FUNDO', 'OUTRO'];
 const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', OUTRO: 'Outro' };

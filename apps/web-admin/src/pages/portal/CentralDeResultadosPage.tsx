@@ -15,11 +15,7 @@ interface Entity {
   tipo: 'EMPRESA' | 'FUNDO';
 }
 
-const ENTITIES: Entity[] = [
-  { id: 'imc', name: 'International Meal Company', tipo: 'EMPRESA' },
-  { id: 'imc-fii', name: 'IMC Recebíveis FII', tipo: 'FUNDO' },
-  { id: 'imc-ce', name: 'IMC Crédito Estruturado FII', tipo: 'FUNDO' },
-];
+const ENTITIES: Entity[] = [];
 
 interface Quarter {
   id: string;
@@ -39,40 +35,9 @@ interface CdrDoc {
   status: 'published' | 'draft';
 }
 
-const QUARTERS_BY_ENTITY: Record<string, Quarter[]> = {
-  imc: [
-    { id: '2t25', period: '2T25', totalDocs: 1, publishedDocs: 1, exibirHome: true },
-    { id: '1t25', period: '1T25', totalDocs: 3, publishedDocs: 2, exibirHome: false },
-    { id: '4t24', period: '4T24', totalDocs: 4, publishedDocs: 4, exibirHome: false },
-    { id: '3t24', period: '3T24', totalDocs: 1, publishedDocs: 1, exibirHome: false },
-    { id: '4t23', period: '4T23', totalDocs: 1, publishedDocs: 1, exibirHome: false },
-  ],
-  'imc-fii': [],
-  'imc-ce': [],
-};
+const QUARTERS_BY_ENTITY: Record<string, Quarter[]> = {};
 
-const DOCS_BY_QUARTER: Record<string, CdrDoc[]> = {
-  '2t25': [
-    { id: 'd1', quarterId: '2t25', titulo: 'Apresentação de Resultados 2T25', tipo: 'apresentacao', date: '2025-08-12', publishedBy: 'Admin', status: 'published' },
-  ],
-  '1t25': [
-    { id: 'd2', quarterId: '1t25', titulo: 'Earnings Release 1T25', tipo: 'earnings', date: '2025-05-14', publishedBy: 'Admin', status: 'published' },
-    { id: 'd3', quarterId: '1t25', titulo: 'Demonstrações Financeiras 1T25', tipo: 'dfp', date: '2025-05-14', publishedBy: 'Admin', status: 'published' },
-    { id: 'd4', quarterId: '1t25', titulo: 'Apresentação de Resultados 1T25', tipo: 'apresentacao', date: '2025-05-15', publishedBy: 'Admin', status: 'draft' },
-  ],
-  '4t24': [
-    { id: 'd5', quarterId: '4t24', titulo: 'Earnings Release 4T24', tipo: 'earnings', date: '2025-02-20', publishedBy: 'Admin', status: 'published' },
-    { id: 'd6', quarterId: '4t24', titulo: 'Apresentação de Resultados 4T24', tipo: 'apresentacao', date: '2025-02-20', publishedBy: 'Admin', status: 'published' },
-    { id: 'd7', quarterId: '4t24', titulo: 'DFP 2024', tipo: 'dfp', date: '2025-03-10', publishedBy: 'Admin', status: 'published' },
-    { id: 'd8', quarterId: '4t24', titulo: 'Press Release 4T24', tipo: 'press', date: '2025-02-20', publishedBy: 'Admin', status: 'published' },
-  ],
-  '3t24': [
-    { id: 'd9', quarterId: '3t24', titulo: 'Earnings Release 3T24', tipo: 'earnings', date: '2024-11-13', publishedBy: 'Admin', status: 'published' },
-  ],
-  '4t23': [
-    { id: 'd10', quarterId: '4t23', titulo: 'Earnings Release 4T23', tipo: 'earnings', date: '2024-02-15', publishedBy: 'Admin', status: 'published' },
-  ],
-};
+const DOCS_BY_QUARTER: Record<string, CdrDoc[]> = {};
 
 function parsePeriod(period: string): { quarter: string; year: string } {
   const match = period.match(/^(\d)[Tt](\d{2,4})$/);
@@ -101,7 +66,7 @@ type BulkAction = 'publicar' | 'despublicar' | 'excluir';
 
 export default function CentralDeResultadosPage() {
   const portalName = usePortalName();
-  const [activeEntity, setActiveEntity] = useState<string>('imc');
+  const [activeEntity, setActiveEntity] = useState<string>('');
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterQuarter, setFilterQuarter] = useState('');
@@ -114,7 +79,7 @@ export default function CentralDeResultadosPage() {
   const [confirmAction, setConfirmAction] = useState<BulkAction | null>(null);
 
   // Modal form state
-  const [newEntity, setNewEntity] = useState('imc');
+  const [newEntity, setNewEntity] = useState('');
   const [newTitles, setNewTitles] = useState<Record<string, string>>({});
   const [newDate, setNewDate] = useState('');
   const [newPeriodType, setNewPeriodType] = useState<'trimestral' | 'anual'>(

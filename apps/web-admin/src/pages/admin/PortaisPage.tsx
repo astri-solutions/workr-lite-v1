@@ -31,32 +31,7 @@ interface Portal {
   sites: Site[];
 }
 
-const PORTAIS: Portal[] = [
-  {
-    id: '1',
-    cliente: 'Construtora Aurora',
-    criadoEm: '03/03/2026',
-    empresa: { cnpj: '12.345.678/0001-90', responsavel: 'Marcos Oliveira', email: 'marcos@aurora.com.br', status: 'Ativa' },
-    sites: [{ id: 's1', link: 'aurora.workr.com.br', status: 'Ativo', ip: '177.71.142.53', tipo: 'RI' }],
-  },
-  {
-    id: '2',
-    cliente: 'International Meal Company',
-    criadoEm: '12/02/2026',
-    empresa: { cnpj: '05.583.665/0001-10', responsavel: 'Ana Paula Ramos', email: 'ana@imc.com.br', status: 'Ativa' },
-    sites: [
-      { id: 's2', link: 'imc.workr.com.br', status: 'Ativo', ip: '177.71.142.54', tipo: 'RI' },
-      { id: 's3', link: 'imc-en.workr.com.br', status: 'Ativo', ip: '177.71.142.55', tipo: 'Institucional' },
-    ],
-  },
-  {
-    id: '3',
-    cliente: 'Vetra Energia',
-    criadoEm: '21/01/2026',
-    empresa: { cnpj: '29.117.035/0001-82', responsavel: 'Felipe Carvalho', email: 'fcarvalho@vetra.com.br', status: 'Suspensa' },
-    sites: [{ id: 's4', link: 'vetra.workr.com.br', status: 'Suspenso', ip: '177.71.142.56', tipo: 'RI' }],
-  },
-];
+const PORTAIS: Portal[] = [];
 
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
@@ -379,7 +354,15 @@ export default function PortaisPage() {
           );
         })}
 
-        {filtered.length === 0 && (
+        {portais.length === 0 && (
+          <div className="page-placeholder">
+            <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>language</span>
+            <h2>Nenhum portal cadastrado</h2>
+            <p>Crie o primeiro portal clicando em <strong>Novo Portal</strong>.</p>
+          </div>
+        )}
+
+        {portais.length > 0 && filtered.length === 0 && (
           <div className="page-placeholder">
             <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>search</span>
             <h2>Nenhum portal encontrado</h2>

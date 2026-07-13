@@ -11,11 +11,7 @@ interface Empresa {
   nome: string;
 }
 
-const EMPRESAS: Empresa[] = [
-  { id: 'imc', nome: 'International Meal Company' },
-  { id: 'imc-fii', nome: 'IMC Recebíveis FII' },
-  { id: 'imc-ce', nome: 'IMC Crédito Estruturado FII' },
-];
+const EMPRESAS: Empresa[] = [];
 
 type Role = 'admin' | 'editor';
 
@@ -29,11 +25,7 @@ interface PortalUser {
   criadoEm: string;
 }
 
-const INITIAL_USERS: PortalUser[] = [
-  { id: 'u1', nome: 'Carlos Souza', email: 'carlos@imc.com.br', role: 'admin', empresaIds: [], ativo: true, criadoEm: '10/03/2026' },
-  { id: 'u2', nome: 'Ana Lima', email: 'ana@imc.com.br', role: 'editor', empresaIds: ['imc'], ativo: true, criadoEm: '15/03/2026' },
-  { id: 'u3', nome: 'Fernanda Costa', email: 'fernanda@imc.com.br', role: 'editor', empresaIds: ['imc-fii', 'imc-ce'], ativo: false, criadoEm: '20/03/2026' },
-];
+const INITIAL_USERS: PortalUser[] = [];
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor' };
 
