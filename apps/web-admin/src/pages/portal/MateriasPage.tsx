@@ -87,6 +87,12 @@ const PAGE_TYPES = [
     desc: 'Página com formulário de contato configurável e e-mail de recebimento.',
     icon: 'assignment',
   },
+  {
+    id: 'html' as const,
+    label: 'HTML',
+    desc: 'Cole HTML diretamente. Compatível apenas com páginas do tipo Show.',
+    icon: 'code',
+  },
 ];
 
 function buildMatFilters(paginaOptions: PaginaOption[]) {
@@ -137,7 +143,7 @@ export default function MateriasPage() {
   const [filters, setFilters] = useState<Record<string, string>>({ pagina: '', status: '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'tabela' | 'formulario'>('show');
+  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'tabela' | 'formulario' | 'html'>('show');
 
   const matFilters = buildMatFilters(buildPaginaOptions(loadCanais()));
 
@@ -235,7 +241,7 @@ export default function MateriasPage() {
               } else {
                 navigate('/portal/materias/nova', { state: { pageType: selectedType } });
               }
-            }}>
+            }} disabled={false}>
               Continuar
             </button>
           </div>

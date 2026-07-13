@@ -777,11 +777,12 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
 export default function NovaMateriaPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' | 'tabela' } | null;
+  const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' } | null;
   const editing = routeState?.editing ?? null;
-  const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' | 'tabela' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
+  const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' | 'tabela' | 'html' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
   const isGaleria = pageType === 'galeria';
   const isTabela = pageType === 'tabela';
+  const isHtml = pageType === 'html';
 
   const allDestinos = useCanaisDestinos();
 
@@ -790,14 +791,17 @@ export default function NovaMateriaPage() {
     ? ['galeria', 'lista-agrupada', 'lista', 'blog']
     : isTabela
     ? ['tabela']
+    : isHtml
+    ? ['show', undefined]
     : ['show', undefined];
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
   const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
   const [sections, setSections] = useState<ContentSection[]>(
-    isGaleria || isTabela ? [] : [{ id: 'init', type: 'text' }]
+    isGaleria || isTabela || isHtml ? [] : [{ id: 'init', type: 'text' }]
   );
+  const [htmlContent, setHtmlContent] = useState('');
   const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>(
     isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()]
   );
@@ -813,7 +817,7 @@ export default function NovaMateriaPage() {
   const [page, setPage] = useState(editing?.pagina ?? '');
   const selectedDestino = destinos.find(d => d.id === page);
   const pageInheritsHeaderImage = selectedDestino?.canalHasHeaderImage ?? false;
-  const pageOccupied = !isGaleria && !isTabela && (selectedDestino?.hasPublishedMateria ?? false);
+  const pageOccupied = !isGaleria && !isTabela && !isHtml && (selectedDestino?.hasPublishedMateria ?? false);
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
@@ -969,10 +973,10 @@ export default function NovaMateriaPage() {
       {/* ── Locale tab bar ── */}
       <LangTabs active={locale} onChange={setLocale} />
 
-      {/* ── Body: 3 columns (show) or 2 columns (galeria) ── */}
-      <div className={`nm-body${isGaleria || isTabela ? ' nm-body--galeria' : ''}`}>
+      {/* ── Body: 3 columns (show) or 2 columns (galeria/html) ── */}
+      <div className={`nm-body${isGaleria || isTabela || isHtml ? ' nm-body--galeria' : ''}`}>
         {/* Left: sections list (show only) */}
-        {!isGaleria && !isTabela && (
+        {!isGaleria && !isTabela && !isHtml && (
           <aside className="nm-sections-panel">
             <p className="nm-panel-heading">Seções</p>
 
@@ -1011,7 +1015,7 @@ export default function NovaMateriaPage() {
           <div key={locale} className="lang-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
-              {!isGaleria && !isTabela && (
+              {!isGaleria && !isTabela && !isHtml && (
                 pageInheritsHeaderImage ? (
                   <div className="nm-header-inherited">
                     <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-gray-400)' }}>photo_library</span>
@@ -1043,6 +1047,34 @@ export default function NovaMateriaPage() {
               />
             ) : isGaleria ? (
               <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} />
+            ) : isHtml ? (
+              <div className="nm-html-editor">
+                <div className="nm-html-editor__header">
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>code</span>
+                  <span>Conteúdo HTML</span>
+                  <a
+                    className="nm-html-editor__ref-link"
+                    href="/portal/materias/html-referencia"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>open_in_new</span>
+                    Ver referência de classes
+                  </a>
+                </div>
+                <textarea
+                  className="nm-html-editor__textarea"
+                  value={htmlContent}
+                  onChange={(e) => { setHtmlContent(e.target.value); markDirty(); }}
+                  placeholder={'<section class="wl-section">\n  <div class="wl-container">\n    <h2 class="wl-heading-2">Título da seção</h2>\n    <p class="wl-body">Conteúdo...</p>\n  </div>\n</section>'}
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+                <p className="nm-html-editor__hint">
+                  Cole aqui o HTML completo da matéria. Use as classes do Workr Lite para garantir consistência visual com o restante do portal.
+                </p>
+              </div>
             ) : (
               <>
                 {sections.map((s, i) => (
