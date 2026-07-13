@@ -13,3 +13,4 @@ uploads/
 # Go
 apps/api/workr-api
 apps/api/tmp/
+.mcp.json
