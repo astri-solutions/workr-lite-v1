@@ -28,43 +28,11 @@ const SECTIONS: NavSection[] = [
         ),
       },
       {
-        label: 'Área Restrita',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>lock</span>
-        ),
-        children: [
-          {
-            to: '/portal/area-restrita',
-            end: true,
-            label: 'Resumo',
-            icon: (
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>summarize</span>
-            ),
-          },
-          {
-            to: '/portal/area-restrita/acesso',
-            label: 'Acesso',
-            icon: (
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>manage_accounts</span>
-            ),
-          },
-        ],
-      },
-      {
         to: '/portal/auto-cvm',
         label: 'Auto CVM',
         icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-        ),
-      },
-      {
-        to: '/portal/backup',
-        label: 'Backup',
-        icon: (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><polyline points="3 3 3 8 8 8" />
           </svg>
         ),
       },
@@ -121,20 +89,6 @@ const SECTIONS: NavSection[] = [
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>menu</span>
         ),
       },
-      {
-        to: '/portal/calendario',
-        label: 'Calendário',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>calendar_month</span>
-        ),
-      },
-      {
-        to: '/portal/planilha-dinamica',
-        label: 'Planilha Dinâmica',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>table_chart</span>
-        ),
-      },
     ],
   },
   {
@@ -147,39 +101,6 @@ const SECTIONS: NavSection[] = [
         icon: (
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>mail</span>
         ),
-      },
-      {
-        label: 'Mailing',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>contact_mail</span>
-        ),
-        children: [
-          {
-            to: '/portal/mailing',
-            label: 'Minhas Campanhas',
-            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>campaign</span>,
-          },
-          {
-            to: '/portal/mailing/contatos',
-            label: 'Contatos',
-            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>contacts</span>,
-          },
-          {
-            to: '/portal/mailing/lista-de-envio',
-            label: 'Lista de Envio',
-            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>list</span>,
-          },
-          {
-            to: '/portal/mailing/opt-out',
-            label: 'Opt-Out',
-            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>block</span>,
-          },
-          {
-            to: '/portal/mailing/templates',
-            label: 'Templates',
-            icon: <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>description</span>,
-          },
-        ],
       },
       {
         to: '/portal/transmissoes',
