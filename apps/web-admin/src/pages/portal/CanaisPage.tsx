@@ -667,34 +667,21 @@ export default function CanaisPage() {
 
       {/* ── Accordion tree ────────────────────────────────────────────── */}
       <div className="ct-tree">
-        {/* Column headers */}
-        <div className="ct-thead">
-          <span className="ct-thead__title">Título</span>
-          <span className="ct-thead__type">Tipo de página</span>
-          <span className="ct-thead__status">Status</span>
-        </div>
-
         {canais.map((canal, ci) => {
           const canalExpanded = expandedCanals.has(canal.id);
           const movedInfo = movedCanals.find(x => x.id === canal.id);
           return (
-            <Fragment key={canal.id}>
+            <div
+              key={canal.id}
+              className={['ct-canal-card', movedInfo ? `ct-row--moved-${movedInfo.dir === -1 ? 'up' : 'down'}` : ''].filter(Boolean).join(' ')}
+            >
               {/* L1 — Canal row */}
               <div
                 className={[
                   'ct-row ct-row--l1',
                   !canal.enabled ? 'ct-row--off' : '',
-                  movedInfo ? `ct-row--moved-${movedInfo.dir === -1 ? 'up' : 'down'}` : '',
                 ].filter(Boolean).join(' ')}
               >
-                <button
-                  className={`ct-expand${canalExpanded ? ' ct-expand--open' : ''}`}
-                  type="button"
-                  aria-label={canalExpanded ? 'Recolher' : 'Expandir'}
-                  onClick={() => toggleExpandCanal(canal.id)}
-                >
-                  <span className="material-symbols-outlined">add</span>
-                </button>
                 <div className="ct-row__title">
                   <span className="ct-row__name">{canal.label}</span>
                   <span className="ct-row__path">Canal raiz</span>
@@ -725,6 +712,14 @@ export default function CanaisPage() {
                     Página
                   </button>
                 </div>
+                <button
+                  className={`ct-expand ct-expand--l1${canalExpanded ? ' ct-expand--open' : ''}`}
+                  type="button"
+                  aria-label={canalExpanded ? 'Recolher' : 'Expandir'}
+                  onClick={() => toggleExpandCanal(canal.id)}
+                >
+                  <span className="material-symbols-outlined">expand_more</span>
+                </button>
               </div>
 
               {/* Animated canal body — always rendered, height animated */}
@@ -834,7 +829,7 @@ export default function CanaisPage() {
                   })}
                 </div>
               </div>
-            </Fragment>
+            </div>
           );
         })}
       </div>
