@@ -1378,7 +1378,13 @@ export default function NovoPortalPage() {
                       'Authorization': `Bearer ${t}`,
                       'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
                     },
-                    body: JSON.stringify({ portalId: newPortal.id, nome: form.nome, subdomain }),
+                    body: JSON.stringify({
+                      portalId: newPortal.id,
+                      nome: form.nome,
+                      subdomain,
+                      colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
+                      fonts: { display: form.fonteTitulo, body: form.fonteTexto },
+                    }),
                   }
                 );
                 if (provRes.ok) {
