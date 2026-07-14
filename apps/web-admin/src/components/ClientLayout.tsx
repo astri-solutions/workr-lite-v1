@@ -270,6 +270,8 @@ export default function ClientLayout() {
       // Aggregate CMS settings from localStorage
       const cores = (() => { try { return JSON.parse(localStorage.getItem('portal_cores') ?? 'null'); } catch { return null; } })();
       const fontes = (() => { try { return JSON.parse(localStorage.getItem('portal_fontes') ?? 'null'); } catch { return null; } })();
+      const footer = (() => { try { return JSON.parse(localStorage.getItem('portal_footer') ?? 'null'); } catch { return null; } })();
+      const ticker = (() => { try { return JSON.parse(localStorage.getItem('portal_ticker') ?? 'null'); } catch { return null; } })();
       const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
 
       // Get githubRepo from the stored portal record
@@ -303,6 +305,8 @@ export default function ClientLayout() {
             portalNome: activePortal?.nome ?? '',
             colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
             fonts: fontes ? { display: fontes.heading, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
+            footer: footer ?? null,
+            ticker: ticker ?? null,
           }),
         }
       );

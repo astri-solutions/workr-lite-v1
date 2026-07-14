@@ -27,10 +27,21 @@ const DEFAULT: TickerDraft = {
   items: [{ symbol: 'XPTO3', price: 'R$ 00,00', change: '0,00%', direction: 'up' }],
 };
 
+export const TICKER_KEY = 'portal_ticker';
+
+function loadTicker(): TickerDraft {
+  try {
+    const raw = localStorage.getItem(TICKER_KEY);
+    return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
+  } catch {
+    return DEFAULT;
+  }
+}
+
 export default function TickerPage() {
   const portalName = usePortalName();
   const [saved, setSaved] = useState(false);
-  const [draft, setDraft] = useState<TickerDraft>(DEFAULT);
+  const [draft, setDraft] = useState<TickerDraft>(loadTicker);
 
   const isDirty = !saved && (
     draft.type !== DEFAULT.type ||
@@ -39,6 +50,7 @@ export default function TickerPage() {
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
+    localStorage.setItem(TICKER_KEY, JSON.stringify(draft));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

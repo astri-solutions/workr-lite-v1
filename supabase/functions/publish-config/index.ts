@@ -7,13 +7,58 @@ const corsHeaders = {
 
 interface Colors { primary: string; secondary: string; tertiary: string; }
 interface Fonts { display: string; body: string; }
+interface TickerItem { symbol: string; price: string; change: string; direction: string; }
+interface TickerCfg { type: string; iframeUrl?: string; items?: TickerItem[]; }
+interface SocialCfg { platform: string; url: string; }
+interface LegalLinkCfg { id: string; label: string; enabled: boolean; }
+interface FooterCfg {
+  address?: string; email?: string; phone?: string; hours?: string;
+  copyright?: string; disclaimer?: string;
+  socials?: SocialCfg[];
+  legalLinks?: LegalLinkCfg[];
+}
 
 function buildSiteConfig(opts: {
   nome: string;
   colors: Colors;
   fonts: Fonts;
+  ticker: TickerCfg | null;
+  footer: FooterCfg | null;
 }) {
   const year = new Date().getFullYear();
+
+  // Tickers
+  const tickers = opts.ticker?.items?.length
+    ? opts.ticker.items.map(t => `    { symbol: ${JSON.stringify(t.symbol)}, price: ${JSON.stringify(t.price)}, change: ${JSON.stringify(t.change)}, direction: ${JSON.stringify(t.direction)} }`).join(',\n')
+    : `    { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' }`;
+
+  // Footer fields
+  const f = opts.footer;
+  const address   = JSON.stringify(f?.address ?? '');
+  const email     = JSON.stringify(f?.email ?? '');
+  const phone     = JSON.stringify(f?.phone ?? '');
+  const hours     = JSON.stringify(f?.hours ?? '');
+  const copyright = JSON.stringify(f?.copyright ?? `©Copyright ${opts.nome} ${year}`);
+  const legalText = JSON.stringify(f?.disclaimer ?? 'As informações contidas neste site são de caráter meramente informativo e não constituem oferta de valores mobiliários.');
+
+  const legalLinksArr = (f?.legalLinks ?? [
+    { id: 'termos', label: 'Termos e Condições', enabled: true },
+    { id: 'privacidade', label: 'Política de Privacidade', enabled: true },
+    { id: 'cookies', label: 'Definições de Cookies', enabled: true },
+  ]).filter((l: LegalLinkCfg) => l.enabled);
+  const legalLinks = legalLinksArr.map((l: LegalLinkCfg) => {
+    const href = l.id === 'termos' ? '/termos-e-condicoes.html'
+      : l.id === 'privacidade' ? '/politica-de-privacidade.html'
+      : l.id === 'cookies' ? '/definicao-de-cookies.html'
+      : `/${l.id}.html`;
+    return `      { label: ${JSON.stringify(l.label)}, href: '${href}' }`;
+  }).join(',\n');
+
+  const socials = f?.socials ?? [];
+  const linkedin  = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'LinkedIn')?.url || '#');
+  const instagram = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'Instagram')?.url || '#');
+  const facebook  = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'Facebook')?.url || '#');
+
   return `// scripts/site.config.js
 // Gerado pelo Workr Lite CMS — não editar manualmente.
 export const siteConfig = {
@@ -40,7 +85,7 @@ export const siteConfig = {
   },
 
   tickers: [
-    { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
+${tickers}
   ],
 
   nav: [
@@ -67,18 +112,16 @@ export const siteConfig = {
 
   footer: {
     variant: 'simple',
-    address:   '',
-    email:     '',
-    phone:     '',
-    hours:     '',
-    copyright: '©Copyright ${opts.nome} ${year}',
-    social: { linkedin: '#', instagram: '#', facebook: '#' },
+    address:   ${address},
+    email:     ${email},
+    phone:     ${phone},
+    hours:     ${hours},
+    copyright: ${copyright},
+    social: { linkedin: ${linkedin}, instagram: ${instagram}, facebook: ${facebook} },
     legalLinks: [
-      { label: 'Termos e Condições',      href: '/termos-e-condicoes.html'      },
-      { label: 'Política de Privacidade', href: '/politica-de-privacidade.html' },
-      { label: 'Definições de Cookies',   href: '/definicao-de-cookies.html'    },
+${legalLinks}
     ],
-    legalText: 'As informações contidas neste site são de caráter meramente informativo e não constituem oferta de valores mobiliários.',
+    legalText: ${legalText},
   },
 
 };
@@ -118,11 +161,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, portalNome, colors, fonts } = await req.json() as {
+    const { repoName, portalNome, colors, fonts, footer, ticker } = await req.json() as {
       repoName?: string;
       portalNome: string;
       colors: Colors;
       fonts: Fonts;
+      footer?: FooterCfg | null;
+      ticker?: TickerCfg | null;
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -136,7 +181,7 @@ Deno.serve(async (req) => {
 
     const targetRepo = repoName ?? 'cliente-workr-lite';
     const filePath = 'scripts/site.config.js';
-    const newContent = buildSiteConfig({ nome: portalNome, colors, fonts });
+    const newContent = buildSiteConfig({ nome: portalNome, colors, fonts, footer: footer ?? null, ticker: ticker ?? null });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
     // Get current file SHA (required for update)

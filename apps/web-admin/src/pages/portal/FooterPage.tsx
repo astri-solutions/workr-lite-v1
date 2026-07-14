@@ -158,9 +158,30 @@ const MODEL_THUMBNAILS: Record<FooterModel, React.ReactNode> = {
   ),
 };
 
+export const FOOTER_KEY = 'portal_footer';
+
+function loadFooter(): FooterConfig {
+  try {
+    const raw = localStorage.getItem(FOOTER_KEY);
+    if (!raw) return DEFAULT;
+    const parsed = JSON.parse(raw);
+    // Re-attach icons (not serializable) from SOCIAL_PLATFORMS
+    if (Array.isArray(parsed.socials)) {
+      parsed.socials = SOCIAL_PLATFORMS.map(p => ({
+        platform: p.platform,
+        url: parsed.socials.find((s: { platform: string }) => s.platform === p.platform)?.url ?? '',
+        icon: p.icon,
+      }));
+    }
+    return { ...DEFAULT, ...parsed };
+  } catch {
+    return DEFAULT;
+  }
+}
+
 export default function FooterPage() {
   const portalName = usePortalName();
-  const [config, setConfig] = useState<FooterConfig>(DEFAULT);
+  const [config, setConfig] = useState<FooterConfig>(loadFooter);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -204,6 +225,12 @@ export default function FooterPage() {
   }
 
   function handleSave() {
+    // Strip non-serializable icon nodes before persisting
+    const toSave = {
+      ...config,
+      socials: config.socials.map(({ platform, url }) => ({ platform, url })),
+    };
+    localStorage.setItem(FOOTER_KEY, JSON.stringify(toSave));
     setDirty(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
