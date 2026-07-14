@@ -48,7 +48,10 @@ Deno.serve(async (req) => {
     const vercelToken = Deno.env.get('VERCEL_TOKEN');
     const githubOrg = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
     const templateRepo = 'cliente-workr-lite';
+    // GitHub repo uses portal- prefix to avoid naming conflicts in the org
     const repoName = `portal-${subdomain}`;
+    // Vercel project uses the subdomain directly so the URL matches what the UI shows
+    const vercelProjectName = subdomain;
 
     if (!githubToken) {
       return new Response(JSON.stringify({ error: 'GITHUB_TOKEN secret not configured' }), {
@@ -85,7 +88,7 @@ Deno.serve(async (req) => {
     const repoUrl = ghData.html_url as string;
     const cloneUrl = ghData.clone_url as string;
 
-    let vercelUrl = `https://${repoName}.vercel.app`;
+    let vercelUrl = `https://${vercelProjectName}.vercel.app`;
 
     // Create Vercel project (optional — skip if no token)
     if (vercelToken) {
@@ -96,7 +99,7 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: repoName,
+          name: vercelProjectName,
           framework: 'vite',
           gitRepository: {
             type: 'github',
