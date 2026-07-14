@@ -296,6 +296,7 @@ export default function ClientLayout() {
           body: JSON.stringify({
             repoName,
             portalNome: activePortal?.nome ?? '',
+            layout: localStorage.getItem('portal_layout') ?? 'banner',
             colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
             fonts: fontes ? { display: fontes.heading, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
             footer: footer ?? null,

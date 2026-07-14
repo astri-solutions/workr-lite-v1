@@ -18,8 +18,15 @@ interface FooterCfg {
   legalLinks?: LegalLinkCfg[];
 }
 
+function headerVariant(layout: string): string {
+  if (layout === 'sidebar') return 'sidebar';
+  if (layout === 'tabmenu') return 'tabmenu';
+  return 'banner';
+}
+
 function buildSiteConfig(opts: {
   nome: string;
+  layout: string;
   colors: Colors;
   fonts: Fonts;
   ticker: TickerCfg | null;
@@ -106,7 +113,7 @@ ${tickers}
     ]},
   ],
 
-  header: { variant: 'navbar-default' },
+  header: { variant: '${headerVariant(opts.layout)}' },
 
   restrictedNav: [],
 
@@ -161,9 +168,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, portalNome, colors, fonts, footer, ticker } = await req.json() as {
+    const { repoName, portalNome, layout, colors, fonts, footer, ticker } = await req.json() as {
       repoName?: string;
       portalNome: string;
+      layout?: string;
       colors: Colors;
       fonts: Fonts;
       footer?: FooterCfg | null;
@@ -181,7 +189,7 @@ Deno.serve(async (req) => {
 
     const targetRepo = repoName ?? 'cliente-workr-lite';
     const filePath = 'scripts/site.config.js';
-    const newContent = buildSiteConfig({ nome: portalNome, colors, fonts, footer: footer ?? null, ticker: ticker ?? null });
+    const newContent = buildSiteConfig({ nome: portalNome, layout: layout ?? 'banner', colors, fonts, footer: footer ?? null, ticker: ticker ?? null });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
     // Get current file SHA (required for update)

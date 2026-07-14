@@ -17,8 +17,15 @@ interface FooterCfg {
 }
 
 // ── site.config.js builder ───────────────────────────────────────────────────
+function headerVariant(layout: string): string {
+  if (layout === 'sidebar') return 'sidebar';
+  if (layout === 'tabmenu') return 'tabmenu';
+  return 'banner'; // banner = fixed layout
+}
+
 function buildSiteConfig(opts: {
   nome: string;
+  layout: string;
   colors: Colors;
   fonts: Fonts;
   footer?: FooterCfg | null;
@@ -102,7 +109,7 @@ export const siteConfig = {
     ]},
   ],
 
-  header: { variant: 'navbar-default' },
+  header: { variant: '${headerVariant(opts.layout)}' },
 
   restrictedNav: [],
 
@@ -179,10 +186,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, subdomain, colors, fonts, footer } = await req.json() as {
+    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer } = await req.json() as {
       portalId: string;
       nome: string;
       subdomain: string;
+      layout?: string;
       colors?: Colors;
       fonts?: Fonts;
       footer?: FooterCfg | null;
@@ -235,6 +243,7 @@ Deno.serve(async (req) => {
     // ── Step 4: build and push customised site.config.js ─────────────────
     const siteConfigContent = buildSiteConfig({
       nome,
+      layout: layout ?? 'banner',
       colors: colors ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#141414' },
       fonts:  fonts  ?? { display: 'Plus Jakarta Sans', body: 'Inter' },
       footer: footer ?? null,

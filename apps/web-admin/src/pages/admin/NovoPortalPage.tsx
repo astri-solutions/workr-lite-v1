@@ -1271,6 +1271,7 @@ export default function NovoPortalPage() {
                       portalId: newPortal.id,
                       nome: form.nome,
                       subdomain,
+                      layout: form.tipo,
                       colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
                       fonts: { display: form.fonteTitulo, body: form.fonteTexto },
                     }),
