@@ -1561,6 +1561,23 @@
 }
 .np-ticker-remove:hover { color: var(--color-danger); background: var(--color-danger-bg, #fff0f0); }
 
+.np-ticker-none-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+.np-ticker-none-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary-500);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .np-textarea {
   width: 100%;
   resize: vertical;

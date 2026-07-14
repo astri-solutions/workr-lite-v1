@@ -11,11 +11,7 @@ import './CentralDeResultadosPage2.css';
 
 interface Entity { id: string; name: string; tipo: 'EMPRESA' | 'FUNDO'; }
 
-const ENTITIES: Entity[] = [
-  { id: 'imc',    name: 'International Meal Company', tipo: 'EMPRESA' },
-  { id: 'imc-fii', name: 'IMC Recebíveis FII',        tipo: 'FUNDO' },
-  { id: 'imc-ce',  name: 'IMC Crédito Estruturado FII', tipo: 'FUNDO' },
-];
+const ENTITIES: Entity[] = [];
 
 const DOC_TIPOS = [
   { value: 'apresentacao', label: 'Apresentação de Resultados', icon: 'slideshow' },

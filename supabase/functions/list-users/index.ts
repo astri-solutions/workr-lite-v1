@@ -31,9 +31,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const role = user.app_metadata?.role as string | undefined;
-    if (role !== 'super_admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
+    const callerRole = user.app_metadata?.role as string | undefined;
+    if (callerRole !== 'super_admin' && callerRole !== 'client_user') {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -46,7 +46,9 @@ Deno.serve(async (req) => {
     const { data, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
     if (error) throw error;
 
-    const users = data.users.map(u => ({
+    const callerPortais = (user.app_metadata?.portais as string[] | undefined) ?? [];
+
+    let allUsers = data.users.map(u => ({
       id: u.id,
       email: u.email ?? '',
       nome: (u.user_metadata?.name as string | undefined) || u.email || '',
@@ -54,6 +56,15 @@ Deno.serve(async (req) => {
       portais: (u.app_metadata?.portais as string[] | undefined) || [],
       status: u.banned_until ? 'Suspenso' : 'Ativo',
     }));
+
+    // client_user only sees users sharing at least one portal
+    if (callerRole === 'client_user' && callerPortais.length > 0) {
+      allUsers = allUsers.filter(u =>
+        u.role === 'super_admin' || u.portais.some(p => callerPortais.includes(p))
+      );
+    }
+
+    const users = allUsers;
 
     return new Response(JSON.stringify({ users }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

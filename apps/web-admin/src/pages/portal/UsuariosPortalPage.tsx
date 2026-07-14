@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
@@ -26,28 +26,15 @@ interface PortalUser {
   criadoEm: string;
 }
 
-function loadStoredUsers(): PortalUser[] {
-  try {
-    const raw = localStorage.getItem('workr_usuarios');
-    if (!raw) return [];
-    const list = JSON.parse(raw) as Array<{
-      id: string; nome: string; email: string; role?: string; status?: string;
-    }>;
-    return list.map(u => ({
-      id: u.id,
-      nome: u.nome,
-      email: u.email,
-      role: (u.role === 'admin' || u.role === 'client_user' ? 'admin' : 'editor') as Role,
-      empresaIds: [],
-      ativo: u.status !== 'Inativo',
-      criadoEm: new Date().toLocaleDateString('pt-BR'),
-    }));
-  } catch {
-    return [];
-  }
-}
+const FN_BASE = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : '';
 
-const INITIAL_USERS: PortalUser[] = loadStoredUsers();
+async function getToken(): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor' };
 
@@ -117,7 +104,7 @@ function UserCard({ user, canManage, onEdit, onToggle, onDelete }: UserCardProps
           <span className={`badge ${user.ativo ? 'badge--success' : 'badge--error'}`}>
             {user.ativo ? 'Ativo' : 'Inativo'}
           </span>
-          <span className="up-user-card__date">{user.criadoEm}</span>
+          {user.criadoEm && <span className="up-user-card__date">{user.criadoEm}</span>}
         </div>
         <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
       </div>
@@ -142,14 +129,51 @@ function UserCard({ user, canManage, onEdit, onToggle, onDelete }: UserCardProps
 
 export default function UsuariosPortalPage() {
   const { user } = useAuth();
-  const [users, setUsers] = useState<PortalUser[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<PortalUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const portalName = (user?.portais ?? []).find(p => p.id === user?.activePortalId)?.nome
     ?? user?.portais?.[0]?.nome
     ?? 'este portal';
 
-  // Derive current user's portal role; defaults to 'admin' for demo (real auth provides portalRole)
-  const myPortalRole: Role = users.find(u => u.email === user?.email)?.role ?? 'admin';
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError('Sessão não encontrada. Faça login novamente.');
+        return;
+      }
+      const res = await fetch(`${FN_BASE}/list-users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json() as {
+        users?: Array<{ id: string; email: string; nome: string; role: string; portais: string[]; status: string; criadoEm?: string }>;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      const mapped: PortalUser[] = (json.users ?? []).map(u => ({
+        id: u.id,
+        nome: u.nome,
+        email: u.email,
+        role: u.role === 'super_admin' ? 'admin' : 'editor',
+        empresaIds: [],
+        ativo: u.status !== 'Suspenso',
+        criadoEm: u.criadoEm ?? '',
+      }));
+      setUsers(mapped);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  const myPortalRole: Role = users.find(u => u.email === user?.email)?.role ?? 'editor';
   const canInvite = myPortalRole === 'admin';
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
@@ -227,12 +251,8 @@ export default function UsuariosPortalPage() {
           }
         }
       }
-      setUsers(prev => [...prev, {
-        id: 'u' + Date.now(), nome: form.nome, email: form.email,
-        role: form.role, empresaIds: empIds, ativo: true,
-        criadoEm: new Date().toLocaleDateString('pt-BR'),
-      }]);
       setInvited(true);
+      setTimeout(() => fetchUsers(), 1500);
     } catch (e) {
       setInviteError(e instanceof Error ? e.message : 'Erro ao enviar convite');
     } finally {
@@ -309,22 +329,33 @@ export default function UsuariosPortalPage() {
         </div>
       </div>
 
-      <div className="up-user-list">
-        {filtered.length === 0 ? (
-          <p className="up-empty">Nenhum usuário encontrado.</p>
-        ) : filtered.map(u => (
-          <UserCard
-            key={u.id}
-            user={u}
-            canManage={canInvite}
-            onEdit={() => openEdit(u)}
-            onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
-            onDelete={() => setDeleteTarget(u)}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+          Carregando usuários…
+        </div>
+      ) : error ? (
+        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-danger)' }}>
+          {error}
+          <br />
+          <button className="btn-outline" style={{ marginTop: '12px' }} onClick={fetchUsers}>Tentar novamente</button>
+        </div>
+      ) : (
+        <div className="up-user-list">
+          {filtered.length === 0 ? (
+            <p className="up-empty">Nenhum usuário encontrado.</p>
+          ) : filtered.map(u => (
+            <UserCard
+              key={u.id}
+              user={u}
+              canManage={canInvite}
+              onEdit={() => openEdit(u)}
+              onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
+              onDelete={() => setDeleteTarget(u)}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Create / Edit modal — only admins can invite */}
       {canInvite && <Modal
         open={modalOpen}
         onClose={closeModal}

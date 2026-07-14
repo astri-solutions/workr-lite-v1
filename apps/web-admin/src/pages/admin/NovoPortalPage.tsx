@@ -636,7 +636,7 @@ function StepCores({
         <div className="np-cores-grid">
           <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões e ações principais" required />
           <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Destaques e badges" />
-          <ColorField label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Textos e títulos" />
+          <ColorField label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Elementos de apoio e variações" />
         </div>
       </div>
     </div>
@@ -784,55 +784,42 @@ function StepTicker({
     <div className="np-step">
       <div className="np-step__head">
         <h2 className="np-step__title">Ticker de cotação <span style={{ fontSize: '0.75em', fontWeight: 400, color: 'var(--color-text-tertiary)' }}>(opcional)</span></h2>
-        <p className="np-step__desc">Configure o ticker de cotação exibido no header do portal.</p>
+        <p className="np-step__desc">Configure o widget de cotação exibido no header do portal. Código embed fornecido pela Enfoque.</p>
       </div>
       <div className="np-step__body">
         <div className="np-field">
-          <div className="np-ticker-options">
-            {([
-              { id: 'none',   label: 'Sem ticker',     desc: 'Nenhum ticker no portal' },
-              { id: 'iframe', label: 'Widget Enfoque',  desc: 'Incorporar widget via código embed' },
-            ] as { id: TickerType; label: string; desc: string }[]).map(opt => (
-              <button
-                key={opt.id}
-                type="button"
-                className={`np-ticker-opt${tickerType === opt.id ? ' np-ticker-opt--active' : ''}`}
-                onClick={() => onType(opt.id)}
-              >
-                <span className="np-ticker-opt__label">{opt.label}</span>
-                <span className="np-ticker-opt__desc">{opt.desc}</span>
-              </button>
-            ))}
-          </div>
+          <label className="np-label">Ticker (código do ativo)</label>
+          <input
+            className="np-input"
+            type="text"
+            placeholder="Ex: IGTA3, PETR4, VALE3"
+            value={tickerSymbol}
+            onChange={e => onSymbol(e.target.value.toUpperCase())}
+            maxLength={10}
+            disabled={tickerType === 'none'}
+          />
+          <span className="np-field-hint">Código do ativo na B3, conforme cadastrado na Enfoque.</span>
         </div>
-
-        {tickerType === 'iframe' && (
-          <>
-            <div className="np-field">
-              <label className="np-label">Ticker (código do ativo)</label>
-              <input
-                className="np-input"
-                type="text"
-                placeholder="Ex: IGTA3, PETR4, VALE3"
-                value={tickerSymbol}
-                onChange={e => onSymbol(e.target.value.toUpperCase())}
-                maxLength={10}
-              />
-              <span className="np-field-hint">Código do ativo na B3, conforme cadastrado na Enfoque.</span>
-            </div>
-            <div className="np-field">
-              <label className="np-label">Código embed (fornecido pela Enfoque)</label>
-              <textarea
-                className="np-input np-textarea"
-                placeholder={'<iframe src="https://..." ...></iframe>'}
-                value={tickerEmbedCode}
-                onChange={e => onEmbedCode(e.target.value)}
-                rows={4}
-              />
-              <span className="np-field-hint">Cole aqui o código HTML fornecido pela Enfoque para o widget de cotação.</span>
-            </div>
-          </>
-        )}
+        <div className="np-field">
+          <label className="np-label">Código embed (fornecido pela Enfoque)</label>
+          <textarea
+            className="np-input np-textarea"
+            placeholder={'<iframe src="https://..." ...></iframe>'}
+            value={tickerEmbedCode}
+            onChange={e => onEmbedCode(e.target.value)}
+            rows={4}
+            disabled={tickerType === 'none'}
+          />
+          <span className="np-field-hint">Cole aqui o código HTML fornecido pela Enfoque para o widget de cotação.</span>
+        </div>
+        <label className="np-ticker-none-toggle">
+          <input
+            type="checkbox"
+            checked={tickerType === 'none'}
+            onChange={e => onType(e.target.checked ? 'none' : 'iframe')}
+          />
+          <span>Sem ticker no portal</span>
+        </label>
       </div>
     </div>
   );
@@ -1153,7 +1140,7 @@ export default function NovoPortalPage() {
     faviconFile: null,
     faviconPreview: null,
     idiomas: ['pt-BR'],
-    tickerType: 'none',
+    tickerType: 'iframe',
     tickerSymbol: '',
     tickerEmbedCode: '',
     metaTitulo: '',
