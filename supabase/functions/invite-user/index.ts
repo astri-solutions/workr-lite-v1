@@ -68,6 +68,12 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (data.user?.id) {
+      await adminClient.auth.admin.updateUserById(data.user.id, {
+        app_metadata: { role: 'client_user' },
+      });
+    }
+
     return new Response(JSON.stringify({ id: data.user?.id }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -1372,7 +1372,7 @@ export default function NovoPortalPage() {
               const token = session?.access_token;
               if (token) {
                 await fetch(
-                  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
+                  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-portal-user`,
                   {
                     method: 'POST',
                     headers: {
