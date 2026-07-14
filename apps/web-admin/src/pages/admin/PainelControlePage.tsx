@@ -22,36 +22,39 @@ interface SiteData {
   cdn: boolean;
 }
 
-const SITES_DB: SiteData[] = [
-  {
-    id: 's1', portalId: '1', cliente: 'Construtora Aurora',
-    link: 'aurora.workr.com.br', ip: '177.71.142.53', status: 'Ativo',
-    criadoEm: '2026-03-03',    disco: { usado: 0.82, total: 50 }, cpu: 3, memoria: 42,
-    inodes: { usado: 8200, total: 200000 },
-    phpVersion: '8.2', ssl: true, cdn: true,
-  },
-  {
-    id: 's2', portalId: '2', cliente: 'International Meal Company',
-    link: 'imc.workr.com.br', ip: '177.71.142.54', status: 'Ativo',
-    criadoEm: '2026-02-12',    disco: { usado: 2.4, total: 50 }, cpu: 7, memoria: 128,
-    inodes: { usado: 24000, total: 200000 },
-    phpVersion: '8.2', ssl: true, cdn: true,
-  },
-  {
-    id: 's3', portalId: '2', cliente: 'International Meal Company',
-    link: 'imc-en.workr.com.br', ip: '177.71.142.55', status: 'Ativo',
-    criadoEm: '2026-02-12',    disco: { usado: 1.1, total: 50 }, cpu: 2, memoria: 38,
-    inodes: { usado: 11000, total: 200000 },
-    phpVersion: '8.2', ssl: true, cdn: false,
-  },
-  {
-    id: 's4', portalId: '3', cliente: 'Vetra Energia',
-    link: 'vetra.workr.com.br', ip: '177.71.142.56', status: 'Suspenso',
-    criadoEm: '2026-01-21',    disco: { usado: 0.52, total: 20 }, cpu: 1, memoria: 25,
-    inodes: { usado: 6450, total: 200000 },
-    phpVersion: '8.1', ssl: true, cdn: false,
-  },
-];
+function loadSiteFromStorage(siteId: string): SiteData | undefined {
+  try {
+    const raw = localStorage.getItem('workr_portais');
+    const portals: Array<{
+      id: string; cliente: string; criadoEm: string;
+      sites: Array<{ id: string; link: string; status: string; ip?: string }>;
+    }> = raw ? JSON.parse(raw) : [];
+    for (const portal of portals) {
+      const s = portal.sites?.find(s => s.id === siteId);
+      if (s) {
+        return {
+          id: s.id,
+          portalId: portal.id,
+          cliente: portal.cliente,
+          link: s.link,
+          ip: s.ip || '—',
+          status: (s.status as 'Ativo' | 'Suspenso') ?? 'Ativo',
+          criadoEm: portal.criadoEm,
+          disco: { usado: 0, total: 10 },
+          cpu: 0,
+          memoria: 0,
+          inodes: { usado: 0, total: 200000 },
+          phpVersion: '—',
+          ssl: true,
+          cdn: false,
+        };
+      }
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 
 function StatBar({ value, max }: { value: number; max: number }) {
@@ -74,7 +77,7 @@ export default function PainelControlePage() {
   const [suspendConfirm, setSuspendConfirm] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
 
-  const site = SITES_DB.find((s) => s.id === siteId);
+  const site = loadSiteFromStorage(siteId ?? '');
 
   useEffect(() => {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });

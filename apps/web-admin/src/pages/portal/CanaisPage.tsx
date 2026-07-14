@@ -301,8 +301,22 @@ function orderKey(list: Canal[]): string {
 export default function CanaisPage() {
   const portalName = usePortalName();
   const cvmPageIds = loadCvmRoutedPageIds();
-  const [canais, setCanais] = useState<Canal[]>(DEFAULT_CANAIS);
-  const [savedOrderKey, setSavedOrderKey] = useState(() => orderKey(DEFAULT_CANAIS));
+  const [canais, setCanais] = useState<Canal[]>(() => {
+    try {
+      const raw = localStorage.getItem(CANAIS_KEY);
+      return raw ? JSON.parse(raw) : DEFAULT_CANAIS;
+    } catch {
+      return DEFAULT_CANAIS;
+    }
+  });
+  const [savedOrderKey, setSavedOrderKey] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CANAIS_KEY);
+      return orderKey(raw ? JSON.parse(raw) : DEFAULT_CANAIS);
+    } catch {
+      return orderKey(DEFAULT_CANAIS);
+    }
+  });
 
   // Modals
   const [editModal, setEditModal] = useState<EditState | null>(null);

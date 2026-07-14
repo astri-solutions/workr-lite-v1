@@ -3,6 +3,7 @@ import { processImage, ImageSlot } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { CANAIS_KEY } from '../../components/ChannelEditor';
 import './AdminPages.css';
 import './NovoPortalPage.css';
 import '../../components/InviteUserModal.css';
@@ -1321,6 +1322,11 @@ export default function NovoPortalPage() {
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
+
+          // Inicializa a árvore de canais do portal no localStorage
+          if (form.canais && form.canais.length > 0) {
+            localStorage.setItem(CANAIS_KEY, JSON.stringify(form.canais));
+          }
 
           // Convida o usuário admin via Supabase Edge Function
           if (isSupabaseConfigured && supabase && form.adminEmail) {
