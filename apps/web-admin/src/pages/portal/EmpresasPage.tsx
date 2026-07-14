@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -22,7 +22,9 @@ interface Empresa {
   ativo: boolean;
 }
 
-const INITIAL: Empresa[] = [];
+function empresasKey(portalId?: string) {
+  return `portal_empresas_${portalId ?? 'default'}`;
+}
 
 const TIPO_OPTIONS: Tipo[] = ['EMPRESA', 'FUNDO', 'OUTRO'];
 const TIPO_LABEL: Record<Tipo, string> = { EMPRESA: 'Empresa', FUNDO: 'Fundo', OUTRO: 'Outro' };
@@ -37,7 +39,16 @@ export default function EmpresasPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
 
-  const [empresas, setEmpresas] = useState<Empresa[]>(INITIAL);
+  const activePortalId = user?.activePortalId;
+  const storageKey = empresasKey(activePortalId);
+
+  const [empresas, setEmpresas] = useState<Empresa[]>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) return JSON.parse(raw) as Empresa[];
+    } catch { /* ignore */ }
+    return [];
+  });
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Empresa | null>(null);
@@ -47,6 +58,30 @@ export default function EmpresasPage() {
   const [deleteTarget, setDeleteTarget] = useState<Empresa | null>(null);
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('choose');
   const [migrateTargetId, setMigrateTargetId] = useState('');
+
+  // Persist empresas to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(storageKey, JSON.stringify(empresas));
+  }, [empresas, storageKey]);
+
+  // Seed main company from portal name on first load for this portal
+  useEffect(() => {
+    if (!activePortalId || !portalName) return;
+    const raw = localStorage.getItem(storageKey);
+    if (raw && raw !== '[]') return; // already has data
+    const principalId = `principal-${activePortalId}`;
+    setEmpresas([{
+      id: principalId,
+      nome: portalName,
+      tipo: 'EMPRESA',
+      cnpj: '',
+      cvmCodigo: '',
+      autoCvm: false,
+      importarDesde: '',
+      ativo: true,
+    }]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePortalId, portalName]);
 
   // Toggle (ativar/desativar) confirm state
   const [toggleTarget, setToggleTarget] = useState<Empresa | null>(null);

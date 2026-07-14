@@ -57,10 +57,10 @@ Deno.serve(async (req) => {
       status: u.banned_until ? 'Suspenso' : 'Ativo',
     }));
 
-    // client_user only sees users sharing at least one portal
-    if (callerRole === 'client_user' && callerPortais.length > 0) {
+    // client_user only sees users that belong to at least one of their portals
+    if (callerRole === 'client_user') {
       allUsers = allUsers.filter(u =>
-        u.role === 'super_admin' || u.portais.some(p => callerPortais.includes(p))
+        callerPortais.length > 0 && u.portais.some(p => callerPortais.includes(p))
       );
     }
 
