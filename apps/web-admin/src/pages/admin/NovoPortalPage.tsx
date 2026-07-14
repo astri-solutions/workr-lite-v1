@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { CANAIS_KEY } from '../../components/ChannelEditor';
+import ColorPickerPopover from '../../components/ColorPickerPopover';
 import './AdminPages.css';
 import './NovoPortalPage.css';
 import '../../components/InviteUserModal.css';
@@ -619,130 +620,16 @@ function StepCores({
   primaria: string; secundaria: string; terciaria: string;
   onPrimaria: (v: string) => void; onSecundaria: (v: string) => void; onTerciaria: (v: string) => void;
 }) {
-  function ColorPicker({ label, value, onChange, hint, required }: {
+  function ColorField({ label, value, onChange, hint, required }: {
     label: string; value: string; onChange: (v: string) => void; hint: string; required?: boolean;
   }) {
-    const [hex, setHex] = useState(value);
-    const [open, setOpen] = useState(false);
-    const [hsv, setHsv] = useState<[number, number, number]>(() => {
-      if (/^#[0-9a-fA-F]{6}$/.test(value)) return hexToHsv(value);
-      return [0, 1, 1];
-    });
-    const wrapRef = useRef<HTMLDivElement>(null);
-    const svRef = useRef<HTMLDivElement>(null);
-    const hueRef = useRef<HTMLDivElement>(null);
-    const svDragging = useRef(false);
-    const hueDragging = useRef(false);
-    const [h, s, v] = hsv;
-
-    useEffect(() => {
-      setHex(value);
-      if (/^#[0-9a-fA-F]{6}$/.test(value)) setHsv(hexToHsv(value));
-    }, [value]);
-
-    useEffect(() => {
-      if (!open) return;
-      function onOutside(e: MouseEvent) {
-        if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-      }
-      document.addEventListener('mousedown', onOutside);
-      return () => document.removeEventListener('mousedown', onOutside);
-    }, [open]);
-
-    function applyHsv(newHsv: [number, number, number]) {
-      setHsv(newHsv);
-      const newHex = hsvToHex(...newHsv);
-      setHex(newHex);
-      onChange(newHex);
-    }
-
-    function getSvFromEvent(e: React.PointerEvent | PointerEvent) {
-      const el = svRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-      applyHsv([h, nx, 1 - ny]);
-    }
-
-    function getHueFromEvent(e: React.PointerEvent | PointerEvent) {
-      const el = hueRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      applyHsv([nx * 360, s, v]);
-    }
-
-    function handleHex(raw: string) {
-      setHex(raw);
-      if (/^#[0-9a-fA-F]{6}$/.test(raw)) {
-        onChange(raw);
-        setHsv(hexToHsv(raw));
-      }
-    }
-
-    const pureHue = `hsl(${h}, 100%, 50%)`;
-
     return (
-      <div className="np-color-item" ref={wrapRef}>
+      <div className="np-color-item">
         <label className="np-color-item__label">
           {label}{required && <span className="np-label__required"> *</span>}
         </label>
         <p className="np-color-item__hint">{hint}</p>
-        <div className="np-color-item__row">
-          <div
-            className="np-color-swatch-wrap"
-            onClick={() => setOpen((o) => !o)}
-          >
-            <div className="np-color-swatch" style={{ background: value }} />
-          </div>
-          <input
-            className="np-input np-input--hex"
-            type="text"
-            value={hex}
-            onChange={(e) => handleHex(e.target.value)}
-            maxLength={7}
-            spellCheck={false}
-          />
-        </div>
-        {open && (
-          <div className="np-cpicker">
-            {/* Saturation–Value square */}
-            <div
-              ref={svRef}
-              className="np-cpicker__sv"
-              style={{ background: pureHue }}
-              onPointerDown={(e) => {
-                svDragging.current = true;
-                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                getSvFromEvent(e);
-              }}
-              onPointerMove={(e) => { if (svDragging.current) getSvFromEvent(e); }}
-              onPointerUp={() => { svDragging.current = false; }}
-            >
-              <div className="np-cpicker__sv-white" />
-              <div className="np-cpicker__sv-black" />
-              <div
-                className="np-cpicker__cursor"
-                style={{ left: `${s * 100}%`, top: `${(1 - v) * 100}%` }}
-              />
-            </div>
-            {/* Hue bar */}
-            <div
-              ref={hueRef}
-              className="np-cpicker__hue"
-              onPointerDown={(e) => {
-                hueDragging.current = true;
-                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                getHueFromEvent(e);
-              }}
-              onPointerMove={(e) => { if (hueDragging.current) getHueFromEvent(e); }}
-              onPointerUp={() => { hueDragging.current = false; }}
-            >
-              <div className="np-cpicker__hue-cursor" style={{ left: `${(h / 360) * 100}%` }} />
-            </div>
-          </div>
-        )}
+        <ColorPickerPopover value={value} onChange={onChange} />
       </div>
     );
   }
@@ -767,9 +654,9 @@ function StepCores({
           </div>
         </div>
         <div className="np-cores-grid">
-          <ColorPicker label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões e ações principais" required />
-          <ColorPicker label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Destaques e badges" />
-          <ColorPicker label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Textos e títulos" />
+          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões e ações principais" required />
+          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Destaques e badges" />
+          <ColorField label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Textos e títulos" />
         </div>
       </div>
     </div>

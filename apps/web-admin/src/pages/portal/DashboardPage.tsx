@@ -12,10 +12,10 @@ const ACCOUNT_MANAGER = {
 };
 
 const STATS = [
-  { label: 'Visitantes (30d)', value: '4.821', delta: '+12%', up: true },
-  { label: 'Documentos publicados', value: '38', delta: '+3 este mês', up: true },
-  { label: 'Matérias ativas', value: '14', delta: '2 rascunhos', up: false },
-  { label: 'Interações pendentes', value: '7', delta: 'Responder', up: false },
+  { label: 'Visitantes (30d)', value: '—', delta: 'Em breve', up: false },
+  { label: 'Documentos publicados', value: '0', delta: '', up: false },
+  { label: 'Matérias ativas', value: '0', delta: '', up: false },
+  { label: 'Interações pendentes', value: '0', delta: '', up: false },
 ];
 
 const QUICK_LINKS = [
@@ -39,13 +39,7 @@ const QUICK_LINKS = [
   )},
 ];
 
-const RECENT_ACTIVITY = [
-  { action: 'Documento publicado', detail: 'Apresentação 2T25.pdf', time: 'Há 2 horas', type: 'doc' },
-  { action: 'Nova matéria criada', detail: 'Resultado do 2º trimestre 2025', time: 'Há 5 horas', type: 'edit' },
-  { action: 'Interação recebida', detail: 'Pergunta de acionista sobre dividendos', time: 'Há 1 dia', type: 'msg' },
-  { action: 'Documento publicado', detail: 'Release 1T25.pdf', time: 'Há 3 dias', type: 'doc' },
-  { action: 'Canal atualizado', detail: 'Governança — 2 novas páginas', time: 'Há 4 dias', type: 'channel' },
-];
+const RECENT_ACTIVITY: { action: string; detail: string; time: string; type: string }[] = [];
 
 const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   doc: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>description</span>,
@@ -78,7 +72,7 @@ export default function DashboardPage() {
           <div key={s.label} className="dash-stat-card">
             <span className="dash-stat-card__value">{s.value}</span>
             <span className="dash-stat-card__label">{s.label}</span>
-            <span className={`dash-stat-card__delta${s.up ? ' dash-stat-card__delta--up' : ''}`}>{s.delta}</span>
+            {s.delta && <span className={`dash-stat-card__delta${s.up ? ' dash-stat-card__delta--up' : ''}`}>{s.delta}</span>}
           </div>
         ))}
       </div>
@@ -102,7 +96,9 @@ export default function DashboardPage() {
         <div className="dash-block">
           <h2 className="dash-block__title">Atividade recente</h2>
           <div className="dash-activity">
-            {RECENT_ACTIVITY.map((a, i) => (
+            {RECENT_ACTIVITY.length === 0 ? (
+              <p className="dash-activity-empty">Nenhuma atividade recente.</p>
+            ) : RECENT_ACTIVITY.map((a, i) => (
               <div key={i} className="dash-activity-item">
                 <span className="dash-activity-item__icon">{ACTIVITY_ICONS[a.type]}</span>
                 <div className="dash-activity-item__body">

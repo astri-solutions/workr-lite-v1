@@ -140,6 +140,10 @@ async function ghJson<T>(res: Response): Promise<T> {
   return body as T;
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -198,30 +202,37 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Step 1: get template's current main branch commit ─────────────────
-    const refData = await ghJson<{ object: { sha: string } }>(
-      await gh(`/repos/${githubOrg}/${templateRepo}/git/refs/heads/main`)
-    );
-    const templateCommitSha = refData.object.sha;
-
-    // ── Step 2: get the tree SHA from that commit ─────────────────────────
-    const commitData = await ghJson<{ tree: { sha: string } }>(
-      await gh(`/repos/${githubOrg}/${templateRepo}/git/commits/${templateCommitSha}`)
-    );
-    const templateTreeSha = commitData.tree.sha;
-
-    // ── Step 3: create new empty repo in the org ──────────────────────────
-    await ghJson<unknown>(await gh(`/orgs/${githubOrg}/repos`, {
+    // ── Step 1: generate repo from template ───────────────────────────────
+    // Requires cliente-workr-lite to be marked as "Template repository" in GitHub Settings.
+    await ghJson<unknown>(await gh(`/repos/${githubOrg}/${templateRepo}/generate`, {
       method: 'POST',
       body: JSON.stringify({
+        owner: githubOrg,
         name: repoName,
         description: `Portal RI — ${nome}`,
         private: false,
-        auto_init: false,
+        include_all_branches: false,
       }),
     }));
 
-    // ── Step 4: build site.config.js content and create a blob ───────────
+    // ── Step 2: wait for repo to be ready (poll up to 60s) ────────────────
+    let ready = false;
+    for (let i = 0; i < 20; i++) {
+      await sleep(3000);
+      const checkRes = await gh(`/repos/${githubOrg}/${repoName}`);
+      if (checkRes.ok) { ready = true; break; }
+    }
+    if (!ready) throw new Error('Novo repositório não ficou pronto em 60s. Tente publicar a configuração manualmente.');
+
+    // ── Step 3: get current site.config.js SHA in new repo ───────────────
+    const fileRes = await gh(`/repos/${githubOrg}/${repoName}/contents/scripts/site.config.js`);
+    let fileSha: string | undefined;
+    if (fileRes.ok) {
+      const fileData = await fileRes.json() as { sha: string };
+      fileSha = fileData.sha;
+    }
+
+    // ── Step 4: build and push customised site.config.js ─────────────────
     const siteConfigContent = buildSiteConfig({
       nome,
       colors: colors ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#141414' },
@@ -230,67 +241,32 @@ Deno.serve(async (req) => {
     });
     const encoded = btoa(unescape(encodeURIComponent(siteConfigContent)));
 
-    const blobData = await ghJson<{ sha: string }>(
-      await gh(`/repos/${githubOrg}/${repoName}/git/blobs`, {
-        method: 'POST',
-        body: JSON.stringify({ content: encoded, encoding: 'base64' }),
-      })
-    );
-
-    // ── Step 5: create tree extending template's tree with the new config ─
-    const newTreeData = await ghJson<{ sha: string }>(
-      await gh(`/repos/${githubOrg}/${repoName}/git/trees`, {
-        method: 'POST',
-        body: JSON.stringify({
-          base_tree: templateTreeSha,
-          tree: [{
-            path: 'scripts/site.config.js',
-            mode: '100644',
-            type: 'blob',
-            sha: blobData.sha,
-          }],
-        }),
-      })
-    );
-
-    // ── Step 6: create initial commit ────────────────────────────────────
-    const newCommitData = await ghJson<{ sha: string }>(
-      await gh(`/repos/${githubOrg}/${repoName}/git/commits`, {
-        method: 'POST',
-        body: JSON.stringify({
-          message: `chore: initialize portal from template [${nome}]`,
-          tree: newTreeData.sha,
-          parents: [],
-        }),
-      })
-    );
-
-    // ── Step 7: create main branch pointing to the new commit ────────────
-    await ghJson<unknown>(await gh(`/repos/${githubOrg}/${repoName}/git/refs`, {
-      method: 'POST',
+    await ghJson<unknown>(await gh(`/repos/${githubOrg}/${repoName}/contents/scripts/site.config.js`, {
+      method: 'PUT',
       body: JSON.stringify({
-        ref: 'refs/heads/main',
-        sha: newCommitData.sha,
+        message: `chore: configure portal [${nome}]`,
+        content: encoded,
+        ...(fileSha ? { sha: fileSha } : {}),
       }),
     }));
 
     const repoUrl  = `https://github.com/${githubOrg}/${repoName}`;
-    let   vercelUrl = `https://${subdomain}.vercel.app`;
+    let   vercelUrl = `https://${repoName}.vercel.app`;
 
-    // ── Step 8: create Vercel project (optional) ──────────────────────────
+    // ── Step 5: create Vercel project (optional) ──────────────────────────
     if (vercelToken) {
       const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: subdomain,
-          framework: null, // static site — no framework
+          framework: null,
           gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
         }),
       });
 
       if (vercelRes.ok) {
-        const vd = await vercelRes.json();
+        const vd = await vercelRes.json() as { name: string };
         vercelUrl = `https://${vd.name}.vercel.app`;
       }
     }

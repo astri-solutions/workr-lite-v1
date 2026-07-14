@@ -481,3 +481,10 @@
     padding: var(--space-4);
   }
 }
+
+.dash-activity-empty {
+  color: var(--color-text-tertiary);
+  font-size: var(--text-sm);
+  padding: var(--space-4) 0;
+  text-align: center;
+}
