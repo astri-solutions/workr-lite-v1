@@ -1307,6 +1307,8 @@ export default function NovoPortalPage() {
             id: Date.now().toString(),
             cliente: form.nome,
             criadoEm: new Date().toLocaleDateString('pt-BR'),
+            autoCvm: form.autoCvm,
+            cvmCode: form.cvmCode || '',
             empresa: {
               cnpj: form.cnpj,
               responsavel: form.adminNome,
