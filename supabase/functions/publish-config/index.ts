@@ -13,6 +13,7 @@ function buildSiteConfig(opts: {
   colors: Colors;
   fonts: Fonts;
 }) {
+  const year = new Date().getFullYear();
   return `// scripts/site.config.js
 // Gerado pelo Workr Lite CMS — não editar manualmente.
 export const siteConfig = {
@@ -20,7 +21,7 @@ export const siteConfig = {
   company: {
     name:        ${JSON.stringify(opts.nome)},
     nameShort:   ${JSON.stringify(opts.nome)},
-    description: 'Relações com Investidores — ' + ${JSON.stringify(opts.nome)} + '.',
+    description: 'Relações com Investidores — ${opts.nome}.',
     logoOriginal: '/assets/logotipo/logotipo-original.svg',
     logoNegative: '/assets/logotipo/logotipo-negative.svg',
     logoContrast: '/assets/logotipo/logotipo-negative.svg',
@@ -38,13 +39,9 @@ export const siteConfig = {
     body:    ${JSON.stringify(opts.fonts.body)},
   },
 
-  ticker: {
-    type:      'static',
-    iframeUrl: '',
-    items: [
-      { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
-    ],
-  },
+  tickers: [
+    { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
+  ],
 
   nav: [
     { label: 'A Companhia', href: '/a-companhia.html', children: [] },
@@ -64,8 +61,6 @@ export const siteConfig = {
     ]},
   ],
 
-  empresas: [],
-
   header: { variant: 'navbar-default' },
 
   restrictedNav: [],
@@ -76,7 +71,7 @@ export const siteConfig = {
     email:     '',
     phone:     '',
     hours:     '',
-    copyright: \`©Copyright \${opts.nome} \${new Date().getFullYear()}\`,
+    copyright: '©Copyright ${opts.nome} ${year}',
     social: { linkedin: '#', instagram: '#', facebook: '#' },
     legalLinks: [
       { label: 'Termos e Condições',      href: '/termos-e-condicoes.html'      },
