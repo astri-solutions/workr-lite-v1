@@ -197,6 +197,18 @@ export default function PortaisPage() {
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
+  const [excluirPortal, setExcluirPortal] = useState<Portal | null>(null);
+  const [excluirConfirm, setExcluirConfirm] = useState('');
+
+  function handleExcluirPortal(portalId: string) {
+    setPortais(prev => {
+      const updated = prev.filter(p => p.id !== portalId);
+      localStorage.setItem(PORTAIS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+    setExcluirPortal(null);
+    setExcluirConfirm('');
+  }
 
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
@@ -280,6 +292,16 @@ export default function PortaisPage() {
                       Adicionar site
                     </button>
                   )}
+                  <button
+                    className="portais-kebab__trigger"
+                    type="button"
+                    aria-label="Excluir portal"
+                    title="Excluir portal"
+                    onClick={() => { setExcluirPortal(portal); setExcluirConfirm(''); }}
+                    style={{ marginLeft: '4px', color: 'var(--color-danger, #d93025)' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                  </button>
                   <button
                     className="portais-kebab__trigger"
                     type="button"
@@ -389,6 +411,46 @@ export default function PortaisPage() {
       )}
       {alterarSite && (
         <AlterarDominioModal onClose={() => setAlterarSite(null)} />
+      )}
+
+      {excluirPortal && (
+        <Modal
+          open
+          onClose={() => { setExcluirPortal(null); setExcluirConfirm(''); }}
+          title="Excluir portal"
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => { setExcluirPortal(null); setExcluirConfirm(''); }}>
+                Cancelar
+              </button>
+              <button
+                className="btn-danger"
+                type="button"
+                disabled={excluirConfirm !== excluirPortal.cliente}
+                onClick={() => handleExcluirPortal(excluirPortal.id)}
+              >
+                Excluir portal
+              </button>
+            </div>
+          }
+        >
+          <p className="ae-confirm-text">
+            Esta ação é <strong>permanente e irreversível</strong>. Todos os sites, configurações e dados do portal <strong>{excluirPortal.cliente}</strong> serão removidos.
+          </p>
+          <p className="ae-confirm-text" style={{ marginTop: '12px' }}>
+            Para confirmar, digite o nome do portal abaixo:
+          </p>
+          <input
+            className="np-input"
+            type="text"
+            placeholder={excluirPortal.cliente}
+            value={excluirConfirm}
+            onChange={(e) => setExcluirConfirm(e.target.value)}
+            style={{ marginTop: '8px', width: '100%' }}
+            autoFocus
+          />
+        </Modal>
       )}
 
     </div>
