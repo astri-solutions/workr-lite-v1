@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
+import ColorPickerPopover from '../../components/ColorPickerPopover';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { generateColorScale } from '../../utils/colorUtils';
 import { usePortalName } from '../../hooks/usePortalName';
@@ -214,14 +215,10 @@ export default function CoresPage() {
         {COLOR_DEFS.map(def => (
           <div key={def.key} className="cores-input-card">
             <div className="cores-input-card__top">
-              <label className="cores-color-picker-label">
-                <input
-                  type="color"
-                  value={draft[def.key]}
-                  onChange={e => setColor(def.key, e.target.value)}
-                />
-                <span className="cores-color-picker-swatch" style={{ background: draft[def.key] }} />
-              </label>
+              <ColorPickerPopover
+                value={draft[def.key]}
+                onChange={v => setColor(def.key, v)}
+              />
               <div>
                 <div className="cores-input-card__label">{def.label}</div>
                 <div className="cores-input-card__desc">{def.desc}</div>

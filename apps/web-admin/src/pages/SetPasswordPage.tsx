@@ -15,7 +15,7 @@ export default function SetPasswordPage() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState(''); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
