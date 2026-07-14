@@ -415,29 +415,14 @@ export default function CentralDeResultadosPage2() {
   const [filterYear, setFilterYear] = useState('');
   const [filterQuarter, setFilterQuarter] = useState('');
 
-  const [quarters, setQuarters] = useState<Quarter[]>([
-    { id: '2t25', entityId: 'imc', period: '2T25', exibirHome: true,  status: 'published' },
-    { id: '1t25', entityId: 'imc', period: '1T25', exibirHome: false, status: 'published' },
-    { id: '4t24', entityId: 'imc', period: '4T24', exibirHome: false, status: 'draft' },
-  ]);
+  const [quarters, setQuarters] = useState<Quarter[]>([]);
 
-  const [docs, setDocs] = useState<Record<string, FileEntry[]>>({
-    '2t25': [
-      { id: 'd1', nome: 'Apresentação de Resultados 2T25', tipo: 'apresentacao', fileName: 'apresentacao-2t25.pdf', status: 'published', locale: 'pt-BR' },
-      { id: 'd2', nome: 'Release de Resultados 2T25',     tipo: 'release',      fileName: 'release-2t25.pdf',     status: 'published', locale: 'pt-BR' },
-      { id: 'd3', nome: 'Planilha de Apoio 2T25',         tipo: 'planilha',     fileName: 'planilha-2t25.xlsx',   status: 'draft',     locale: 'pt-BR' },
-    ],
-    '1t25': [
-      { id: 'd4', nome: 'Apresentação de Resultados 1T25', tipo: 'apresentacao', fileName: 'apresentacao-1t25.pdf', status: 'published', locale: 'pt-BR' },
-      { id: 'd5', nome: 'Release de Resultados 1T25',     tipo: 'release',      fileName: 'release-1t25.pdf',     status: 'published', locale: 'pt-BR' },
-    ],
-    '4t24': [],
-  });
+  const [docs, setDocs] = useState<Record<string, FileEntry[]>>({});
 
   // ── Novo trimestre wizard ──────────────────────────────────
   type WizardStep = 'step1' | 'step2' | null;
   const [wizardOpen, setWizardOpen] = useState<WizardStep>(null);
-  const [wEntity, setWEntity] = useState('imc');
+  const [wEntity, setWEntity] = useState('');
   const [wPeriodType, setWPeriodType] = useState<'trimestral' | 'anual'>('trimestral');
   const [wQuarter, setWQuarter] = useState('');
   const [wYear, setWYear] = useState('');

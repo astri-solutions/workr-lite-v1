@@ -15,12 +15,51 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
+interface SubCanalCfg { label: string; href: string; enabled: boolean; }
+interface CanalCfg { label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; }
 
 // ── site.config.js builder ───────────────────────────────────────────────────
 function headerVariant(layout: string): string {
   if (layout === 'sidebar') return 'sidebar';
   if (layout === 'tabmenu') return 'tabmenu';
-  return 'banner'; // banner = fixed layout
+  return 'banner';
+}
+
+function buildNavSection(canais: CanalCfg[]): string {
+  const enabled = canais.filter(c => c.enabled);
+  if (enabled.length === 0) {
+    // fallback to default nav
+    return `  nav: [
+    { label: 'A Companhia', href: '/a-companhia.html', children: [] },
+    { label: 'Governança', children: [
+        { label: 'Composição Acionária', href: '/composicao-acionaria.html' },
+        { label: 'Atas e Assembleias',   href: '/atas-assembleias.html'     },
+        { label: 'Documentos CVM',       href: '/documentos-cvm.html'       },
+    ]},
+    { label: 'Investidores', children: [
+        { label: 'Central de Resultados', href: '/central-resultados.html' },
+        { label: 'Calendário de Eventos', href: '/calendario-eventos.html' },
+        { label: 'Ratings',               href: '/ratings.html'            },
+    ]},
+    { label: 'Contato', children: [
+        { label: 'Fale com RI', href: '/fale-com-ri.html' },
+        { label: 'Mailing',     href: '/mailing.html'     },
+    ]},
+  ],`;
+  }
+
+  const items = enabled.map(c => {
+    const enabledChildren = c.children.filter(sc => sc.enabled);
+    if (enabledChildren.length === 0) {
+      return `    { label: ${JSON.stringify(c.label)}, href: ${JSON.stringify(c.href ?? '/')}, children: [] }`;
+    }
+    const childLines = enabledChildren
+      .map(sc => `      { label: ${JSON.stringify(sc.label)}, href: ${JSON.stringify(sc.href)} }`)
+      .join(',\n');
+    return `    { label: ${JSON.stringify(c.label)}, children: [\n${childLines},\n    ] }`;
+  }).join(',\n');
+
+  return `  nav: [\n${items},\n  ],`;
 }
 
 function buildSiteConfig(opts: {
@@ -29,6 +68,7 @@ function buildSiteConfig(opts: {
   colors: Colors;
   fonts: Fonts;
   footer?: FooterCfg | null;
+  canais?: CanalCfg[];
 }) {
   const year = new Date().getFullYear();
   const f = opts.footer;
@@ -91,23 +131,7 @@ export const siteConfig = {
     { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
   ],
 
-  nav: [
-    { label: 'A Companhia', href: '/a-companhia.html', children: [] },
-    { label: 'Governança', children: [
-        { label: 'Composição Acionária', href: '/composicao-acionaria.html' },
-        { label: 'Atas e Assembleias',   href: '/atas-assembleias.html'     },
-        { label: 'Documentos CVM',       href: '/documentos-cvm.html'       },
-    ]},
-    { label: 'Investidores', children: [
-        { label: 'Central de Resultados', href: '/central-resultados.html' },
-        { label: 'Calendário de Eventos', href: '/calendario-eventos.html' },
-        { label: 'Ratings',               href: '/ratings.html'            },
-    ]},
-    { label: 'Contato', children: [
-        { label: 'Fale com RI', href: '/fale-com-ri.html' },
-        { label: 'Mailing',     href: '/mailing.html'     },
-    ]},
-  ],
+${buildNavSection(opts.canais ?? [])}
 
   header: { variant: '${headerVariant(opts.layout)}' },
 
@@ -186,7 +210,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer } = await req.json() as {
+    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer, canais } = await req.json() as {
       portalId: string;
       nome: string;
       subdomain: string;
@@ -194,6 +218,7 @@ Deno.serve(async (req) => {
       colors?: Colors;
       fonts?: Fonts;
       footer?: FooterCfg | null;
+      canais?: CanalCfg[];
     };
 
     const githubToken  = Deno.env.get('GITHUB_TOKEN');
@@ -247,6 +272,7 @@ Deno.serve(async (req) => {
       colors: colors ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#141414' },
       fonts:  fonts  ?? { display: 'Plus Jakarta Sans', body: 'Inter' },
       footer: footer ?? null,
+      canais: canais ?? [],
     });
     const encoded = btoa(unescape(encodeURIComponent(siteConfigContent)));
 

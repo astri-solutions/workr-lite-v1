@@ -1341,6 +1341,7 @@ export default function NovoPortalPage() {
                       layout: form.tipo,
                       colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
                       fonts: { display: form.fonteTitulo, body: form.fonteTexto },
+                      canais: form.canais,
                     }),
                   }
                 );
