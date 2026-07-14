@@ -7,10 +7,13 @@ import { processImage } from '../../utils/imageProcessor';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
+const LOGO_KEY = 'portal_logotipo';
+const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
+
 export default function LogotipoPage() {
   const portalName = usePortalName();
-  const [logo, setLogo] = useState<string | null>(null);
-  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(null);
+  const [logo, setLogo] = useState<string | null>(() => localStorage.getItem(LOGO_KEY));
+  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(() => localStorage.getItem(LOGO_COMPACT_KEY));
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
@@ -36,6 +39,10 @@ export default function LogotipoPage() {
   }
 
   function handleSave() {
+    if (logo) localStorage.setItem(LOGO_KEY, logo);
+    else localStorage.removeItem(LOGO_KEY);
+    if (logoCollapsed) localStorage.setItem(LOGO_COMPACT_KEY, logoCollapsed);
+    else localStorage.removeItem(LOGO_COMPACT_KEY);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

@@ -37,10 +37,11 @@ function getSteps(tipo: string) {
     { id: 3 + off, label: 'Fonte' },
     { id: 4 + off, label: 'Cores' },
     { id: 5 + off, label: 'Identidade' },
-    { id: 6 + off, label: 'Idioma' },
-    { id: 7 + off, label: 'SEO' },
-    { id: 8 + off, label: 'Email' },
-    { id: 9 + off, label: 'Admin' },
+    { id: 6 + off, label: 'Ticker' },
+    { id: 7 + off, label: 'Idioma' },
+    { id: 8 + off, label: 'SEO' },
+    { id: 9 + off, label: 'Email' },
+    { id: 10 + off, label: 'Admin' },
   );
   return steps;
 }
@@ -159,6 +160,9 @@ interface FormData {
   faviconFile: File | null;
   faviconPreview: string | null;
   idiomas: string[];
+  tickerType: 'none' | 'manual' | 'iframe';
+  tickerIframeUrl: string;
+  tickerItems: { symbol: string; price: string; change: string; direction: 'up' | 'down' }[];
   metaTitulo: string;
   metaDescricao: string;
   analyticsId: string;
@@ -766,6 +770,88 @@ function StepIdentidade({
   );
 }
 
+/* ─── Step: Ticker ────────────────────────────────────────────────────────── */
+type TickerType = 'none' | 'manual' | 'iframe';
+interface TickerItem { symbol: string; price: string; change: string; direction: 'up' | 'down' }
+
+function StepTicker({
+  tickerType, tickerIframeUrl, tickerItems,
+  onType, onIframeUrl, onItems,
+}: {
+  tickerType: TickerType; tickerIframeUrl: string; tickerItems: TickerItem[];
+  onType: (v: TickerType) => void; onIframeUrl: (v: string) => void; onItems: (v: TickerItem[]) => void;
+}) {
+  function addItem() {
+    onItems([...tickerItems, { symbol: '', price: '', change: '', direction: 'up' }]);
+  }
+  function removeItem(i: number) {
+    onItems(tickerItems.filter((_, idx) => idx !== i));
+  }
+  function updateItem(i: number, field: keyof TickerItem, value: string) {
+    const next = tickerItems.map((item, idx) => idx === i ? { ...item, [field]: value } : item);
+    onItems(next);
+  }
+
+  return (
+    <div className="np-step">
+      <div className="np-step__head">
+        <h2 className="np-step__title">Ticker de cotação <span style={{ fontSize: '0.75em', fontWeight: 400, color: 'var(--color-text-tertiary)' }}>(opcional)</span></h2>
+        <p className="np-step__desc">Configure o ticker de cotação exibido no header do portal.</p>
+      </div>
+      <div className="np-step__body">
+        <div className="np-field">
+          <div className="np-ticker-options">
+            {([
+              { id: 'none', label: 'Sem ticker', desc: 'Nenhum ticker no portal' },
+              { id: 'manual', label: 'Manual', desc: 'Informe os dados manualmente' },
+              { id: 'iframe', label: 'Iframe externo', desc: 'Incorporar widget de terceiros' },
+            ] as { id: TickerType; label: string; desc: string }[]).map(opt => (
+              <button
+                key={opt.id}
+                type="button"
+                className={`np-ticker-opt${tickerType === opt.id ? ' np-ticker-opt--active' : ''}`}
+                onClick={() => onType(opt.id)}
+              >
+                <span className="np-ticker-opt__label">{opt.label}</span>
+                <span className="np-ticker-opt__desc">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tickerType === 'manual' && (
+          <div className="np-field">
+            {tickerItems.map((item, i) => (
+              <div key={i} className="np-ticker-row">
+                <input className="np-input np-input--sm" placeholder="Símbolo (ex: PETR4)" value={item.symbol} onChange={e => updateItem(i, 'symbol', e.target.value)} maxLength={10} />
+                <input className="np-input np-input--sm" placeholder="Preço (ex: R$ 38,50)" value={item.price} onChange={e => updateItem(i, 'price', e.target.value)} maxLength={20} />
+                <input className="np-input np-input--sm" placeholder="Variação (ex: +1,2%)" value={item.change} onChange={e => updateItem(i, 'change', e.target.value)} maxLength={15} />
+                <select className="np-input np-input--sm np-select" value={item.direction} onChange={e => updateItem(i, 'direction', e.target.value as 'up' | 'down')}>
+                  <option value="up">Alta ▲</option>
+                  <option value="down">Baixa ▼</option>
+                </select>
+                {tickerItems.length > 1 && (
+                  <button type="button" className="np-ticker-remove" onClick={() => removeItem(i)} aria-label="Remover">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" className="np-btn np-btn--ghost" onClick={addItem} style={{ marginTop: 8 }}>+ Adicionar ativo</button>
+          </div>
+        )}
+
+        {tickerType === 'iframe' && (
+          <div className="np-field">
+            <label className="np-label">URL do iframe</label>
+            <input className="np-input" type="url" placeholder="https://..." value={tickerIframeUrl} onChange={e => onIframeUrl(e.target.value)} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Step: Idioma ────────────────────────────────────────────────────────── */
 function FlagBR() {
   return (
@@ -806,7 +892,7 @@ function FlagGeneric({ code }: { code: string }) {
   );
 }
 const FLAG_COMPONENTS: Record<string, React.ReactNode> = {
-  pt: <FlagBR />,
+  'pt-BR': <FlagBR />,
   en: <FlagUS />,
   es: <FlagES />,
   fr: <FlagGeneric code="FR" />,
@@ -816,7 +902,7 @@ const FLAG_COMPONENTS: Record<string, React.ReactNode> = {
   ja: <FlagGeneric code="JA" />,
 };
 const ALL_LANGS = [
-  { id: 'pt', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
+  { id: 'pt-BR', label: 'Português', flag: '🇧🇷', desc: 'Conteúdo em português brasileiro' },
   { id: 'en', label: 'Inglês', flag: '🇺🇸', desc: 'Conteúdo em inglês americano' },
   { id: 'es', label: 'Espanhol', flag: '🇪🇸', desc: 'Conteúdo em espanhol' },
   { id: 'fr', label: 'Francês', flag: '🇫🇷', desc: 'Conteúdo em francês' },
@@ -827,7 +913,7 @@ const ALL_LANGS = [
 ];
 
 function StepIdioma({ idiomas, onIdiomas }: { idiomas: string[]; onIdiomas: (v: string[]) => void }) {
-  const primaryLangs = ALL_LANGS.filter((l) => ['pt', 'en', 'es'].includes(l.id));
+  const primaryLangs = ALL_LANGS.filter((l) => ['pt-BR', 'en', 'es'].includes(l.id));
 
   function toggleIdioma(id: string) {
     if (idiomas.includes(id)) {
@@ -1080,7 +1166,10 @@ export default function NovoPortalPage() {
     logoPreview: null,
     faviconFile: null,
     faviconPreview: null,
-    idiomas: ['pt', 'en', 'es'],
+    idiomas: ['pt-BR'],
+    tickerType: 'none',
+    tickerIframeUrl: '',
+    tickerItems: [{ symbol: '', price: '', change: '', direction: 'up' as const }],
     metaTitulo: '',
     metaDescricao: '',
     analyticsId: '',
@@ -1151,6 +1240,15 @@ export default function NovoPortalPage() {
     { label: 'Criando usuário administrador', desc: 'Acesso enviado por e-mail' },
   ];
 
+  function fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   function handleSubmit() {
     setCreating(true);
     setCreatingStep(0);
@@ -1200,9 +1298,26 @@ export default function NovoPortalPage() {
             tertiary: form.corTerciaria,
           }));
 
-          // Salva favicon do portal
-          if (form.faviconPreview) {
-            localStorage.setItem('portal_favicon', form.faviconPreview);
+          // Salva favicon e logo como data URL (blob URLs não persistem entre sessões)
+          if (form.faviconFile) {
+            const faviconDataUrl = await fileToDataUrl(form.faviconFile);
+            localStorage.setItem('portal_favicon', faviconDataUrl);
+          }
+          if (form.logoFile) {
+            const logoDataUrl = await fileToDataUrl(form.logoFile);
+            localStorage.setItem('portal_logotipo', logoDataUrl);
+          }
+
+          // Salva idiomas do portal
+          localStorage.setItem('portal_idiomas', JSON.stringify(form.idiomas));
+
+          // Salva ticker do portal
+          if (form.tickerType !== 'none') {
+            localStorage.setItem('portal_ticker', JSON.stringify({
+              type: form.tickerType,
+              iframeUrl: form.tickerIframeUrl || undefined,
+              items: form.tickerType === 'manual' ? form.tickerItems.filter(t => t.symbol) : undefined,
+            }));
           }
 
           // Salva template do portal
@@ -1367,6 +1482,16 @@ export default function NovoPortalPage() {
             faviconPreview={form.faviconPreview}
             onLogo={(file, preview) => setForm((f) => ({ ...f, logoFile: file, logoPreview: preview }))}
             onFavicon={(file, preview) => setForm((f) => ({ ...f, faviconFile: file, faviconPreview: preview }))}
+          />
+        )}
+        {currentLabel === 'Ticker' && (
+          <StepTicker
+            tickerType={form.tickerType}
+            tickerIframeUrl={form.tickerIframeUrl}
+            tickerItems={form.tickerItems}
+            onType={(v) => setForm((f) => ({ ...f, tickerType: v }))}
+            onIframeUrl={(v) => setForm((f) => ({ ...f, tickerIframeUrl: v }))}
+            onItems={(v) => setForm((f) => ({ ...f, tickerItems: v }))}
           />
         )}
         {currentLabel === 'Idioma' && (

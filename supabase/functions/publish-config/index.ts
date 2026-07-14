@@ -187,7 +187,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const targetRepo = repoName ?? 'cliente-workr-lite';
+    if (!repoName) {
+      return new Response(JSON.stringify({ error: 'repoName is required — portal has no linked GitHub repository' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const targetRepo = repoName;
     const filePath = 'scripts/site.config.js';
     const newContent = buildSiteConfig({ nome: portalNome, layout: layout ?? 'banner', colors, fonts, footer: footer ?? null, ticker: ticker ?? null });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));

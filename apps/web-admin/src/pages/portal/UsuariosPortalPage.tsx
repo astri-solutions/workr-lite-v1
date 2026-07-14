@@ -26,7 +26,28 @@ interface PortalUser {
   criadoEm: string;
 }
 
-const INITIAL_USERS: PortalUser[] = [];
+function loadStoredUsers(): PortalUser[] {
+  try {
+    const raw = localStorage.getItem('workr_usuarios');
+    if (!raw) return [];
+    const list = JSON.parse(raw) as Array<{
+      id: string; nome: string; email: string; role?: string; status?: string;
+    }>;
+    return list.map(u => ({
+      id: u.id,
+      nome: u.nome,
+      email: u.email,
+      role: (u.role === 'admin' || u.role === 'client_user' ? 'admin' : 'editor') as Role,
+      empresaIds: [],
+      ativo: u.status !== 'Inativo',
+      criadoEm: new Date().toLocaleDateString('pt-BR'),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const INITIAL_USERS: PortalUser[] = loadStoredUsers();
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor' };
 

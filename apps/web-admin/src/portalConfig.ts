@@ -11,6 +11,17 @@ export type LocaleCode = typeof ALL_LOCALES[number]['code'];
 //   'banner'              → full version (internal pages + rich content). Layout is locked — cannot be changed here.
 export type PortalModel = 'sidebar' | 'tabmenu' | 'banner';
 
+function getLanguages(): LocaleCode[] {
+  try {
+    const raw = localStorage.getItem('portal_idiomas');
+    if (raw) {
+      const parsed = JSON.parse(raw) as string[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed as LocaleCode[];
+    }
+  } catch { /* ignore */ }
+  return ['pt-BR'];
+}
+
 function getPortalName(): string {
   try {
     const auth = localStorage.getItem('workr_auth');
@@ -27,10 +38,9 @@ function getPortalName(): string {
 
 const PORTAL_CONFIG = {
   get name() { return getPortalName(); },
+  get languages() { return getLanguages(); },
   orgType: 'trimestral',
   model: 'tabmenu' as PortalModel,
-  // Languages enabled for this portal. Edit here to add/remove language tabs across all pages.
-  languages: ['pt-BR', 'en', 'es'] as LocaleCode[],
 };
 
 export { ALL_LOCALES };

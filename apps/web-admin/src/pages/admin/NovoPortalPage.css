@@ -1514,3 +1514,49 @@
   height: 52px;
   color: var(--color-primary-500);
 }
+
+/* ── Ticker step ── */
+.np-ticker-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.np-ticker-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.np-ticker-opt:hover { border-color: var(--color-primary-500); }
+.np-ticker-opt--active {
+  border-color: var(--color-primary-500);
+  background: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-bg-secondary));
+}
+.np-ticker-opt__label { font-weight: 600; font-size: var(--text-sm); color: var(--color-text-primary); }
+.np-ticker-opt__desc  { font-size: var(--text-xs); color: var(--color-text-secondary); }
+
+.np-ticker-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr 0.9fr auto;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+.np-input--sm { padding: 6px 10px; font-size: var(--text-sm); }
+.np-ticker-remove {
+  padding: 6px;
+  border: none;
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.np-ticker-remove:hover { color: var(--color-danger); background: var(--color-danger-bg, #fff0f0); }
