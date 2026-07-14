@@ -169,6 +169,7 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
           ref={popoverRef}
           className="cp-popover"
           style={{ position: 'fixed', top: popoverPos.top, left: popoverPos.left }}
+          onMouseDown={e => e.stopPropagation()}
         >
           {/* Saturation / Value square */}
           <div
