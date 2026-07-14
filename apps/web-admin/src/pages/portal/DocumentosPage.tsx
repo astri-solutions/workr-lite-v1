@@ -79,7 +79,7 @@ function emptyDocForm(entityId = ''): DocForm {
 
 export default function DocumentosPage() {
   const portalName = usePortalName();
-  const [activeEntity, setActiveEntity] = useState(ENTITIES[0].id);
+  const [activeEntity, setActiveEntity] = useState(ENTITIES[0]?.id ?? '');
   const [search, setSearch] = useState('');
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<number>>(new Set());

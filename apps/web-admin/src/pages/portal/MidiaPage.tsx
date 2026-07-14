@@ -104,19 +104,7 @@ function DocThumb({ type, size = 'md' }: { type: FileType; size?: 'sm' | 'md' | 
   );
 }
 
-const INITIAL: MediaFile[] = [
-  { id: 'm1', name: 'gravit-header-contato.jpg', type: extType('gravit-header-contato.jpg'), size: '412 KB', url: null, uploadedAt: '24/10/2023', dimensions: '2560×800', ratio: '3.20', tags: ['Header'], uploadedBy: 'Workr' },
-  { id: 'm2', name: 'gravit-header-portfolio.jpg', type: extType('gravit-header-portfolio.jpg'), size: '398 KB', url: null, uploadedAt: '24/10/2023', dimensions: '2560×800', ratio: '3.20', tags: ['Header'], uploadedBy: 'Workr' },
-  { id: 'm3', name: 'gravit-header-sobre.jpg', type: extType('gravit-header-sobre.jpg'), size: '421 KB', url: null, uploadedAt: '24/10/2023', dimensions: '2560×800', ratio: '3.20', tags: ['Header'], uploadedBy: 'Workr' },
-  { id: 'm4', name: 'header-contato.jpg', type: extType('header-contato.jpg'), size: '233 KB', url: null, uploadedAt: '15/11/2023', dimensions: '1920×533', ratio: '3.60', tags: [], uploadedBy: 'Workr' },
-  { id: 'm5', name: 'big-image.jpg', type: extType('big-image.jpg'), size: '1.1 MB', url: null, uploadedAt: '20/03/2026', dimensions: '1920×1080', ratio: '1.78', tags: [], uploadedBy: 'Carlos Souza' },
-  { id: 'm6', name: 'release-resultados-1t26.pdf', type: extType('release-resultados-1t26.pdf'), size: '142 KB', url: null, uploadedAt: '14/05/2026', tags: ['Resultados'], uploadedBy: 'Carlos Souza' },
-  { id: 'm7', name: 'logo-astri.png', type: extType('logo-astri.png'), size: '28 KB', url: null, uploadedAt: '10/06/2026', dimensions: '320×120', ratio: '2.67', tags: ['Marca'], uploadedBy: 'Carlos Souza' },
-  { id: 'm8', name: 'apresentacao-1t26.pdf', type: extType('apresentacao-1t26.pdf'), size: '3.2 MB', url: null, uploadedAt: '05/06/2026', tags: ['Resultados'], uploadedBy: 'Ana Lima' },
-  { id: 'm9', name: 'dados-financeiros.xlsx', type: extType('dados-financeiros.xlsx'), size: '245 KB', url: null, uploadedAt: '01/06/2026', tags: [], uploadedBy: 'Ana Lima' },
-  { id: 'm10', name: 'webcast-2t25.mp4', type: extType('webcast-2t25.mp4'), size: '82 MB', url: null, uploadedAt: '05/05/2026', tags: [], uploadedBy: 'Carlos Souza' },
-  { id: 'm11', name: 'header-portfolio.jpg', type: extType('header-portfolio.jpg'), size: '378 KB', url: null, uploadedAt: '12/11/2023', dimensions: '1920×533', ratio: '3.60', tags: [], uploadedBy: 'Workr' },
-];
+const INITIAL: MediaFile[] = [];
 
 const TYPE_LABEL: Record<FileType, string> = {
   image: 'Imagem', pdf: 'PDF', doc: 'Word', xls: 'Planilha', ppt: 'Apresentação', video: 'Vídeo', other: 'Outro',

@@ -52,12 +52,7 @@ function buildPaginaOptions(canais: Canal[]): PaginaOption[] {
   return result;
 }
 
-const INITIAL: Materia[] = [
-  { id: 'a1', titulo: 'IMC reporta crescimento de 12% no EBITDA do 2T25', pagina: 'Resultados', status: 'publicado', data: '10/06/2026', autor: 'Carlos Souza', ultimaEdicao: '11/06/2026', ultimoEditor: 'Carlos Souza' },
-  { id: 'a2', titulo: 'Calendário de eventos corporativos — 2º semestre 2026', pagina: 'Eventos', status: 'publicado', data: '01/06/2026', autor: 'Ana Lima', ultimaEdicao: '05/06/2026', ultimoEditor: 'Ana Lima' },
-  { id: 'a3', titulo: 'Convocação: Assembleia Geral Ordinária 2026', pagina: 'Governança', status: 'agendado', data: '20/06/2026', autor: 'Carlos Souza', ultimaEdicao: '20/06/2026', ultimoEditor: 'Ana Lima' },
-  { id: 'a4', titulo: 'Nota ao mercado: aquisição estratégica no segmento de fast food', pagina: 'Comunicados', status: 'rascunho', data: '12/06/2026', autor: 'Ana Lima', ultimaEdicao: '14/06/2026', ultimoEditor: 'Carlos Souza' },
-];
+const INITIAL: Materia[] = [];
 
 const STATUS_LABEL: Record<Status, string> = { publicado: 'Publicado', rascunho: 'Rascunho', agendado: 'Agendado' };
 const STATUS_BADGE: Record<Status, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
