@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import './AdminPages.css';
@@ -8,7 +8,7 @@ import SearchInput from '../../components/SearchInput';
 import InviteUserModal, { InviteFormData, PortalWithEmpresas } from '../../components/InviteUserModal';
 import EditUserModal, { EditableUser } from '../../components/EditUserModal';
 import Modal from '../../components/Modal';
-import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 interface UsuarioItem {
   id: string;
@@ -24,7 +24,15 @@ const ROLE_LABELS: Record<string, string> = {
   client_user: 'Cliente',
 };
 
-const USUARIOS_STORAGE_KEY = 'workr_usuarios';
+const FN_BASE = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : '';
+
+async function getToken(): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
 function loadPortaisFromStorage(): PortalWithEmpresas[] {
   try {
@@ -36,42 +44,13 @@ function loadPortaisFromStorage(): PortalWithEmpresas[] {
   }
 }
 
-function loadUsuariosFromStorage(): UsuarioItem[] {
-  try {
-    const raw = localStorage.getItem(USUARIOS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveUsuarios(list: UsuarioItem[]) {
-  localStorage.setItem(USUARIOS_STORAGE_KEY, JSON.stringify(list));
-}
-
 export default function UsuariosPage() {
-  const { user: authUser } = useAuth();
   const portais = useMemo(() => loadPortaisFromStorage(), []);
   const portaisMap = useMemo(() => Object.fromEntries(portais.map(p => [p.id, p.nome])), [portais]);
 
-  // Seed the list with the logged-in super_admin if not already stored
-  const [usuarios, setUsuarios] = useState<UsuarioItem[]>(() => {
-    const stored = loadUsuariosFromStorage();
-    if (authUser && !stored.find(u => u.email === authUser.email)) {
-      const me: UsuarioItem = {
-        id: 'me',
-        nome: authUser.name || authUser.email,
-        email: authUser.email,
-        role: 'super_admin',
-        portais: [],
-        status: 'Ativo',
-      };
-      const withMe = [me, ...stored];
-      saveUsuarios(withMe);
-      return withMe;
-    }
-    return stored;
-  });
+  const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const filterGroups = useMemo(() => [
     {
@@ -101,55 +80,122 @@ export default function UsuariosPage() {
       ],
     },
   ], [portais]);
+
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ role: 'all', portal: 'all', status: 'all' });
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
   const [desativarTarget, setDesativarTarget] = useState<UsuarioItem | null>(null);
   const [removerTarget, setRemoverTarget] = useState<UsuarioItem | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const fetchUsuarios = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError('Sessão não encontrada. Faça login novamente.');
+        return;
+      }
+      const res = await fetch(`${FN_BASE}/list-users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json() as { users?: UsuarioItem[]; error?: string };
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setUsuarios(json.users ?? []);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
+
+  async function callManageUser(body: Record<string, unknown>) {
+    const token = await getToken();
+    if (!token) throw new Error('Sessão expirada');
+    const res = await fetch(`${FN_BASE}/manage-user`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json() as { ok?: boolean; error?: string };
+    if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+  }
 
   function handleFilter(key: string, value: string) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleInvite(data: InviteFormData) {
-    const newUser: UsuarioItem = {
-      id: Math.random().toString(36).slice(2),
-      nome: data.nome,
-      email: data.email,
-      role: data.perfil,
-      portais: data.portaisIds,
-      status: 'Ativo',
-    };
-    setUsuarios(prev => { const next = [...prev, newUser]; saveUsuarios(next); return next; });
+  async function handleInvite(data: InviteFormData) {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await fetch(`${FN_BASE}/invite-user`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          nome: data.nome,
+          portaisIds: data.portaisIds,
+          role: data.perfil,
+        }),
+      });
+      // Refresh list after a short delay to allow Supabase to process the invite
+      setTimeout(() => fetchUsuarios(), 1500);
+    } catch {
+      // Invite modal already shows success state — silently refresh
+      setTimeout(() => fetchUsuarios(), 1500);
+    }
   }
 
-  function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portaisIds: string[]) {
-    setUsuarios((list) => { const next = list.map((u) => u.id === id ? { ...u, role, portais: portaisIds } : u); saveUsuarios(next); return next; });
+  async function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portaisIds: string[]) {
+    setActionLoading(id);
+    try {
+      await callManageUser({ action: 'update', userId: id, role, portais: portaisIds });
+      await fetchUsuarios();
+    } catch { /* ignore — table stays as-is */ }
+    setActionLoading(null);
   }
 
-  function handleToggleStatus(id: string) {
-    setUsuarios((list) => {
-      const next = list.map((u) => u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Suspenso' as const : 'Ativo' as const } : u);
-      saveUsuarios(next);
-      return next;
-    });
+  async function handleToggleStatus(id: string) {
+    const u = usuarios.find(u => u.id === id);
+    if (!u) return;
+    setActionLoading(id);
+    try {
+      await callManageUser({ action: u.status === 'Ativo' ? 'ban' : 'unban', userId: id });
+      await fetchUsuarios();
+    } catch { /* ignore */ }
+    setActionLoading(null);
   }
 
-  function confirmDesativar() {
+  async function confirmDesativar() {
     if (!desativarTarget) return;
-    handleToggleStatus(desativarTarget.id);
     setDesativarTarget(null);
+    await handleToggleStatus(desativarTarget.id);
   }
 
-  function confirmRemover() {
+  async function confirmRemover() {
     if (!removerTarget) return;
-    handleDelete(removerTarget.id);
+    const target = removerTarget;
     setRemoverTarget(null);
+    setActionLoading(target.id);
+    try {
+      await callManageUser({ action: 'delete', userId: target.id });
+      await fetchUsuarios();
+    } catch { /* ignore */ }
+    setActionLoading(null);
   }
 
-  function handleDelete(id: string) {
-    setUsuarios((list) => { const next = list.filter((u) => u.id !== id); saveUsuarios(next); return next; });
+  async function handleDelete(id: string) {
+    setActionLoading(id);
+    try {
+      await callManageUser({ action: 'delete', userId: id });
+      await fetchUsuarios();
+    } catch { /* ignore */ }
+    setActionLoading(null);
   }
 
   const _filtered = usuarios.filter((u) => {
@@ -237,106 +283,124 @@ export default function UsuariosPage() {
       )}
 
       <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'email' ? ' th-sort--active' : ''}`} onClick={() => toggle('email')}><span className="th-sort-inner">Email <SortIcon dir={col === 'email' ? dir : null} /></span></th>
-              <th>Organização</th>
-              <th className={`th-sort${col === 'role' ? ' th-sort--active' : ''}`} onClick={() => toggle('role')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'role' ? dir : null} /></span></th>
-              <th>Portal</th>
-              <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
-              <th>Ações</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length > 0 ? (
-              filtered.map((u) => (
-                <tr key={u.id}>
-                  <td className="table-cell--bold">{u.nome}</td>
-                  <td className="table-cell--muted">{u.email}</td>
-                  <td>
-                    {u.role === 'super_admin' ? (
-                      <span className="badge badge--astri">Astri</span>
-                    ) : (
-                      <span className="table-cell--muted" style={{ fontSize: '13px' }}>
-                        {u.portais.length === 0
-                          ? '—'
-                          : (portaisMap[u.portais[0]] ?? u.portais[0])}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`badge ${u.role === 'super_admin' ? 'badge--info' : 'badge--gray'}`}>
-                      {ROLE_LABELS[u.role]}
-                    </span>
-                  </td>
-                  <td>
-                    {u.role === 'super_admin' ? (
-                      <span className="table-cell--muted">Todos</span>
-                    ) : u.portais.length === 0 ? (
-                      <span className="table-cell--muted">—</span>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span className="badge badge--gray" style={{ fontSize: '11px' }}>
-                          {portaisMap[u.portais[0]] ?? u.portais[0]}
-                        </span>
-                        {u.portais.length > 1 && (
-                          <span className="badge badge--gray" style={{ fontSize: '11px' }}>
-                            +{u.portais.length - 1}
+        {loading ? (
+          <div className="table-empty" style={{ padding: '48px', textAlign: 'center', color: 'var(--color-text-tertiary)' }}>
+            Carregando usuários…
+          </div>
+        ) : error ? (
+          <div className="table-empty" style={{ padding: '32px', textAlign: 'center', color: 'var(--color-danger)' }}>
+            {error}
+            <br />
+            <button className="btn-outline" style={{ marginTop: '12px' }} onClick={fetchUsuarios}>Tentar novamente</button>
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
+                <th className={`th-sort${col === 'email' ? ' th-sort--active' : ''}`} onClick={() => toggle('email')}><span className="th-sort-inner">Email <SortIcon dir={col === 'email' ? dir : null} /></span></th>
+                <th>Organização</th>
+                <th className={`th-sort${col === 'role' ? ' th-sort--active' : ''}`} onClick={() => toggle('role')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'role' ? dir : null} /></span></th>
+                <th>Portal</th>
+                <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
+                <th>Ações</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length > 0 ? (
+                filtered.map((u) => {
+                  const isLoading = actionLoading === u.id;
+                  return (
+                    <tr key={u.id} style={{ opacity: isLoading ? 0.5 : 1 }}>
+                      <td className="table-cell--bold">{u.nome}</td>
+                      <td className="table-cell--muted">{u.email}</td>
+                      <td>
+                        {u.role === 'super_admin' ? (
+                          <span className="badge badge--astri">Astri</span>
+                        ) : (
+                          <span className="table-cell--muted" style={{ fontSize: '13px' }}>
+                            {u.portais.length === 0
+                              ? '—'
+                              : (portaisMap[u.portais[0]] ?? u.portais[0])}
                           </span>
                         )}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`badge ${u.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
-                      {u.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="table-actions">
-                      <button
-                        className="btn-action btn-action--enter"
-                        type="button"
-                        onClick={() => setEditTarget({ id: u.id, nome: u.nome, email: u.email, role: u.role, portais: u.portais, status: u.status })}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--secondary'}`}
-                        type="button"
-                        onClick={() => u.status === 'Ativo' ? setDesativarTarget(u) : handleToggleStatus(u.id)}
-                      >
-                        {u.status === 'Suspenso' ? 'Ativar' : 'Desativar'}
-                      </button>
-                    </div>
-                  </td>
-                  <td>
-                    {u.role !== 'super_admin' && (
-                      <button
-                        className="btn-action btn-action--danger"
-                        type="button"
-                        onClick={() => setRemoverTarget(u)}
-                      >
-                        Remover
-                      </button>
-                    )}
+                      </td>
+                      <td>
+                        <span className={`badge ${u.role === 'super_admin' ? 'badge--info' : 'badge--gray'}`}>
+                          {ROLE_LABELS[u.role]}
+                        </span>
+                      </td>
+                      <td>
+                        {u.role === 'super_admin' ? (
+                          <span className="table-cell--muted">Todos</span>
+                        ) : u.portais.length === 0 ? (
+                          <span className="table-cell--muted">—</span>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span className="badge badge--gray" style={{ fontSize: '11px' }}>
+                              {portaisMap[u.portais[0]] ?? u.portais[0]}
+                            </span>
+                            {u.portais.length > 1 && (
+                              <span className="badge badge--gray" style={{ fontSize: '11px' }}>
+                                +{u.portais.length - 1}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`badge ${u.status === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
+                          {u.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="table-actions">
+                          <button
+                            className="btn-action btn-action--enter"
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => setEditTarget({ id: u.id, nome: u.nome, email: u.email, role: u.role, portais: u.portais, status: u.status })}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--secondary'}`}
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => u.status === 'Ativo' ? setDesativarTarget(u) : handleToggleStatus(u.id)}
+                          >
+                            {u.status === 'Suspenso' ? 'Ativar' : 'Desativar'}
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        {u.role !== 'super_admin' && (
+                          <button
+                            className="btn-action btn-action--danger"
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => setRemoverTarget(u)}
+                          >
+                            Remover
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="table-empty">
+                    {usuarios.length === 0
+                      ? 'Nenhum usuário cadastrado. Convide o primeiro usuário com o botão acima.'
+                      : 'Nenhum usuário encontrado para os filtros selecionados.'}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8} className="table-empty">
-                  {usuarios.length === 0
-                    ? 'Nenhum usuário cadastrado. Convide o primeiro usuário com o botão acima.'
-                    : 'Nenhum usuário encontrado para os filtros selecionados.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

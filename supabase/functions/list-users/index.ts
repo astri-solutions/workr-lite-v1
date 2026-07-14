@@ -11,7 +11,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is an authenticated super_admin
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
@@ -39,48 +38,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, nome, redirectTo, portaisIds, role: inviteRole } = await req.json() as {
-      email: string;
-      nome?: string;
-      redirectTo?: string;
-      portaisIds?: string[];
-      role?: string;
-    };
-
-    if (!email) {
-      return new Response(JSON.stringify({ error: 'email is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Use service_role client to invite the user
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { name: nome ?? '' },
-      redirectTo: redirectTo ?? `${Deno.env.get('SITE_URL') ?? ''}/definir-senha`,
-    });
+    const { data, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    if (error) throw error;
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const users = data.users.map(u => ({
+      id: u.id,
+      email: u.email ?? '',
+      nome: (u.user_metadata?.name as string | undefined) || u.email || '',
+      role: (u.app_metadata?.role as string | undefined) || 'client_user',
+      portais: (u.app_metadata?.portais as string[] | undefined) || [],
+      status: u.banned_until ? 'Suspenso' : 'Ativo',
+    }));
 
-    if (data.user?.id) {
-      const resolvedRole = inviteRole === 'super_admin' ? 'super_admin' : 'client_user';
-      await adminClient.auth.admin.updateUserById(data.user.id, {
-        app_metadata: {
-          role: resolvedRole,
-          portais: portaisIds ?? [],
-        },
-      });
-    }
-
-    return new Response(JSON.stringify({ id: data.user?.id }), {
+    return new Response(JSON.stringify({ users }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
