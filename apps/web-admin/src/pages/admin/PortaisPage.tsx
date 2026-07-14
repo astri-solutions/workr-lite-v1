@@ -29,6 +29,8 @@ interface Portal {
   criadoEm: string;
   empresa: Empresa;
   sites: Site[];
+  githubRepo?: string;
+  vercelUrl?: string;
 }
 
 const PORTAIS_STORAGE_KEY = 'workr_portais';
@@ -199,15 +201,49 @@ export default function PortaisPage() {
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
   const [excluirPortal, setExcluirPortal] = useState<Portal | null>(null);
   const [excluirConfirm, setExcluirConfirm] = useState('');
+  const [excluirInfra, setExcluirInfra] = useState(false);
+  const [excluirLoading, setExcluirLoading] = useState(false);
 
-  function handleExcluirPortal(portalId: string) {
+  function resetExcluirModal() {
+    setExcluirPortal(null);
+    setExcluirConfirm('');
+    setExcluirInfra(false);
+  }
+
+  async function handleExcluirPortal(portal: Portal) {
+    setExcluirLoading(true);
+    try {
+      if (excluirInfra && portal.githubRepo) {
+        const vercelProjectName = portal.vercelUrl
+          ? portal.vercelUrl.replace('https://', '').replace('.vercel.app', '')
+          : undefined;
+        const auth = localStorage.getItem('workr_auth');
+        const token = auth ? JSON.parse(auth)?.session?.access_token : undefined;
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              repoName: portal.githubRepo,
+              vercelProjectName,
+            }),
+          }
+        );
+      }
+    } finally {
+      setExcluirLoading(false);
+    }
     setPortais(prev => {
-      const updated = prev.filter(p => p.id !== portalId);
+      const updated = prev.filter(p => p.id !== portal.id);
       localStorage.setItem(PORTAIS_STORAGE_KEY, JSON.stringify(updated));
       return updated;
     });
-    setExcluirPortal(null);
-    setExcluirConfirm('');
+    resetExcluirModal();
   }
 
   function toggleExpand(portalId: string) {
@@ -416,21 +452,21 @@ export default function PortaisPage() {
       {excluirPortal && (
         <Modal
           open
-          onClose={() => { setExcluirPortal(null); setExcluirConfirm(''); }}
+          onClose={resetExcluirModal}
           title="Excluir portal"
           size="sm"
           footer={
             <div className="modal-footer">
-              <button className="btn-outline" type="button" onClick={() => { setExcluirPortal(null); setExcluirConfirm(''); }}>
+              <button className="btn-outline" type="button" onClick={resetExcluirModal} disabled={excluirLoading}>
                 Cancelar
               </button>
               <button
                 className="btn-danger"
                 type="button"
-                disabled={excluirConfirm !== excluirPortal.cliente}
-                onClick={() => handleExcluirPortal(excluirPortal.id)}
+                disabled={excluirConfirm !== excluirPortal.cliente || excluirLoading}
+                onClick={() => handleExcluirPortal(excluirPortal)}
               >
-                Excluir portal
+                {excluirLoading ? 'Excluindo…' : 'Excluir portal'}
               </button>
             </div>
           }
@@ -438,6 +474,16 @@ export default function PortaisPage() {
           <p className="ae-confirm-text">
             Esta ação é <strong>permanente e irreversível</strong>. Todos os sites, configurações e dados do portal <strong>{excluirPortal.cliente}</strong> serão removidos.
           </p>
+          {excluirPortal.githubRepo && (
+            <label className="excluir-infra-check">
+              <input
+                type="checkbox"
+                checked={excluirInfra}
+                onChange={e => setExcluirInfra(e.target.checked)}
+              />
+              <span>Excluir também o repositório GitHub e projeto Vercel</span>
+            </label>
+          )}
           <p className="ae-confirm-text" style={{ marginTop: '12px' }}>
             Para confirmar, digite o nome do portal abaixo:
           </p>
