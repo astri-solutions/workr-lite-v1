@@ -303,9 +303,25 @@ Deno.serve(async (req) => {
       });
 
       if (vercelRes.ok) {
-        const vd = await vercelRes.json() as { name: string };
+        const vd = await vercelRes.json() as { name: string; id: string };
         vercelUrl = `https://${vd.name}.vercel.app`;
         vercelCreated = true;
+
+        // Trigger first deployment by pushing a deploy via Vercel API
+        await fetch('https://api.vercel.com/v13/deployments', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: vd.name,
+            gitSource: {
+              type: 'github',
+              org: githubOrg,
+              repo: repoName,
+              ref: 'main',
+            },
+            projectSettings: { framework: null },
+          }),
+        });
       } else {
         const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
         vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
