@@ -17,11 +17,49 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
+interface SubCanalCfg { label: string; href: string; enabled: boolean; }
+interface CanalCfg { label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; }
 
 function headerVariant(layout: string): string {
   if (layout === 'sidebar') return 'sidebar';
   if (layout === 'tabmenu') return 'tabmenu';
   return 'banner';
+}
+
+function buildNavSection(canais: CanalCfg[]): string {
+  const enabled = canais.filter(c => c.enabled);
+  if (enabled.length === 0) {
+    return `  nav: [
+    { label: 'A Companhia', href: '/a-companhia.html', children: [] },
+    { label: 'Governança', children: [
+        { label: 'Composição Acionária', href: '/composicao-acionaria.html' },
+        { label: 'Atas e Assembleias',   href: '/atas-assembleias.html'     },
+        { label: 'Documentos CVM',       href: '/documentos-cvm.html'       },
+    ]},
+    { label: 'Investidores', children: [
+        { label: 'Central de Resultados', href: '/central-resultados.html' },
+        { label: 'Calendário de Eventos', href: '/calendario-eventos.html' },
+        { label: 'Ratings',               href: '/ratings.html'            },
+    ]},
+    { label: 'Contato', children: [
+        { label: 'Fale com RI', href: '/fale-com-ri.html' },
+        { label: 'Mailing',     href: '/mailing.html'     },
+    ]},
+  ],`;
+  }
+
+  const items = enabled.map(c => {
+    const enabledChildren = c.children.filter(sc => sc.enabled);
+    if (enabledChildren.length === 0) {
+      return `    { label: ${JSON.stringify(c.label)}, href: ${JSON.stringify(c.href ?? '/')}, children: [] }`;
+    }
+    const childLines = enabledChildren
+      .map(sc => `      { label: ${JSON.stringify(sc.label)}, href: ${JSON.stringify(sc.href)} }`)
+      .join(',\n');
+    return `    { label: ${JSON.stringify(c.label)}, children: [\n${childLines},\n    ] }`;
+  }).join(',\n');
+
+  return `  nav: [\n${items},\n  ],`;
 }
 
 function buildSiteConfig(opts: {
@@ -31,6 +69,7 @@ function buildSiteConfig(opts: {
   fonts: Fonts;
   ticker: TickerCfg | null;
   footer: FooterCfg | null;
+  canais?: CanalCfg[];
 }) {
   const year = new Date().getFullYear();
 
@@ -39,7 +78,6 @@ function buildSiteConfig(opts: {
     ? opts.ticker.items.map(t => `    { symbol: ${JSON.stringify(t.symbol)}, price: ${JSON.stringify(t.price)}, change: ${JSON.stringify(t.change)}, direction: ${JSON.stringify(t.direction)} }`).join(',\n')
     : `    { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' }`;
 
-  // Footer fields
   const f = opts.footer;
   const address   = JSON.stringify(f?.address ?? '');
   const email     = JSON.stringify(f?.email ?? '');
@@ -95,23 +133,7 @@ export const siteConfig = {
 ${tickers}
   ],
 
-  nav: [
-    { label: 'A Companhia', href: '/a-companhia.html', children: [] },
-    { label: 'Governança', children: [
-        { label: 'Composição Acionária', href: '/composicao-acionaria.html' },
-        { label: 'Atas e Assembleias',   href: '/atas-assembleias.html'     },
-        { label: 'Documentos CVM',       href: '/documentos-cvm.html'       },
-    ]},
-    { label: 'Investidores', children: [
-        { label: 'Central de Resultados', href: '/central-resultados.html' },
-        { label: 'Calendário de Eventos', href: '/calendario-eventos.html' },
-        { label: 'Ratings',               href: '/ratings.html'            },
-    ]},
-    { label: 'Contato', children: [
-        { label: 'Fale com RI', href: '/fale-com-ri.html' },
-        { label: 'Mailing',     href: '/mailing.html'     },
-    ]},
-  ],
+${buildNavSection(opts.canais ?? [])}
 
   header: { variant: '${headerVariant(opts.layout)}' },
 
@@ -168,7 +190,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, portalNome, layout, colors, fonts, footer, ticker } = await req.json() as {
+    const { repoName, portalNome, layout, colors, fonts, footer, ticker, canais } = await req.json() as {
       repoName?: string;
       portalNome: string;
       layout?: string;
@@ -176,6 +198,7 @@ Deno.serve(async (req) => {
       fonts: Fonts;
       footer?: FooterCfg | null;
       ticker?: TickerCfg | null;
+      canais?: CanalCfg[];
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -192,14 +215,21 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const targetRepo = repoName;
+
     const filePath = 'scripts/site.config.js';
-    const newContent = buildSiteConfig({ nome: portalNome, layout: layout ?? 'banner', colors, fonts, footer: footer ?? null, ticker: ticker ?? null });
+    const newContent = buildSiteConfig({
+      nome: portalNome,
+      layout: layout ?? 'banner',
+      colors,
+      fonts,
+      footer: footer ?? null,
+      ticker: ticker ?? null,
+      canais: canais ?? [],
+    });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
-    // Get current file SHA (required for update)
     const getRes = await fetch(
-      `https://api.github.com/repos/${githubOrg}/${targetRepo}/contents/${filePath}`,
+      `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${filePath}`,
       {
         headers: {
           'Authorization': `Bearer ${githubToken}`,
@@ -215,9 +245,8 @@ Deno.serve(async (req) => {
       sha = fileData.sha;
     }
 
-    // Create or update the file
     const putRes = await fetch(
-      `https://api.github.com/repos/${githubOrg}/${targetRepo}/contents/${filePath}`,
+      `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${filePath}`,
       {
         method: 'PUT',
         headers: {

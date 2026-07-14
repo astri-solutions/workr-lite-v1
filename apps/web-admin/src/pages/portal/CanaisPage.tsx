@@ -3,9 +3,10 @@ import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
-import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, CANAIS_KEY, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
+import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useAuth } from '../../contexts/AuthContext';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import { loadCvmRoutedPageIds } from '../../services/cvm.service';
 import '../admin/AdminPages.css';
@@ -300,10 +301,13 @@ function orderKey(list: Canal[]): string {
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
+  const { user } = useAuth();
+  const activePortalId = user?.activePortalId;
+  const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
   const cvmPageIds = loadCvmRoutedPageIds();
   const [canais, setCanais] = useState<Canal[]>(() => {
     try {
-      const raw = localStorage.getItem(CANAIS_KEY);
+      const raw = localStorage.getItem(canaisKey);
       return raw ? JSON.parse(raw) : DEFAULT_CANAIS;
     } catch {
       return DEFAULT_CANAIS;
@@ -311,7 +315,7 @@ export default function CanaisPage() {
   });
   const [savedOrderKey, setSavedOrderKey] = useState(() => {
     try {
-      const raw = localStorage.getItem(CANAIS_KEY);
+      const raw = localStorage.getItem(canaisKey);
       return orderKey(raw ? JSON.parse(raw) : DEFAULT_CANAIS);
     } catch {
       return orderKey(DEFAULT_CANAIS);
@@ -367,7 +371,7 @@ export default function CanaisPage() {
   const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => setCanais(fn), []);
 
   function saveToStorage(updated: Canal[]) {
-    localStorage.setItem(CANAIS_KEY, JSON.stringify(updated));
+    localStorage.setItem(canaisKey, JSON.stringify(updated));
   }
   function handleSaveOrder() {
     saveToStorage(canais);

@@ -1260,9 +1260,9 @@ export default function NovoPortalPage() {
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
 
-          // Inicializa a árvore de canais do portal no localStorage
+          // Inicializa a árvore de canais do portal no localStorage (per-portal key)
           if (form.canais && form.canais.length > 0) {
-            localStorage.setItem(CANAIS_KEY, JSON.stringify(form.canais));
+            localStorage.setItem(`portal_canais_${newPortal.id}`, JSON.stringify(form.canais));
           }
 
           // Salva cores do portal

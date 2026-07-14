@@ -266,6 +266,7 @@ export default function ClientLayout() {
       const footer = (() => { try { return JSON.parse(localStorage.getItem('portal_footer') ?? 'null'); } catch { return null; } })();
       const ticker = (() => { try { return JSON.parse(localStorage.getItem('portal_ticker') ?? 'null'); } catch { return null; } })();
       const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
+      const canais = (() => { try { return JSON.parse(localStorage.getItem(`portal_canais_${activePortal?.id ?? 'default'}`) ?? 'null'); } catch { return null; } })();
 
       // Get githubRepo from the stored portal record
       const portaisRaw = localStorage.getItem('workr_portais');
@@ -301,6 +302,7 @@ export default function ClientLayout() {
             fonts: fontes ? { display: fontes.heading, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
             footer: footer ?? null,
             ticker: ticker ?? null,
+            canais: canais ?? [],
           }),
         }
       );
