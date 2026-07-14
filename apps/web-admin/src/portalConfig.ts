@@ -11,13 +11,27 @@ export type LocaleCode = typeof ALL_LOCALES[number]['code'];
 //   'banner'              → full version (internal pages + rich content). Layout is locked — cannot be changed here.
 export type PortalModel = 'sidebar' | 'tabmenu' | 'banner';
 
+function getPortalName(): string {
+  try {
+    const auth = localStorage.getItem('workr_auth');
+    if (auth) {
+      const parsed = JSON.parse(auth);
+      const portais = parsed?.portais ?? [];
+      const activeId = parsed?.activePortalId;
+      const active = portais.find((p: { id: string }) => p.id === activeId) ?? portais[0];
+      if (active?.nome) return active.nome;
+    }
+  } catch { /* ignore */ }
+  return '';
+}
+
 const PORTAL_CONFIG = {
-  name: 'IMC Investor Relations',
+  get name() { return getPortalName(); },
   orgType: 'trimestral',
   model: 'tabmenu' as PortalModel,
   // Languages enabled for this portal. Edit here to add/remove language tabs across all pages.
   languages: ['pt-BR', 'en', 'es'] as LocaleCode[],
-} as const;
+};
 
 export { ALL_LOCALES };
 export default PORTAL_CONFIG;

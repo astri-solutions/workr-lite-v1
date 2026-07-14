@@ -19,10 +19,7 @@
 }
 
 .cp-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 1000;
+  z-index: 9999;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import './ColorPickerPopover.css';
 
 function hexToHsv(hex: string): [number, number, number] {
@@ -44,10 +44,12 @@ interface Props {
 
 export default function ColorPickerPopover({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const [hsv, setHsv] = useState<[number, number, number]>(() =>
     /^#[0-9a-fA-F]{6}$/.test(value) ? hexToHsv(value) : [210, 87, 41]
   );
   const [hexInput, setHexInput] = useState(value);
+  const swatchRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const svRef = useRef<HTMLDivElement>(null);
   const hueRef = useRef<HTMLDivElement>(null);
@@ -55,6 +57,12 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
   // Keep hsv in a ref so mousemove handler always sees fresh value
   const hsvRef = useRef(hsv);
   hsvRef.current = hsv;
+
+  const calcPosition = useCallback(() => {
+    if (!swatchRef.current) return;
+    const rect = swatchRef.current.getBoundingClientRect();
+    setPopoverPos({ top: rect.bottom + 8, left: rect.left });
+  }, []);
 
   useEffect(() => {
     if (/^#[0-9a-fA-F]{6}$/.test(value)) {
@@ -68,7 +76,10 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
     if (!open) return;
     function onDown(e: MouseEvent) {
       if (dragging.current) return;
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        swatchRef.current && !swatchRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -142,15 +153,23 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
   }
 
   return (
-    <div className="cp-wrap" ref={popoverRef}>
+    <div className="cp-wrap">
       <button
+        ref={swatchRef}
         type="button"
         className="cp-swatch"
         style={{ background: currentHex }}
-        onClick={() => setOpen(o => !o)}
+        onClick={() => {
+          if (!open) calcPosition();
+          setOpen(o => !o);
+        }}
       />
       {open && (
-        <div className="cp-popover">
+        <div
+          ref={popoverRef}
+          className="cp-popover"
+          style={{ position: 'fixed', top: popoverPos.top, left: popoverPos.left }}
+        >
           {/* Saturation / Value square */}
           <div
             ref={svRef}
