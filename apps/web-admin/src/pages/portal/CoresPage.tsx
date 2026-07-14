@@ -19,6 +19,15 @@ const DEFAULT: Palette = {
   tertiary: '#F4A261',
 };
 
+export const CORES_KEY = 'portal_cores';
+
+function loadCores(): Palette {
+  try {
+    const raw = localStorage.getItem(CORES_KEY);
+    return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
+  } catch { return DEFAULT; }
+}
+
 
 function hexToHsl(hex: string): [number, number, number] | null {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
@@ -165,8 +174,8 @@ const COLOR_DEFS = [
 
 export default function CoresPage() {
   const portalName = usePortalName();
-  const [draft, setDraft] = useState<Palette>(DEFAULT);
-  const [preview, setPreview] = useState<Palette>(DEFAULT);
+  const [draft, setDraft] = useState<Palette>(loadCores);
+  const [preview, setPreview] = useState<Palette>(loadCores);
   const [saved, setSaved] = useState(false);
 
   const isDirty = !saved && (
@@ -178,6 +187,7 @@ export default function CoresPage() {
 
   function handleSave() {
     setPreview(draft);
+    localStorage.setItem(CORES_KEY, JSON.stringify(draft));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

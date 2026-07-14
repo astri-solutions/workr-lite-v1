@@ -1328,6 +1328,43 @@ export default function NovoPortalPage() {
             localStorage.setItem(CANAIS_KEY, JSON.stringify(form.canais));
           }
 
+          // Provisiona repositório GitHub + projeto Vercel
+          const subdomain = form.url || form.nome.toLowerCase().replace(/\s+/g, '-');
+          if (isSupabaseConfigured && supabase) {
+            try {
+              const { data: { session: sess } } = await supabase.auth.getSession();
+              const t = sess?.access_token;
+              if (t) {
+                const provRes = await fetch(
+                  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/provision-portal`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${t}`,
+                      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+                    },
+                    body: JSON.stringify({ portalId: newPortal.id, nome: form.nome, subdomain }),
+                  }
+                );
+                if (provRes.ok) {
+                  const provData = await provRes.json();
+                  // Store GitHub repo name in portal record
+                  const portaisRaw = localStorage.getItem('workr_portais');
+                  const portais = portaisRaw ? JSON.parse(portaisRaw) : [];
+                  const idx = portais.findIndex((p: { id: string }) => p.id === newPortal.id);
+                  if (idx !== -1) {
+                    portais[idx].githubRepo = provData.repoName;
+                    portais[idx].vercelUrl = provData.vercelUrl;
+                    localStorage.setItem('workr_portais', JSON.stringify(portais));
+                  }
+                }
+              }
+            } catch {
+              // provision failure is non-blocking
+            }
+          }
+
           // Convida o usuário admin via Supabase Edge Function
           if (isSupabaseConfigured && supabase && form.adminEmail) {
             try {

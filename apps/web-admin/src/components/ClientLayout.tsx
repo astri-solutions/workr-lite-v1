@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
@@ -259,6 +260,67 @@ export default function ClientLayout() {
     () => (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar'
   );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishStatus, setPublishStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+
+  async function handlePublicar() {
+    setPublishing(true);
+    setPublishStatus('idle');
+    try {
+      // Aggregate CMS settings from localStorage
+      const cores = (() => { try { return JSON.parse(localStorage.getItem('portal_cores') ?? 'null'); } catch { return null; } })();
+      const fontes = (() => { try { return JSON.parse(localStorage.getItem('portal_fontes') ?? 'null'); } catch { return null; } })();
+      const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
+
+      // Get githubRepo from the stored portal record
+      const portaisRaw = localStorage.getItem('workr_portais');
+      const portaisArr = portaisRaw ? JSON.parse(portaisRaw) : [];
+      const portalRecord = portaisArr.find((p: { id: string }) => p.id === activePortal?.id);
+      const repoName: string | undefined = portalRecord?.githubRepo;
+
+      if (!isSupabaseConfigured || !supabase) {
+        // Dev mode: just simulate success
+        setPublishStatus('ok');
+        setTimeout(() => setPublishStatus('idle'), 3000);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { setPublishStatus('err'); return; }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/publish-config`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({
+            repoName,
+            portalNome: activePortal?.nome ?? '',
+            colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
+            fonts: fontes ? { display: fontes.heading, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
+          }),
+        }
+      );
+
+      if (res.ok) {
+        setPublishStatus('ok');
+        setTimeout(() => setPublishStatus('idle'), 4000);
+      } else {
+        setPublishStatus('err');
+        setTimeout(() => setPublishStatus('idle'), 4000);
+      }
+    } catch {
+      setPublishStatus('err');
+      setTimeout(() => setPublishStatus('idle'), 4000);
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
@@ -296,6 +358,33 @@ export default function ClientLayout() {
         logoAlt="Workr Lite"
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
+        footerContent={
+          <button
+            className={`sidebar-publish-btn${publishing ? ' sidebar-publish-btn--loading' : ''}${publishStatus === 'ok' ? ' sidebar-publish-btn--ok' : ''}${publishStatus === 'err' ? ' sidebar-publish-btn--err' : ''}`}
+            type="button"
+            onClick={handlePublicar}
+            disabled={publishing}
+          >
+            {publishStatus === 'ok' ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                Publicado!
+              </>
+            ) : publishStatus === 'err' ? (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                Erro ao publicar
+              </>
+            ) : publishing ? (
+              'Publicando…'
+            ) : (
+              <>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
+                Publicar site
+              </>
+            )}
+          </button>
+        }
       />
       <div className="admin-right">
         <AppTopbar

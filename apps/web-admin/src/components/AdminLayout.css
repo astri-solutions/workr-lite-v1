@@ -406,6 +406,35 @@
   padding: var(--space-3) var(--space-2) var(--space-4);
 }
 
+.admin-sidebar__footer-slot {
+  margin-bottom: var(--space-3);
+}
+
+.sidebar-publish-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0B5B68;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar-publish-btn:hover:not(:disabled) { background: #094a56; }
+.sidebar-publish-btn:disabled { opacity: 0.6; cursor: default; }
+.sidebar-publish-btn--ok { background: #00a84b; }
+.sidebar-publish-btn--err { background: #dc2626; }
+.admin-sidebar--collapsed .sidebar-publish-btn { padding: 8px 0; font-size: 0; gap: 0; }
+.admin-sidebar--collapsed .sidebar-publish-btn svg { width: 16px; height: 16px; }
+
 .admin-sidebar--collapsed .admin-sidebar__toggle {
   padding: 9px;
   width: 38px;

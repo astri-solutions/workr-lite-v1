@@ -23,6 +23,7 @@ interface AppSidebarProps {
   logoAlt?: string;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  footerContent?: React.ReactNode;
 }
 
 function SidebarNavItem({
@@ -124,6 +125,7 @@ export default function AppSidebar({
   logoAlt = 'Logo',
   mobileOpen = false,
   onMobileClose,
+  footerContent,
 }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
@@ -184,6 +186,7 @@ export default function AppSidebar({
       </div>
 
       <div className="admin-sidebar__footer">
+        {footerContent && <div className="admin-sidebar__footer-slot">{footerContent}</div>}
         <button
           className="admin-sidebar__toggle"
           type="button"

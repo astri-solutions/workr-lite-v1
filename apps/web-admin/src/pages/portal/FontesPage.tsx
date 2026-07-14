@@ -34,6 +34,16 @@ const BUILTIN_FONTS: FontDef[] = [
 const INITIAL_HEADING = 'plus-jakarta';
 const INITIAL_BODY = 'inter';
 
+export const FONTES_KEY = 'portal_fontes';
+
+function loadFontes() {
+  try {
+    const raw = localStorage.getItem(FONTES_KEY);
+    if (!raw) return { heading: INITIAL_HEADING, body: INITIAL_BODY };
+    return { heading: INITIAL_HEADING, body: INITIAL_BODY, ...JSON.parse(raw) };
+  } catch { return { heading: INITIAL_HEADING, body: INITIAL_BODY }; }
+}
+
 function labelFromFilename(filename: string): string {
   return filename
     .replace(/\.(ttf|woff2?|otf)$/i, '')
@@ -56,8 +66,8 @@ async function registerFont(label: string, url: string): Promise<boolean> {
 export default function FontesPage() {
   const portalName = usePortalName();
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
-  const [headingFont, setHeadingFont] = useState(INITIAL_HEADING);
-  const [bodyFont, setBodyFont] = useState(INITIAL_BODY);
+  const [headingFont, setHeadingFont] = useState(() => loadFontes().heading);
+  const [bodyFont, setBodyFont] = useState(() => loadFontes().body);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
@@ -70,6 +80,7 @@ export default function FontesPage() {
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
+    localStorage.setItem(FONTES_KEY, JSON.stringify({ heading: headingFont, body: bodyFont }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

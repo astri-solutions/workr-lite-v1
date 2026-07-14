@@ -3,6 +3,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './UsuariosPortalPage.css';
 
@@ -136,6 +137,8 @@ export default function UsuariosPortalPage() {
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
   const [invited, setInvited] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
   const filtered = users.filter(u => {
     const matchSearch = !search || u.nome.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
@@ -161,21 +164,58 @@ export default function UsuariosPortalPage() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setInvited(false);
+    setInviteError('');
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.nome.trim() || !form.email.trim()) return;
     const empIds = form.allEmpresas ? [] : form.empresaIds;
     if (editing) {
       setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, ...form, empresaIds: empIds } : u));
       closeModal();
-    } else {
+      return;
+    }
+
+    setInviting(true);
+    setInviteError('');
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (token) {
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-portal-user`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+              },
+              body: JSON.stringify({
+                email: form.email,
+                nome: form.nome,
+                role: form.role,
+                redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+              }),
+            }
+          );
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error ?? 'Erro ao enviar convite');
+          }
+        }
+      }
       setUsers(prev => [...prev, {
         id: 'u' + Date.now(), nome: form.nome, email: form.email,
         role: form.role, empresaIds: empIds, ativo: true,
         criadoEm: new Date().toLocaleDateString('pt-BR'),
       }]);
       setInvited(true);
+    } catch (e) {
+      setInviteError(e instanceof Error ? e.message : 'Erro ao enviar convite');
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -276,13 +316,14 @@ export default function UsuariosPortalPage() {
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
               <button className="btn-primary" type="button" onClick={handleSave}
-                disabled={!form.nome.trim() || !form.email.trim()}>
-                {editing ? 'Salvar' : 'Enviar convite'}
+                disabled={!form.nome.trim() || !form.email.trim() || inviting}>
+                {inviting ? 'Enviando…' : editing ? 'Salvar' : 'Enviar convite'}
               </button>
             </div>
           )
         }
       >
+        {inviteError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '8px' }}>{inviteError}</p>}
         {invited ? (
           <div className="up-invited">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00D865" strokeWidth="2">
