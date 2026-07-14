@@ -121,3 +121,38 @@ npm run dev
 ## Deployment
 
 Vercel auto-deploys on every push to `main`. No manual steps needed.
+
+## Infrastructure decisions (test phase vs. production)
+
+### Current setup (test/staging)
+- **Admin panel** (`workr-lite-v1`): deployed on Vercel, URL `workr-lite-v1.vercel.app`
+- **Each client portal**: gets its own GitHub repo (`astri-solutions/portal-{subdomain}`) generated from `cliente-workr-lite` template, and its own Vercel **project** (`{subdomain}.vercel.app`)
+- **Why separate Vercel projects**: `cliente-workr-lite` is a static HTML site — it cannot share a domain/project with the admin SPA (React) without complex routing workarounds. Separate projects give each portal an independent deploy pipeline.
+- **Subpath approach** (`workr-lite-v1.vercel.app/ri-gravit-studios`) was considered but rejected: the admin SPA at root and static HTML at subpaths conflict in Vercel's routing model.
+- Vercel project creation is automatic during portal provisioning, but **requires `VERCEL_TOKEN` secret** to be set in Supabase Edge Function secrets. Without it, the repo is created but Vercel deployment must be set up manually.
+
+### Secrets required for full automation
+| Secret | Where | Purpose |
+|---|---|---|
+| `GITHUB_TOKEN` | Supabase Edge Function secrets | Create/write repos in `astri-solutions` org |
+| `VERCEL_TOKEN` | Supabase Edge Function secrets | Create Vercel project per portal |
+| `GITHUB_ORG` | Supabase Edge Function secrets | Org name (default: `astri-solutions`) |
+
+### Future production setup (dedicated server + real domains)
+When migrating from Vercel/Supabase to a dedicated server:
+- Each client portal gets its own subdomain on the client's domain (e.g., `ri.gravitstudios.com.br`)
+- The static HTML site is served directly by nginx/caddy, no Vercel
+- `provision-portal` Edge Function will need to be replaced by a Go backend service
+- `publish-config` will push to the client's own repo (or a server-side file system) instead of GitHub Contents API
+- The `scripts/site.config.js` pattern stays the same — only the delivery mechanism changes
+- DNS setup and SSL certificates will be managed per-client
+- `workr-lite-v1` admin panel will move to `admin.astri.solutions` or similar
+
+### Layout types and mutability
+| Layout | `header.variant` | Client can change? |
+|---|---|---|
+| `sidebar` | `sidebar` | Yes — via Personalização → Layout |
+| `tabmenu` | `tabmenu` | Yes — via Personalização → Layout |
+| `banner` | `banner` | No — fixed at creation |
+
+Sidebar and tabmenu share the same HTML template (same repo). The `header.variant` in `site.config.js` switches the rendering. When a client changes their layout via the CMS and clicks "Publicar", the updated variant is pushed to GitHub and Vercel redeploys automatically.
