@@ -261,6 +261,8 @@ Deno.serve(async (req) => {
 
     const repoUrl  = `https://github.com/${githubOrg}/${repoName}`;
     let   vercelUrl = `https://${repoName}.vercel.app`;
+    let   vercelCreated = false;
+    let   vercelError: string | undefined;
 
     // ── Step 5: create Vercel project (optional) ──────────────────────────
     if (vercelToken) {
@@ -277,10 +279,16 @@ Deno.serve(async (req) => {
       if (vercelRes.ok) {
         const vd = await vercelRes.json() as { name: string };
         vercelUrl = `https://${vd.name}.vercel.app`;
+        vercelCreated = true;
+      } else {
+        const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
+        vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
       }
+    } else {
+      vercelError = 'VERCEL_TOKEN não configurado';
     }
 
-    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl }), {
+    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

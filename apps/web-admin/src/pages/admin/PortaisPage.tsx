@@ -481,7 +481,9 @@ export default function PortaisPage() {
                 checked={excluirInfra}
                 onChange={e => setExcluirInfra(e.target.checked)}
               />
-              <span>Excluir também o repositório GitHub e projeto Vercel</span>
+              <span>
+                Excluir repositório <strong>{excluirPortal.githubRepo}</strong> e projeto Vercel vinculados a este portal
+              </span>
             </label>
           )}
           <p className="ae-confirm-text" style={{ marginTop: '12px' }}>

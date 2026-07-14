@@ -1168,6 +1168,7 @@ export default function NovoPortalPage() {
 
   const [creating, setCreating] = useState(false);
   const [creatingStep, setCreatingStep] = useState(-1); // -1 = not started, 0..N = current step, N+1 = done
+  const [creationWarnings, setCreationWarnings] = useState<string[]>([]);
   const steps = getSteps(form.tipo);
   const currentLabel = steps[step - 1]?.label ?? '';
   const [fonteFase, setFonteFase] = useState<'titulo' | 'texto'>('titulo');
@@ -1328,6 +1329,8 @@ export default function NovoPortalPage() {
             }
           }
 
+          const warnings: string[] = [];
+
           // Provisiona repositório GitHub + projeto Vercel
           const subdomain = form.url || form.nome.toLowerCase().replace(/\s+/g, '-');
           if (isSupabaseConfigured && supabase) {
@@ -1355,7 +1358,10 @@ export default function NovoPortalPage() {
                   }
                 );
                 if (provRes.ok) {
-                  const provData = await provRes.json();
+                  const provData = await provRes.json() as {
+                    repoName: string; repoUrl: string; vercelUrl: string;
+                    vercelCreated: boolean; vercelError?: string;
+                  };
                   // Store GitHub repo name in portal record
                   const portaisRaw = localStorage.getItem('workr_portais');
                   const portais = portaisRaw ? JSON.parse(portaisRaw) : [];
@@ -1365,10 +1371,16 @@ export default function NovoPortalPage() {
                     portais[idx].vercelUrl = provData.vercelUrl;
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
                   }
+                  if (!provData.vercelCreated) {
+                    warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
+                  }
+                } else {
+                  const errBody = await provRes.json().catch(() => ({})) as { error?: string };
+                  warnings.push(`Erro no provisionamento GitHub: ${errBody.error ?? provRes.statusText}`);
                 }
               }
-            } catch {
-              // provision failure is non-blocking
+            } catch (e) {
+              warnings.push(`Erro de rede ao provisionar: ${String(e)}`);
             }
           }
 
@@ -1378,7 +1390,7 @@ export default function NovoPortalPage() {
               const { data: { session } } = await supabase.auth.getSession();
               const token = session?.access_token;
               if (token) {
-                await fetch(
+                const inviteRes = await fetch(
                   `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-portal-user`,
                   {
                     method: 'POST',
@@ -1394,13 +1406,23 @@ export default function NovoPortalPage() {
                     }),
                   }
                 );
+                if (!inviteRes.ok) {
+                  const invBody = await inviteRes.json().catch(() => ({})) as { error?: string };
+                  const msg = invBody.error ?? inviteRes.statusText;
+                  if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered')) {
+                    warnings.push(`Convite não enviado: ${form.adminEmail} já possui uma conta.`);
+                  } else {
+                    warnings.push(`Convite não enviado: ${msg}`);
+                  }
+                }
               }
-            } catch {
-              // invite failure is non-blocking — portal is already created
+            } catch (e) {
+              warnings.push(`Erro de rede ao enviar convite: ${String(e)}`);
             }
           }
 
-          setTimeout(() => navigate('/admin/portais'), 1800);
+          if (warnings.length > 0) setCreationWarnings(warnings);
+          setTimeout(() => navigate('/admin/portais'), warnings.length > 0 ? 4000 : 1800);
         }, 900);
       }
     }
@@ -1599,6 +1621,18 @@ export default function NovoPortalPage() {
                   <circle className="invite-success__circle" cx="26" cy="26" r="23" stroke="currentColor" strokeWidth="2" fill="none" />
                   <polyline className="invite-success__check" points="14,26 22,34 38,18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
+                {creationWarnings.length > 0 && (
+                  <ul className="np-creation-warnings">
+                    {creationWarnings.map((w, i) => (
+                      <li key={i} className="np-creation-warning">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        {w}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>
