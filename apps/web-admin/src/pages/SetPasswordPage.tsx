@@ -1,61 +1,68 @@
-import { useState, useRef, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import './LoginPage.css';
 import './SetPasswordPage.css';
 
-type Step = 'password' | 'send' | 'code' | 'done';
+type Step = 'loading' | 'password' | 'done' | 'error';
 
 export default function SetPasswordPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>('password');
+  const [step, setStep] = useState<Step>('loading');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [passError, setPassError] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const email = 'cliente@empresa.com.br'; // would come from the invite link token
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (step === 'code') setTimeout(() => codeRefs.current[0]?.focus(), 80);
-  }, [step]);
+    if (!isSupabaseConfigured || !supabase) {
+      // No Supabase — go straight to password step (dev mode)
+      setStep('password');
+      return;
+    }
 
-  function handlePasswordSubmit(e: FormEvent) {
+    // Supabase processes the #access_token hash automatically on init.
+    // Wait for the auth state to settle.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
+        if (session) setStep('password');
+        else setStep('error');
+      }
+    });
+
+    // Also check if session already exists (in case the event fired before we subscribed)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setStep('password');
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setPassError('');
     if (newPass.length < 8) { setPassError('A senha deve ter pelo menos 8 caracteres.'); return; }
     if (newPass !== confirmPass) { setPassError('As senhas não coincidem.'); return; }
-    setStep('send');
-  }
 
-  function handleCodeInput(val: string, idx: number) {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...code];
-    next[idx] = val;
-    setCode(next);
-    if (val && idx < 5) codeRefs.current[idx + 1]?.focus();
-  }
-
-  function handleCodeKeyDown(e: React.KeyboardEvent, idx: number) {
-    if (e.key === 'Backspace' && !code[idx] && idx > 0) {
-      codeRefs.current[idx - 1]?.focus();
+    if (!isSupabaseConfigured || !supabase) {
+      // Dev mode: just proceed
+      setStep('done');
+      return;
     }
-  }
 
-  function handleCodePaste(e: React.ClipboardEvent) {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) {
-      setCode(pasted.split(''));
-      codeRefs.current[5]?.focus();
-      e.preventDefault();
+    setSubmitting(true);
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    setSubmitting(false);
+
+    if (error) {
+      setPassError(error.message);
+      return;
     }
-  }
 
-  function handleCodeSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (code.join('').length < 6) return;
+    await supabase.auth.signOut();
     setStep('done');
   }
 
@@ -64,10 +71,31 @@ export default function SetPasswordPage() {
 
   return (
     <div className="login-root">
-      {/* ── Left: card ── */}
       <div className="login-left">
 
-        {/* Step 1: Define senha */}
+        {step === 'loading' && (
+          <div className="login-card">
+            <div className="login-logo">
+              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+            </div>
+            <p className="sp-desc" style={{ textAlign: 'center', marginTop: '24px' }}>Validando convite…</p>
+          </div>
+        )}
+
+        {step === 'error' && (
+          <div className="login-card">
+            <div className="login-logo">
+              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+            </div>
+            <h1 className="login-title">Link inválido</h1>
+            <p className="sp-desc">Este link de convite é inválido ou já expirou. Solicite um novo convite ao administrador.</p>
+            <p className="rec-desc" style={{ color: '#ef4444', fontSize: '13px', marginTop: '8px' }}>{errorMsg}</p>
+            <button className="login-btn" type="button" style={{ marginTop: '24px' }} onClick={() => navigate('/login')}>
+              Ir para o login
+            </button>
+          </div>
+        )}
+
         {step === 'password' && (
           <div className="login-card">
             <div className="login-logo">
@@ -78,7 +106,7 @@ export default function SetPasswordPage() {
 
             {passError && <p className="login-error">{passError}</p>}
 
-            <form className="login-form" onSubmit={handlePasswordSubmit} noValidate>
+            <form className="login-form" onSubmit={handleSubmit} noValidate>
               <div className="login-field">
                 <label className="login-label" htmlFor="new-pass">Nova senha</label>
                 <div className="rec-pass-wrap">
@@ -131,88 +159,18 @@ export default function SetPasswordPage() {
                 </div>
               </div>
 
-              <button className="login-btn" type="submit" disabled={!newPass || !confirmPass}>
-                Próximo
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                </svg>
+              <button className="login-btn" type="submit" disabled={!newPass || !confirmPass || submitting}>
+                {submitting ? 'Salvando…' : 'Criar senha'}
+                {!submitting && (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                )}
               </button>
             </form>
           </div>
         )}
 
-        {/* Step 2: Confirmar envio do código */}
-        {step === 'send' && (
-          <div className="login-card">
-            <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
-            </div>
-            <div className="rec-sent-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0B5B68" strokeWidth="1.8">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22 6 12 13 2 6" />
-              </svg>
-            </div>
-            <h1 className="login-title">Verificar e-mail</h1>
-            <p className="rec-desc">Enviaremos um código de verificação para confirmar seu acesso:</p>
-            <p className="rec-email-highlight">{email}</p>
-            <div className="rec-sent-actions">
-              <button className="rec-btn-secondary" type="button" onClick={() => setStep('password')}>
-                Voltar
-              </button>
-              <button className="login-btn" type="button" onClick={() => setStep('code')}>
-                Enviar código
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Inserir código */}
-        {step === 'code' && (
-          <div className="login-card">
-            <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
-            </div>
-            <h1 className="login-title">Código de verificação</h1>
-            <p className="rec-desc">
-              Digite o código de 6 dígitos enviado para <strong>{email}</strong>.
-            </p>
-            <form className="login-form" onSubmit={handleCodeSubmit} noValidate>
-              <div className="rec-code-wrap" onPaste={handleCodePaste}>
-                {code.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={el => { codeRefs.current[i] = el; }}
-                    className="rec-code-input"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={e => handleCodeInput(e.target.value, i)}
-                    onKeyDown={e => handleCodeKeyDown(e, i)}
-                  />
-                ))}
-              </div>
-              <button className="login-btn" type="submit" disabled={code.join('').length < 6}>
-                Confirmar
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                </svg>
-              </button>
-            </form>
-            <p className="rec-resend">
-              Não recebeu?{' '}
-              <button type="button" className="rec-resend-btn" onClick={() => setCode(['', '', '', '', '', ''])}>
-                Reenviar código
-              </button>
-            </p>
-          </div>
-        )}
-
-        {/* Step 4: Sucesso */}
         {step === 'done' && (
           <div className="login-card">
             <div className="login-logo">
@@ -225,8 +183,8 @@ export default function SetPasswordPage() {
               </svg>
             </div>
             <h1 className="login-title">Senha criada!</h1>
-            <p className="rec-desc">Sua senha foi definida com sucesso. Agora você pode fazer login no portal.</p>
-            <button className="login-btn" type="button" onClick={() => navigate('/login')}>
+            <p className="sp-desc">Sua senha foi definida com sucesso. Faça login para acessar o portal.</p>
+            <button className="login-btn" type="button" style={{ marginTop: '8px' }} onClick={() => navigate('/login')}>
               Ir para o login
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
@@ -237,7 +195,6 @@ export default function SetPasswordPage() {
 
       </div>
 
-      {/* ── Right: bg ── */}
       <div className="login-right">
         <p className="login-right__tagline">Seu parceiro de RI</p>
         <div className="login-right__content">
