@@ -181,6 +181,8 @@ function loadFooter(): FooterConfig {
 
 export default function FooterPage() {
   const portalName = usePortalName();
+  const portalLayout = (localStorage.getItem('portal_layout') ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
+  const isBannerModel = portalLayout === 'banner';
   const [config, setConfig] = useState<FooterConfig>(loadFooter);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -248,41 +250,43 @@ export default function FooterPage() {
         }
       />
 
-      {/* Model selector */}
-      <div className="pers-section">
-        <h2 className="pers-section__title">Modelo do footer</h2>
-        <p className="pers-section__desc">Escolha o estilo de rodapé que será exibido no portal.</p>
-        <div className="footer-models">
-          {(['completo', 'compacto', 'reduzido'] as FooterModel[]).map(m => (
-            <button
-              key={m}
-              type="button"
-              className={`footer-model-card${config.model === m ? ' footer-model-card--active' : ''}`}
-              onClick={() => set('model', m)}
-            >
-              <div className="footer-model-card__thumb">{MODEL_THUMBNAILS[m]}</div>
-              <div className="footer-model-card__label">
-                {m === 'completo' ? 'Completo' : m === 'compacto' ? 'Compacto' : 'Reduzido'}
-                {config.model === m && (
-                  <span className="footer-model-card__check">
-                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
-                  </span>
-                )}
-              </div>
-              <div className="footer-model-card__desc">
-                {m === 'completo'
-                  ? 'Mapa do site, endereço, contato, redes sociais, links legais, copyright e selo.'
-                  : m === 'compacto'
-                  ? 'Endereço, contato e redes sociais sem mapa do site, com links legais e copyright.'
-                  : 'Barra única com links legais, copyright e selo Powered by.'}
-              </div>
-            </button>
-          ))}
+      {/* Model selector — only for banner template */}
+      {isBannerModel && (
+        <div className="pers-section">
+          <h2 className="pers-section__title">Modelo do footer</h2>
+          <p className="pers-section__desc">Escolha o estilo de rodapé que será exibido no portal.</p>
+          <div className="footer-models">
+            {(['completo', 'compacto', 'reduzido'] as FooterModel[]).map(m => (
+              <button
+                key={m}
+                type="button"
+                className={`footer-model-card${config.model === m ? ' footer-model-card--active' : ''}`}
+                onClick={() => set('model', m)}
+              >
+                <div className="footer-model-card__thumb">{MODEL_THUMBNAILS[m]}</div>
+                <div className="footer-model-card__label">
+                  {m === 'completo' ? 'Completo' : m === 'compacto' ? 'Compacto' : 'Reduzido'}
+                  {config.model === m && (
+                    <span className="footer-model-card__check">
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
+                    </span>
+                  )}
+                </div>
+                <div className="footer-model-card__desc">
+                  {m === 'completo'
+                    ? 'Mapa do site, endereço, contato, redes sociais, links legais, copyright e selo.'
+                    : m === 'compacto'
+                    ? 'Endereço, contato e redes sociais sem mapa do site, com links legais e copyright.'
+                    : 'Barra única com links legais, copyright e selo Powered by.'}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Completo/Compacto: contact & social */}
-      {(config.model === 'completo' || config.model === 'compacto') && (
+      {/* Completo/Compacto: contact & social — only for banner template with full/compact model */}
+      {isBannerModel && (config.model === 'completo' || config.model === 'compacto') && (
         <>
           <div className="pers-section">
             <h2 className="pers-section__title">Endereço e contato</h2>

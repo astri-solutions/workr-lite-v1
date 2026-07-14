@@ -104,13 +104,6 @@ const SECTIONS: NavSection[] = [
         ),
       },
       {
-        to: '/portal/transmissoes',
-        label: 'Transmissões',
-        icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>live_tv</span>
-        ),
-      },
-      {
         to: '/portal/atendimento',
         label: 'Atendimento',
         icon: (
@@ -336,12 +329,10 @@ export default function ClientLayout() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const hasBanner = portalLayout === 'tabmenu' || portalLayout === 'banner';
-
   const portalSections: NavSection[] = SECTIONS.map(section => ({
     ...section,
     items: section.items.filter(item => {
-      if (item.to === '/portal/banner') return hasBanner;
+      if (item.to === '/portal/banner') return portalLayout === 'banner';
       return true;
     }),
   }));

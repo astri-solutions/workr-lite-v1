@@ -1328,6 +1328,40 @@ export default function NovoPortalPage() {
             localStorage.setItem(CANAIS_KEY, JSON.stringify(form.canais));
           }
 
+          // Salva cores do portal
+          localStorage.setItem('portal_cores', JSON.stringify({
+            primary: form.corPrimaria,
+            secondary: form.corSecundaria,
+            tertiary: form.corTerciaria,
+          }));
+
+          // Salva favicon do portal
+          if (form.faviconPreview) {
+            localStorage.setItem('portal_favicon', form.faviconPreview);
+          }
+
+          // Salva template do portal
+          if (form.tipo) {
+            localStorage.setItem('portal_layout', form.tipo);
+          }
+
+          // Adiciona usuário admin à lista global de usuários
+          if (form.adminEmail) {
+            const usuariosRaw = localStorage.getItem('workr_usuarios');
+            const usuariosList = usuariosRaw ? JSON.parse(usuariosRaw) : [];
+            if (!usuariosList.find((u: { email: string }) => u.email === form.adminEmail)) {
+              usuariosList.push({
+                id: `u${Date.now()}`,
+                nome: form.adminNome || form.adminEmail,
+                email: form.adminEmail,
+                role: 'client_user',
+                portais: [newPortal.id],
+                status: 'Ativo',
+              });
+              localStorage.setItem('workr_usuarios', JSON.stringify(usuariosList));
+            }
+          }
+
           // Provisiona repositório GitHub + projeto Vercel
           const subdomain = form.url || form.nome.toLowerCase().replace(/\s+/g, '-');
           if (isSupabaseConfigured && supabase) {

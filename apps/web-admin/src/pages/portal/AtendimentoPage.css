@@ -9,7 +9,6 @@
 .atend-card {
   flex: 1;
   min-width: 0;
-  max-width: 680px;
   background: #fff;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);

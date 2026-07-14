@@ -21,13 +21,7 @@ interface Interacao {
   data: string;
 }
 
-const INITIAL: Interacao[] = [
-  { id: 'i1', tipo: 'fale-ri', nome: 'Roberto Alves', email: 'roberto@investidor.com', mensagem: 'Gostaria de receber o relatório anual 2025 e informações sobre dividendos.', status: 'novo', data: '28/06/2026' },
-  { id: 'i2', tipo: 'mailing', nome: 'Patrícia Melo', email: 'patricia@fundo.com.br', mensagem: 'Solicitação de cadastro na lista de emails de RI.', status: 'novo', data: '27/06/2026' },
-  { id: 'i3', tipo: 'fale-ri', nome: 'Eduardo Santos', email: 'esantos@banco.com.br', mensagem: 'Quando será divulgado o resultado do 2T26?', status: 'lido', data: '25/06/2026' },
-  { id: 'i4', tipo: 'fale-ri', nome: 'Camila Neves', email: 'cneves@gest.com', mensagem: 'Preciso do contato do diretor de RI para uma reunião.', status: 'respondido', data: '20/06/2026' },
-  { id: 'i5', tipo: 'mailing', nome: 'Henrique Lima', email: 'hlima@private.com', mensagem: 'Quero ser incluído na lista de distribuição de resultados.', status: 'respondido', data: '15/06/2026' },
-];
+const INITIAL: Interacao[] = [];
 
 const STATUS_LABEL: Record<Status, string> = { novo: 'Novo', lido: 'Lido', respondido: 'Respondido' };
 const STATUS_BADGE: Record<Status, string> = { novo: 'badge--warning', lido: 'badge--gray', respondido: 'badge--success' };

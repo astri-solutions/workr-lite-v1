@@ -7,9 +7,11 @@ import { processImage } from '../../utils/imageProcessor';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
+export const FAVICON_KEY = 'portal_favicon';
+
 export default function FaviconPage() {
   const portalName = usePortalName();
-  const [favicon, setFavicon] = useState<string | null>(null);
+  const [favicon, setFavicon] = useState<string | null>(() => localStorage.getItem(FAVICON_KEY));
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,6 +27,8 @@ export default function FaviconPage() {
   }
 
   function handleSave() {
+    if (favicon) localStorage.setItem(FAVICON_KEY, favicon);
+    else localStorage.removeItem(FAVICON_KEY);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
