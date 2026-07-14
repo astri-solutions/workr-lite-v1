@@ -160,9 +160,9 @@ interface FormData {
   faviconFile: File | null;
   faviconPreview: string | null;
   idiomas: string[];
-  tickerType: 'none' | 'manual' | 'iframe';
-  tickerIframeUrl: string;
-  tickerItems: { symbol: string; price: string; change: string; direction: 'up' | 'down' }[];
+  tickerType: 'none' | 'iframe';
+  tickerSymbol: string;
+  tickerEmbedCode: string;
   metaTitulo: string;
   metaDescricao: string;
   analyticsId: string;
@@ -771,27 +771,15 @@ function StepIdentidade({
 }
 
 /* ─── Step: Ticker ────────────────────────────────────────────────────────── */
-type TickerType = 'none' | 'manual' | 'iframe';
-interface TickerItem { symbol: string; price: string; change: string; direction: 'up' | 'down' }
+type TickerType = 'none' | 'iframe';
 
 function StepTicker({
-  tickerType, tickerIframeUrl, tickerItems,
-  onType, onIframeUrl, onItems,
+  tickerType, tickerSymbol, tickerEmbedCode,
+  onType, onSymbol, onEmbedCode,
 }: {
-  tickerType: TickerType; tickerIframeUrl: string; tickerItems: TickerItem[];
-  onType: (v: TickerType) => void; onIframeUrl: (v: string) => void; onItems: (v: TickerItem[]) => void;
+  tickerType: TickerType; tickerSymbol: string; tickerEmbedCode: string;
+  onType: (v: TickerType) => void; onSymbol: (v: string) => void; onEmbedCode: (v: string) => void;
 }) {
-  function addItem() {
-    onItems([...tickerItems, { symbol: '', price: '', change: '', direction: 'up' }]);
-  }
-  function removeItem(i: number) {
-    onItems(tickerItems.filter((_, idx) => idx !== i));
-  }
-  function updateItem(i: number, field: keyof TickerItem, value: string) {
-    const next = tickerItems.map((item, idx) => idx === i ? { ...item, [field]: value } : item);
-    onItems(next);
-  }
-
   return (
     <div className="np-step">
       <div className="np-step__head">
@@ -802,9 +790,8 @@ function StepTicker({
         <div className="np-field">
           <div className="np-ticker-options">
             {([
-              { id: 'none', label: 'Sem ticker', desc: 'Nenhum ticker no portal' },
-              { id: 'manual', label: 'Manual', desc: 'Informe os dados manualmente' },
-              { id: 'iframe', label: 'Iframe externo', desc: 'Incorporar widget de terceiros' },
+              { id: 'none',   label: 'Sem ticker',     desc: 'Nenhum ticker no portal' },
+              { id: 'iframe', label: 'Widget Enfoque',  desc: 'Incorporar widget via código embed' },
             ] as { id: TickerType; label: string; desc: string }[]).map(opt => (
               <button
                 key={opt.id}
@@ -819,33 +806,32 @@ function StepTicker({
           </div>
         </div>
 
-        {tickerType === 'manual' && (
-          <div className="np-field">
-            {tickerItems.map((item, i) => (
-              <div key={i} className="np-ticker-row">
-                <input className="np-input np-input--sm" placeholder="Símbolo (ex: PETR4)" value={item.symbol} onChange={e => updateItem(i, 'symbol', e.target.value)} maxLength={10} />
-                <input className="np-input np-input--sm" placeholder="Preço (ex: R$ 38,50)" value={item.price} onChange={e => updateItem(i, 'price', e.target.value)} maxLength={20} />
-                <input className="np-input np-input--sm" placeholder="Variação (ex: +1,2%)" value={item.change} onChange={e => updateItem(i, 'change', e.target.value)} maxLength={15} />
-                <select className="np-input np-input--sm np-select" value={item.direction} onChange={e => updateItem(i, 'direction', e.target.value as 'up' | 'down')}>
-                  <option value="up">Alta ▲</option>
-                  <option value="down">Baixa ▼</option>
-                </select>
-                {tickerItems.length > 1 && (
-                  <button type="button" className="np-ticker-remove" onClick={() => removeItem(i)} aria-label="Remover">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                )}
-              </div>
-            ))}
-            <button type="button" className="np-btn np-btn--ghost" onClick={addItem} style={{ marginTop: 8 }}>+ Adicionar ativo</button>
-          </div>
-        )}
-
         {tickerType === 'iframe' && (
-          <div className="np-field">
-            <label className="np-label">URL do iframe</label>
-            <input className="np-input" type="url" placeholder="https://..." value={tickerIframeUrl} onChange={e => onIframeUrl(e.target.value)} />
-          </div>
+          <>
+            <div className="np-field">
+              <label className="np-label">Ticker (código do ativo)</label>
+              <input
+                className="np-input"
+                type="text"
+                placeholder="Ex: IGTA3, PETR4, VALE3"
+                value={tickerSymbol}
+                onChange={e => onSymbol(e.target.value.toUpperCase())}
+                maxLength={10}
+              />
+              <span className="np-field-hint">Código do ativo na B3, conforme cadastrado na Enfoque.</span>
+            </div>
+            <div className="np-field">
+              <label className="np-label">Código embed (fornecido pela Enfoque)</label>
+              <textarea
+                className="np-input np-textarea"
+                placeholder={'<iframe src="https://..." ...></iframe>'}
+                value={tickerEmbedCode}
+                onChange={e => onEmbedCode(e.target.value)}
+                rows={4}
+              />
+              <span className="np-field-hint">Cole aqui o código HTML fornecido pela Enfoque para o widget de cotação.</span>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -1168,8 +1154,8 @@ export default function NovoPortalPage() {
     faviconPreview: null,
     idiomas: ['pt-BR'],
     tickerType: 'none',
-    tickerIframeUrl: '',
-    tickerItems: [{ symbol: '', price: '', change: '', direction: 'up' as const }],
+    tickerSymbol: '',
+    tickerEmbedCode: '',
     metaTitulo: '',
     metaDescricao: '',
     analyticsId: '',
@@ -1315,8 +1301,8 @@ export default function NovoPortalPage() {
           if (form.tickerType !== 'none') {
             localStorage.setItem('portal_ticker', JSON.stringify({
               type: form.tickerType,
-              iframeUrl: form.tickerIframeUrl || undefined,
-              items: form.tickerType === 'manual' ? form.tickerItems.filter(t => t.symbol) : undefined,
+              symbol: form.tickerSymbol || undefined,
+              embedCode: form.tickerEmbedCode || undefined,
             }));
           }
 
@@ -1487,11 +1473,11 @@ export default function NovoPortalPage() {
         {currentLabel === 'Ticker' && (
           <StepTicker
             tickerType={form.tickerType}
-            tickerIframeUrl={form.tickerIframeUrl}
-            tickerItems={form.tickerItems}
+            tickerSymbol={form.tickerSymbol}
+            tickerEmbedCode={form.tickerEmbedCode}
             onType={(v) => setForm((f) => ({ ...f, tickerType: v }))}
-            onIframeUrl={(v) => setForm((f) => ({ ...f, tickerIframeUrl: v }))}
-            onItems={(v) => setForm((f) => ({ ...f, tickerItems: v }))}
+            onSymbol={(v) => setForm((f) => ({ ...f, tickerSymbol: v }))}
+            onEmbedCode={(v) => setForm((f) => ({ ...f, tickerEmbedCode: v }))}
           />
         )}
         {currentLabel === 'Idioma' && (
