@@ -201,13 +201,13 @@ export default function PortaisPage() {
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
   const [excluirPortal, setExcluirPortal] = useState<Portal | null>(null);
   const [excluirConfirm, setExcluirConfirm] = useState('');
-  const [excluirInfra, setExcluirInfra] = useState(false);
+  const [excluirInfra, setExcluirInfra] = useState(true);
   const [excluirLoading, setExcluirLoading] = useState(false);
 
   function resetExcluirModal() {
     setExcluirPortal(null);
     setExcluirConfirm('');
-    setExcluirInfra(false);
+    setExcluirInfra(true);
   }
 
   async function handleExcluirPortal(portal: Portal) {
