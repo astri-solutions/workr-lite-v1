@@ -1343,7 +1343,11 @@ export default function NovoPortalPage() {
                       'Authorization': `Bearer ${token}`,
                       'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
                     },
-                    body: JSON.stringify({ email: form.adminEmail, nome: form.adminNome }),
+                    body: JSON.stringify({
+                      email: form.adminEmail,
+                      nome: form.adminNome,
+                      redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+                    }),
                   }
                 );
               }
