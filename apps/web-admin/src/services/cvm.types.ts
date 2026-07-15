@@ -29,6 +29,7 @@ export interface CvmEntity {
   importarDesde: string | null; // ISO date "YYYY-MM-DD", null = incremental only
   ultimaSync: string | null;    // ISO datetime of last successful sync
   proximaSync: string | null;   // ISO datetime of next scheduled sync
+  routing: CvmRoutingRule[];    // category → portal page mapping (persisted server-side)
   createdAt: string;
   updatedAt: string;
 }

@@ -43,6 +43,19 @@ function _loadPortaisFromStorage(): CvmPortal[] {
 // Mutable in-memory store for mock mode — seeded from localStorage portals
 let _store: CvmPortal[] = _loadPortaisFromStorage();
 
+// Seed any previously-saved routing rules from localStorage into the in-memory store
+function _seedRoutingFromStorage() {
+  try {
+    const raw = localStorage.getItem(CVM_ROUTING_KEY);
+    if (!raw) return;
+    const all: Record<string, CvmRoutingRule[]> = JSON.parse(raw);
+    for (const [entityId, rules] of Object.entries(all)) {
+      try { _updateEntity(entityId, { routing: rules }); } catch { /* entity not in store */ }
+    }
+  } catch { /* silent */ }
+}
+_seedRoutingFromStorage();
+
 export function _findEntity(entityId: string): CvmEntity | undefined {
   for (const p of _store) {
     const e = p.entidades.find(e => e.id === entityId);
@@ -142,6 +155,7 @@ export const cvmService = {
         importarDesde: req.importarDesde ?? null,
         ultimaSync: null,
         proximaSync: new Date(Date.now() + 5 * 60_000).toISOString(),
+        routing: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -233,8 +247,15 @@ export const cvmService = {
     });
   },
 
-  /** Get routing rules for one entity (stored in localStorage). */
+  /** Get routing rules for one entity.
+   *  In mock mode: reads from the in-memory entity (source of truth for the Go backend),
+   *  with localStorage as a fallback for rules saved before this pattern was introduced.
+   */
   getRouting(entityId: string): CvmRoutingRule[] {
+    // Prefer the in-memory store (mirrors what the real backend will serve)
+    const entity = _findEntity(entityId);
+    if (entity) return entity.routing ?? [];
+    // Fallback: legacy localStorage rules
     try {
       const raw = localStorage.getItem(CVM_ROUTING_KEY);
       const all: Record<string, CvmRoutingRule[]> = raw ? JSON.parse(raw) : {};
@@ -244,10 +265,16 @@ export const cvmService = {
     }
   },
 
-  /** Persist routing rules for one entity to localStorage. */
+  /** Persist routing rules for one entity.
+   *  In mock mode: writes to both the in-memory store (so the Go backend gets it on
+   *  integration) and localStorage (so rules survive a page refresh during development).
+   */
   async updateRouting(entityId: string, rules: CvmRoutingRule[]): Promise<void> {
     if (MOCK_MODE) {
       await _delay(300);
+      // Write to in-memory entity (the Go backend's source of truth)
+      try { _updateEntity(entityId, { routing: rules }); } catch { /* entity may not exist yet */ }
+      // Also write to localStorage so rules persist across page reloads in dev
       try {
         const raw = localStorage.getItem(CVM_ROUTING_KEY);
         const all: Record<string, CvmRoutingRule[]> = raw ? JSON.parse(raw) : {};
