@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AdminOutletContext } from '../../components/AdminLayout';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
 import './PainelControlePage.css';
 
@@ -20,13 +21,16 @@ interface SiteData {
   phpVersion: string;
   ssl: boolean;
   cdn: boolean;
+  githubRepo?: string;
+  vercelUrl?: string;
+  subdomain?: string;
 }
 
 function loadSiteFromStorage(siteId: string): SiteData | undefined {
   try {
     const raw = localStorage.getItem('workr_portais');
     const portals: Array<{
-      id: string; cliente: string; criadoEm: string;
+      id: string; cliente: string; criadoEm: string; githubRepo?: string; vercelUrl?: string; subdomain?: string;
       sites: Array<{ id: string; link: string; status: string; ip?: string }>;
     }> = raw ? JSON.parse(raw) : [];
     for (const portal of portals) {
@@ -47,6 +51,9 @@ function loadSiteFromStorage(siteId: string): SiteData | undefined {
           phpVersion: '—',
           ssl: true,
           cdn: false,
+          githubRepo: portal.githubRepo,
+          vercelUrl: portal.vercelUrl,
+          subdomain: portal.subdomain,
         };
       }
     }
@@ -76,6 +83,11 @@ export default function PainelControlePage() {
   const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
+  const [dangerInput1, setDangerInput1] = useState('');
+  const [dangerInput2, setDangerInput2] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const dangerRef = useRef<HTMLDivElement>(null);
 
   const site = loadSiteFromStorage(siteId ?? '');
 
@@ -96,6 +108,46 @@ export default function PainelControlePage() {
         </div>
       </div>
     );
+  }
+
+  async function handleExcluirPortal() {
+    if (!site) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (token && site.githubRepo) {
+          const vercelProjectName = site.vercelUrl
+            ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
+            : site.subdomain ?? site.githubRepo.replace(/^portal-/, '');
+          await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+              },
+              body: JSON.stringify({ repoName: site.githubRepo, vercelProjectName }),
+            }
+          );
+        }
+      }
+
+      // Remove portal from localStorage
+      const raw = localStorage.getItem('workr_portais');
+      const portals: Array<{ id: string }> = raw ? JSON.parse(raw) : [];
+      const updated = portals.filter(p => p.id !== site.portalId);
+      localStorage.setItem('workr_portais', JSON.stringify(updated));
+
+      navigate('/admin/portais');
+    } catch (e) {
+      setDeleteError(String(e));
+      setDeleting(false);
+    }
   }
 
   async function handleLimparCache() {
@@ -515,6 +567,79 @@ export default function PainelControlePage() {
           )}
         </div>
       )}
+
+      {/* ── Danger zone ────────────────────────────────── */}
+      <div className="painel-danger-zone" ref={dangerRef}>
+        <div className="painel-danger-zone__header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Zona de Perigo
+        </div>
+
+        <div className="painel-danger-item">
+          <div className="painel-danger-item__text">
+            <p className="painel-danger-item__title">Excluir portal permanentemente</p>
+            <p className="painel-danger-item__desc">
+              Esta ação é irreversível. O repositório GitHub{site.githubRepo ? ` (${site.githubRepo})` : ''} e o projeto Vercel vinculados a este portal serão removidos permanentemente.
+            </p>
+          </div>
+
+          <div className="painel-danger-inputs">
+            <div className="painel-danger-input-group">
+              <label className="painel-danger-label">
+                Digite o nome do portal para confirmar
+              </label>
+              <input
+                className="painel-danger-input"
+                type="text"
+                placeholder={site.link}
+                value={dangerInput1}
+                onChange={e => setDangerInput1(e.target.value)}
+                disabled={deleting}
+                autoComplete="off"
+              />
+            </div>
+            <div className="painel-danger-input-group">
+              <label className="painel-danger-label">
+                Digite <strong>excluir meu portal</strong> para confirmar
+              </label>
+              <input
+                className="painel-danger-input"
+                type="text"
+                placeholder="excluir meu portal"
+                value={dangerInput2}
+                onChange={e => setDangerInput2(e.target.value)}
+                disabled={deleting}
+                autoComplete="off"
+              />
+            </div>
+
+            {deleteError && (
+              <p className="painel-danger-error">{deleteError}</p>
+            )}
+
+            <button
+              className="painel-danger-btn"
+              type="button"
+              disabled={
+                deleting ||
+                dangerInput1.trim() !== site.link ||
+                dangerInput2.trim() !== 'excluir meu portal'
+              }
+              onClick={handleExcluirPortal}
+            >
+              {deleting ? (
+                <><span className="painel-spin painel-spin--white" /> Excluindo…</>
+              ) : (
+                'Excluir portal permanentemente'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
     </div>
   );
