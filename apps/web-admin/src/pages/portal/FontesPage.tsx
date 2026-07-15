@@ -63,11 +63,70 @@ async function registerFont(label: string, url: string): Promise<boolean> {
   }
 }
 
+function FontList({ active, onSelect, allFonts, uploading, uploadRef, onUpload, onRemove, onMarkDirty }: {
+  active: string;
+  onSelect: (id: string) => void;
+  allFonts: FontDef[];
+  uploading: boolean;
+  uploadRef: React.RefObject<HTMLInputElement>;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: (id: string) => void;
+  onMarkDirty: () => void;
+}) {
+  return (
+    <div className="fontes-list">
+      <div className="fontes-upload">
+        <div className="fontes-upload__info">
+          <span className="fontes-upload__title">Fonte personalizada</span>
+          <span className="fontes-upload__hint">Faça upload de uma fonte nos formatos TTF, WOFF ou WOFF2.</span>
+        </div>
+        <input ref={uploadRef} type="file" accept=".ttf,.woff,.woff2,.otf" style={{ display: 'none' }} onChange={onUpload} />
+        <button
+          type="button"
+          className="btn-outline fontes-upload__btn"
+          disabled={uploading}
+          onClick={() => uploadRef.current?.click()}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          {uploading ? 'Carregando…' : 'Fazer upload de fonte'}
+        </button>
+      </div>
+      {allFonts.map(f => (
+        <button
+          key={f.id}
+          type="button"
+          className={`fontes-option${active === f.id ? ' fontes-option--active' : ''}`}
+          onClick={() => { onSelect(f.id); onMarkDirty(); }}
+        >
+          <span className="fontes-option__sample" style={{ fontFamily: f.family }}>Aa</span>
+          <span className="fontes-option__label" style={f.custom ? { fontFamily: f.family } : undefined}>{f.label}</span>
+          <span className="fontes-option__cat">{f.category}</span>
+          {f.custom && (
+            <button
+              type="button"
+              className="fontes-option__remove"
+              title="Remover fonte"
+              onClick={ev => { ev.stopPropagation(); onRemove(f.id); }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+            </button>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function FontesPage() {
   const portalName = usePortalName();
+  const [initialFonts] = useState(loadFontes);
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
-  const [headingFont, setHeadingFont] = useState(() => loadFontes().heading);
-  const [bodyFont, setBodyFont] = useState(() => loadFontes().body);
+  const [headingFont, setHeadingFont] = useState(initialFonts.heading);
+  const [bodyFont, setBodyFont] = useState(initialFonts.body);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
@@ -76,7 +135,7 @@ export default function FontesPage() {
   const heading = allFonts.find(f => f.id === headingFont);
   const body = allFonts.find(f => f.id === bodyFont);
 
-  const isDirty = !saved && (headingFont !== INITIAL_HEADING || bodyFont !== INITIAL_BODY);
+  const isDirty = !saved && (headingFont !== initialFonts.heading || bodyFont !== initialFonts.body);
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
@@ -116,63 +175,6 @@ export default function FontesPage() {
     if (bodyFont === id) setBodyFont(INITIAL_BODY);
   }
 
-  function FontList({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
-    return (
-      <div className="fontes-list">
-        {/* Upload area */}
-        <div className="fontes-upload">
-          <div className="fontes-upload__info">
-            <span className="fontes-upload__title">Fonte personalizada</span>
-            <span className="fontes-upload__hint">Faça upload de uma fonte nos formatos TTF, WOFF ou WOFF2.</span>
-          </div>
-          <input
-            ref={uploadRef}
-            type="file"
-            accept=".ttf,.woff,.woff2,.otf"
-            style={{ display: 'none' }}
-            onChange={handleUpload}
-          />
-          <button
-            type="button"
-            className="btn-outline fontes-upload__btn"
-            disabled={uploading}
-            onClick={() => uploadRef.current?.click()}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            {uploading ? 'Carregando…' : 'Fazer upload de fonte'}
-          </button>
-        </div>
-
-        {allFonts.map(f => (
-          <button
-            key={f.id}
-            type="button"
-            className={`fontes-option${active === f.id ? ' fontes-option--active' : ''}`}
-            onClick={() => { onSelect(f.id); setSaved(false); }}
-          >
-            <span className="fontes-option__sample" style={{ fontFamily: f.family }}>Aa</span>
-            <span className="fontes-option__label" style={f.custom ? { fontFamily: f.family } : undefined}>{f.label}</span>
-            <span className="fontes-option__cat">{f.category}</span>
-            {f.custom && (
-              <button
-                type="button"
-                className="fontes-option__remove"
-                title="Remover fonte"
-                onClick={ev => { ev.stopPropagation(); removeCustomFont(f.id); }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
-              </button>
-            )}
-          </button>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <StickyPageHeader
@@ -202,13 +204,13 @@ export default function FontesPage() {
         <div className="pers-section">
           <h2 className="pers-section__title">Fonte de títulos</h2>
           <p className="pers-section__desc">Usada em headings, destaques e navegação.</p>
-          <FontList active={headingFont} onSelect={setHeadingFont} />
+          <FontList active={headingFont} onSelect={setHeadingFont} allFonts={allFonts} uploading={uploading} uploadRef={uploadRef} onUpload={handleUpload} onRemove={removeCustomFont} onMarkDirty={() => setSaved(false)} />
         </div>
 
         <div className="pers-section">
           <h2 className="pers-section__title">Fonte de corpo</h2>
           <p className="pers-section__desc">Usada em textos, parágrafos e tabelas.</p>
-          <FontList active={bodyFont} onSelect={setBodyFont} />
+          <FontList active={bodyFont} onSelect={setBodyFont} allFonts={allFonts} uploading={uploading} uploadRef={uploadRef} onUpload={handleUpload} onRemove={removeCustomFont} onMarkDirty={() => setSaved(false)} />
         </div>
       </div>
 

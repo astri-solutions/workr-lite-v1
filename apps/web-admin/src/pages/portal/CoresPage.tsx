@@ -175,14 +175,15 @@ const COLOR_DEFS = [
 
 export default function CoresPage() {
   const portalName = usePortalName();
-  const [draft, setDraft] = useState<Palette>(loadCores);
-  const [preview, setPreview] = useState<Palette>(loadCores);
+  const [initial] = useState<Palette>(loadCores);
+  const [draft, setDraft] = useState<Palette>(initial);
+  const [preview, setPreview] = useState<Palette>(initial);
   const [saved, setSaved] = useState(false);
 
   const isDirty = !saved && (
-    draft.primary !== DEFAULT.primary ||
-    draft.secondary !== DEFAULT.secondary ||
-    draft.tertiary !== DEFAULT.tertiary
+    draft.primary !== initial.primary ||
+    draft.secondary !== initial.secondary ||
+    draft.tertiary !== initial.tertiary
   );
   const blocker = useUnsavedChanges(isDirty);
 

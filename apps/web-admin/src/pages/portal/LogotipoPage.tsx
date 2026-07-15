@@ -12,15 +12,17 @@ const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
 
 export default function LogotipoPage() {
   const portalName = usePortalName();
-  const [logo, setLogo] = useState<string | null>(() => localStorage.getItem(LOGO_KEY));
-  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(() => localStorage.getItem(LOGO_COMPACT_KEY));
+  const [initialLogo] = useState<string | null>(() => localStorage.getItem(LOGO_KEY));
+  const [initialCollapsed] = useState<string | null>(() => localStorage.getItem(LOGO_COMPACT_KEY));
+  const [logo, setLogo] = useState<string | null>(initialLogo);
+  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(initialCollapsed);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
   const logoUrlRef = useRef<string | null>(null);
   const logoCollUrlRef = useRef<string | null>(null);
 
-  const isDirty = !saved && (logo !== null || logoCollapsed !== null);
+  const isDirty = !saved && (logo !== initialLogo || logoCollapsed !== initialCollapsed);
   const blocker = useUnsavedChanges(isDirty);
 
   async function handleFile(

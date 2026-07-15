@@ -259,6 +259,14 @@ export default function CentralDeResultadosPage() {
         }
       />
 
+      {ENTITIES.length === 0 && (
+        <div className="page-placeholder">
+          <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>bar_chart</span>
+          <h2>Nenhuma empresa cadastrada</h2>
+          <p>Cadastre uma empresa em <strong>Empresas</strong> para começar a publicar resultados.</p>
+        </div>
+      )}
+
       {/* Entity selector — cards on desktop */}
       <div className="cdr-entities">
         {ENTITIES.map((e) => (

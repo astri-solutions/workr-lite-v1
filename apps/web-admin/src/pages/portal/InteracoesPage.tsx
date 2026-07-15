@@ -105,6 +105,13 @@ export default function InteracoesPage() {
         </div>
       </div>
 
+      {items.length === 0 ? (
+        <div className="page-placeholder">
+          <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>forum</span>
+          <h2>Nenhuma interação ainda</h2>
+          <p>As mensagens enviadas pelos visitantes pelo portal aparecerão aqui automaticamente.</p>
+        </div>
+      ) : (
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -139,6 +146,7 @@ export default function InteracoesPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       {selected && (
         <Modal

@@ -8,8 +8,6 @@ import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
-const INITIAL: PortalLayout = (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar';
-
 const TIPOS = [
   {
     id: 'sidebar',
@@ -84,9 +82,10 @@ const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
 
 export default function LayoutPage() {
   const portalName = usePortalName();
-  const [selected, setSelected] = useState<PortalLayout>(INITIAL);
+  const [initial] = useState<PortalLayout>(() => (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar');
+  const [selected, setSelected] = useState<PortalLayout>(initial);
   const [saved, setSaved] = useState(false);
-  const isDirty = selected !== INITIAL && !saved;
+  const isDirty = selected !== initial && !saved;
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
@@ -124,7 +123,7 @@ export default function LayoutPage() {
               type="button"
               className={`pers-tipo-card${selected === t.id ? ' pers-tipo-card--active' : ''}${isLocked ? ' pers-tipo-card--locked' : ''}`}
               disabled={isLocked}
-              onClick={() => { if (!isLocked) { setSelected(t.id as PortalLayout); setSaved(false); } }}
+              onClick={() => { if (!isLocked) { setSelected(t.id as PortalLayout); if (t.id !== initial) setSaved(false); } }}
             >
               <div className="pers-tipo-card__thumb">{t.thumb}</div>
               <div className="pers-tipo-card__info">

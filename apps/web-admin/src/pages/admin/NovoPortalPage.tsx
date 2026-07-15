@@ -1121,40 +1121,65 @@ export default function NovoPortalPage() {
   const { enterPortal } = useAuth();
   const isAddingSite = !!locationState?.empresaNome;
 
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState<FormData>({
-    nome: locationState?.empresaNome ?? '',
-    nomeFantasia: '',
-    url: '',
-    cnpj: '',
-    cvmCode: '',
-    autoCvm: true,
-    tipoSite: '',
-    tipo: '',
-    fonteTitulo: 'inter',
-    fonteTexto: 'inter',
-    customFontFile: null,
-    customFontName: '',
-    corPrimaria: '#0B5B68',
-    corSecundaria: '#00D865',
-    corTerciaria: '#141414',
-    logoFile: null,
-    logoPreview: null,
-    faviconFile: null,
-    faviconPreview: null,
-    idiomas: ['pt-BR'],
-    tickerType: 'iframe',
-    tickerSymbol: '',
-    tickerEmbedCode: '',
-    metaTitulo: '',
-    metaDescricao: '',
-    analyticsId: '',
-    clarityId: '',
-    emailContato: '',
-    canais: DEFAULT_CANAIS,
-    adminNome: '',
-    adminEmail: '',
-  });
+  const DRAFT_KEY = 'workr_wizard_draft';
+
+  function loadDraft(): { step: number; form: FormData } {
+    const defaults: FormData = {
+      nome: locationState?.empresaNome ?? '',
+      nomeFantasia: '',
+      url: '',
+      cnpj: '',
+      cvmCode: '',
+      autoCvm: true,
+      tipoSite: '',
+      tipo: '',
+      fonteTitulo: 'inter',
+      fonteTexto: 'inter',
+      customFontFile: null,
+      customFontName: '',
+      corPrimaria: '#0B5B68',
+      corSecundaria: '#00D865',
+      corTerciaria: '#141414',
+      logoFile: null,
+      logoPreview: null,
+      faviconFile: null,
+      faviconPreview: null,
+      idiomas: ['pt-BR'],
+      tickerType: 'iframe',
+      tickerSymbol: '',
+      tickerEmbedCode: '',
+      metaTitulo: '',
+      metaDescricao: '',
+      analyticsId: '',
+      clarityId: '',
+      emailContato: '',
+      canais: DEFAULT_CANAIS,
+      adminNome: '',
+      adminEmail: '',
+    };
+    if (isAddingSite) return { step: 1, form: defaults };
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return { step: 1, form: defaults };
+      const { step: savedStep, ...saved } = JSON.parse(raw);
+      return { step: typeof savedStep === 'number' ? savedStep : 1, form: { ...defaults, ...saved, logoFile: null, faviconFile: null, customFontFile: null } };
+    } catch {
+      return { step: 1, form: defaults };
+    }
+  }
+
+  const _draft = loadDraft();
+  const [step, setStep] = useState(_draft.step);
+  const [form, setForm] = useState<FormData>(_draft.form);
+
+  // Auto-save wizard draft (excluding File objects which can't be serialized)
+  useEffect(() => {
+    if (isAddingSite) return; // Don't persist when adding a site
+    try {
+      const { logoFile, faviconFile, customFontFile, ...serializable } = form;
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, ...serializable }));
+    } catch { /* ignore */ }
+  }, [form, step]);
 
   const [creating, setCreating] = useState(false);
   const [creatingStep, setCreatingStep] = useState(-1); // -1 = not started, 0..N = current step, N+1 = done
@@ -1434,6 +1459,7 @@ export default function NovoPortalPage() {
           }
 
           if (warnings.length > 0) setCreationWarnings(warnings);
+          localStorage.removeItem(DRAFT_KEY);
           setTimeout(() => navigate('/admin/portais'), warnings.length > 0 ? 4000 : 1800);
         }, 900);
       }
