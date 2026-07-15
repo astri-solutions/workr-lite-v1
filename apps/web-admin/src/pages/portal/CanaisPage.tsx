@@ -456,7 +456,7 @@ export default function CanaisPage() {
   function openNewSubSub(canalId: string, subId: string) {
     const canal = canais.find(c => c.id === canalId);
     const canalHasHeaderImage = !!(canal?.headerImage);
-    setNewSubForm(emptyNewSubForm(canalId, subId, canalHasHeaderImage));
+    setNewSubForm(emptyNewSubForm(canalId, subId, canalHasHeaderImage, portalEmpresas));
     setNewSubOpen(true);
   }
 
@@ -480,7 +480,7 @@ export default function CanaisPage() {
   function openNewSub(canalId: string) {
     const canal = canais.find(c => c.id === canalId);
     const canalHasHeaderImage = !!(canal?.headerImage);
-    setNewSubForm(emptyNewSubForm(canalId, null, canalHasHeaderImage));
+    setNewSubForm(emptyNewSubForm(canalId, null, canalHasHeaderImage, portalEmpresas));
     setNewSubOpen(true);
   }
 
@@ -601,7 +601,7 @@ export default function CanaisPage() {
     }
 
     setNewCanalOpen(false);
-    setNewCanalForm(emptyNewCanalForm());
+    setNewCanalForm(emptyNewCanalForm(portalEmpresas));
   }
 
   // ── Sub/SubSub edit ────────────────────────────────────────────────────
@@ -712,7 +712,7 @@ export default function CanaisPage() {
                 Salvar ordem
               </button>
             )}
-            <button className="btn-primary" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm()); setNewCanalOpen(true); }}>
+            <button className="btn-primary" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm(portalEmpresas)); setNewCanalOpen(true); }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
