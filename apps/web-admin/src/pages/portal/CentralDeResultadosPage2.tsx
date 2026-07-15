@@ -5,13 +5,25 @@ import SearchInput from '../../components/SearchInput';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CentralDeResultadosPage2.css';
 
 interface Entity { id: string; name: string; tipo: 'EMPRESA' | 'FUNDO'; }
 
-const ENTITIES: Entity[] = [];
+function loadEntities(portalId?: string): Entity[] {
+  try {
+    const raw = localStorage.getItem(`portal_empresas_${portalId ?? 'default'}`);
+    if (!raw) return [];
+    const items: Array<{ id: string; nome?: string; name?: string; tipo?: string }> = JSON.parse(raw);
+    return items.map(e => ({
+      id: e.id,
+      name: e.nome ?? e.name ?? e.id,
+      tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
+    }));
+  } catch { return []; }
+}
 
 const DOC_TIPOS = [
   { value: 'apresentacao', label: 'Apresentação de Resultados', icon: 'slideshow' },
@@ -410,6 +422,8 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
 
 export default function CentralDeResultadosPage2() {
   const portalName = usePortalName();
+  const { user } = useAuth();
+  const ENTITIES = loadEntities(user?.activePortalId);
   const [activeEntity, setActiveEntity] = useState('imc');
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
