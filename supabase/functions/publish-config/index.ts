@@ -31,6 +31,27 @@ interface SubCanalCfg { label: string; href: string; enabled: boolean; }
 interface CanalCfg { label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; }
 interface EmpresaCfg { id: string; label: string; short: string; }
 
+interface SplashBtn { label: string; url: string; variant: string; }
+interface SplashCfg {
+  enabled: boolean; size: string;
+  titulo: string; texto: string; conteudo: string; legenda: string;
+  buttons: SplashBtn[];
+}
+interface CookieBtn { label: string; action: string; variant: string; }
+interface CookieCfg {
+  enabled: boolean; layout: string; theme: string;
+  title: string; description: string;
+  linkText: string; linkUrl: string;
+  acceptLabel: string; rejectLabel: string;
+  showReject: boolean; showCustomize: boolean; customizeLabel: string;
+  buttons: CookieBtn[];
+}
+interface ErrorPageTexts { title: string; description: string; cta: string; }
+interface ErrorPageCfg { code: number; texts: ErrorPageTexts | null; }
+interface BannerSlideContent { titulo: string; subtitulo: string; cta: string; }
+interface BannerSlideCfg { id: string; content: Record<string, BannerSlideContent>; }
+interface AssetCfg { base64: string; ext: string; }
+
 function headerVariant(layout: string): string {
   if (layout === 'sidebar') return 'sidebar';
   if (layout === 'tabmenu') return 'tabmenu';
@@ -84,6 +105,10 @@ function buildSiteConfig(opts: {
   footer: FooterCfg | null;
   canais?: CanalCfg[];
   empresas?: EmpresaCfg[];
+  splash?: SplashCfg | null;
+  cookies?: CookieCfg | null;
+  errorPages?: ErrorPageCfg[] | null;
+  banner?: BannerSlideCfg[] | null;
   logoExt?: string;
   faviconExt?: string;
 }) {
@@ -182,6 +207,32 @@ ${legalLinks}
     legalText: ${legalText},
   },
 
+  splash: ${opts.splash ? JSON.stringify(opts.splash, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : `{
+    enabled: false,
+    size: 'md',
+    titulo: '',
+    texto: '',
+    conteudo: '',
+    legenda: '',
+    buttons: [],
+  }`},
+
+  cookies: ${opts.cookies ? JSON.stringify(opts.cookies, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : `{
+    enabled: true,
+    layout: 'full',
+    theme: 'light',
+    title: 'Utilizamos cookies',
+    description: 'Usamos cookies para melhorar sua experiência.',
+    acceptLabel: 'Aceitar todos',
+    rejectLabel: 'Rejeitar',
+    showReject: true,
+    showCustomize: false,
+  }`},
+
+  errorPages: ${opts.errorPages ? JSON.stringify(opts.errorPages, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : '[]'},
+
+  banner: ${opts.banner ? JSON.stringify(opts.banner, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : '[]'},
+
 };
 `;
 }
@@ -223,7 +274,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, portalNome, layout, colors, fonts, footer, ticker, canais, empresas } = await req.json() as {
+    const {
+      repoName, portalNome, layout, colors, fonts, footer, ticker,
+      canais, empresas, splash, cookies, errorPages, banner, logo, favicon,
+    } = await req.json() as {
       repoName?: string;
       portalNome: string;
       layout?: string;
@@ -233,6 +287,12 @@ Deno.serve(async (req) => {
       ticker?: TickerCfg | null;
       canais?: CanalCfg[];
       empresas?: EmpresaCfg[];
+      splash?: SplashCfg | null;
+      cookies?: CookieCfg | null;
+      errorPages?: ErrorPageCfg[] | null;
+      banner?: BannerSlideCfg[] | null;
+      logo?: AssetCfg | null;
+      favicon?: AssetCfg | null;
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -288,6 +348,12 @@ Deno.serve(async (req) => {
       ticker: ticker ?? null,
       canais: canais ?? [],
       empresas: empresas ?? [],
+      splash: splash ?? null,
+      cookies: cookies ?? null,
+      errorPages: errorPages ?? null,
+      banner: banner ?? null,
+      logoExt: logo?.ext,
+      faviconExt: favicon?.ext,
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
@@ -329,7 +395,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
+    // ── Upload logo / favicon binaries to GitHub if provided ──────────────────
+    async function pushAsset(assetBase64: string, ghPath: string, commitMsg: string) {
+      const getR = await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, { headers: ghHeaders });
+      const existingSha = getR.ok ? ((await getR.json()) as { sha?: string }).sha : undefined;
+      await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, {
+        method: 'PUT',
+        headers: ghHeaders,
+        body: JSON.stringify({ message: commitMsg, content: assetBase64, ...(existingSha ? { sha: existingSha } : {}) }),
+      });
+    }
+
+    const assetWarnings: string[] = [];
+    if (logo?.base64) {
+      try {
+        await pushAsset(logo.base64, `assets/logotipo/logotipo-original.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
+        await pushAsset(logo.base64, `assets/logotipo/logotipo-negative.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
+      } catch { assetWarnings.push('logo upload failed'); }
+    }
+    if (favicon?.base64) {
+      try {
+        await pushAsset(favicon.base64, `favicon.${favicon.ext}`, `chore: update favicon via CMS [${portalNome}]`);
+      } catch { assetWarnings.push('favicon upload failed'); }
+    }
+
+    return new Response(JSON.stringify({ ok: true, warnings: assetWarnings.length ? assetWarnings : undefined }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
   } catch (e) {

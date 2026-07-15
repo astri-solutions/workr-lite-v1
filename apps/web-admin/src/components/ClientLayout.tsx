@@ -274,6 +274,29 @@ export default function ClientLayout() {
         .filter(e => e.ativo)
         .map(e => ({ id: e.id, label: e.nome, short: e.nome.split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase() || e.nome.slice(0, 3).toUpperCase() }));
 
+      const splash    = (() => { try { return JSON.parse(localStorage.getItem('portal_splash')      ?? 'null'); } catch { return null; } })();
+      const cookies   = (() => { try { return JSON.parse(localStorage.getItem('portal_cookies')     ?? 'null'); } catch { return null; } })();
+      const errorPages = (() => { try { return JSON.parse(localStorage.getItem('portal_error_pages') ?? 'null'); } catch { return null; } })();
+      const bannerRaw = (() => { try { return JSON.parse(localStorage.getItem('portal_banner')      ?? 'null'); } catch { return null; } })();
+      // Strip imagem data URLs from banner slides to avoid oversized payloads
+      const banner = Array.isArray(bannerRaw)
+        ? bannerRaw.map((s: Record<string, unknown>) => ({ ...s, imagem: null }))
+        : null;
+
+      // Extract base64 + extension from a data URL (e.g. data:image/png;base64,...)
+      function extractAsset(dataUrl: string | null): { base64: string; ext: string } | null {
+        if (!dataUrl?.startsWith('data:')) return null;
+        const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!m) return null;
+        const extMap: Record<string, string> = {
+          'image/svg+xml': 'svg', 'image/png': 'png',
+          'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif',
+        };
+        return { base64: m[2], ext: extMap[m[1]] ?? 'png' };
+      }
+      const logo    = extractAsset(localStorage.getItem('portal_logotipo'));
+      const favicon = extractAsset(localStorage.getItem('portal_favicon'));
+
       // Get githubRepo from the stored portal record
       const portaisRaw = localStorage.getItem('workr_portais');
       const portaisArr = portaisRaw ? JSON.parse(portaisRaw) : [];
@@ -310,6 +333,12 @@ export default function ClientLayout() {
             ticker: ticker ?? null,
             canais: canais ?? [],
             empresas,
+            splash:     splash ?? null,
+            cookies:    cookies ?? null,
+            errorPages: errorPages ?? null,
+            banner:     banner ?? null,
+            logo:       logo ?? null,
+            favicon:    favicon ?? null,
           }),
         }
       );
