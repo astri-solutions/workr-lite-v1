@@ -122,7 +122,7 @@ export default function PainelControlePage() {
           const vercelProjectName = site.vercelUrl
             ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
             : site.subdomain ?? site.githubRepo.replace(/^portal-/, '');
-          await fetch(
+          const delRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
             {
               method: 'POST',
@@ -134,6 +134,23 @@ export default function PainelControlePage() {
               body: JSON.stringify({ repoName: site.githubRepo, vercelProjectName }),
             }
           );
+          const delData = await delRes.json().catch(() => ({})) as {
+            ok?: boolean;
+            results?: { github?: string; vercel?: string };
+          };
+          if (delData.results?.github && delData.results.github.startsWith('error:')) {
+            const ghErr = delData.results.github.replace('error:', '');
+            if (ghErr.includes('403') || ghErr.includes('Resource not accessible')) {
+              throw new Error(
+                `O repositório GitHub (${site.githubRepo}) não foi deletado automaticamente.\n\n` +
+                `Motivo: o token não tem permissão "delete_repo".\n\n` +
+                `Delete manualmente em: https://github.com/astri-solutions/${site.githubRepo}/settings → Danger Zone → Delete this repository.`
+              );
+            }
+            if (!ghErr.includes('404')) {
+              throw new Error(`Erro ao deletar repositório GitHub: ${ghErr}`);
+            }
+          }
         }
       }
 
@@ -622,7 +639,7 @@ export default function PainelControlePage() {
             </div>
 
             {deleteError && (
-              <p className="painel-danger-error">{deleteError}</p>
+              <p className="painel-danger-error" style={{ whiteSpace: 'pre-line' }}>{deleteError}</p>
             )}
 
             <button

@@ -75,7 +75,14 @@ Deno.serve(async (req) => {
           },
         }
       );
-      results.github = ghRes.status === 204 ? 'deleted' : `error:${ghRes.status}`;
+      if (ghRes.status === 204) {
+        results.github = 'deleted';
+      } else {
+        const body = await ghRes.json().catch(() => ({})) as { message?: string };
+        results.github = `error:${ghRes.status}:${body.message ?? ghRes.statusText}`;
+      }
+    } else if (repoName && !githubToken) {
+      results.github = 'error:no_token';
     }
 
     // Delete Vercel project
@@ -88,10 +95,14 @@ Deno.serve(async (req) => {
         }
       );
       results.vercel = vRes.status === 204 || vRes.ok ? 'deleted' : `error:${vRes.status}`;
+    } else if (vercelProjectName && !vercelToken) {
+      results.vercel = 'error:no_token';
     }
 
-    return new Response(JSON.stringify({ ok: true, results }), {
-      status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+    const hasErrors = Object.values(results).some(v => typeof v === 'string' && v.startsWith('error:'));
+
+    return new Response(JSON.stringify({ ok: !hasErrors, results }), {
+      status: hasErrors ? 207 : 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
   } catch (e) {
     const ch2 = corsHeaders(req.headers.get('Origin'));
