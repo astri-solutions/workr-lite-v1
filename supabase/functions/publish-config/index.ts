@@ -29,6 +29,7 @@ interface FooterCfg {
 }
 interface SubCanalCfg { label: string; href: string; enabled: boolean; }
 interface CanalCfg { label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; }
+interface EmpresaCfg { id: string; label: string; short: string; }
 
 function headerVariant(layout: string): string {
   if (layout === 'sidebar') return 'sidebar';
@@ -82,6 +83,7 @@ function buildSiteConfig(opts: {
   ticker: TickerCfg | null;
   footer: FooterCfg | null;
   canais?: CanalCfg[];
+  empresas?: EmpresaCfg[];
   logoExt?: string;
   faviconExt?: string;
 }) {
@@ -156,6 +158,12 @@ ${tickerItems}
 
 ${buildNavSection(opts.canais ?? [])}
 
+  empresas: [
+${(opts.empresas ?? []).map(e =>
+    `    { id: ${JSON.stringify(e.id)}, label: ${JSON.stringify(e.label)}, short: ${JSON.stringify(e.short)} }`
+  ).join(',\n') || `    { id: 'principal', label: ${JSON.stringify(opts.nome)}, short: ${JSON.stringify(opts.nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || opts.nome.slice(0, 3).toUpperCase())} }`}
+  ],
+
   header: { variant: '${headerVariant(opts.layout)}' },
 
   restrictedNav: [],
@@ -215,7 +223,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, portalNome, layout, colors, fonts, footer, ticker, canais } = await req.json() as {
+    const { repoName, portalNome, layout, colors, fonts, footer, ticker, canais, empresas } = await req.json() as {
       repoName?: string;
       portalNome: string;
       layout?: string;
@@ -224,6 +232,7 @@ Deno.serve(async (req) => {
       footer?: FooterCfg | null;
       ticker?: TickerCfg | null;
       canais?: CanalCfg[];
+      empresas?: EmpresaCfg[];
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -278,6 +287,7 @@ Deno.serve(async (req) => {
       footer: footer ?? null,
       ticker: ticker ?? null,
       canais: canais ?? [],
+      empresas: empresas ?? [],
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
