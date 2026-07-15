@@ -202,6 +202,7 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
   const [importResult, setImportResult] = useState<{ queued: number; minutes: number } | null>(null);
 
   const isAtivo = status === 'ativo';
+  const isErro = status === 'erro';
 
   async function handleSync() {
     setSyncing(true);
@@ -238,6 +239,20 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
     }
   }
 
+  async function handleRetry() {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const res = await cvmService.syncNow(entity.id);
+      setLastSyncedAt(Date.parse(res.syncedAt));
+      setStatus('ativo');
+    } catch {
+      setSyncError('Falha ao sincronizar. Verifique o CNPJ e tente novamente.');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function handleImportDateBlur() {
     try {
       await cvmService.updateImportDate(entity.id, { importarDesde: importDate || null });
@@ -258,7 +273,18 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
   }
 
   return (
-    <div className={`cvm-entity-card${!isAtivo ? ' cvm-entity-card--paused' : ''}`}>
+    <div className={`cvm-entity-card${isErro ? ' cvm-entity-card--error' : !isAtivo ? ' cvm-entity-card--paused' : ''}`}>
+      {isErro && (
+        <div className="cvm-entity-error-banner">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r=".5" fill="currentColor" />
+          </svg>
+          Falha na última varredura — CNPJ não encontrado ou API da CVM indisponível.
+          <button type="button" className="cvm-entity-error-retry" onClick={handleRetry} disabled={syncing}>
+            {syncing ? 'Tentando…' : 'Tentar novamente'}
+          </button>
+        </div>
+      )}
       <div className="cvm-entity-card__header">
         <div>
           <h3 className="cvm-entity-card__name">{entity.nome}</h3>
@@ -271,12 +297,13 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
             type="button"
             className={`cvm-toggle${isAtivo ? ' cvm-toggle--on' : ''}`}
             onClick={toggleStatus}
-            title={isAtivo ? 'Pausar importação' : 'Ativar importação'}
+            title={isAtivo ? 'Pausar importação' : isErro ? 'Reativar importação' : 'Ativar importação'}
+            disabled={isErro}
           >
             <span className="cvm-toggle__track">
               <span className="cvm-toggle__thumb" />
             </span>
-            <span className="cvm-toggle__label">{isAtivo ? 'Ativo' : 'Pausado'}</span>
+            <span className="cvm-toggle__label">{isErro ? 'Erro' : isAtivo ? 'Ativo' : 'Pausado'}</span>
           </button>
           <button
             className="cvm-delete-btn"
@@ -338,7 +365,9 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
 
       <div className="cvm-entity-card__footer">
         <span className="cvm-entity-card__sync-info">
-          {isAtivo ? (
+          {isErro ? (
+            <span className="cvm-entity-card__sync-info--error">Varredura com erro — use "Tentar novamente" acima</span>
+          ) : isAtivo ? (
             <>
               varredura automática a cada <strong>5 min</strong>
               {entity.ultimaSync && (
@@ -355,8 +384,8 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
             className="btn-outline-sm"
             type="button"
             onClick={handleSync}
-            disabled={syncing || !isAtivo}
-            title="Forçar varredura imediata na base da CVM"
+            disabled={syncing || !isAtivo || isErro}
+            title={isErro ? 'Resolva o erro antes de sincronizar' : 'Forçar varredura imediata na base da CVM'}
           >
             {syncing
               ? <><span className="cvm-spin" />Sincronizando…</>
@@ -373,8 +402,8 @@ function EntityCard({ entity, onDeleted }: { entity: CvmEntity; onDeleted: (id: 
             className="btn-outline-sm"
             type="button"
             onClick={handleImport}
-            disabled={importing || !isAtivo || !importDate}
-            title={!importDate ? 'Selecione uma data de início para importar' : 'Importar todos os documentos desde a data informada'}
+            disabled={importing || !isAtivo || !importDate || isErro}
+            title={isErro ? 'Resolva o erro antes de importar' : !importDate ? 'Selecione uma data de início para importar' : 'Importar todos os documentos desde a data informada'}
           >
             {importing
               ? <><span className="cvm-spin" />Importando…</>
