@@ -28,6 +28,8 @@ const STATUS_LABEL: Record<EventStatus, string> = { publicado: 'Publicado', rasc
 const STATUS_BADGE: Record<EventStatus, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
 const STATUS_STRIPE: Record<EventStatus, string> = { publicado: 'var(--color-success-500)', rascunho: 'var(--color-gray-300)', agendado: 'var(--color-warning-500)' };
 
+const CAL_KEY = 'portal_calendario';
+
 const INITIAL: CalEvent[] = [
   // upcoming
   { id: 'e1', titulo: 'Divulgação de resultados do 2T26', data: '2026-08-04', hora: '08:00', local: 'São Paulo (remoto)', tipo: 'Divulgação de Resultados', status: 'publicado', exibirHome: true },
@@ -74,7 +76,9 @@ const CAL_FILTERS = [
 
 export default function CalendarioPage() {
   const portalName = usePortalName();
-  const [events, setEvents] = useState<CalEvent[]>(INITIAL);
+  const [events, setEvents] = useState<CalEvent[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CAL_KEY) ?? 'null') ?? INITIAL; } catch { return INITIAL; }
+  });
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [modalOpen, setModalOpen] = useState(false);
@@ -111,24 +115,29 @@ export default function CalendarioPage() {
     setModalOpen(true);
   }
 
+  function persist(next: CalEvent[]) {
+    setEvents(next);
+    localStorage.setItem(CAL_KEY, JSON.stringify(next));
+  }
+
   function handleSave() {
     if (!form.titulo.trim() || !form.data) return;
     if (editingId) {
-      setEvents(prev => prev.map(e => e.id === editingId ? { ...e, ...form } : e));
+      persist(events.map(e => e.id === editingId ? { ...e, ...form } : e));
     } else {
-      setEvents(prev => [...prev, { id: Math.random().toString(36).slice(2), ...form }]);
+      persist([...events, { id: Math.random().toString(36).slice(2), ...form }]);
     }
     setModalOpen(false);
   }
 
   function confirmDelete() {
     if (!deleteId) return;
-    setEvents(prev => prev.filter(e => e.id !== deleteId));
+    persist(events.filter(e => e.id !== deleteId));
     setDeleteId(null);
   }
 
   function toggleHome(id: string) {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, exibirHome: !e.exibirHome } : e));
+    persist(events.map(e => e.id === id ? { ...e, exibirHome: !e.exibirHome } : e));
   }
 
   const patch = (k: keyof typeof form, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));

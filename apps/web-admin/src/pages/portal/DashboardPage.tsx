@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PORTAL_LAYOUT_KEY } from '../../components/ClientLayout';
@@ -12,12 +13,16 @@ const ACCOUNT_MANAGER = {
   avatar: 'LC',
 };
 
-const STATS = [
-  { label: 'Visitantes (30d)', value: '—', delta: 'Em breve', up: false },
-  { label: 'Documentos publicados', value: '0', delta: '', up: false },
-  { label: 'Matérias ativas', value: '0', delta: '', up: false },
-  { label: 'Interações pendentes', value: '0', delta: '', up: false },
-];
+function readCount(key: string): number {
+  try { return (JSON.parse(localStorage.getItem(key) ?? '[]') as unknown[]).length; } catch { return 0; }
+}
+
+function readFilteredCount(key: string, pred: (item: Record<string, unknown>) => boolean): number {
+  try {
+    const arr = JSON.parse(localStorage.getItem(key) ?? '[]') as Record<string, unknown>[];
+    return arr.filter(pred).length;
+  } catch { return 0; }
+}
 
 const QUICK_LINKS = [
   { to: '/portal/central-de-resultados', label: 'Resultados', icon: (
@@ -86,6 +91,18 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] ?? 'bem-vindo';
   const { url: portalUrl, sites: portalSites } = getPortalInfo(user?.activePortalId);
 
+  const stats = useMemo(() => {
+    const docCount = readCount('portal_documentos');
+    const materiaCount = readFilteredCount('portal_materias', i => i.status === 'publicado');
+    const interCount = readFilteredCount('portal_interacoes', i => i.status === 'novo');
+    return [
+      { label: 'Visitantes (30d)', value: '—', delta: 'Em breve', up: false },
+      { label: 'Documentos publicados', value: String(docCount), delta: '', up: false },
+      { label: 'Matérias ativas', value: String(materiaCount), delta: '', up: false },
+      { label: 'Interações pendentes', value: String(interCount), delta: interCount > 0 ? 'Aguardando resposta' : '', up: false },
+    ];
+  }, []);
+
   return (
     <div className="page dash-page">
       {/* Welcome header */}
@@ -109,7 +126,7 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="dash-stats">
-        {STATS.map(s => (
+        {stats.map(s => (
           <div key={s.label} className="dash-stat-card">
             <span className="dash-stat-card__value">{s.value}</span>
             <span className="dash-stat-card__label">{s.label}</span>
