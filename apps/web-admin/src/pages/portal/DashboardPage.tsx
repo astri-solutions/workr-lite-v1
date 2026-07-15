@@ -48,9 +48,24 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   channel: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>list</span>,
 };
 
+function getPortalUrl(activePortalId?: string): string | undefined {
+  try {
+    const raw = localStorage.getItem('workr_portais');
+    const portals: Array<{ id: string; vercelUrl?: string; sites?: Array<{ link?: string }> }> = raw ? JSON.parse(raw) : [];
+    const portal = portals.find(p => p.id === activePortalId) ?? portals[0];
+    if (!portal) return undefined;
+    if (portal.vercelUrl) return portal.vercelUrl;
+    const link = portal.sites?.[0]?.link;
+    return link ? `https://${link}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] ?? 'bem-vindo';
+  const portalUrl = getPortalUrl(user?.activePortalId);
 
   return (
     <div className="page dash-page">
@@ -60,10 +75,17 @@ export default function DashboardPage() {
           <h1 className="dash-welcome__title">Olá, {firstName} 👋</h1>
           <p className="dash-welcome__sub">Aqui está um resumo do seu portal de Relações com Investidores.</p>
         </div>
-        <a href="#" className="btn-primary dash-visit-btn" target="_blank" rel="noreferrer">
-          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>
-          Ver portal
-        </a>
+        {portalUrl ? (
+          <a href={portalUrl} className="btn-primary dash-visit-btn" target="_blank" rel="noreferrer">
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>
+            Ver portal
+          </a>
+        ) : (
+          <span className="btn-primary dash-visit-btn dash-visit-btn--disabled" aria-disabled="true">
+            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>
+            Ver portal
+          </span>
+        )}
       </div>
 
       {/* Stat cards */}

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { CANAIS_KEY } from '../../components/ChannelEditor';
+import { useAuth } from '../../contexts/AuthContext';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
 import './AdminPages.css';
 import './NovoPortalPage.css';
@@ -1116,6 +1117,7 @@ export default function NovoPortalPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as { empresaNome?: string; portalId?: string } | null;
+  const { enterPortal } = useAuth();
   const isAddingSite = !!locationState?.empresaNome;
 
   const [step, setStep] = useState(1);
@@ -1259,6 +1261,9 @@ export default function NovoPortalPage() {
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
+
+          // Set the newly created portal as the active portal
+          enterPortal(newPortal.id, form.nome);
 
           // Inicializa a árvore de canais do portal no localStorage (per-portal key)
           if (form.canais && form.canais.length > 0) {

@@ -144,7 +144,7 @@ export default function SetPasswordPage() {
                 <div className="rec-pass-wrap">
                   <input
                     id="confirm-pass"
-                    className="login-input"
+                    className={`login-input${confirmPass.length > 0 && confirmPass !== newPass ? ' login-input--error' : ''}`}
                     type={showConfirm ? 'text' : 'password'}
                     placeholder="Repita a senha"
                     value={confirmPass}
@@ -157,6 +157,9 @@ export default function SetPasswordPage() {
                     }
                   </button>
                 </div>
+                {confirmPass.length > 0 && confirmPass !== newPass && (
+                  <p className="sp-inline-error">As senhas não coincidem.</p>
+                )}
               </div>
 
               <button className="login-btn" type="submit" disabled={!newPass || !confirmPass || submitting}>

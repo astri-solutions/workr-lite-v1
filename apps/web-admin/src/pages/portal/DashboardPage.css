@@ -31,6 +31,15 @@
 .dash-visit-btn {
   text-decoration: none;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-visit-btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ── Stat cards ───────────────────────────────────── */
