@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
@@ -9,6 +9,7 @@ import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useAuth } from '../../contexts/AuthContext';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -18,7 +19,7 @@ interface Entity {
   tipo: 'EMPRESA' | 'FUNDO';
 }
 
-const ENTITIES: Entity[] = [];
+// Loaded dynamically from localStorage in the component
 
 type DocStatus = 'Publicado' | 'Rascunho';
 
@@ -79,7 +80,22 @@ function emptyDocForm(entityId = ''): DocForm {
 
 export default function DocumentosPage() {
   const portalName = usePortalName();
-  const [activeEntity, setActiveEntity] = useState(ENTITIES[0]?.id ?? '');
+  const { user } = useAuth();
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [activeEntity, setActiveEntity] = useState('');
+  useEffect(() => {
+    const portalId = user?.activePortalId;
+    if (!portalId) return;
+    try {
+      const raw = localStorage.getItem(`portal_empresas_${portalId}`);
+      const loaded: Entity[] = raw ? JSON.parse(raw) : [];
+      setEntities(loaded);
+      if (loaded.length > 0) setActiveEntity(loaded[0].id);
+    } catch {
+      setEntities([]);
+    }
+  }, [user?.activePortalId]);
+
   const [search, setSearch] = useState('');
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -219,10 +235,10 @@ export default function DocumentosPage() {
       />
 
       {/* Entity tabmenu */}
-      {ENTITIES.length > 1 && (
+      {entities.length > 1 && (
         <>
           <div className="cdr-entities">
-            {ENTITIES.map(e => (
+            {entities.map(e => (
               <button
                 key={e.id}
                 type="button"
@@ -241,7 +257,7 @@ export default function DocumentosPage() {
                 value={activeEntity}
                 onChange={ev => { setActiveEntity(ev.target.value); setSelected(new Set()); }}
               >
-                {ENTITIES.map(e => (
+                {entities.map(e => (
                   <option key={e.id} value={e.id}>{e.name} — {e.tipo}</option>
                 ))}
               </select>
@@ -479,7 +495,7 @@ export default function DocumentosPage() {
         <div className="doc-modal-body">
           {/* Active entity badge */}
           {(() => {
-            const ent = ENTITIES.find(e => e.id === (form.entityId || activeEntity));
+            const ent = entities.find(e => e.id === (form.entityId || activeEntity));
             return ent ? (
               <div className="doc-entity-badge">
                 <span className="doc-entity-badge__tipo">{ent.tipo}</span>

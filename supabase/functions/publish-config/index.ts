@@ -1,9 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://workr-lite-v1.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
+function corsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  };
+}
 
 interface Colors { primary: string; secondary: string; tertiary: string; }
 interface Fonts { display: string; body: string; }
@@ -62,6 +72,8 @@ function buildNavSection(canais: CanalCfg[]): string {
   return `  nav: [\n${items},\n  ],`;
 }
 
+// ── Unified site.config.js builder (shared schema with provision-portal) ──────
+// ticker uses singular object with `type` + `items[]` — matches provision-portal schema.
 function buildSiteConfig(opts: {
   nome: string;
   layout: string;
@@ -70,13 +82,18 @@ function buildSiteConfig(opts: {
   ticker: TickerCfg | null;
   footer: FooterCfg | null;
   canais?: CanalCfg[];
+  logoExt?: string;
+  faviconExt?: string;
 }) {
   const year = new Date().getFullYear();
 
-  // Tickers
-  const tickers = opts.ticker?.items?.length
-    ? opts.ticker.items.map(t => `    { symbol: ${JSON.stringify(t.symbol)}, price: ${JSON.stringify(t.price)}, change: ${JSON.stringify(t.change)}, direction: ${JSON.stringify(t.direction)} }`).join(',\n')
-    : `    { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' }`;
+  const tickerType = opts.ticker?.type ?? 'static';
+  const tickerIframe = JSON.stringify(opts.ticker?.iframeUrl ?? '');
+  const tickerItems = opts.ticker?.items?.length
+    ? opts.ticker.items.map(t =>
+        `      { symbol: ${JSON.stringify(t.symbol)}, price: ${JSON.stringify(t.price)}, change: ${JSON.stringify(t.change)}, direction: ${JSON.stringify(t.direction)} }`
+      ).join(',\n')
+    : `      { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' }`;
 
   const f = opts.footer;
   const address   = JSON.stringify(f?.address ?? '');
@@ -112,10 +129,10 @@ export const siteConfig = {
     name:        ${JSON.stringify(opts.nome)},
     nameShort:   ${JSON.stringify(opts.nome)},
     description: 'Relações com Investidores — ${opts.nome}.',
-    logoOriginal: '/assets/logotipo/logotipo-original.svg',
-    logoNegative: '/assets/logotipo/logotipo-negative.svg',
-    logoContrast: '/assets/logotipo/logotipo-negative.svg',
-    favicon:      '/favicon.svg',
+    logoOriginal: '/assets/logotipo/logotipo-original.${opts.logoExt ?? 'svg'}',
+    logoNegative: '/assets/logotipo/logotipo-negative.${opts.logoExt ?? 'svg'}',
+    logoContrast: '/assets/logotipo/logotipo-negative.${opts.logoExt ?? 'svg'}',
+    favicon:      '/favicon.${opts.faviconExt ?? 'svg'}',
   },
 
   colors: {
@@ -129,9 +146,13 @@ export const siteConfig = {
     body:    ${JSON.stringify(opts.fonts.body)},
   },
 
-  tickers: [
-${tickers}
-  ],
+  ticker: {
+    type:      ${JSON.stringify(tickerType)},
+    iframeUrl: ${tickerIframe},
+    items: [
+${tickerItems}
+    ],
+  },
 
 ${buildNavSection(opts.canais ?? [])}
 
@@ -158,20 +179,24 @@ ${legalLinks}
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const ch = corsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: ch });
   }
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      supabaseUrl,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
@@ -179,14 +204,14 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
     const role = user.app_metadata?.role as string | undefined;
     if (role !== 'super_admin' && role !== 'client_user') {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
@@ -202,18 +227,46 @@ Deno.serve(async (req) => {
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
-    const githubOrg = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
+    const githubOrg   = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
 
     if (!githubToken) {
       return new Response(JSON.stringify({ error: 'GITHUB_TOKEN secret not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
     if (!repoName) {
       return new Response(JSON.stringify({ error: 'repoName is required — portal has no linked GitHub repository' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
       });
+    }
+
+    // ── Tenant verification: ensure this repo belongs to the requesting user ──
+    // super_admin can publish to any portal; client_user must own the portal.
+    if (role === 'client_user') {
+      const adminClient = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const { data: portalRow } = await adminClient
+        .from('portals')
+        .select('id')
+        .eq('github_repo', repoName)
+        .single();
+
+      if (!portalRow) {
+        return new Response(JSON.stringify({ error: 'Forbidden: repository does not belong to your portal' }), {
+          status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Verify the user is actually linked to this portal via app_metadata
+      const userPortalIds: string[] = user.app_metadata?.portalIds ?? [];
+      if (!userPortalIds.includes(portalRow.id)) {
+        return new Response(JSON.stringify({ error: 'Forbidden: not your portal' }), {
+          status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const filePath = 'scripts/site.config.js';
@@ -228,15 +281,16 @@ Deno.serve(async (req) => {
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
+    const ghHeaders = {
+      'Authorization': `Bearer ${githubToken}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json',
+    };
+
     const getRes = await fetch(
       `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${filePath}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${githubToken}`,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-      }
+      { headers: ghHeaders }
     );
 
     let sha: string | undefined;
@@ -249,12 +303,7 @@ Deno.serve(async (req) => {
       `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${filePath}`,
       {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${githubToken}`,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type': 'application/json',
-        },
+        headers: ghHeaders,
         body: JSON.stringify({
           message: `chore: update site.config.js via CMS [${portalNome}]`,
           content: encoded,
@@ -265,17 +314,18 @@ Deno.serve(async (req) => {
 
     if (!putRes.ok) {
       const putBody = await putRes.json().catch(() => ({}));
-      return new Response(JSON.stringify({ error: `GitHub: ${putBody.message ?? putRes.statusText}` }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ error: `GitHub: ${(putBody as { message?: string }).message ?? putRes.statusText}` }), {
+        status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
     return new Response(JSON.stringify({ ok: true }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
   } catch (e) {
+    const ch2 = corsHeaders(req.headers.get('Origin'));
     return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...ch2, 'Content-Type': 'application/json' },
     });
   }
 });

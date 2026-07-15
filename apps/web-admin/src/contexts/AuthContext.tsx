@@ -26,15 +26,6 @@ interface AuthContextValue {
   enterPortal: (id: string, nome: string) => void;
 }
 
-// ── Fallback para desenvolvimento sem Supabase ────────────────────────────────
-const DEMO_CREDENTIALS: Array<{ email: string; password: string; user: User }> = [
-  {
-    email: 'projetos@astri.solutions',
-    password: 'workr2025',
-    user: { email: 'projetos@astri.solutions', name: 'Astri Projetos', role: 'super_admin' },
-  },
-];
-
 const STORAGE_KEY = 'workr_auth';
 const SESSION_VERSION = 2; // bump to invalidate all existing sessions
 
@@ -95,20 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string): Promise<boolean> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error || !data.user) return false;
-      const u = supabaseUserToUser(data.user);
-      setUser(u);
-      persist(u);
-      return true;
-    }
-
-    // Fallback demo
-    const match = DEMO_CREDENTIALS.find(c => c.email === email && c.password === password);
-    if (!match) return false;
-    setUser(match.user);
-    persist(match.user);
+    if (!isSupabaseConfigured || !supabase) return false;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return false;
+    const u = supabaseUserToUser(data.user);
+    setUser(u);
+    persist(u);
     return true;
   }
 

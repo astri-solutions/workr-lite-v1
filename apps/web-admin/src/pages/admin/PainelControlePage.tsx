@@ -3,6 +3,7 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AdminOutletContext } from '../../components/AdminLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { loadPortalSiteAsync } from '../../utils/loadPortalSite';
+import { deletePortal } from '../../lib/portalsApi';
 import './AdminPages.css';
 import './PainelControlePage.css';
 
@@ -136,11 +137,15 @@ export default function PainelControlePage() {
         }
       }
 
-      // Remove portal from localStorage
+      // Remove portal from Supabase and localStorage
+      await deletePortal(site.portalId).catch(() => {
+        const raw = localStorage.getItem('workr_portais');
+        const portals: Array<{ id: string }> = raw ? JSON.parse(raw) : [];
+        localStorage.setItem('workr_portais', JSON.stringify(portals.filter(p => p.id !== site.portalId)));
+      });
       const raw = localStorage.getItem('workr_portais');
       const portals: Array<{ id: string }> = raw ? JSON.parse(raw) : [];
-      const updated = portals.filter(p => p.id !== site.portalId);
-      localStorage.setItem('workr_portais', JSON.stringify(updated));
+      localStorage.setItem('workr_portais', JSON.stringify(portals.filter(p => p.id !== site.portalId)));
 
       navigate('/admin/portais');
     } catch (e) {

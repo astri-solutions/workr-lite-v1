@@ -1,9 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = [
+  'https://workr-lite-v1.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
+function corsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  };
+}
 
 interface Colors { primary: string; secondary: string; tertiary: string; }
 interface Fonts  { display: string; body: string; }
@@ -184,8 +194,11 @@ function sleep(ms: number) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const ch = corsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: ch });
   }
 
   try {
@@ -193,7 +206,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
@@ -206,14 +219,14 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
     const role = user.app_metadata?.role as string | undefined;
     if (role !== 'super_admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
@@ -240,7 +253,7 @@ Deno.serve(async (req) => {
 
     if (!githubToken) {
       return new Response(JSON.stringify({ error: 'GITHUB_TOKEN secret not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
@@ -252,7 +265,7 @@ Deno.serve(async (req) => {
         owner: githubOrg,
         name: repoName,
         description: `Portal RI — ${nome}`,
-        private: false,
+        private: true,
         include_all_branches: false,
       }),
     }));
@@ -369,12 +382,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
 
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
     });
   }
 });

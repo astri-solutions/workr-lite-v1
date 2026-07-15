@@ -593,6 +593,21 @@ function StepFonte({
   );
 }
 
+/* ─── ColorField ─────────────────────────────────────────────────────── */
+function ColorField({ label, value, onChange, hint, required }: {
+  label: string; value: string; onChange: (v: string) => void; hint: string; required?: boolean;
+}) {
+  return (
+    <div className="np-color-item">
+      <label className="np-color-item__label">
+        {label}{required && <span className="np-label__required"> *</span>}
+      </label>
+      <p className="np-color-item__hint">{hint}</p>
+      <ColorPickerPopover value={value} onChange={onChange} />
+    </div>
+  );
+}
+
 /* ─── Step: Cores ─────────────────────────────────────────────────────── */
 function StepCores({
   primaria, secundaria, terciaria,
@@ -601,20 +616,6 @@ function StepCores({
   primaria: string; secundaria: string; terciaria: string;
   onPrimaria: (v: string) => void; onSecundaria: (v: string) => void; onTerciaria: (v: string) => void;
 }) {
-  function ColorField({ label, value, onChange, hint, required }: {
-    label: string; value: string; onChange: (v: string) => void; hint: string; required?: boolean;
-  }) {
-    return (
-      <div className="np-color-item">
-        <label className="np-color-item__label">
-          {label}{required && <span className="np-label__required"> *</span>}
-        </label>
-        <p className="np-color-item__hint">{hint}</p>
-        <ColorPickerPopover value={value} onChange={onChange} />
-      </div>
-    );
-  }
-
   return (
     <div className="np-step">
       <div className="np-step__head">
@@ -1276,7 +1277,6 @@ export default function NovoPortalPage() {
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
-          savePortal(newPortal).catch(() => {/* fire-and-forget */});
 
           // Set the newly created portal as the active portal
           enterPortal(newPortal.id, form.nome);
@@ -1381,7 +1381,7 @@ export default function NovoPortalPage() {
                     portais[idx].githubRepo = provData.repoName;
                     portais[idx].vercelUrl = provData.vercelUrl;
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
-                    savePortal(portais[idx]).catch(() => {/* fire-and-forget */});
+                    savePortal(portais[idx]).catch(console.error);
                   }
                   if (!provData.vercelCreated) {
                     warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
