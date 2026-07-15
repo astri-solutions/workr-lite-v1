@@ -179,3 +179,56 @@
 .db-empty { text-align: center; padding: var(--space-8) !important; color: var(--color-gray-400); }
 
 .db-btn--loading { opacity: 0.7; cursor: not-allowed; }
+
+.db-loading { padding: var(--space-6) var(--space-4); text-align: center; color: var(--color-gray-400); font-size: 0.875rem; }
+.db-error { padding: var(--space-4); color: var(--color-error-500); font-size: 0.875rem; }
+
+.db-path-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--color-gray-500);
+  flex-wrap: wrap;
+}
+
+.db-path-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-family: var(--font-body);
+  color: var(--color-teal);
+  border-radius: 3px;
+}
+
+.db-path-btn:hover { background: var(--color-gray-100); }
+
+.db-path-sep-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-gray-300);
+}
+
+.db-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  color: var(--color-teal);
+  text-align: left;
+}
+
+.db-link-btn:hover { text-decoration: underline; }
+
+.db-header__actions a.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+}

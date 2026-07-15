@@ -3,15 +3,9 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import type { AdminOutletContext } from '../../components/AdminLayout';
+import { loadPortalSite } from '../../utils/loadPortalSite';
 import './AdminPages.css';
 import './DominiosPage.css';
-
-const SITES_DB: Record<string, { cliente: string; domain: string }> = {
-  s1: { cliente: 'Construtora Aurora', domain: 'aurora.workr.com.br' },
-  s2: { cliente: 'International Meal Company', domain: 'imc.workr.com.br' },
-  s3: { cliente: 'International Meal Company', domain: 'imc-en.workr.com.br' },
-  s4: { cliente: 'Vetra Energia', domain: 'vetra.workr.com.br' },
-};
 
 interface Subdomain {
   id: string;
@@ -42,7 +36,8 @@ export default function DominiosPage() {
   const navigate = useNavigate();
   const { setPortalCtx } = useOutletContext<AdminOutletContext>();
 
-  const site = siteId ? SITES_DB[siteId] : undefined;
+  const portalSite = loadPortalSite(siteId ?? '');
+  const site = portalSite ? { cliente: portalSite.cliente, domain: portalSite.link } : undefined;
 
   useEffect(() => {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
@@ -55,26 +50,19 @@ export default function DominiosPage() {
   const [subInput, setSubInput] = useState('');
   const [subFolder, setSubFolder] = useState(false);
   const [subFolderPath, setSubFolderPath] = useState('');
-  const [subdomains, setSubdomains] = useState<Subdomain[]>([
-    { id: '1', sub: 'blog', domain: site?.domain ?? '', folder: '/blog', criadoEm: '2026-03-10' },
-    { id: '2', sub: 'api', domain: site?.domain ?? '', folder: '/api', criadoEm: '2026-04-01' },
-  ]);
+  const [subdomains, setSubdomains] = useState<Subdomain[]>([]);
   const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
 
   // Parked domains form
   const [parkedInput, setParkedInput] = useState('');
-  const [parked, setParked] = useState<Parked[]>([
-    { id: '1', domain: 'aurora-ri.com.br', criadoEm: '2026-02-15' },
-  ]);
+  const [parked, setParked] = useState<Parked[]>([]);
   const [deleteParkedId, setDeleteParkedId] = useState<string | null>(null);
 
   // Redirects form
   const [redFrom, setRedFrom] = useState('');
   const [redTo, setRedTo] = useState('');
   const [redType, setRedType] = useState<'301' | '302'>('301');
-  const [redirects, setRedirects] = useState<Redirect[]>([
-    { id: '1', from: 'www.' + (site?.domain ?? ''), to: site?.domain ?? '', type: '301', criadoEm: '2026-01-20' },
-  ]);
+  const [redirects, setRedirects] = useState<Redirect[]>([]);
   const [deleteRedId, setDeleteRedId] = useState<string | null>(null);
 
   const { sorted: sortedSubs, col: subCol, dir: subDir, toggle: toggleSub } = useSort(subdomains);

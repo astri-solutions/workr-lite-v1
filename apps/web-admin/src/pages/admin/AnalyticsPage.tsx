@@ -1,21 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AdminOutletContext } from '../../components/AdminLayout';
+import { loadPortalSite } from '../../utils/loadPortalSite';
 import './AdminPages.css';
 import './AnalyticsPage.css';
-
-interface SiteData {
-  id: string;
-  link: string;
-  cliente: string;
-}
-
-const SITES_DB: SiteData[] = [
-  { id: 's1', link: 'aurora.workr.com.br',   cliente: 'Construtora Aurora' },
-  { id: 's2', link: 'imc.workr.com.br',      cliente: 'International Meal Company' },
-  { id: 's3', link: 'imc-en.workr.com.br',   cliente: 'International Meal Company' },
-  { id: 's4', link: 'vetra.workr.com.br',     cliente: 'Vetra Energia' },
-];
 
 type Period = '1h' | '6h' | '24h' | '7d';
 type MainTab = 'paises' | 'ips' | 'solicitacoes' | 'dominios';
@@ -265,15 +253,17 @@ export default function AnalyticsPage() {
   const [pageTab, setPageTab] = useState<PageTab>('analytics');
   const [mainTab, setMainTab] = useState<MainTab>('paises');
 
-  const site = SITES_DB.find((s) => s.id === siteId);
-  const analytics = siteId ? ANALYTICS_DB[siteId] : undefined;
+  const portalSite = loadPortalSite(siteId ?? '');
+  const site = portalSite ? { id: portalSite.siteId, link: portalSite.link, cliente: portalSite.cliente } : undefined;
+  // Analytics data is illustrative — real data will come from Vercel Analytics API in a future integration
+  const analytics = ANALYTICS_DB['s1'];
 
   useEffect(() => {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
     return () => setPortalCtx(null);
   }, [site?.id]);
 
-  if (!site || !analytics) {
+  if (!site) {
     return (
       <div className="page">
         <div className="page-placeholder">

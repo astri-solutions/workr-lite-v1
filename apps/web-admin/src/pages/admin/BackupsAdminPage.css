@@ -151,6 +151,14 @@
 
 .bkp-btn--loading { opacity: 0.7; cursor: not-allowed; }
 
+.bkp-loading { padding: var(--space-6) var(--space-4); text-align: center; color: var(--color-gray-400); font-size: 0.875rem; }
+.bkp-error { padding: var(--space-4); color: var(--color-error-500); font-size: 0.875rem; }
+.bkp-card__desc { font-size: 0.75rem; color: var(--color-gray-400); margin-top: 2px; }
+.bkp-cell-message { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-gray-700); font-size: 0.8125rem; }
+.bkp-sha { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8125rem; color: var(--color-teal); text-decoration: none; }
+.bkp-sha:hover { text-decoration: underline; }
+.bkp-gh-link { display: inline-flex; align-items: center; gap: var(--space-2); text-decoration: none; }
+
 .painel-spin--sm {
   display: inline-block;
   width: 11px;
