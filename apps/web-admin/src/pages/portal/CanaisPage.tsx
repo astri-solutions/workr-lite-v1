@@ -16,11 +16,17 @@ function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-// ── Portal empresas (mock — real app loads from context/API) ────────────────
-// These are the active empresas for this portal instance.
-// Used to drive the Lista Agrupada flow.
-const PORTAL_EMPRESAS: { id: string; label: string }[] = [];
-const HAS_MULTIPLE_EMPRESAS = PORTAL_EMPRESAS.length > 1;
+// ── Portal empresas ──────────────────────────────────────────────────────────
+type PortalEmpresa = { id: string; label: string };
+
+function loadPortalEmpresas(portalId?: string): PortalEmpresa[] {
+  try {
+    const raw = localStorage.getItem(`portal_empresas_${portalId ?? 'default'}`);
+    if (!raw) return [];
+    const items: Array<{ id: string; nome?: string; label?: string }> = JSON.parse(raw);
+    return items.map(e => ({ id: e.id, label: e.nome ?? e.label ?? e.id }));
+  } catch { return []; }
+}
 
 // ── Page type definitions ───────────────────────────────────────────────────
 const PAGE_TYPES: Array<{
@@ -63,9 +69,7 @@ const PAGE_TYPES: Array<{
   {
     id: 'lista-agrupada', label: 'Lista Agrupada', icon: 'folder_open',
     desc: 'Documentos organizados por seção ou accordion.',
-    flow: HAS_MULTIPLE_EMPRESAS
-      ? 'Documentos agrupados por empresa — cada empresa exibe sua própria lista.'
-      : 'Documentos organizados em categorias definidas por você.',
+    flow: 'Documentos organizados em categorias ou agrupados por empresa.',
     thumb: (
       <svg width="100%" height="48" viewBox="0 0 160 48" fill="none">
         <rect x="2" y="2" width="156" height="12" rx="2" fill="#e8edf2" stroke="#c8d2db" strokeWidth="1"/>
@@ -174,7 +178,8 @@ interface NewSubForm {
   linkedMateriaIds: string[];
 }
 
-function emptyNewSubForm(canalId: string, parentSubId: string | null = null, canalHasHeaderImage = false): NewSubForm {
+function emptyNewSubForm(canalId: string, parentSubId: string | null = null, canalHasHeaderImage = false, empresas: PortalEmpresa[] = []): NewSubForm {
+  const hasMultiple = empresas.length > 1;
   return {
     step: 1,
     canalId,
@@ -187,12 +192,12 @@ function emptyNewSubForm(canalId: string, parentSubId: string | null = null, can
     hasChildren: false,
     pageType: 'show', isExternalLink: false, externalUrl: '',
     draft: false, laStyle: 'accordion',
-    laByEmpresa: HAS_MULTIPLE_EMPRESAS,
-    laSelectedEmpresas: PORTAL_EMPRESAS.map(e => e.id),
-    laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laByEmpresa: hasMultiple,
+    laSelectedEmpresas: empresas.map(e => e.id),
+    laFiltroEmpresa: hasMultiple,
     laCategories: [], laCatInput: '',
     laEmpresaCategories: {}, laEmpresaCatInputs: {},
-    laActiveEmpresa: PORTAL_EMPRESAS[0]?.id ?? '',
+    laActiveEmpresa: empresas[0]?.id ?? '',
     linkedMateriaIds: [],
   };
 }
@@ -259,7 +264,8 @@ interface NewCanalForm {
   linkedMateriaIds: string[];
 }
 
-function emptyNewCanalForm(): NewCanalForm {
+function emptyNewCanalForm(empresas: PortalEmpresa[] = []): NewCanalForm {
+  const hasMultiple = empresas.length > 1;
   return {
     step: 1,
     titles: { [PORTAL_CONFIG.languages[0]]: '' },
@@ -273,9 +279,9 @@ function emptyNewCanalForm(): NewCanalForm {
     externalUrl: '',
     restrito: false,
     laStyle: 'accordion',
-    laByEmpresa: HAS_MULTIPLE_EMPRESAS,
-    laSelectedEmpresas: PORTAL_EMPRESAS.map(e => e.id),
-    laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laByEmpresa: hasMultiple,
+    laSelectedEmpresas: empresas.map(e => e.id),
+    laFiltroEmpresa: hasMultiple,
     laCategories: [],
     laCatInput: '',
     laEmpresaCategories: {},
@@ -305,6 +311,8 @@ export default function CanaisPage() {
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
   const cvmPageIds = loadCvmRoutedPageIds();
+  const portalEmpresas = loadPortalEmpresas(activePortalId);
+  const hasMultipleEmpresas = portalEmpresas.length > 1;
   const [canais, setCanais] = useState<Canal[]>(() => {
     try {
       const raw = localStorage.getItem(canaisKey);
@@ -326,9 +334,9 @@ export default function CanaisPage() {
   const [editModal, setEditModal] = useState<EditState | null>(null);
   const [canalEditModal, setCanalEditModal] = useState<CanalEditState | null>(null);
   const [newCanalOpen, setNewCanalOpen] = useState(false);
-  const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm());
+  const [newCanalForm, setNewCanalForm] = useState<NewCanalForm>(emptyNewCanalForm(portalEmpresas));
   const [newSubOpen, setNewSubOpen] = useState(false);
-  const [newSubForm, setNewSubForm] = useState<NewSubForm>(emptyNewSubForm(''));
+  const [newSubForm, setNewSubForm] = useState<NewSubForm>(emptyNewSubForm('', null, false, portalEmpresas));
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteState | null>(null);
   const [subConfirming, setSubConfirming] = useState(false);
 
@@ -529,7 +537,7 @@ export default function CanaisPage() {
     newSubForm.labels[PORTAL_CONFIG.languages[0]]?.trim() &&
     (newSubForm.hasChildren ||
      newSubForm.pageType !== 'lista-agrupada' ||
-     (HAS_MULTIPLE_EMPRESAS
+     (hasMultipleEmpresas
        ? newSubForm.laSelectedEmpresas.some(id => (newSubForm.laEmpresaCategories[id]?.length ?? 0) > 0)
        : newSubForm.laCategories.length > 0))
   );
@@ -598,14 +606,14 @@ export default function CanaisPage() {
 
   // ── Sub/SubSub edit ────────────────────────────────────────────────────
   const _laDefaults = {
-    laByEmpresa: HAS_MULTIPLE_EMPRESAS,
-    laSelectedEmpresas: PORTAL_EMPRESAS.map(e => e.id),
-    laFiltroEmpresa: HAS_MULTIPLE_EMPRESAS,
+    laByEmpresa: hasMultipleEmpresas,
+    laSelectedEmpresas: portalEmpresas.map(e => e.id),
+    laFiltroEmpresa: hasMultipleEmpresas,
     laCategories: [] as string[],
     laCatInput: '',
     laEmpresaCategories: {} as Record<string, string[]>,
     laEmpresaCatInputs: {} as Record<string, string>,
-    laActiveEmpresa: PORTAL_EMPRESAS[0]?.id ?? '',
+    laActiveEmpresa: portalEmpresas[0]?.id ?? '',
   };
 
   function openEdit(cid: string, sub: SubCanal, parentSubId?: string) {
@@ -684,7 +692,7 @@ export default function CanaisPage() {
 
   const canAdvanceNewCanal = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim();
   const canCommitNewCanal = newCanalForm.tipo !== 'pagina' || newCanalForm.pageType !== 'lista-agrupada' || (
-    HAS_MULTIPLE_EMPRESAS
+    hasMultipleEmpresas
       ? (!newCanalForm.laByEmpresa ||
          newCanalForm.laSelectedEmpresas.some(id => (newCanalForm.laEmpresaCategories[id]?.length ?? 0) > 0))
       : newCanalForm.laCategories.length > 0
@@ -1269,11 +1277,11 @@ export default function CanaisPage() {
               <LangTabs active={newSubForm.locale} onChange={l => patchSub({ locale: l })} />
             )}
 
-            {!subConfirming && HAS_MULTIPLE_EMPRESAS ? (
+            {!subConfirming && hasMultipleEmpresas ? (
               <>
                 <p className="ct-la-sub-title">Selecione a empresa e defina as categorias</p>
                 <div className="ct-la-emp-boxes">
-                  {PORTAL_EMPRESAS.filter(e => newSubForm.laSelectedEmpresas.includes(e.id)).map(emp => {
+                  {portalEmpresas.filter(e => newSubForm.laSelectedEmpresas.includes(e.id)).map(emp => {
                     const cats = newSubForm.laEmpresaCategories[emp.id] ?? [];
                     const isActive = newSubForm.laActiveEmpresa === emp.id;
                     return (
@@ -1304,7 +1312,7 @@ export default function CanaisPage() {
                 {/* Active empresa category input */}
                 {(() => {
                   const empId = newSubForm.laActiveEmpresa;
-                  const emp = PORTAL_EMPRESAS.find(e => e.id === empId);
+                  const emp = portalEmpresas.find(e => e.id === empId);
                   if (!emp || !newSubForm.laSelectedEmpresas.includes(empId)) return null;
                   const cats = newSubForm.laEmpresaCategories[empId] ?? [];
                   const catInput = newSubForm.laEmpresaCatInputs[empId] ?? '';
@@ -1530,11 +1538,11 @@ export default function CanaisPage() {
                 <div className="canais-edit-divider" style={{ margin: 'var(--space-2) 0' }} />
 
                 {/* Categories */}
-                {HAS_MULTIPLE_EMPRESAS ? (
+                {hasMultipleEmpresas ? (
                   <>
                     <p className="ct-la-sub-title">Categorias por empresa</p>
                     <div className="ct-la-emp-boxes">
-                      {PORTAL_EMPRESAS.filter(e => editModal.laSelectedEmpresas.includes(e.id)).map(emp => {
+                      {portalEmpresas.filter(e => editModal.laSelectedEmpresas.includes(e.id)).map(emp => {
                         const cats = editModal.laEmpresaCategories[emp.id] ?? [];
                         const isActive = editModal.laActiveEmpresa === emp.id;
                         return (
@@ -1564,7 +1572,7 @@ export default function CanaisPage() {
 
                     {(() => {
                       const empId = editModal.laActiveEmpresa;
-                      const emp = PORTAL_EMPRESAS.find(e => e.id === empId);
+                      const emp = portalEmpresas.find(e => e.id === empId);
                       if (!emp || !editModal.laSelectedEmpresas.includes(empId)) return null;
                       const cats = editModal.laEmpresaCategories[empId] ?? [];
                       const catInput = editModal.laEmpresaCatInputs[empId] ?? '';
@@ -1866,11 +1874,11 @@ export default function CanaisPage() {
             {/* Lista Agrupada: configuração de empresas/categorias */}
             {newCanalForm.pageType === 'lista-agrupada' && (
               <div className="ct-la-flow">
-                {HAS_MULTIPLE_EMPRESAS ? (
+                {hasMultipleEmpresas ? (
                   <>
                     <div className="ct-la-flow__header">
                       <span className="material-symbols-outlined ct-la-flow__header-icon">domain</span>
-                      <span>Este portal tem <strong>{PORTAL_EMPRESAS.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
+                      <span>Este portal tem <strong>{portalEmpresas.length} empresas</strong>. A lista pode ser dividida automaticamente por empresa.</span>
                     </div>
 
                     <label className="ct-la-check ct-la-check--featured">
@@ -1886,7 +1894,7 @@ export default function CanaisPage() {
                       <>
                         <p className="ct-la-sub-title">Empresas incluídas</p>
                         <div className="ct-la-empresas">
-                          {PORTAL_EMPRESAS.map(e => (
+                          {portalEmpresas.map(e => (
                             <label key={e.id} className="ct-la-check">
                               <input type="checkbox"
                                 checked={newCanalForm.laSelectedEmpresas.includes(e.id)}
@@ -1918,7 +1926,7 @@ export default function CanaisPage() {
                               Categorias por empresa
                               <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', marginLeft: 4 }}>— ao menos 1</span>
                             </p>
-                            {PORTAL_EMPRESAS.filter(e => newCanalForm.laSelectedEmpresas.includes(e.id)).map(emp => {
+                            {portalEmpresas.filter(e => newCanalForm.laSelectedEmpresas.includes(e.id)).map(emp => {
                               const cats = newCanalForm.laEmpresaCategories[emp.id] ?? [];
                               const catInput = newCanalForm.laEmpresaCatInputs[emp.id] ?? '';
                               return (
