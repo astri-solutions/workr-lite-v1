@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -200,55 +199,6 @@ export default function PortaisPage() {
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
   const [alterarSite, setAlterarSite] = useState<Site | null>(null);
-  const [excluirPortal, setExcluirPortal] = useState<Portal | null>(null);
-  const [excluirConfirm, setExcluirConfirm] = useState('');
-  const [excluirInfra, setExcluirInfra] = useState(true);
-  const [excluirLoading, setExcluirLoading] = useState(false);
-
-  function resetExcluirModal() {
-    setExcluirPortal(null);
-    setExcluirConfirm('');
-    setExcluirInfra(true);
-  }
-
-  async function handleExcluirPortal(portal: Portal) {
-    setExcluirLoading(true);
-    try {
-      if (excluirInfra && portal.githubRepo) {
-        const vercelProjectName = portal.vercelUrl
-          ? portal.vercelUrl.replace('https://', '').replace('.vercel.app', '')
-          : undefined;
-        const token = isSupabaseConfigured && supabase
-          ? (await supabase.auth.getSession()).data.session?.access_token
-          : undefined;
-        if (!token) { setExcluirLoading(false); return; }
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              repoName: portal.githubRepo,
-              vercelProjectName,
-            }),
-          }
-        );
-      }
-    } finally {
-      setExcluirLoading(false);
-    }
-    setPortais(prev => {
-      const updated = prev.filter(p => p.id !== portal.id);
-      localStorage.setItem(PORTAIS_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-    resetExcluirModal();
-  }
-
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
   }
@@ -325,28 +275,11 @@ export default function PortaisPage() {
                   )}
                 </div>
                 <div className="portal-card__actions">
-                  {!isExpanded && (
-                    <button className="portais-btn portais-btn--add" type="button" onClick={() => navigate('/admin/portais/novo', { state: { empresaNome: portal.cliente, portalId: portal.id } })}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                      Adicionar site
-                    </button>
-                  )}
-                  <button
-                    className="portais-kebab__trigger"
-                    type="button"
-                    aria-label="Excluir portal"
-                    title="Excluir portal"
-                    onClick={() => { setExcluirPortal(portal); setExcluirConfirm(''); }}
-                    style={{ marginLeft: '4px', color: 'var(--color-danger, #d93025)' }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
-                  </button>
                   <button
                     className="portais-kebab__trigger"
                     type="button"
                     aria-label={isExpanded ? 'Recolher' : 'Expandir empresa'}
                     onClick={() => toggleExpand(portal.id)}
-                    style={{ marginLeft: '4px' }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '16px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none', display: 'inline-block' }}>
                       expand_more
@@ -376,10 +309,6 @@ export default function PortaisPage() {
                       onClick={() => toggleEmpresaStatus(portal.id)}
                     >
                       {portal.empresa.status === 'Ativa' ? 'Suspender conta' : 'Reativar conta'}
-                    </button>
-                    <button className="portais-btn portais-btn--add" type="button" onClick={() => navigate('/admin/portais/novo', { state: { empresaNome: portal.cliente, portalId: portal.id } })}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-                      Adicionar site
                     </button>
                   </div>
                 </div>
@@ -452,57 +381,6 @@ export default function PortaisPage() {
         <AlterarDominioModal onClose={() => setAlterarSite(null)} />
       )}
 
-      {excluirPortal && (
-        <Modal
-          open
-          onClose={resetExcluirModal}
-          title="Excluir portal"
-          size="sm"
-          footer={
-            <div className="modal-footer">
-              <button className="btn-outline" type="button" onClick={resetExcluirModal} disabled={excluirLoading}>
-                Cancelar
-              </button>
-              <button
-                className="btn-danger"
-                type="button"
-                disabled={excluirConfirm !== excluirPortal.cliente || excluirLoading}
-                onClick={() => handleExcluirPortal(excluirPortal)}
-              >
-                {excluirLoading ? 'Excluindo…' : 'Excluir portal'}
-              </button>
-            </div>
-          }
-        >
-          <p className="ae-confirm-text">
-            Esta ação é <strong>permanente e irreversível</strong>. Todos os sites, configurações e dados do portal <strong>{excluirPortal.cliente}</strong> serão removidos.
-          </p>
-          {excluirPortal.githubRepo && (
-            <label className="excluir-infra-check">
-              <input
-                type="checkbox"
-                checked={excluirInfra}
-                onChange={e => setExcluirInfra(e.target.checked)}
-              />
-              <span>
-                Excluir repositório <strong>{excluirPortal.githubRepo}</strong> e projeto Vercel vinculados a este portal
-              </span>
-            </label>
-          )}
-          <p className="ae-confirm-text" style={{ marginTop: '12px' }}>
-            Para confirmar, digite o nome do portal abaixo:
-          </p>
-          <input
-            className="np-input"
-            type="text"
-            placeholder={excluirPortal.cliente}
-            value={excluirConfirm}
-            onChange={(e) => setExcluirConfirm(e.target.value)}
-            style={{ marginTop: '8px', width: '100%' }}
-            autoFocus
-          />
-        </Modal>
-      )}
 
     </div>
   );
