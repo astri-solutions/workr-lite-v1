@@ -13,15 +13,24 @@ interface AcrUser {
   desde: string;
 }
 
-const INIT_USERS: AcrUser[] = [
+const DEFAULT_USERS: AcrUser[] = [
   { id: '1', nome: 'Carlos Mendes', email: 'carlos.mendes@email.com', status: 'Ativo', desde: '2026-01-15' },
   { id: '2', nome: 'Priya Sharma', email: 'priya.sharma@email.com', status: 'Ativo', desde: '2026-02-03' },
   { id: '3', nome: 'Rafael Costa', email: 'rafael.costa@email.com', status: 'Suspenso', desde: '2026-03-20' },
   { id: '4', nome: 'Lívia Torres', email: 'livia.torres@email.com', status: 'Ativo', desde: '2026-04-10' },
 ];
 
+const ACR_KEY = 'portal_acesso_area_restrita';
+
+function loadUsers(): AcrUser[] {
+  try {
+    const raw = localStorage.getItem(ACR_KEY);
+    return raw ? (JSON.parse(raw) as AcrUser[]) : DEFAULT_USERS;
+  } catch { return DEFAULT_USERS; }
+}
+
 export default function AcessoAreaRestritaPage() {
-  const [users, setUsers] = useState<AcrUser[]>(INIT_USERS);
+  const [users, setUsers] = useState<AcrUser[]>(loadUsers);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
@@ -35,14 +44,19 @@ export default function AcessoAreaRestritaPage() {
   );
   const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
+  function persist(next: AcrUser[]) {
+    setUsers(next);
+    localStorage.setItem(ACR_KEY, JSON.stringify(next));
+  }
+
   function toggleStatus(id: string) {
-    setUsers(prev => prev.map(u =>
+    persist(users.map(u =>
       u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Suspenso' : 'Ativo' } : u
     ));
   }
 
   function removeUser(id: string) {
-    setUsers(prev => prev.filter(u => u.id !== id));
+    persist(users.filter(u => u.id !== id));
     setConfirmRemoveId(null);
   }
 
@@ -53,13 +67,14 @@ export default function AcessoAreaRestritaPage() {
 
   function handleInviteClose() {
     const today = new Date().toISOString().slice(0, 10);
-    setUsers(prev => [...prev, {
+    const next = [...users, {
       id: String(Date.now()),
       nome: newNome.trim(),
       email: newEmail.trim(),
-      status: 'Ativo',
+      status: 'Ativo' as const,
       desde: today,
-    }]);
+    }];
+    persist(next);
     setNewNome('');
     setNewEmail('');
     setInviteSent(false);

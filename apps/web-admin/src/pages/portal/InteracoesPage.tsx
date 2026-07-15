@@ -21,7 +21,11 @@ interface Interacao {
   data: string;
 }
 
-const INITIAL: Interacao[] = [];
+const INT_KEY = 'portal_interacoes';
+
+function loadInteracoes(): Interacao[] {
+  try { return JSON.parse(localStorage.getItem(INT_KEY) ?? '[]') as Interacao[]; } catch { return []; }
+}
 
 const STATUS_LABEL: Record<Status, string> = { novo: 'Novo', lido: 'Lido', respondido: 'Respondido' };
 const STATUS_BADGE: Record<Status, string> = { novo: 'badge--warning', lido: 'badge--gray', respondido: 'badge--success' };
@@ -51,7 +55,7 @@ const INT_FILTERS = [
 
 export default function InteracoesPage() {
   const portalName = usePortalName();
-  const [items, setItems] = useState<Interacao[]>(INITIAL);
+  const [items, setItems] = useState<Interacao[]>(loadInteracoes);
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [selected, setSelected] = useState<Interacao | null>(null);
 
@@ -62,8 +66,13 @@ export default function InteracoesPage() {
   });
   const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
+  function persist(next: Interacao[]) {
+    setItems(next);
+    localStorage.setItem(INT_KEY, JSON.stringify(next));
+  }
+
   function markAs(id: string, status: Status) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+    persist(items.map(i => i.id === id ? { ...i, status } : i));
   }
 
   function openItem(item: Interacao) {

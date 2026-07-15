@@ -43,13 +43,31 @@ export default function AtendimentoPage() {
     e.preventDefault();
     if (!assunto || !titulo.trim() || !mensagem.trim()) return;
     setStatus('sending');
+
+    const INT_KEY = 'portal_interacoes';
+    const now = new Date();
+    const dataStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const entry = {
+      id: `at-${Date.now()}`,
+      tipo: 'fale-ri' as const,
+      nome: `[Atendimento] ${ASSUNTO_LABEL[assunto]}`,
+      email: 'interno@astri.solutions',
+      mensagem: `**${titulo.trim()}**\n\nPrioridade: ${PRIORIDADE_LABEL[prioridade]}\n\n${mensagem.trim()}`,
+      status: 'novo' as const,
+      data: dataStr,
+    };
+    try {
+      const prev = JSON.parse(localStorage.getItem(INT_KEY) ?? '[]') as object[];
+      localStorage.setItem(INT_KEY, JSON.stringify([entry, ...prev]));
+    } catch { /* ignore */ }
+
     setTimeout(() => {
       setStatus('sent');
       setAssunto('');
       setPrioridade('media');
       setTitulo('');
       setMensagem('');
-    }, 1200);
+    }, 800);
   }
 
   const canSubmit = assunto !== '' && titulo.trim().length > 0 && mensagem.trim().length > 0;
