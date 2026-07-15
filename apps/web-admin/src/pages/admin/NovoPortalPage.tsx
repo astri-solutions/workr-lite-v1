@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { savePortal } from '../../lib/portalsApi';
+import { cvmService } from '../../services/cvm.service';
 import { useAuth } from '../../contexts/AuthContext';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
 import './AdminPages.css';
@@ -1360,6 +1361,12 @@ export default function NovoPortalPage() {
               });
               localStorage.setItem('workr_usuarios', JSON.stringify(usuariosList));
             }
+          }
+
+          // Registra entidade CVM no store (mock → real backend quando Go estiver pronto)
+          if (form.autoCvm && form.cnpj) {
+            cvmService.onPortalCreated(newPortal.id, form.cnpj, form.cvmCode || '', form.nome)
+              .catch(console.error);
           }
 
           const warnings: string[] = [];
