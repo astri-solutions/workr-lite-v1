@@ -28,6 +28,8 @@ function emptyContent(): SlideContent {
 
 const primaryLang = PORTAL_CONFIG.languages[0];
 
+export const BANNER_KEY = 'portal_banner';
+
 const INITIAL_SLIDES: BannerSlide[] = [
   {
     id: 'b1',
@@ -42,9 +44,18 @@ const INITIAL_SLIDES: BannerSlide[] = [
   },
 ];
 
+function loadSlides(): BannerSlide[] {
+  try {
+    const raw = localStorage.getItem(BANNER_KEY);
+    return raw ? JSON.parse(raw) : INITIAL_SLIDES;
+  } catch {
+    return INITIAL_SLIDES;
+  }
+}
+
 export default function BannerPage() {
   const portalName = usePortalName();
-  const [slides, setSlides] = useState<BannerSlide[]>(INITIAL_SLIDES);
+  const [slides, setSlides] = useState<BannerSlide[]>(loadSlides);
   const [activeId, setActiveId] = useState('b1');
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
   const [dirty, setDirty] = useState(false);
@@ -103,10 +114,12 @@ export default function BannerPage() {
   }
 
   function handleDraft() {
+    localStorage.setItem(BANNER_KEY, JSON.stringify(slides));
     setDirty(false);
   }
 
   function handlePublish() {
+    localStorage.setItem(BANNER_KEY, JSON.stringify(slides));
     setDirty(false);
     setPublishSuccess(true);
   }
