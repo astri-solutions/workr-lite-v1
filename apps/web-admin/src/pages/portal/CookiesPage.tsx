@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './CookiesPage.css';
+
+export const COOKIES_KEY = 'portal_cookies';
 
 /* ─── Types ──────────────────────────────────────────── */
 type CkLayout  = 'left' | 'right' | 'center' | 'full';
@@ -47,6 +51,15 @@ const DEFAULT: CookieConfig = {
   customizeLabel: 'Personalizar',
   buttons: [],
 };
+
+function loadCookies(): CookieConfig {
+  try {
+    const raw = localStorage.getItem(COOKIES_KEY);
+    return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
+  } catch {
+    return DEFAULT;
+  }
+}
 
 /* ─── Layout options ─────────────────────────────────── */
 const LAYOUTS: { id: CkLayout; label: string; desc: string; thumb: React.ReactNode }[] = [
@@ -192,8 +205,12 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
 /* ─── Page ───────────────────────────────────────────── */
 export default function CookiesPage() {
   const portalName = usePortalName();
-  const [cfg, setCfg] = useState<CookieConfig>(DEFAULT);
+  const [initialCfg] = useState<CookieConfig>(loadCookies);
+  const [cfg, setCfg] = useState<CookieConfig>(initialCfg);
   const [saved, setSaved] = useState(false);
+
+  const isDirty = !saved && JSON.stringify(cfg) !== JSON.stringify(initialCfg);
+  const blocker = useUnsavedChanges(isDirty);
 
   function set<K extends keyof CookieConfig>(key: K, value: CookieConfig[K]) {
     setCfg(prev => ({ ...prev, [key]: value }));
@@ -214,6 +231,7 @@ export default function CookiesPage() {
   }
 
   function handleSave() {
+    localStorage.setItem(COOKIES_KEY, JSON.stringify(cfg));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -450,6 +468,7 @@ export default function CookiesPage() {
           <CookieMiniPreview cfg={cfg} />
         </aside>
       </div>
+      <UnsavedModal open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
     </div>
   );
 }

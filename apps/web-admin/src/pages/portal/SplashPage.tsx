@@ -2,10 +2,14 @@ import { useState, useRef } from 'react';
 import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
+
+export const SPLASH_KEY = 'portal_splash';
 
 type SplashSize = 'sm' | 'md' | 'lg';
 
@@ -96,22 +100,37 @@ function emptyBtn(): SplashBtn {
   return { label: '', url: '', variant: 'primary' };
 }
 
+const DEFAULT_SPLASH: SplashConfig = {
+  enabled: true,
+  size: 'md',
+  imageUrl: null,
+  titulo: '',
+  texto: '',
+  conteudo: '',
+  legenda: '',
+  buttons: [],
+};
+
+function loadSplash(): SplashConfig {
+  try {
+    const raw = localStorage.getItem(SPLASH_KEY);
+    return raw ? { ...DEFAULT_SPLASH, ...JSON.parse(raw) } : DEFAULT_SPLASH;
+  } catch {
+    return DEFAULT_SPLASH;
+  }
+}
+
 export default function SplashPage() {
   const portalName = usePortalName();
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [config, setConfig] = useState<SplashConfig>({
-    enabled: true,
-    size: 'md',
-    imageUrl: null,
-    titulo: '',
-    texto: '',
-    conteudo: '',
-    legenda: '',
-    buttons: [],
-  });
+  const [initialConfig] = useState<SplashConfig>(loadSplash);
+  const [config, setConfig] = useState<SplashConfig>(initialConfig);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeLang, setActiveLang] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
+
+  const isDirty = !saved && JSON.stringify(config) !== JSON.stringify(initialConfig);
+  const blocker = useUnsavedChanges(isDirty);
 
   function patch<K extends keyof SplashConfig>(key: K, val: SplashConfig[K]) {
     setConfig(c => ({ ...c, [key]: val }));
@@ -131,6 +150,7 @@ export default function SplashPage() {
   }
 
   function handleSave() {
+    localStorage.setItem(SPLASH_KEY, JSON.stringify(config));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -408,6 +428,7 @@ export default function SplashPage() {
           </div>
         </div>
       )}
+      <UnsavedModal open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
     </div>
   );
 }

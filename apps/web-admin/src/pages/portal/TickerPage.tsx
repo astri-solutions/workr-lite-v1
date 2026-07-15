@@ -41,12 +41,10 @@ function loadTicker(): TickerDraft {
 export default function TickerPage() {
   const portalName = usePortalName();
   const [saved, setSaved] = useState(false);
-  const [draft, setDraft] = useState<TickerDraft>(loadTicker);
+  const [initialDraft] = useState<TickerDraft>(loadTicker);
+  const [draft, setDraft] = useState<TickerDraft>(initialDraft);
 
-  const isDirty = !saved && (
-    draft.type !== DEFAULT.type ||
-    draft.iframeUrl !== DEFAULT.iframeUrl
-  );
+  const isDirty = !saved && JSON.stringify(draft) !== JSON.stringify(initialDraft);
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
