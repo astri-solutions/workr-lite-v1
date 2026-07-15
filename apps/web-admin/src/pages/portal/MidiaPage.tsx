@@ -5,6 +5,8 @@ import Modal from '../../components/Modal';
 import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
@@ -175,11 +177,12 @@ export default function MidiaPage() {
   const replaceTarget = files.find(f => f.id === replaceTargetId) ?? null;
   const selectedFile = files.find(f => f.id === selectedId) ?? null;
 
-  const filtered = files.filter(f => {
+  const _filtered = files.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filters.tipo && f.type !== filters.tipo) return false;
     return true;
   });
+  const { sorted: filtered, col: sortCol, dir: sortDir, toggle: sortToggle } = useSort(_filtered);
 
   async function fileToMedia(file: File, existingId?: string): Promise<MediaFile> {
     const type = detectType(file);
@@ -488,11 +491,11 @@ export default function MidiaPage() {
             <thead>
               <tr>
                 <th className="midia-col-thumb"></th>
-                <th>Arquivo</th>
-                <th>Tipo</th>
-                <th>Tamanho</th>
+                <th className={`th-sort${sortCol === 'name' ? ' th-sort--active' : ''}`} onClick={() => sortToggle('name')}><span className="th-sort-inner">Arquivo <SortIcon dir={sortCol === 'name' ? sortDir : null} /></span></th>
+                <th className={`th-sort${sortCol === 'type' ? ' th-sort--active' : ''}`} onClick={() => sortToggle('type')}><span className="th-sort-inner">Tipo <SortIcon dir={sortCol === 'type' ? sortDir : null} /></span></th>
+                <th className={`th-sort${sortCol === 'size' ? ' th-sort--active' : ''}`} onClick={() => sortToggle('size')}><span className="th-sort-inner">Tamanho <SortIcon dir={sortCol === 'size' ? sortDir : null} /></span></th>
                 <th>Dimensões</th>
-                <th>Data de envio</th>
+                <th className={`th-sort${sortCol === 'uploadedAt' ? ' th-sort--active' : ''}`} onClick={() => sortToggle('uploadedAt')}><span className="th-sort-inner">Data de envio <SortIcon dir={sortCol === 'uploadedAt' ? sortDir : null} /></span></th>
                 <th></th>
               </tr>
             </thead>

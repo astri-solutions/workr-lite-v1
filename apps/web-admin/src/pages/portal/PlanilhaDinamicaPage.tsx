@@ -3,6 +3,8 @@ import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './PlanilhaDinamicaPage.css';
@@ -87,13 +89,14 @@ export default function PlanilhaDinamicaPage() {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = rows.filter(r => {
+  const _filtered = rows.filter(r => {
     if (search && !r.titulo.toLowerCase().includes(search.toLowerCase())) return false;
     if (filters.trimestre && !r.periodo.startsWith(filters.trimestre)) return false;
     if (filters.ano && r.ano !== filters.ano) return false;
     if (filters.status && r.status !== filters.status) return false;
     return true;
   });
+  const { sorted: filtered, col: plCol, dir: plDir, toggle: plToggle } = useSort(_filtered);
 
   function handleFile(file: File) {
     setForm(f => ({
@@ -182,13 +185,13 @@ export default function PlanilhaDinamicaPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Título</th>
-                      <th>Período</th>
+                      <th className={`th-sort${plCol === 'titulo' ? ' th-sort--active' : ''}`} onClick={() => plToggle('titulo')}><span className="th-sort-inner">Título <SortIcon dir={plCol === 'titulo' ? plDir : null} /></span></th>
+                      <th className={`th-sort${plCol === 'periodo' ? ' th-sort--active' : ''}`} onClick={() => plToggle('periodo')}><span className="th-sort-inner">Período <SortIcon dir={plCol === 'periodo' ? plDir : null} /></span></th>
                       <th>Arquivo</th>
                       <th>Tamanho</th>
-                      <th>Status</th>
-                      <th>Enviado por</th>
-                      <th>Data</th>
+                      <th className={`th-sort${plCol === 'status' ? ' th-sort--active' : ''}`} onClick={() => plToggle('status')}><span className="th-sort-inner">Status <SortIcon dir={plCol === 'status' ? plDir : null} /></span></th>
+                      <th className={`th-sort${plCol === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => plToggle('publicadoPor')}><span className="th-sort-inner">Enviado por <SortIcon dir={plCol === 'publicadoPor' ? plDir : null} /></span></th>
+                      <th className={`th-sort${plCol === 'dataUpload' ? ' th-sort--active' : ''}`} onClick={() => plToggle('dataUpload')}><span className="th-sort-inner">Data <SortIcon dir={plCol === 'dataUpload' ? plDir : null} /></span></th>
                       <th></th>
                     </tr>
                   </thead>

@@ -3,6 +3,8 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
 import './CalendarioPage.css';
@@ -91,10 +93,11 @@ export default function CalendarioPage() {
       return true;
     });
     return {
-      upcoming: all.filter(e => e.data >= TODAY).sort((a, b) => a.data.localeCompare(b.data)),
+      upcoming: all.filter(e => e.data >= TODAY),
       past: all.filter(e => e.data < TODAY).sort((a, b) => b.data.localeCompare(a.data)),
     };
   }, [events, search, filters]);
+  const { sorted: sortedUpcoming, col: calCol, dir: calDir, toggle: calToggle } = useSort(upcoming, 'data', 'asc');
 
   function openNew() {
     setEditingId(null);
@@ -159,19 +162,19 @@ export default function CalendarioPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Evento</th>
-              <th>Data</th>
+              <th className={`th-sort${calCol === 'titulo' ? ' th-sort--active' : ''}`} onClick={() => calToggle('titulo')}><span className="th-sort-inner">Evento <SortIcon dir={calCol === 'titulo' ? calDir : null} /></span></th>
+              <th className={`th-sort${calCol === 'data' ? ' th-sort--active' : ''}`} onClick={() => calToggle('data')}><span className="th-sort-inner">Data <SortIcon dir={calCol === 'data' ? calDir : null} /></span></th>
               <th>Hora</th>
-              <th>Tipo</th>
-              <th>Status</th>
+              <th className={`th-sort${calCol === 'tipo' ? ' th-sort--active' : ''}`} onClick={() => calToggle('tipo')}><span className="th-sort-inner">Tipo <SortIcon dir={calCol === 'tipo' ? calDir : null} /></span></th>
+              <th className={`th-sort${calCol === 'status' ? ' th-sort--active' : ''}`} onClick={() => calToggle('status')}><span className="th-sort-inner">Status <SortIcon dir={calCol === 'status' ? calDir : null} /></span></th>
               <th>Exibir na home</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {upcoming.length === 0 ? (
+            {sortedUpcoming.length === 0 ? (
               <tr><td colSpan={7} className="table-empty">Nenhum evento encontrado.</td></tr>
-            ) : upcoming.map(e => (
+            ) : sortedUpcoming.map(e => (
               <tr key={e.id}>
                 <td className="table-cell--bold">{e.titulo}</td>
                 <td className="table-cell--muted">{formatDate(e.data)}</td>

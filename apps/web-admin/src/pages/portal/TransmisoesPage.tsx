@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import '../admin/AdminPages.css';
@@ -124,9 +126,10 @@ export default function TransmisoesPage() {
   const selectedCast = casts.find(c => c.id === selectedId) ?? null;
 
   /* filtered + paginated list */
-  const filtered = casts.filter(c =>
+  const _filtered = casts.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase())
   );
+  const { sorted: filtered, col: trnCol, dir: trnDir, toggle: trnToggle } = useSort(_filtered);
   const listPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE);
 
@@ -221,11 +224,11 @@ export default function TransmisoesPage() {
             <thead>
               <tr>
                 <th style={{ width: 32 }}></th>
-                <th>Cast</th>
-                <th>Data de início</th>
+                <th className={`th-sort${trnCol === 'name' ? ' th-sort--active' : ''}`} onClick={() => trnToggle('name')}><span className="th-sort-inner">Cast <SortIcon dir={trnCol === 'name' ? trnDir : null} /></span></th>
+                <th className={`th-sort${trnCol === 'startDate' ? ' th-sort--active' : ''}`} onClick={() => trnToggle('startDate')}><span className="th-sort-inner">Data de início <SortIcon dir={trnCol === 'startDate' ? trnDir : null} /></span></th>
                 <th style={{ width: 120 }}></th>
-                <th>Espectadores</th>
-                <th>Marcadores</th>
+                <th className={`th-sort${trnCol === 'spectators' ? ' th-sort--active' : ''}`} onClick={() => trnToggle('spectators')}><span className="th-sort-inner">Espectadores <SortIcon dir={trnCol === 'spectators' ? trnDir : null} /></span></th>
+                <th className={`th-sort${trnCol === 'markers' ? ' th-sort--active' : ''}`} onClick={() => trnToggle('markers')}><span className="th-sort-inner">Marcadores <SortIcon dir={trnCol === 'markers' ? trnDir : null} /></span></th>
               </tr>
             </thead>
             <tbody>
