@@ -50,19 +50,25 @@ export default function DominiosPage() {
   const [subInput, setSubInput] = useState('');
   const [subFolder, setSubFolder] = useState(false);
   const [subFolderPath, setSubFolderPath] = useState('');
-  const [subdomains, setSubdomains] = useState<Subdomain[]>([]);
+  const domKey = `portal_dominios_${siteId}`;
+  function loadDom<T>(k: string): T[] {
+    try { return JSON.parse(localStorage.getItem(`${domKey}_${k}`) ?? '[]') as T[]; } catch { return []; }
+  }
+  function saveDom<T>(k: string, v: T[]) { localStorage.setItem(`${domKey}_${k}`, JSON.stringify(v)); }
+
+  const [subdomains, setSubdomains] = useState<Subdomain[]>(() => loadDom<Subdomain>('subs'));
   const [deleteSubId, setDeleteSubId] = useState<string | null>(null);
 
   // Parked domains form
   const [parkedInput, setParkedInput] = useState('');
-  const [parked, setParked] = useState<Parked[]>([]);
+  const [parked, setParked] = useState<Parked[]>(() => loadDom<Parked>('parked'));
   const [deleteParkedId, setDeleteParkedId] = useState<string | null>(null);
 
   // Redirects form
   const [redFrom, setRedFrom] = useState('');
   const [redTo, setRedTo] = useState('');
   const [redType, setRedType] = useState<'301' | '302'>('301');
-  const [redirects, setRedirects] = useState<Redirect[]>([]);
+  const [redirects, setRedirects] = useState<Redirect[]>(() => loadDom<Redirect>('redirects'));
   const [deleteRedId, setDeleteRedId] = useState<string | null>(null);
 
   const { sorted: sortedSubs, col: subCol, dir: subDir, toggle: toggleSub } = useSort(subdomains);
@@ -84,13 +90,14 @@ export default function DominiosPage() {
 
   function createSubdomain() {
     if (!subInput.trim()) return;
-    setSubdomains(prev => [...prev, {
+    const next = [...subdomains, {
       id: Date.now().toString(),
       sub: subInput.trim(),
       domain: site!.domain,
       folder: subFolder && subFolderPath.trim() ? subFolderPath.trim() : `/${subInput.trim()}`,
       criadoEm: new Date().toISOString().slice(0, 10),
-    }]);
+    }];
+    setSubdomains(next); saveDom('subs', next);
     setSubInput('');
     setSubFolderPath('');
     setSubFolder(false);
@@ -98,23 +105,25 @@ export default function DominiosPage() {
 
   function createParked() {
     if (!parkedInput.trim()) return;
-    setParked(prev => [...prev, {
+    const next = [...parked, {
       id: Date.now().toString(),
       domain: parkedInput.trim(),
       criadoEm: new Date().toISOString().slice(0, 10),
-    }]);
+    }];
+    setParked(next); saveDom('parked', next);
     setParkedInput('');
   }
 
   function createRedirect() {
     if (!redFrom.trim() || !redTo.trim()) return;
-    setRedirects(prev => [...prev, {
+    const next = [...redirects, {
       id: Date.now().toString(),
       from: redFrom.trim(),
       to: redTo.trim(),
       type: redType,
       criadoEm: new Date().toISOString().slice(0, 10),
-    }]);
+    }];
+    setRedirects(next); saveDom('redirects', next);
     setRedFrom('');
     setRedTo('');
     setRedType('301');
@@ -233,7 +242,7 @@ export default function DominiosPage() {
                             {deleteSubId === s.id ? (
                               <>
                                 <span className="dom-confirm-text">Remover?</span>
-                                <button className="btn-action btn-action--danger" type="button" onClick={() => { setSubdomains(p => p.filter(x => x.id !== s.id)); setDeleteSubId(null); }}>Sim</button>
+                                <button className="btn-action btn-action--danger" type="button" onClick={() => { const n = subdomains.filter(x => x.id !== s.id); setSubdomains(n); saveDom('subs', n); setDeleteSubId(null); }}>Sim</button>
                                 <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteSubId(null)}>Não</button>
                               </>
                             ) : (
@@ -306,7 +315,7 @@ export default function DominiosPage() {
                             {deleteParkedId === p.id ? (
                               <>
                                 <span className="dom-confirm-text">Remover?</span>
-                                <button className="btn-action btn-action--danger" type="button" onClick={() => { setParked(prev => prev.filter(x => x.id !== p.id)); setDeleteParkedId(null); }}>Sim</button>
+                                <button className="btn-action btn-action--danger" type="button" onClick={() => { const n = parked.filter(x => x.id !== p.id); setParked(n); saveDom('parked', n); setDeleteParkedId(null); }}>Sim</button>
                                 <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteParkedId(null)}>Não</button>
                               </>
                             ) : (
@@ -399,7 +408,7 @@ export default function DominiosPage() {
                             {deleteRedId === r.id ? (
                               <>
                                 <span className="dom-confirm-text">Remover?</span>
-                                <button className="btn-action btn-action--danger" type="button" onClick={() => { setRedirects(p => p.filter(x => x.id !== r.id)); setDeleteRedId(null); }}>Sim</button>
+                                <button className="btn-action btn-action--danger" type="button" onClick={() => { const n = redirects.filter(x => x.id !== r.id); setRedirects(n); saveDom('redirects', n); setDeleteRedId(null); }}>Sim</button>
                                 <button className="btn-action btn-action--secondary" type="button" onClick={() => setDeleteRedId(null)}>Não</button>
                               </>
                             ) : (

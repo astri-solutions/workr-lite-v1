@@ -24,7 +24,32 @@ interface AdminEmpresa {
   portais: Portal[];
 }
 
-const EMPRESAS_DATA: AdminEmpresa[] = [];
+const AE_KEY = 'admin_empresas';
+
+function loadEmpresas(): AdminEmpresa[] {
+  try {
+    const stored = localStorage.getItem(AE_KEY);
+    if (stored) return JSON.parse(stored) as AdminEmpresa[];
+    // Seed from workr_portais
+    const portaisRaw = localStorage.getItem('workr_portais');
+    if (!portaisRaw) return [];
+    const portais = JSON.parse(portaisRaw) as Array<{
+      id: string; cliente: string; cnpj?: string; cvmCode?: string;
+      vercelUrl?: string; githubRepo?: string; createdAt?: string;
+    }>;
+    return portais.map(p => ({
+      id: p.id,
+      nome: p.cliente ?? '–',
+      cnpj: p.cnpj ?? '',
+      codigoCvm: p.cvmCode ?? '',
+      responsavel: '',
+      email: '',
+      criadoEm: p.createdAt ?? new Date().toISOString().slice(0, 10),
+      status: 'ativa' as ContaStatus,
+      portais: [{ id: p.id, link: p.vercelUrl ?? p.githubRepo ?? '', ativo: true }],
+    }));
+  } catch { return []; }
+}
 
 const STATUS_LABEL: Record<ContaStatus, string> = {
   ativa: 'Ativa',
@@ -62,7 +87,7 @@ function EmpresaKebabMenu({ onEditar, onEncerrar }: { onEditar: () => void; onEn
 }
 
 export default function AdminEmpresasPage() {
-  const [empresas, setEmpresas] = useState<AdminEmpresa[]>(EMPRESAS_DATA);
+  const [empresas, setEmpresas] = useState<AdminEmpresa[]>(loadEmpresas);
   const [search, setSearch] = useState('');
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [suspendTarget, setSuspendTarget] = useState<AdminEmpresa | null>(null);
@@ -77,21 +102,22 @@ export default function AdminEmpresasPage() {
     e.portais.some(p => p.link.toLowerCase().includes(search.toLowerCase()))
   );
 
+  function persist(next: AdminEmpresa[]) {
+    setEmpresas(next);
+    localStorage.setItem(AE_KEY, JSON.stringify(next));
+  }
+
   function toggleStatus(empresa: AdminEmpresa) {
     const next: ContaStatus = empresa.status === 'ativa' ? 'suspensa' : 'ativa';
-    setEmpresas(prev => prev.map(e => {
+    persist(empresas.map(e => {
       if (e.id !== empresa.id) return e;
-      return {
-        ...e,
-        status: next,
-        portais: e.portais.map(p => ({ ...p, ativo: next === 'ativa' })),
-      };
+      return { ...e, status: next, portais: e.portais.map(p => ({ ...p, ativo: next === 'ativa' })) };
     }));
     setSuspendTarget(null);
   }
 
   function togglePortal(empresaId: string, portalId: string) {
-    setEmpresas(prev => prev.map(e => {
+    persist(empresas.map(e => {
       if (e.id !== empresaId) return e;
       return { ...e, portais: e.portais.map(p => p.id !== portalId ? p : { ...p, ativo: !p.ativo }) };
     }));
@@ -105,7 +131,7 @@ export default function AdminEmpresasPage() {
 
   function saveEdit() {
     if (!editTarget) return;
-    setEmpresas(prev => prev.map(e => e.id !== editTarget.id ? e : {
+    persist(empresas.map(e => e.id !== editTarget.id ? e : {
       ...e,
       nome: editForm.nome.trim(),
       cnpj: editForm.cnpj.trim(),
@@ -115,7 +141,7 @@ export default function AdminEmpresasPage() {
   }
 
   function encerrarConta(empresa: AdminEmpresa) {
-    setEmpresas(prev => prev.map(e => e.id !== empresa.id ? e : {
+    persist(empresas.map(e => e.id !== empresa.id ? e : {
       ...e,
       status: 'encerrada',
       portais: e.portais.map(p => ({ ...p, ativo: false })),
