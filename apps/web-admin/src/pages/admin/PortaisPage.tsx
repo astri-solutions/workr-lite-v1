@@ -5,44 +5,7 @@ import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
-
-type SiteTipo = 'RI' | 'Institucional' | 'Fundo' | 'Landing Page';
-
-interface Site {
-  id: string;
-  link: string;
-  status: 'Ativo' | 'Suspenso';
-  ip: string;
-  tipo: SiteTipo;
-}
-
-interface Empresa {
-  cnpj: string;
-  responsavel: string;
-  email: string;
-  status: 'Ativa' | 'Suspensa';
-}
-
-interface Portal {
-  id: string;
-  cliente: string;
-  criadoEm: string;
-  empresa: Empresa;
-  sites: Site[];
-  githubRepo?: string;
-  vercelUrl?: string;
-}
-
-const PORTAIS_STORAGE_KEY = 'workr_portais';
-
-function loadPortais(): Portal[] {
-  try {
-    const raw = localStorage.getItem(PORTAIS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+import { fetchPortais, updateEmpresaStatus, type Portal, type SiteTipo } from '../../lib/portalsApi';
 
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
@@ -87,14 +50,13 @@ function SiteKebabMenu({
           <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onAlterarDominio(); }}>
             Alterar domínio
           </button>
-
         </div>
       )}
     </div>
   );
 }
 
-function DetalhesModal({ site, onClose }: { site: Site; onClose: () => void }) {
+function DetalhesModal({ site, onClose }: { site: { link: string; ip: string }; onClose: () => void }) {
   return (
     <Modal
       open
@@ -194,24 +156,33 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
 export default function PortaisPage() {
   const navigate = useNavigate();
   const { enterPortal } = useAuth();
-  const [portais, setPortais] = useState<Portal[]>(loadPortais);
+  const [portais, setPortais] = useState<Portal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
-  const [detalhesSite, setDetalhesSite] = useState<Site | null>(null);
-  const [alterarSite, setAlterarSite] = useState<Site | null>(null);
+  const [detalhesSite, setDetalhesSite] = useState<{ link: string; ip: string } | null>(null);
+  const [alterarSite, setAlterarSite] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetchPortais().then(data => {
+      setPortais(data);
+      setLoading(false);
+    });
+  }, []);
+
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
   }
 
-  function toggleEmpresaStatus(portalId: string) {
-    setPortais(prev => {
-      const updated = prev.map(p => p.id !== portalId ? p : {
-        ...p,
-        empresa: { ...p.empresa, status: p.empresa.status === 'Ativa' ? 'Suspensa' as const : 'Ativa' as const },
-      });
-      localStorage.setItem(PORTAIS_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  async function toggleEmpresaStatus(portalId: string) {
+    const portal = portais.find(p => p.id === portalId);
+    if (!portal) return;
+    const newStatus = portal.empresa.status === 'Ativa' ? 'Suspensa' as const : 'Ativa' as const;
+    setPortais(prev => prev.map(p => p.id !== portalId ? p : {
+      ...p,
+      empresa: { ...p.empresa, status: newStatus },
+    }));
+    await updateEmpresaStatus(portalId, newStatus);
   }
 
   const totalPortais = portais.length;
@@ -263,7 +234,14 @@ export default function PortaisPage() {
       </div>
 
       <div className="portais-list">
-        {filtered.map((portal) => {
+        {loading && (
+          <div className="page-placeholder">
+            <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>sync</span>
+            <h2>Carregando portais…</h2>
+          </div>
+        )}
+
+        {!loading && filtered.map((portal) => {
           const isExpanded = expandedPortalId === portal.id;
           return (
             <div key={portal.id} className="portal-card">
@@ -294,11 +272,11 @@ export default function PortaisPage() {
                     <span className={`badge ${portal.empresa.status === 'Ativa' ? 'badge--success' : 'badge--error'}`}>
                       {portal.empresa.status}
                     </span>
-                    <span>CNPJ {portal.empresa.cnpj}</span>
+                    <span>CNPJ {portal.empresa.cnpj || '—'}</span>
                     <span className="portal-empresa-detail__dot">·</span>
-                    <span>Responsável {portal.empresa.responsavel}</span>
+                    <span>Responsável {portal.empresa.responsavel || '—'}</span>
                     <span className="portal-empresa-detail__dot">·</span>
-                    <a href={`mailto:${portal.empresa.email}`} className="portal-empresa-detail__email">{portal.empresa.email}</a>
+                    <a href={`mailto:${portal.empresa.email}`} className="portal-empresa-detail__email">{portal.empresa.email || '—'}</a>
                     <span className="portal-empresa-detail__dot">·</span>
                     <span>Cadastro {portal.criadoEm}</span>
                   </div>
@@ -346,8 +324,8 @@ export default function PortaisPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>login</span>
                       </button>
                       <SiteKebabMenu
-                        onDetalhes={() => setDetalhesSite(site)}
-                        onAlterarDominio={() => setAlterarSite(site)}
+                        onDetalhes={() => setDetalhesSite({ link: site.link, ip: site.ip })}
+                        onAlterarDominio={() => setAlterarSite(true)}
                       />
                     </div>
                   </div>
@@ -357,7 +335,7 @@ export default function PortaisPage() {
           );
         })}
 
-        {portais.length === 0 && (
+        {!loading && portais.length === 0 && (
           <div className="page-placeholder">
             <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>language</span>
             <h2>Nenhum portal cadastrado</h2>
@@ -365,7 +343,7 @@ export default function PortaisPage() {
           </div>
         )}
 
-        {portais.length > 0 && filtered.length === 0 && (
+        {!loading && portais.length > 0 && filtered.length === 0 && (
           <div className="page-placeholder">
             <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>search</span>
             <h2>Nenhum portal encontrado</h2>
@@ -378,10 +356,8 @@ export default function PortaisPage() {
         <DetalhesModal site={detalhesSite} onClose={() => setDetalhesSite(null)} />
       )}
       {alterarSite && (
-        <AlterarDominioModal onClose={() => setAlterarSite(null)} />
+        <AlterarDominioModal onClose={() => setAlterarSite(false)} />
       )}
-
-
     </div>
   );
 }

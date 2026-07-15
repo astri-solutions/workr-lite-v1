@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AdminOutletContext } from '../../components/AdminLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { loadPortalSiteAsync } from '../../utils/loadPortalSite';
 import './AdminPages.css';
 import './PainelControlePage.css';
-
 
 interface SiteData {
   id: string;
@@ -24,43 +24,6 @@ interface SiteData {
   githubRepo?: string;
   vercelUrl?: string;
   subdomain?: string;
-}
-
-function loadSiteFromStorage(siteId: string): SiteData | undefined {
-  try {
-    const raw = localStorage.getItem('workr_portais');
-    const portals: Array<{
-      id: string; cliente: string; criadoEm: string; githubRepo?: string; vercelUrl?: string; subdomain?: string;
-      sites: Array<{ id: string; link: string; status: string; ip?: string }>;
-    }> = raw ? JSON.parse(raw) : [];
-    for (const portal of portals) {
-      const s = portal.sites?.find(s => s.id === siteId);
-      if (s) {
-        return {
-          id: s.id,
-          portalId: portal.id,
-          cliente: portal.cliente,
-          link: s.link,
-          ip: s.ip || '—',
-          status: (s.status as 'Ativo' | 'Suspenso') ?? 'Ativo',
-          criadoEm: portal.criadoEm,
-          disco: { usado: 0, total: 10 },
-          cpu: 0,
-          memoria: 0,
-          inodes: { usado: 0, total: 200000 },
-          phpVersion: '—',
-          ssl: true,
-          cdn: false,
-          githubRepo: portal.githubRepo,
-          vercelUrl: portal.vercelUrl,
-          subdomain: portal.subdomain,
-        };
-      }
-    }
-    return undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 
@@ -87,16 +50,52 @@ export default function PainelControlePage() {
   const [dangerInput2, setDangerInput2] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [site, setSite] = useState<SiteData | null | undefined>(undefined);
   const dangerRef = useRef<HTMLDivElement>(null);
 
-  const site = loadSiteFromStorage(siteId ?? '');
+  useEffect(() => {
+    if (!siteId) { setSite(null); return; }
+    loadPortalSiteAsync(siteId).then(info => {
+      if (!info) { setSite(null); return; }
+      setSite({
+        id: info.siteId,
+        portalId: info.portalId,
+        cliente: info.cliente,
+        link: info.link,
+        ip: info.ip,
+        status: info.status,
+        criadoEm: info.criadoEm,
+        disco: { usado: 0, total: 10 },
+        cpu: 0,
+        memoria: 0,
+        inodes: { usado: 0, total: 200000 },
+        phpVersion: '—',
+        ssl: true,
+        cdn: false,
+        githubRepo: info.githubRepo,
+        vercelUrl: info.vercelUrl,
+        subdomain: info.subdomain,
+      });
+    });
+  }, [siteId]);
 
   useEffect(() => {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
     return () => setPortalCtx(null);
   }, [site?.id]);
 
-  if (!site) {
+  if (site === undefined) {
+    return (
+      <div className="page">
+        <div className="page-placeholder">
+          <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>sync</span>
+          <h2>Carregando…</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (site === null) {
     return (
       <div className="page">
         <div className="page-placeholder">

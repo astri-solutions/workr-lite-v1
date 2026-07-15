@@ -1,3 +1,5 @@
+import { fetchPortalSite } from '../lib/portalsApi';
+
 export interface PortalSiteInfo {
   siteId: string;
   portalId: string;
@@ -11,6 +13,7 @@ export interface PortalSiteInfo {
   subdomain?: string;
 }
 
+// Sync fallback — reads from localStorage only (used by pages that can't await)
 export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
   try {
     const raw = localStorage.getItem('workr_portais');
@@ -40,4 +43,9 @@ export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
   } catch {
     return undefined;
   }
+}
+
+// Async version — tries Supabase first, falls back to localStorage
+export async function loadPortalSiteAsync(siteId: string): Promise<PortalSiteInfo | undefined> {
+  return fetchPortalSite(siteId);
 }

@@ -3,6 +3,7 @@ import { processImage, ImageSlot } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { savePortal } from '../../lib/portalsApi';
 import { useAuth } from '../../contexts/AuthContext';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
 import './AdminPages.css';
@@ -1275,6 +1276,7 @@ export default function NovoPortalPage() {
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
+          savePortal(newPortal).catch(() => {/* fire-and-forget */});
 
           // Set the newly created portal as the active portal
           enterPortal(newPortal.id, form.nome);
@@ -1379,6 +1381,7 @@ export default function NovoPortalPage() {
                     portais[idx].githubRepo = provData.repoName;
                     portais[idx].vercelUrl = provData.vercelUrl;
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
+                    savePortal(portais[idx]).catch(() => {/* fire-and-forget */});
                   }
                   if (!provData.vercelCreated) {
                     warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
