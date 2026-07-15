@@ -8,6 +8,8 @@ import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import '../admin/InformacoesPage.css';
 
+export const INFORMACOES_PORTAL_KEY = 'portal_informacoes';
+
 interface AddressValues {
   pais: string;
   estado: string;
@@ -80,13 +82,19 @@ export default function InformacoesPortalPage() {
   const portalName = usePortalName();
   const { user } = useAuth();
 
-  const [values, setValues] = useState<FieldValues>({
-    nome: user?.name ?? '',
-    address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
-    telefone: '',
-    empresa: '',
-    email: user?.email ?? '',
-    emailRecup: '',
+  const [values, setValues] = useState<FieldValues>(() => {
+    try {
+      const raw = localStorage.getItem(INFORMACOES_PORTAL_KEY);
+      if (raw) return { ...JSON.parse(raw) };
+    } catch { /* fall through */ }
+    return {
+      nome: user?.name ?? '',
+      address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
+      telefone: '',
+      empresa: '',
+      email: user?.email ?? '',
+      emailRecup: '',
+    };
   });
 
   const [edit, setEdit] = useState<EditState | null>(null);
@@ -106,7 +114,11 @@ export default function InformacoesPortalPage() {
 
   function handleSave() {
     if (!edit) return;
-    setValues((v) => ({ ...v, [edit.field]: edit.draft }));
+    setValues((v) => {
+      const next = { ...v, [edit.field]: edit.draft };
+      localStorage.setItem(INFORMACOES_PORTAL_KEY, JSON.stringify(next));
+      return next;
+    });
     setEdit(null);
   }
 
@@ -116,7 +128,11 @@ export default function InformacoesPortalPage() {
   }
 
   function handleAddrSave() {
-    setValues((v) => ({ ...v, address: addrDraft }));
+    setValues((v) => {
+      const next = { ...v, address: addrDraft };
+      localStorage.setItem(INFORMACOES_PORTAL_KEY, JSON.stringify(next));
+      return next;
+    });
     setAddrOpen(false);
   }
 

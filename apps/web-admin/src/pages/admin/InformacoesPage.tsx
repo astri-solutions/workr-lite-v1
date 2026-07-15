@@ -6,6 +6,8 @@ import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import './InformacoesPage.css';
 
+const ADMIN_INFORMACOES_KEY = 'admin_informacoes';
+
 interface AddressValues {
   pais: string;
   estado: string;
@@ -74,14 +76,22 @@ function SettingsRow({
   );
 }
 
+const DEFAULT_ADMIN_VALUES: FieldValues = {
+  nome: 'Admin Astri',
+  address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
+  telefone: '',
+  empresa: 'Astri Solutions',
+  email: 'admin@astri.solutions',
+  emailRecup: '',
+};
+
 export default function InformacoesPage() {
-  const [values, setValues] = useState<FieldValues>({
-    nome: 'Admin Astri',
-    address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
-    telefone: '',
-    empresa: 'Astri Solutions',
-    email: 'admin@astri.solutions',
-    emailRecup: '',
+  const [values, setValues] = useState<FieldValues>(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_INFORMACOES_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch { /* fall through */ }
+    return DEFAULT_ADMIN_VALUES;
   });
 
   const [edit, setEdit] = useState<EditState | null>(null);
@@ -95,7 +105,11 @@ export default function InformacoesPage() {
 
   function handleSave() {
     if (!edit) return;
-    setValues((v) => ({ ...v, [edit.field]: edit.draft }));
+    setValues((v) => {
+      const next = { ...v, [edit.field]: edit.draft };
+      localStorage.setItem(ADMIN_INFORMACOES_KEY, JSON.stringify(next));
+      return next;
+    });
     setEdit(null);
   }
 
@@ -105,7 +119,11 @@ export default function InformacoesPage() {
   }
 
   function handleAddrSave() {
-    setValues((v) => ({ ...v, address: addrDraft }));
+    setValues((v) => {
+      const next = { ...v, address: addrDraft };
+      localStorage.setItem(ADMIN_INFORMACOES_KEY, JSON.stringify(next));
+      return next;
+    });
     setAddrOpen(false);
   }
 
