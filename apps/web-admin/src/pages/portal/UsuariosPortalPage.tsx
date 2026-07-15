@@ -12,7 +12,12 @@ interface Empresa {
   nome: string;
 }
 
-const EMPRESAS: Empresa[] = [];
+function loadEmpresas(portalId?: string): Empresa[] {
+  try {
+    const raw = localStorage.getItem(`portal_empresas_${portalId ?? 'default'}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
 
 type Role = 'admin' | 'editor';
 
@@ -78,16 +83,17 @@ const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'editor', empresaIds: 
 
 interface UserCardProps {
   user: PortalUser;
+  empresas: Empresa[];
   canManage: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }
 
-function UserCard({ user, canManage, onEdit, onToggle, onDelete }: UserCardProps) {
+function UserCard({ user, empresas, canManage, onEdit, onToggle, onDelete }: UserCardProps) {
   const empresaNomes = user.empresaIds.length === 0
     ? null
-    : user.empresaIds.map(id => EMPRESAS.find(e => e.id === id)?.nome ?? id);
+    : user.empresaIds.map(id => empresas.find(e => e.id === id)?.nome ?? id);
 
   return (
     <div className={`up-user-card${!user.ativo ? ' up-user-card--inactive' : ''}`}>
@@ -132,10 +138,15 @@ export default function UsuariosPortalPage() {
   const [users, setUsers] = useState<PortalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
 
   const portalName = (user?.portais ?? []).find(p => p.id === user?.activePortalId)?.nome
     ?? user?.portais?.[0]?.nome
     ?? 'este portal';
+
+  useEffect(() => {
+    setEmpresas(loadEmpresas(user?.activePortalId));
+  }, [user?.activePortalId]);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -315,7 +326,7 @@ export default function UsuariosPortalPage() {
               onChange={e => setFilterEmpresa(e.target.value)}
             >
               <option value="">Todas as empresas</option>
-              {EMPRESAS.map(e => (
+              {empresas.map(e => (
                 <option key={e.id} value={e.id}>{e.nome}</option>
               ))}
             </select>
@@ -347,6 +358,7 @@ export default function UsuariosPortalPage() {
             <UserCard
               key={u.id}
               user={u}
+              empresas={empresas}
               canManage={canInvite}
               onEdit={() => openEdit(u)}
               onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
@@ -414,7 +426,7 @@ export default function UsuariosPortalPage() {
               </label>
               {!form.allEmpresas && (
                 <div className="up-form__emp-list">
-                  {EMPRESAS.map(emp => (
+                  {empresas.map(emp => (
                     <label key={emp.id} className="up-form__check">
                       <input type="checkbox" checked={form.empresaIds.includes(emp.id)}
                         onChange={() => toggleEmpresa(emp.id)} />

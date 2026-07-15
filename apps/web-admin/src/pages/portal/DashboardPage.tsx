@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { PORTAL_LAYOUT_KEY } from '../../components/ClientLayout';
 import '../admin/AdminPages.css';
 import './DashboardPage.css';
 
@@ -48,24 +49,42 @@ const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
   channel: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>list</span>,
 };
 
-function getPortalUrl(activePortalId?: string): string | undefined {
+interface SiteInfo {
+  empresa: string;
+  dominio: string;
+  layout: string;
+  status: string;
+  ultimaAtualizacao: string;
+  plano: string;
+}
+
+function getPortalInfo(activePortalId?: string): { url?: string; sites: SiteInfo[] } {
   try {
     const raw = localStorage.getItem('workr_portais');
-    const portals: Array<{ id: string; vercelUrl?: string; sites?: Array<{ link?: string }> }> = raw ? JSON.parse(raw) : [];
+    const portals: Array<{ id: string; cliente: string; vercelUrl?: string; sites?: Array<{ link?: string; status?: string; plano?: string; updatedAt?: string }> }> = raw ? JSON.parse(raw) : [];
     const portal = portals.find(p => p.id === activePortalId) ?? portals[0];
-    if (!portal) return undefined;
-    if (portal.vercelUrl) return portal.vercelUrl;
-    const link = portal.sites?.[0]?.link;
-    return link ? `https://${link}` : undefined;
+    if (!portal) return { sites: [] };
+    const layout = (localStorage.getItem(PORTAL_LAYOUT_KEY) ?? 'sidebar') as string;
+    const LAYOUT_LABEL: Record<string, string> = { sidebar: 'Menu lateral', tabmenu: 'Tabs de conteúdo', banner: 'Banner' };
+    const url = portal.vercelUrl ?? (portal.sites?.[0]?.link ? `https://${portal.sites[0].link}` : undefined);
+    const sites: SiteInfo[] = (portal.sites ?? [{ link: portal.vercelUrl } ]).map(s => ({
+      empresa: portal.cliente ?? '–',
+      dominio: (s as { link?: string }).link ?? portal.vercelUrl ?? '–',
+      layout: LAYOUT_LABEL[layout] ?? layout,
+      status: (s as { status?: string }).status ?? 'Ativo',
+      ultimaAtualizacao: (s as { updatedAt?: string }).updatedAt ?? '–',
+      plano: (s as { plano?: string }).plano ?? 'Lite',
+    }));
+    return { url, sites: sites.length > 0 ? sites : [{ empresa: portal.cliente ?? '–', dominio: url ?? '–', layout: LAYOUT_LABEL[layout] ?? layout, status: 'Ativo', ultimaAtualizacao: '–', plano: 'Lite' }] };
   } catch {
-    return undefined;
+    return { sites: [] };
   }
 }
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] ?? 'bem-vindo';
-  const portalUrl = getPortalUrl(user?.activePortalId);
+  const { url: portalUrl, sites: portalSites } = getPortalInfo(user?.activePortalId);
 
   return (
     <div className="page dash-page">
@@ -177,9 +196,18 @@ export default function DashboardPage() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={6} className="table-empty">Nenhum site configurado ainda.</td>
-            </tr>
+            {portalSites.length === 0 ? (
+              <tr><td colSpan={6} className="table-empty">Nenhum site configurado ainda.</td></tr>
+            ) : portalSites.map((s, i) => (
+              <tr key={i}>
+                <td>{s.empresa}</td>
+                <td className="table-cell--muted">{s.dominio}</td>
+                <td>{s.layout}</td>
+                <td><span className="badge badge--success">{s.status}</span></td>
+                <td className="table-cell--muted">{s.ultimaAtualizacao}</td>
+                <td>{s.plano}</td>
+              </tr>
+            ))}
           </tbody>
         </table></div>
       </div>
