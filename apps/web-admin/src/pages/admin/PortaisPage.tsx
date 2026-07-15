@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -217,8 +218,10 @@ export default function PortaisPage() {
         const vercelProjectName = portal.vercelUrl
           ? portal.vercelUrl.replace('https://', '').replace('.vercel.app', '')
           : undefined;
-        const auth = localStorage.getItem('workr_auth');
-        const token = auth ? JSON.parse(auth)?.session?.access_token : undefined;
+        const token = isSupabaseConfigured && supabase
+          ? (await supabase.auth.getSession()).data.session?.access_token
+          : undefined;
+        if (!token) { setExcluirLoading(false); return; }
         await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
           {
