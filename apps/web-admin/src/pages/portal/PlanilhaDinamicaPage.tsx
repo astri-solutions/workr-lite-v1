@@ -31,6 +31,8 @@ function parsePeriod(p: string): { quarter: string; year: string } {
   return { quarter: `${m[1]}T`, year: m[2].length === 2 ? `20${m[2]}` : m[2] };
 }
 
+const PLD_KEY = 'portal_planilha_dinamica';
+
 const MOCK: SpreadsheetRow[] = [
   { id: 's1', titulo: 'Planilha de Resultados 2T25', periodo: '2T25', ano: '2025', status: 'Publicado', arquivo: 'resultados-2t25.xlsx', tamanho: '1,2 MB', publicadoPor: 'Carlos Souza', dataUpload: '10/08/2025' },
   { id: 's2', titulo: 'Planilha de Resultados 1T25', periodo: '1T25', ano: '2025', status: 'Publicado', arquivo: 'resultados-1t25.xlsx', tamanho: '980 KB', publicadoPor: 'Ana Lima', dataUpload: '12/05/2025' },
@@ -80,7 +82,9 @@ const PLD_FILTERS = [
 
 export default function PlanilhaDinamicaPage() {
   const portalName = usePortalName();
-  const [rows, setRows] = useState<SpreadsheetRow[]>(MOCK);
+  const [rows, setRows] = useState<SpreadsheetRow[]>(() => {
+    try { return JSON.parse(localStorage.getItem(PLD_KEY) ?? 'null') ?? MOCK; } catch { return MOCK; }
+  });
   const [filters, setFilters] = useState<Record<string, string>>({ trimestre: '', ano: '', status: '' });
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -129,14 +133,18 @@ export default function PlanilhaDinamicaPage() {
       publicadoPor: 'Usuário atual',
       dataUpload: dateStr,
     };
-    setRows(prev => [newRow, ...prev]);
+    const next = [newRow, ...rows];
+    setRows(next);
+    localStorage.setItem(PLD_KEY, JSON.stringify(next));
     setModalOpen(false);
     setForm(emptyForm());
   }
 
   function confirmDelete() {
     if (!deleteId) return;
-    setRows(prev => prev.filter(r => r.id !== deleteId));
+    const next = rows.filter(r => r.id !== deleteId);
+    setRows(next);
+    localStorage.setItem(PLD_KEY, JSON.stringify(next));
     setDeleteId(null);
   }
 

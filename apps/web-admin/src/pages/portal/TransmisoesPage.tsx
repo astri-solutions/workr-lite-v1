@@ -53,6 +53,8 @@ const SEED_SPECTATORS: Spectator[] = [
   { id: 's12', name: 'Frederico Xavier', email: 'vendas2@usimontec.com.br', watching: false },
 ];
 
+const CAST_KEY = 'portal_transmissoes';
+
 const INITIAL_CASTS: CastItem[] = [
   { id: 'c1',  name: '3T24',          slug: '3T24',          description: 'Videoconferência de Resultados', language: 'pt', allowSlideNav: false, showInHistory: true,  template: 'Eternit RI', diagrams: 'Video, Chat',          startDate: '2024-11-06T15:00', spectators: 96,  markers: 0, featured: false, spectatorList: SEED_SPECTATORS },
   { id: 'c2',  name: 'Teste 3T24',    slug: 'Teste_3T24',    description: '',                              language: 'pt', allowSlideNav: true,  showInHistory: false, template: 'Eternit RI', diagrams: 'Video, Chat',          startDate: '2024-11-04T12:30', spectators: 4,   markers: 0, featured: false, spectatorList: [] },
@@ -110,7 +112,9 @@ const EMPTY_FORM = (): Omit<CastItem, 'id' | 'spectators' | 'markers' | 'spectat
 /* ─── Component ────────────────────────────────────────── */
 export default function TransmisoesPage() {
   const portalName = usePortalName();
-  const [casts, setCasts] = useState<CastItem[]>(INITIAL_CASTS);
+  const [casts, setCasts] = useState<CastItem[]>(() => {
+    try { return JSON.parse(localStorage.getItem(CAST_KEY) ?? 'null') ?? INITIAL_CASTS; } catch { return INITIAL_CASTS; }
+  });
   const [view, setView] = useState<View>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('config');
@@ -168,9 +172,14 @@ export default function TransmisoesPage() {
     setSaved(false);
   }
 
+  function persistCasts(next: CastItem[]) {
+    setCasts(next);
+    localStorage.setItem(CAST_KEY, JSON.stringify(next));
+  }
+
   function handleSaveDetail() {
     if (!selectedId) return;
-    setCasts(prev => prev.map(c => c.id === selectedId ? { ...c, ...form } : c));
+    persistCasts(casts.map(c => c.id === selectedId ? { ...c, ...form } : c));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -183,13 +192,13 @@ export default function TransmisoesPage() {
       slug: form.slug || form.name.replace(/\s+/g, '_'),
       spectators: 0, markers: 0, spectatorList: [],
     };
-    setCasts(prev => [newCast, ...prev]);
+    persistCasts([newCast, ...casts]);
     openDetail(newCast);
   }
 
   function handleDelete() {
     if (!selectedId) return;
-    setCasts(prev => prev.filter(c => c.id !== selectedId));
+    persistCasts(casts.filter(c => c.id !== selectedId));
     setDeleteConfirm(false);
     backToList();
   }

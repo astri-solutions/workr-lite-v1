@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
+import { persistMateria } from '../../hooks/useMateriasStore';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 import './NovoFormularioPage.css';
@@ -110,6 +111,24 @@ export default function NovoFormularioPage() {
     setStatus(nextStatus);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+
+    if (page) {
+      const today = new Date().toLocaleDateString('pt-BR');
+      persistMateria({
+        id: (editing as { id?: string } | null)?.id ?? Math.random().toString(36).slice(2),
+        titulo: titles[PORTAL_CONFIG.languages[0]] || 'Formulário sem título',
+        subtitulo: subtitles[PORTAL_CONFIG.languages[0]] ?? '',
+        pageId: page,
+        pageLabel: page,
+        pageType: 'formulario',
+        pageSlugType: 'formulario',
+        status: nextStatus === 'published' ? 'publicado' : nextStatus === 'scheduled' ? 'agendado' : 'rascunho',
+        data: today,
+        autor: 'Usuário',
+        ultimaEdicao: today,
+        ultimoEditor: 'Usuário',
+      });
+    }
   }
 
   const activeField = fields.find(f => f.id === editingField) ?? null;
