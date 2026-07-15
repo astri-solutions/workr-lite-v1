@@ -150,6 +150,10 @@ export const siteConfig = {
 
 ${buildNavSection(opts.canais ?? [])}
 
+  empresas: [
+    { id: 'principal', label: ${JSON.stringify(opts.nome)}, short: '${opts.nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || opts.nome.slice(0, 3).toUpperCase()}' },
+  ],
+
   header: { variant: '${headerVariant(opts.layout)}' },
 
   restrictedNav: [],
