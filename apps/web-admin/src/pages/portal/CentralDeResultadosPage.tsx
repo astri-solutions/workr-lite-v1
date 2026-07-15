@@ -3,6 +3,8 @@ import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import SearchInput from '../../components/SearchInput';
+import SortIcon from '../../components/SortIcon';
+import { useSort } from '../../hooks/useSort';
 import PORTAL_CONFIG, { ALL_LOCALES, LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
@@ -75,6 +77,103 @@ const ENABLED_LANGS = ALL_LOCALES.filter(l =>
 );
 
 type BulkAction = 'publicar' | 'despublicar' | 'excluir';
+
+interface QuarterDocTableProps {
+  quarterId: string;
+  docs: CdrDoc[];
+  selectedDocs: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleAll: (quarterId: string, ids: string[]) => void;
+  onToggleStatus: (quarterId: string, docId: string) => void;
+  onRemove: (quarterId: string, docId: string) => void;
+  tipoIcon: (tipo: string) => string;
+  tipoLabel: (tipo: string) => string;
+  fmtDate: (iso: string) => string;
+}
+
+function QuarterDocTable({
+  quarterId, docs, selectedDocs,
+  onToggleSelect, onToggleAll, onToggleStatus, onRemove,
+  tipoIcon, tipoLabel, fmtDate,
+}: QuarterDocTableProps) {
+  const { sorted, col, dir, toggle } = useSort<CdrDoc>(docs, 'date', 'desc');
+  const allSelected = docs.length > 0 && docs.every(d => selectedDocs.has(d.id));
+
+  return (
+    <div className="cdr-doc-table-wrap">
+      <table className="cdr-doc-table">
+        <thead>
+          <tr>
+            <th className="cdr-doc-table__th cdr-doc-table__th--check">
+              <input
+                type="checkbox"
+                className="cdr-checkbox"
+                checked={allSelected}
+                onChange={() => onToggleAll(quarterId, docs.map(d => d.id))}
+              />
+            </th>
+            <th className={`cdr-doc-table__th th-sort${col === 'titulo' ? ' th-sort--active' : ''}`} onClick={() => toggle('titulo')}>
+              <span className="th-sort-inner">Documento <SortIcon dir={col === 'titulo' ? dir : null} /></span>
+            </th>
+            <th className={`cdr-doc-table__th th-sort${col === 'tipo' ? ' th-sort--active' : ''}`} onClick={() => toggle('tipo')}>
+              <span className="th-sort-inner">Tipo <SortIcon dir={col === 'tipo' ? dir : null} /></span>
+            </th>
+            <th className={`cdr-doc-table__th th-sort${col === 'date' ? ' th-sort--active' : ''}`} onClick={() => toggle('date')}>
+              <span className="th-sort-inner">Data <SortIcon dir={col === 'date' ? dir : null} /></span>
+            </th>
+            <th className={`cdr-doc-table__th th-sort${col === 'publishedBy' ? ' th-sort--active' : ''}`} onClick={() => toggle('publishedBy')}>
+              <span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publishedBy' ? dir : null} /></span>
+            </th>
+            <th className={`cdr-doc-table__th th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}>
+              <span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span>
+            </th>
+            <th className="cdr-doc-table__th cdr-doc-table__th--actions" />
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map(doc => (
+            <tr key={doc.id} className={`cdr-doc-table__row${selectedDocs.has(doc.id) ? ' cdr-doc-table__row--selected' : ''}`}>
+              <td className="cdr-doc-table__td cdr-doc-table__td--check">
+                <input type="checkbox" className="cdr-checkbox" checked={selectedDocs.has(doc.id)} onChange={() => onToggleSelect(doc.id)} />
+              </td>
+              <td className="cdr-doc-table__td cdr-doc-table__td--title">
+                <span className="material-symbols-outlined cdr-doc-item__icon">{tipoIcon(doc.tipo)}</span>
+                {doc.titulo}
+              </td>
+              <td className="cdr-doc-table__td cdr-doc-table__td--meta">{tipoLabel(doc.tipo)}</td>
+              <td className="cdr-doc-table__td cdr-doc-table__td--meta">{fmtDate(doc.date)}</td>
+              <td className="cdr-doc-table__td cdr-doc-table__td--meta">{doc.publishedBy}</td>
+              <td className="cdr-doc-table__td">
+                <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
+                  {doc.status === 'published' ? 'Publicado' : 'Rascunho'}
+                </span>
+              </td>
+              <td className="cdr-doc-table__td cdr-doc-table__td--actions">
+                <div className="table-actions">
+                  <button className="btn-action btn-action--enter" type="button">Editar</button>
+                  <button
+                    className={`btn-action ${doc.status === 'published' ? 'btn-action--secondary' : 'btn-action--activate'}`}
+                    type="button"
+                    onClick={() => onToggleStatus(quarterId, doc.id)}
+                  >
+                    {doc.status === 'published' ? 'Despublicar' : 'Publicar'}
+                  </button>
+                  <button
+                    className="btn-action btn-action--danger"
+                    type="button"
+                    onClick={() => { if (window.confirm(`Excluir "${doc.titulo}"? Esta ação não pode ser desfeita.`)) onRemove(quarterId, doc.id); }}
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function CentralDeResultadosPage() {
   const portalName = usePortalName();
@@ -392,67 +491,18 @@ export default function CentralDeResultadosPage() {
                             Documentos do período <strong>{q.period}</strong> aparecerão aqui.
                           </p>
                         ) : (
-                          <div className="cdr-doc-table-wrap">
-                          <table className="cdr-doc-table">
-                            <thead>
-                              <tr>
-                                <th className="cdr-doc-table__th cdr-doc-table__th--check">
-                                  <input
-                                    type="checkbox"
-                                    className="cdr-checkbox"
-                                    checked={(docs[q.id] ?? []).length > 0 && (docs[q.id] ?? []).every(d => selectedDocs.has(d.id))}
-                                    onChange={() => toggleSelectAll(q.id, (docs[q.id] ?? []).map(d => d.id))}
-                                  />
-                                </th>
-                                <th className="cdr-doc-table__th">Documento</th>
-                                <th className="cdr-doc-table__th">Tipo</th>
-                                <th className="cdr-doc-table__th">Data</th>
-                                <th className="cdr-doc-table__th">Publicado por</th>
-                                <th className="cdr-doc-table__th">Status</th>
-                                <th className="cdr-doc-table__th cdr-doc-table__th--actions" />
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(docs[q.id] ?? []).map(doc => (
-                                <tr key={doc.id} className={`cdr-doc-table__row${selectedDocs.has(doc.id) ? ' cdr-doc-table__row--selected' : ''}`}>
-                                  <td className="cdr-doc-table__td cdr-doc-table__td--check">
-                                    <input
-                                      type="checkbox"
-                                      className="cdr-checkbox"
-                                      checked={selectedDocs.has(doc.id)}
-                                      onChange={() => toggleSelectDoc(doc.id)}
-                                    />
-                                  </td>
-                                  <td className="cdr-doc-table__td cdr-doc-table__td--title">
-                                    <span className="material-symbols-outlined cdr-doc-item__icon">{tipoIcon(doc.tipo)}</span>
-                                    {doc.titulo}
-                                  </td>
-                                  <td className="cdr-doc-table__td cdr-doc-table__td--meta">{tipoLabel(doc.tipo)}</td>
-                                  <td className="cdr-doc-table__td cdr-doc-table__td--meta">{fmtDate(doc.date)}</td>
-                                  <td className="cdr-doc-table__td cdr-doc-table__td--meta">{doc.publishedBy}</td>
-                                  <td className="cdr-doc-table__td">
-                                    <span className={`badge ${doc.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
-                                      {doc.status === 'published' ? 'Publicado' : 'Rascunho'}
-                                    </span>
-                                  </td>
-                                  <td className="cdr-doc-table__td cdr-doc-table__td--actions">
-                                    <div className="table-actions">
-                                      <button className="btn-action btn-action--enter" type="button">Editar</button>
-                                      <button
-                                        className={`btn-action ${doc.status === 'published' ? 'btn-action--secondary' : 'btn-action--activate'}`}
-                                        type="button"
-                                        onClick={() => toggleDocStatus(q.id, doc.id)}
-                                      >
-                                        {doc.status === 'published' ? 'Despublicar' : 'Publicar'}
-                                      </button>
-                                      <button className="btn-action btn-action--danger" type="button" onClick={() => { if (window.confirm(`Excluir "${doc.titulo}"? Esta ação não pode ser desfeita.`)) removeDoc(q.id, doc.id); }}>Excluir</button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          </div>
+                          <QuarterDocTable
+                            quarterId={q.id}
+                            docs={docs[q.id] ?? []}
+                            selectedDocs={selectedDocs}
+                            onToggleSelect={toggleSelectDoc}
+                            onToggleAll={toggleSelectAll}
+                            onToggleStatus={toggleDocStatus}
+                            onRemove={removeDoc}
+                            tipoIcon={tipoIcon}
+                            tipoLabel={tipoLabel}
+                            fmtDate={fmtDate}
+                          />
                         )}
                       </div>
                     )}
