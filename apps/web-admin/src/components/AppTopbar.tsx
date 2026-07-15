@@ -1,4 +1,5 @@
 import UserMenu from './UserMenu';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AppTopbarProps {
   onMobileMenuOpen?: () => void;
@@ -7,6 +8,9 @@ interface AppTopbarProps {
 }
 
 export default function AppTopbar({ onMobileMenuOpen, portalName, onBack }: AppTopbarProps) {
+  const { user } = useAuth();
+  const isImpersonating = user?.role === 'super_admin' && !!portalName;
+
   return (
     <header className="admin-topbar">
       <div className="admin-topbar__left">
@@ -35,6 +39,9 @@ export default function AppTopbar({ onMobileMenuOpen, portalName, onBack }: AppT
               <span className="material-symbols-outlined" style={{ fontSize: '16px', opacity: 0.6 }}>corporate_fare</span>
               {portalName}
             </span>
+            {isImpersonating && (
+              <span className="admin-topbar__role-badge" title="Visualizando como administrador">Admin</span>
+            )}
           </div>
         )}
       </div>

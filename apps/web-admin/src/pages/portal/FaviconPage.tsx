@@ -11,11 +11,12 @@ export const FAVICON_KEY = 'portal_favicon';
 
 export default function FaviconPage() {
   const portalName = usePortalName();
-  const [favicon, setFavicon] = useState<string | null>(() => localStorage.getItem(FAVICON_KEY));
+  const [initialFavicon] = useState<string | null>(() => localStorage.getItem(FAVICON_KEY));
+  const [favicon, setFavicon] = useState<string | null>(initialFavicon);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isDirty = !saved && favicon !== null;
+  const isDirty = !saved && favicon !== initialFavicon;
   const blocker = useUnsavedChanges(isDirty);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {

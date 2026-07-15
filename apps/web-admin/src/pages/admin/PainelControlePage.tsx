@@ -297,10 +297,12 @@ export default function PainelControlePage() {
                 <span className="painel-item__label">Gerenciador de arquivos</span>
                 <span className="painel-item__sub">{site.githubRepo ?? 'Repositório GitHub do portal'}</span>
               </div>
-              <button className="painel-item__btn painel-item__btn--external" type="button" onClick={() => navigate(`/admin/portais/${siteId}/banco-de-dados`)}>
+              <button className="painel-item__btn painel-item__btn--external" type="button" onClick={() => window.open(`https://github.com/astri-solutions/${site.githubRepo}`, '_blank', 'noreferrer')}>
                 Abrir
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6" />
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
               </button>
             </div>
