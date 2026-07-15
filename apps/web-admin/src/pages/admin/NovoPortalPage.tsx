@@ -1225,6 +1225,21 @@ export default function NovoPortalPage() {
     });
   }
 
+  function fileToBase64(file: File): Promise<{ b64: string; ext: string }> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        // strip "data:<mime>;base64," prefix
+        const b64 = dataUrl.split(',')[1] ?? '';
+        const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png';
+        resolve({ b64, ext });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   function handleSubmit() {
     setCreating(true);
     setCreatingStep(0);
@@ -1347,6 +1362,8 @@ export default function NovoPortalPage() {
                       colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
                       fonts: { display: form.fonteTitulo, body: form.fonteTexto },
                       canais: form.canais,
+                      ...(form.logoFile    ? { logo:    await fileToBase64(form.logoFile)    } : {}),
+                      ...(form.faviconFile ? { favicon: await fileToBase64(form.faviconFile) } : {}),
                     }),
                   }
                 );

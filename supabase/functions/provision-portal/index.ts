@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface Colors { primary: string; secondary: string; tertiary: string; }
 interface Fonts  { display: string; body: string; }
+interface AssetFile { b64: string; ext: string; } // base64 content + file extension
 interface SocialCfg { platform: string; url: string; }
 interface LegalLinkCfg { id: string; label: string; enabled: boolean; }
 interface FooterCfg {
@@ -69,6 +70,8 @@ function buildSiteConfig(opts: {
   fonts: Fonts;
   footer?: FooterCfg | null;
   canais?: CanalCfg[];
+  logoExt?: string;
+  faviconExt?: string;
 }) {
   const year = new Date().getFullYear();
   const f = opts.footer;
@@ -110,10 +113,10 @@ export const siteConfig = {
     name:        ${JSON.stringify(opts.nome)},
     nameShort:   ${JSON.stringify(opts.nome)},
     description: 'Relações com Investidores — ${opts.nome}.',
-    logoOriginal: '/assets/logotipo/logotipo-original.svg',
-    logoNegative: '/assets/logotipo/logotipo-negative.svg',
-    logoContrast: '/assets/logotipo/logotipo-negative.svg',
-    favicon:      '/favicon.svg',
+    logoOriginal: '/assets/logotipo/logotipo-original.${opts.logoExt ?? 'svg'}',
+    logoNegative: '/assets/logotipo/logotipo-negative.${opts.logoExt ?? 'svg'}',
+    logoContrast: '/assets/logotipo/logotipo-negative.${opts.logoExt ?? 'svg'}',
+    favicon:      '/favicon.${opts.faviconExt ?? 'svg'}',
   },
 
   colors: {
@@ -127,9 +130,13 @@ export const siteConfig = {
     body:    ${JSON.stringify(opts.fonts.body)},
   },
 
-  tickers: [
-    { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
-  ],
+  ticker: {
+    type:      'static',
+    iframeUrl: '',
+    items: [
+      { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
+    ],
+  },
 
 ${buildNavSection(opts.canais ?? [])}
 
@@ -210,7 +217,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer, canais } = await req.json() as {
+    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset } = await req.json() as {
       portalId: string;
       nome: string;
       subdomain: string;
@@ -219,6 +226,8 @@ Deno.serve(async (req) => {
       fonts?: Fonts;
       footer?: FooterCfg | null;
       canais?: CanalCfg[];
+      logo?: AssetFile;
+      favicon?: AssetFile;
     };
 
     const githubToken  = Deno.env.get('GITHUB_TOKEN');
@@ -273,6 +282,8 @@ Deno.serve(async (req) => {
       fonts:  fonts  ?? { display: 'Plus Jakarta Sans', body: 'Inter' },
       footer: footer ?? null,
       canais: canais ?? [],
+      logoExt:    logo?.ext,
+      faviconExt: faviconAsset?.ext,
     });
     const encoded = btoa(unescape(encodeURIComponent(siteConfigContent)));
 
@@ -284,6 +295,33 @@ Deno.serve(async (req) => {
         ...(fileSha ? { sha: fileSha } : {}),
       }),
     }));
+
+    // ── Step 5: push logo and favicon if provided ─────────────────────────
+    async function pushAsset(path: string, b64: string) {
+      const existing = await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`);
+      let sha: string | undefined;
+      if (existing.ok) {
+        const d = await existing.json() as { sha: string };
+        sha = d.sha;
+      }
+      await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message: `chore: add asset ${path}`,
+          content: b64,
+          ...(sha ? { sha } : {}),
+        }),
+      });
+    }
+
+    if (logo?.b64) {
+      const ext = logo.ext ?? 'svg';
+      await pushAsset(`assets/logotipo/logotipo-original.${ext}`, logo.b64);
+      await pushAsset(`assets/logotipo/logotipo-negative.${ext}`, logo.b64);
+    }
+    if (faviconAsset?.b64) {
+      await pushAsset(`favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
+    }
 
     const repoUrl  = `https://github.com/${githubOrg}/${repoName}`;
     let   vercelUrl = `https://${repoName}.vercel.app`;
