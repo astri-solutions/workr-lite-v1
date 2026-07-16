@@ -382,7 +382,7 @@ Deno.serve(async (req) => {
         headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: subdomain,
-          framework: null,
+          framework: 'vite',
           gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
         }),
       });
