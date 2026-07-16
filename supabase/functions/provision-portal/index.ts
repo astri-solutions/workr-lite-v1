@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
         owner: githubOrg,
         name: repoName,
         description: `Portal RI — ${nome}`,
-        private: true,
+        private: false,
         include_all_branches: false,
       }),
     }));
