@@ -517,6 +517,7 @@ Deno.serve(async (req) => {
         subdomain,
         github_repo: repoName,
         vercel_url: vercelUrl,
+        empresa_status: 'Ativo',
       }, { onConflict: 'portal_key' }).select('id').single();
 
       // Create initial portal_config row
