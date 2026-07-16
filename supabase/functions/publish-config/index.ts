@@ -438,6 +438,23 @@ Deno.serve(async (req) => {
         await pushAsset(themeBase64, 'scripts/components/theme.js', `chore: update theme.js via CMS [${portalNome}]`);
       }
     } catch { assetWarnings.push('theme.js update failed'); }
+
+    // Ensure index.html matches the portal layout template (self-healing for mis-provisioned portals)
+    const layoutTemplateFile: Record<string, string> = { sidebar: 'home-side-bar.html', tabmenu: 'home-v2.html' };
+    const tplFile = layoutTemplateFile[layout ?? ''];
+    if (tplFile) {
+      try {
+        const tplRes = await fetch(
+          `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/${tplFile}`,
+          { headers: ghHeaders }
+        );
+        if (tplRes.ok) {
+          const tplData = await tplRes.json() as { content: string };
+          const tplBase64 = tplData.content.replace(/\n/g, '');
+          await pushAsset(tplBase64, 'index.html', `chore: set ${layout} layout template [${portalNome}]`);
+        }
+      } catch { assetWarnings.push('index.html layout swap failed'); }
+    }
     if (logo?.base64) {
       try {
         await pushAsset(logo.base64, `assets/logotipo/logotipo-original.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);

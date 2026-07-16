@@ -272,7 +272,7 @@ export default function ClientLayout() {
       const fontes     = ls('portal_fontes');
       const footer     = ls('portal_footer');
       const ticker     = ls('portal_ticker');
-      const canais     = ls(`portal_canais_${pid ?? 'default'}`);
+      const canais     = ls('portal_canais');
       const splash     = ls('portal_splash');
       const cookies    = ls('portal_cookies');
       const errorPages = ls('portal_error_pages');
