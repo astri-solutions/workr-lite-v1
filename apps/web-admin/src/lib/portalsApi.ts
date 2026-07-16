@@ -162,13 +162,9 @@ export async function savePortal(portal: Portal): Promise<void> {
 }
 
 export async function deletePortal(portalId: string): Promise<void> {
-  // Remove from localStorage
+  // Remove from localStorage only — database cleanup is handled by the delete-portal edge function
   const locals = readLocalStorage().filter(p => p.id !== portalId);
   writeLocalStorage(locals);
-
-  if (!isSupabaseConfigured || !supabase) return;
-
-  await supabase.from('portals').delete().eq('portal_key', portalId);
 }
 
 export async function updateEmpresaData(

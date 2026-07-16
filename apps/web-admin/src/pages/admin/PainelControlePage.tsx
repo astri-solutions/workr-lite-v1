@@ -120,10 +120,10 @@ export default function PainelControlePage() {
       if (isSupabaseConfigured && supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
-        if (token && site.githubRepo) {
+        if (token) {
           const vercelProjectName = site.vercelUrl
             ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
-            : site.subdomain ?? site.githubRepo.replace(/^portal-/, '');
+            : site.subdomain ?? site.githubRepo?.replace(/^portal-/, '');
           const delRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
             {
@@ -133,14 +133,19 @@ export default function PainelControlePage() {
                 'Authorization': `Bearer ${token}`,
                 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
               },
-              body: JSON.stringify({ repoName: site.githubRepo, vercelProjectName }),
+              body: JSON.stringify({
+                repoName: site.githubRepo ?? undefined,
+                vercelProjectName: vercelProjectName ?? undefined,
+                portalId: site.portalId,
+              }),
             }
           );
           const delData = await delRes.json().catch(() => ({})) as {
             ok?: boolean;
-            results?: { github?: string; vercel?: string };
+            results?: { github?: string; vercel?: string; db?: string };
           };
-          if (delData.results?.github && delData.results.github.startsWith('error:')) {
+          // GitHub 403 = token sem delete_repo — avisa mas não bloqueia exclusão do banco
+          if (delData.results?.github?.startsWith('error:')) {
             const ghErr = delData.results.github.replace('error:', '');
             if (ghErr.includes('403') || ghErr.includes('Resource not accessible')) {
               throw new Error(
@@ -149,22 +154,19 @@ export default function PainelControlePage() {
                 `Delete manualmente em: https://github.com/astri-solutions/${site.githubRepo}/settings → Danger Zone → Delete this repository.`
               );
             }
+            // 404 = já foi deletado manualmente — ok, continua
             if (!ghErr.includes('404')) {
               throw new Error(`Erro ao deletar repositório GitHub: ${ghErr}`);
             }
           }
+          if (delData.results?.db?.startsWith('error:')) {
+            throw new Error(`Erro ao excluir portal do banco de dados: ${delData.results.db}`);
+          }
         }
       }
 
-      // Remove portal from Supabase and localStorage
-      await deletePortal(site.portalId).catch(() => {
-        const raw = localStorage.getItem('workr_portais');
-        const portals: Array<{ id: string }> = raw ? JSON.parse(raw) : [];
-        localStorage.setItem('workr_portais', JSON.stringify(portals.filter(p => p.id !== site.portalId)));
-      });
-      const raw = localStorage.getItem('workr_portais');
-      const portals: Array<{ id: string }> = raw ? JSON.parse(raw) : [];
-      localStorage.setItem('workr_portais', JSON.stringify(portals.filter(p => p.id !== site.portalId)));
+      // Remove from localStorage
+      await deletePortal(site.portalId);
 
       setDeleteModalOpen(false);
       navigate('/admin/portais');

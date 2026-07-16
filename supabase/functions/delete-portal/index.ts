@@ -15,6 +15,9 @@ function corsHeaders(origin: string | null) {
   };
 }
 
+// UUID v4 pattern
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const ch = corsHeaders(origin);
@@ -31,8 +34,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      supabaseUrl,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
@@ -51,18 +55,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, vercelProjectName } = await req.json() as {
+    const { repoName, vercelProjectName, portalId } = await req.json() as {
       repoName?: string;
       vercelProjectName?: string;
+      portalId?: string; // UUID or portal_key — we resolve either
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
     const vercelToken = Deno.env.get('VERCEL_TOKEN');
     const githubOrg   = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
 
-    const results: { github?: string; vercel?: string } = {};
+    const results: { github?: string; vercel?: string; db?: string } = {};
 
-    // Delete GitHub repo
+    // ── Delete GitHub repo ────────────────────────────────────────────────────
     if (repoName && githubToken) {
       const ghRes = await fetch(
         `https://api.github.com/repos/${githubOrg}/${repoName}`,
@@ -75,7 +80,7 @@ Deno.serve(async (req) => {
           },
         }
       );
-      if (ghRes.status === 204) {
+      if (ghRes.status === 204 || ghRes.status === 404) {
         results.github = 'deleted';
       } else {
         const body = await ghRes.json().catch(() => ({})) as { message?: string };
@@ -85,7 +90,7 @@ Deno.serve(async (req) => {
       results.github = 'error:no_token';
     }
 
-    // Delete Vercel project
+    // ── Delete Vercel project ─────────────────────────────────────────────────
     if (vercelProjectName && vercelToken) {
       const vRes = await fetch(
         `https://api.vercel.com/v9/projects/${encodeURIComponent(vercelProjectName)}`,
@@ -94,9 +99,44 @@ Deno.serve(async (req) => {
           headers: { 'Authorization': `Bearer ${vercelToken}` },
         }
       );
-      results.vercel = vRes.status === 204 || vRes.ok ? 'deleted' : `error:${vRes.status}`;
+      results.vercel = (vRes.status === 204 || vRes.ok || vRes.status === 404) ? 'deleted' : `error:${vRes.status}`;
     } else if (vercelProjectName && !vercelToken) {
       results.vercel = 'error:no_token';
+    }
+
+    // ── Delete all database records (service role — bypasses RLS) ─────────────
+    if (portalId) {
+      try {
+        const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+        // Resolve UUID: accept either a UUID directly or a portal_key string
+        let uuid: string | null = null;
+        if (UUID_RE.test(portalId)) {
+          uuid = portalId;
+        } else {
+          const { data } = await admin.from('portals').select('id').eq('portal_key', portalId).single();
+          uuid = data?.id ?? null;
+        }
+
+        // Also try resolving by github_repo as a last resort
+        if (!uuid && repoName) {
+          const { data } = await admin.from('portals').select('id').eq('github_repo', repoName).single();
+          uuid = data?.id ?? null;
+        }
+
+        if (uuid) {
+          // Delete in dependency order (portal_config and portal_users reference portals.id)
+          await admin.from('portal_config').delete().eq('portal_id', uuid);
+          await admin.from('portal_users').delete().eq('portal_id', uuid);
+          await admin.from('portal_sites').delete().eq('portal_id', uuid);
+          const { error: delErr } = await admin.from('portals').delete().eq('id', uuid);
+          results.db = delErr ? `error:${delErr.message}` : 'deleted';
+        } else {
+          results.db = 'not_found';
+        }
+      } catch (e) {
+        results.db = `error:${String(e)}`;
+      }
     }
 
     const hasErrors = Object.values(results).some(v => typeof v === 'string' && v.startsWith('error:'));
