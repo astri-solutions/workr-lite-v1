@@ -56,7 +56,7 @@ function dbToPortal(row: Record<string, unknown>, sites: Record<string, unknown>
     : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 
   return {
-    id: row['id'] as string,
+    id: (row['portal_key'] as string) ?? (row['id'] as string),
     cliente: row['cliente'] as string,
     criadoEm,
     empresa: {
@@ -123,10 +123,10 @@ export async function savePortal(portal: Portal): Promise<void> {
     ? `${parts[2]}-${parts[1]}-${parts[0]}`
     : new Date().toISOString().slice(0, 10);
 
-  const { error: portalError } = await supabase
+  const { data: upserted, error: portalError } = await supabase
     .from('portals')
     .upsert({
-      id: portal.id,
+      portal_key: portal.id,
       cliente: portal.cliente,
       criado_em: isoDate,
       cnpj: portal.empresa.cnpj || null,
@@ -136,24 +136,27 @@ export async function savePortal(portal: Portal): Promise<void> {
       github_repo: portal.githubRepo ?? null,
       vercel_url: portal.vercelUrl ?? null,
       subdomain: portal.subdomain ?? null,
-    }, { onConflict: 'id' });
+    }, { onConflict: 'portal_key' })
+    .select('id')
+    .single();
 
-  if (portalError) return;
+  if (portalError || !upserted) return;
 
-  // Upsert all sites
+  const dbPortalId = upserted.id as string;
+
+  // Replace all sites: delete then insert
+  await supabase.from('portal_sites').delete().eq('portal_id', dbPortalId);
   if (portal.sites.length > 0) {
     await supabase
       .from('portal_sites')
-      .upsert(
+      .insert(
         portal.sites.map(s => ({
-          id: s.id,
-          portal_id: portal.id,
+          portal_id: dbPortalId,
           link: s.link,
           status: s.status,
           ip: s.ip !== '—' ? s.ip : null,
           tipo: s.tipo,
-        })),
-        { onConflict: 'id' }
+        }))
       );
   }
 }
@@ -165,7 +168,7 @@ export async function deletePortal(portalId: string): Promise<void> {
 
   if (!isSupabaseConfigured || !supabase) return;
 
-  await supabase.from('portals').delete().eq('id', portalId);
+  await supabase.from('portals').delete().eq('portal_key', portalId);
 }
 
 export async function updateEmpresaStatus(
@@ -185,7 +188,7 @@ export async function updateEmpresaStatus(
   await supabase
     .from('portals')
     .update({ empresa_status: status })
-    .eq('id', portalId);
+    .eq('portal_key', portalId);
 }
 
 export async function updateSiteStatus(
