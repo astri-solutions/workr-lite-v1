@@ -348,22 +348,22 @@ Deno.serve(async (req) => {
       }),
     }));
 
-    // ── Step 2: wait for repo to be ready (poll up to 60s) ────────────────
-    let ready = false;
-    for (let i = 0; i < 20; i++) {
-      await sleep(3000);
-      const checkRes = await gh(`/repos/${githubOrg}/${repoName}`);
-      if (checkRes.ok) { ready = true; break; }
-    }
-    if (!ready) throw new Error('Novo repositório não ficou pronto em 60s. Tente publicar a configuração manualmente.');
-
-    // ── Step 3: get current site.config.js SHA in new repo ───────────────
-    const fileRes = await gh(`/repos/${githubOrg}/${repoName}/contents/scripts/site.config.js`);
+    // ── Step 2: wait for template files to be copied (poll up to 90s) ───────
+    // Poll for the specific file we need — this confirms both repo existence
+    // and template copy completion (GitHub copies files asynchronously).
     let fileSha: string | undefined;
-    if (fileRes.ok) {
-      const fileData = await fileRes.json() as { sha: string };
-      fileSha = fileData.sha;
+    let ready = false;
+    for (let i = 0; i < 30; i++) {
+      await sleep(3000);
+      const checkRes = await gh(`/repos/${githubOrg}/${repoName}/contents/scripts/site.config.js`);
+      if (checkRes.ok) {
+        const fileData = await checkRes.json() as { sha: string };
+        fileSha = fileData.sha;
+        ready = true;
+        break;
+      }
     }
+    if (!ready) throw new Error('Novo repositório não ficou pronto em 90s. Tente publicar a configuração manualmente.');
 
     // ── Step 4a: upsert portal row early so we get the UUID for site.config.js ─
     let portalUuid: string | undefined;
