@@ -48,14 +48,18 @@ Deno.serve(async (req) => {
 
     const callerPortalIds = (user.app_metadata?.portalIds as string[] | undefined) ?? [];
 
-    let allUsers = data.users.map(u => ({
-      id: u.id,
-      email: u.email ?? '',
-      nome: (u.user_metadata?.name as string | undefined) || u.email || '',
-      role: (u.app_metadata?.role as string | undefined) || 'client_user',
-      portalIds: (u.app_metadata?.portalIds as string[] | undefined) || [],
-      status: u.banned_until ? 'Suspenso' : 'Ativo',
-    }));
+    let allUsers = data.users.map(u => {
+      const ids = (u.app_metadata?.portalIds as string[] | undefined) || [];
+      return {
+        id: u.id,
+        email: u.email ?? '',
+        nome: (u.user_metadata?.name as string | undefined) || u.email || '',
+        role: (u.app_metadata?.role as string | undefined) || 'client_user',
+        portalIds: ids,
+        portais: ids, // backwards compat alias
+        status: u.banned_until ? 'Suspenso' : 'Ativo',
+      };
+    });
 
     // client_user only sees users that belong to at least one of their portals
     if (callerRole === 'client_user') {
