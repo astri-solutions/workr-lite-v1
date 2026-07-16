@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -6,6 +6,8 @@ import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
+import { resolvePortalId } from '../../lib/portalDb';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './EmpresasPage.css';
 
@@ -59,9 +61,22 @@ export default function EmpresasPage() {
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('choose');
   const [migrateTargetId, setMigrateTargetId] = useState('');
 
-  // Persist empresas to localStorage whenever they change
+  const portalDbIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activePortalId) return;
+    resolvePortalId(activePortalId).then(id => { portalDbIdRef.current = id; });
+  }, [activePortalId]);
+
+  // Persist empresas to localStorage and Supabase
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(empresas));
+    const pid = portalDbIdRef.current;
+    if (!pid || !isSupabaseConfigured || !supabase) return;
+    supabase
+      .from('portal_config')
+      .update({ empresas })
+      .eq('portal_id', pid)
+      .then(() => { /* sync complete */ });
   }, [empresas, storageKey]);
 
   // Seed main company from portal name on first load for this portal

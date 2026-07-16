@@ -3,7 +3,9 @@ import { processImage } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
-import { persistMateria, type MateriaPageType } from '../../hooks/useMateriasStore';
+import { persistMateria, syncMateriaToSupabase, type MateriaPageType } from '../../hooks/useMateriasStore';
+import { useAuth } from '../../contexts/AuthContext';
+import { resolvePortalId } from '../../lib/portalDb';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
@@ -777,6 +779,7 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
 export default function NovaMateriaPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' } | null;
   const editing = routeState?.editing ?? null;
   const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' | 'tabela' | 'html' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
@@ -865,7 +868,7 @@ export default function NovaMateriaPage() {
     document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function handlePublish(newStatus: PublishStatus) {
+  async function handlePublish(newStatus: PublishStatus) {
     setStatus(newStatus);
     setSaved(true);
     setDirty(false);
@@ -874,7 +877,7 @@ export default function NovaMateriaPage() {
     if (page) {
       const dest = destinos.find(d => d.id === page);
       const today = new Date().toLocaleDateString('pt-BR');
-      persistMateria({
+      const m = {
         id: editing?.id ?? Math.random().toString(36).slice(2),
         titulo: title || 'Sem título',
         subtitulo: subtitle,
@@ -882,12 +885,19 @@ export default function NovaMateriaPage() {
         pageLabel: dest?.label ?? page,
         pageType: (isGaleria ? 'galeria' : 'show') as MateriaPageType,
         pageSlugType: dest?.pageType,
-        status: newStatus === 'published' ? 'publicado' : newStatus === 'scheduled' ? 'agendado' : 'rascunho',
+        status: newStatus === 'published' ? 'publicado' as const : newStatus === 'scheduled' ? 'agendado' as const : 'rascunho' as const,
         data: today,
-        autor: 'Usuário',
+        autor: user?.name ?? user?.email ?? 'Usuário',
         ultimaEdicao: today,
-        ultimoEditor: 'Usuário',
-      });
+        ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
+        content: sections,
+      };
+      persistMateria(m);
+      const portalKey = user?.activePortalId;
+      if (portalKey) {
+        const portalDbId = await resolvePortalId(portalKey);
+        if (portalDbId) syncMateriaToSupabase(m, portalDbId);
+      }
     }
   }
 

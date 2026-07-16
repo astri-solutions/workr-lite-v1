@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
@@ -10,6 +10,8 @@ import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -19,12 +21,10 @@ interface Entity {
   tipo: 'EMPRESA' | 'FUNDO';
 }
 
-// Loaded dynamically from localStorage in the component
-
 type DocStatus = 'Publicado' | 'Rascunho';
 
 interface DocRow {
-  id: number;
+  id: string;
   entityId: string;
   nome: string;
   tipo: string;
@@ -40,10 +40,6 @@ interface DocRow {
   externalLink?: string;
 }
 
-const MOCK_DOCS: DocRow[] = [];
-
-// Pages that accept document uploads (list / list-group types)
-// subGroups: pages that have internal content divisions
 const LIST_PAGES = [
   { id: 'composicao', label: 'Composição Acionária', group: 'Governança', subGroups: [] as string[] },
   { id: 'atas', label: 'Atas e Assembleias', group: 'Governança', subGroups: ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'] },
@@ -53,13 +49,12 @@ const LIST_PAGES = [
   { id: 'ratings', label: 'Ratings', group: 'Investidores', subGroups: [] as string[] },
 ];
 
-
 interface DocForm {
   entityId: string;
-  titulo: string;
+  titulos: Record<string, string>;
   allPages: boolean;
   paginaIds: string[];
-  subGroupIds: Record<string, string[]>; // pageId → selected subGroup ids
+  subGroupIds: Record<string, string[]>;
   idiomas: string[];
   scheduleEnabled: boolean;
   scheduleDate: string;
@@ -72,35 +67,66 @@ interface DocForm {
 function emptyDocForm(entityId = ''): DocForm {
   return {
     entityId,
-    titulo: '', allPages: false, paginaIds: [], subGroupIds: {},
+    titulos: {},
+    allPages: false, paginaIds: [], subGroupIds: {},
     idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     file: null, isExternalLink: false, externalUrl: '',
+  };
+}
+
+// Convert DB row → DocRow
+function dbToRow(r: Record<string, unknown>): DocRow {
+  const titulo = (r.titulo as Record<string, string>) ?? {};
+  const nomePrimary = titulo['PT'] ?? titulo[Object.keys(titulo)[0]] ?? String(r.id);
+  const paginaIds = (r.pagina_ids as string[]) ?? [];
+  const paginaLabel = paginaIds.length === 0
+    ? '—'
+    : paginaIds.map(id => LIST_PAGES.find(p => p.id === id)?.label ?? id).join(', ');
+  const createdAt = r.created_at ? new Date(r.created_at as string).toLocaleDateString('pt-BR') : '—';
+  const updatedAt = r.updated_at ? new Date(r.updated_at as string).toLocaleDateString('pt-BR') : '—';
+  return {
+    id: r.id as string,
+    entityId: r.entity_id as string,
+    nome: nomePrimary,
+    tipo: r.tipo as string ?? 'Documento',
+    status: (r.status as DocStatus) ?? 'Rascunho',
+    dataPub: r.status === 'Publicado' ? createdAt : '—',
+    pagina: paginaLabel,
+    idiomas: (r.idiomas as string[]) ?? ['PT'],
+    tags: [],
+    publicadoPor: r.publicado_por as string ?? '',
+    ultimaEdicao: updatedAt,
+    ultimoEditor: r.ultimo_editor as string ?? '',
+    fromCvm: r.from_cvm as boolean ?? false,
+    externalLink: r.external_link as string | undefined,
   };
 }
 
 export default function DocumentosPage() {
   const portalName = usePortalName();
   const { user } = useAuth();
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [activeEntity, setActiveEntity] = useState('');
+
   useEffect(() => {
-    const portalId = user?.activePortalId;
-    if (!portalId) return;
+    const portalKey = user?.activePortalId;
+    if (!portalKey) return;
+    resolvePortalId(portalKey).then(id => setPortalDbId(id));
     try {
-      const raw = localStorage.getItem(`portal_empresas_${portalId}`);
+      const raw = localStorage.getItem(`portal_empresas_${portalKey}`);
       const loaded: Entity[] = raw ? JSON.parse(raw) : [];
       setEntities(loaded);
       if (loaded.length > 0) setActiveEntity(loaded[0].id);
-    } catch {
-      setEntities([]);
-    }
+    } catch { setEntities([]); }
   }, [user?.activePortalId]);
 
   const [search, setSearch] = useState('');
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [docs, setDocs] = useState<DocRow[]>(MOCK_DOCS);
+  const [docs, setDocs] = useState<DocRow[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState<DocForm>(emptyDocForm());
   const [dragActive, setDragActive] = useState(false);
@@ -108,7 +134,23 @@ export default function DocumentosPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [replaceDoc, setReplaceDoc] = useState<DocRow | null>(null);
   const [replaceFile, setReplaceFile] = useState<File | null>(null);
+  const [replaceTitle, setReplaceTitle] = useState('');
   const [ptOnly, setPtOnly] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const loadDocs = useCallback(async () => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    setLoadingDocs(true);
+    const { data } = await supabase
+      .from('portal_documents')
+      .select('*')
+      .eq('portal_id', portalDbId)
+      .order('created_at', { ascending: false });
+    if (data) setDocs(data.map(r => dbToRow(r as Record<string, unknown>)));
+    setLoadingDocs(false);
+  }, [portalDbId]);
+
+  useEffect(() => { loadDocs(); }, [loadDocs]);
 
   function patchForm<K extends keyof DocForm>(key: K, val: DocForm[K]) {
     setForm(f => ({ ...f, [key]: val }));
@@ -117,42 +159,93 @@ export default function DocumentosPage() {
   function handleFile(file: File) { patchForm('file', file); }
 
   function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragActive(false);
+    e.preventDefault(); setDragActive(false);
     const f = e.dataTransfer.files[0];
     if (f) handleFile(f);
   }
 
-  function openDrawer() { setForm(emptyDocForm(activeEntity)); setDocLocale(PORTAL_CONFIG.languages[0]); setPtOnly(false); setDrawerOpen(true); }
+  function openDrawer() {
+    setForm(emptyDocForm(activeEntity));
+    setDocLocale(PORTAL_CONFIG.languages[0]);
+    setPtOnly(false);
+    setDrawerOpen(true);
+  }
   function closeDrawer() { setDrawerOpen(false); }
 
-  function handleSave(asDraft: boolean) {
-    if (!form.titulo.trim()) return;
-    const paginaLabel = form.paginaIds.length === 0
-      ? '—'
-      : form.paginaIds.map(id => LIST_PAGES.find(p => p.id === id)?.label ?? id).join(', ');
-    const today = new Date();
-    const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-    const newDoc: DocRow = {
-      id: Date.now(),
-      entityId: form.entityId || activeEntity,
-      nome: form.titulo,
+  async function handleSave(asDraft: boolean) {
+    const primaryLocale = PORTAL_CONFIG.languages[0];
+    const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
+    if (!primaryTitle) return;
+    if (!portalDbId || !supabase) return;
+    setSaving(true);
+
+    const titulos: Record<string, string> = {};
+    PORTAL_CONFIG.languages.forEach(l => {
+      titulos[l] = ptOnly ? primaryTitle : (form.titulos[l] ?? '');
+    });
+    if (ptOnly) {
+      PORTAL_CONFIG.languages.forEach(l => { titulos[l] = primaryTitle; });
+    }
+
+    const now = new Date().toISOString();
+    const userName = user?.name ?? user?.email ?? '';
+
+    const { error } = await supabase.from('portal_documents').insert({
+      portal_id: portalDbId,
+      entity_id: form.entityId || activeEntity,
+      titulo: titulos,
       tipo: 'Documento',
       status: asDraft ? 'Rascunho' : 'Publicado',
-      dataPub: asDraft ? '—' : dateStr,
-      pagina: paginaLabel,
-      idiomas: form.idiomas,
-      tags: [],
-      publicadoPor: 'MA',
-      ultimaEdicao: dateStr,
-      ultimoEditor: 'MA',
-      externalLink: form.isExternalLink ? form.externalUrl : undefined,
-    };
-    setDocs(prev => [newDoc, ...prev]);
-    closeDrawer();
+      pagina_ids: form.paginaIds,
+      sub_group_ids: form.subGroupIds,
+      idiomas: ptOnly ? ['PT'] : form.idiomas,
+      pt_only: ptOnly,
+      external_link: form.isExternalLink ? form.externalUrl : null,
+      publicado_por: userName,
+      ultimo_editor: userName,
+      updated_at: now,
+    });
+
+    if (!error) {
+      closeDrawer();
+      await loadDocs();
+    }
+    setSaving(false);
   }
 
-  const _filtered = docs.filter((d) => {
+  async function handleBulkStatus(status: DocStatus) {
+    if (!supabase || selected.size === 0) return;
+    const ids = Array.from(selected);
+    await supabase
+      .from('portal_documents')
+      .update({ status, updated_at: new Date().toISOString() })
+      .in('id', ids);
+    setSelected(new Set());
+    await loadDocs();
+  }
+
+  async function handleDelete() {
+    if (!supabase || selected.size === 0) return;
+    const ids = Array.from(selected);
+    await supabase.from('portal_documents').delete().in('id', ids);
+    setSelected(new Set());
+    setDeleteModalOpen(false);
+    await loadDocs();
+  }
+
+  async function handleReplaceDoc() {
+    if (!replaceDoc || !supabase) return;
+    const now = new Date().toISOString();
+    await supabase.from('portal_documents').update({
+      titulo: { ...((docs.find(d => d.id === replaceDoc.id) as unknown as { titulo?: Record<string, string> })?.titulo ?? {}), PT: replaceTitle || replaceDoc.nome },
+      ultimo_editor: user?.name ?? user?.email ?? '',
+      updated_at: now,
+    }).eq('id', replaceDoc.id);
+    setReplaceDoc(null);
+    await loadDocs();
+  }
+
+  const _filtered = docs.filter(d => {
     if (d.entityId !== activeEntity) return false;
     if (search && !d.nome.toLowerCase().includes(search.toLowerCase())) return false;
     if (docFilters.tipo && d.tipo !== docFilters.tipo) return false;
@@ -162,64 +255,24 @@ export default function DocumentosPage() {
   });
   const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function toggleSelect(id: string) {
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
-
   function toggleAll() {
-    if (selected.size === filtered.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(filtered.map((d) => d.id)));
-    }
+    if (selected.size === filtered.length) setSelected(new Set());
+    else setSelected(new Set(filtered.map(d => d.id)));
   }
 
-  function handleDelete() {
-    setDocs((prev) => prev.filter((d) => !selected.has(d.id)));
-    setSelected(new Set());
-    setDeleteModalOpen(false);
-  }
-
-  const tipoOptions = Array.from(new Set(docs.map((d) => d.tipo)));
-
+  const tipoOptions = Array.from(new Set(docs.map(d => d.tipo)));
   const DOC_FILTERS = [
-    {
-      key: 'tipo',
-      label: 'Tipo',
-      options: [
-        { value: '', label: 'Todos os tipos', shortLabel: 'Todos' },
-        ...tipoOptions.map(t => ({ value: t, label: t })),
-      ],
-    },
-    {
-      key: 'ano',
-      label: 'Ano',
-      options: [
-        { value: '', label: 'Todos os anos', shortLabel: 'Todos' },
-        { value: '2026', label: '2026' },
-        { value: '2025', label: '2025' },
-        { value: '2024', label: '2024' },
-      ],
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      options: [
-        { value: '', label: 'Todos os status', shortLabel: 'Todos' },
-        { value: 'Publicado', label: 'Publicado' },
-        { value: 'Rascunho', label: 'Rascunho' },
-      ],
-    },
+    { key: 'tipo', label: 'Tipo', options: [{ value: '', label: 'Todos os tipos', shortLabel: 'Todos' }, ...tipoOptions.map(t => ({ value: t, label: t }))] },
+    { key: 'ano', label: 'Ano', options: [{ value: '', label: 'Todos os anos', shortLabel: 'Todos' }, { value: '2026', label: '2026' }, { value: '2025', label: '2025' }, { value: '2024', label: '2024' }] },
+    { key: 'status', label: 'Status', options: [{ value: '', label: 'Todos os status', shortLabel: 'Todos' }, { value: 'Publicado', label: 'Publicado' }, { value: 'Rascunho', label: 'Rascunho' }] },
   ];
 
-  function handleDocFilter(key: string, value: string) {
-    setDocFilters(f => ({ ...f, [key]: value }));
-  }
+  const primaryLocale = PORTAL_CONFIG.languages[0];
+  const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
+  const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0);
 
   return (
     <div className="page docs-page">
@@ -234,17 +287,13 @@ export default function DocumentosPage() {
         }
       />
 
-      {/* Entity tabmenu */}
       {entities.length > 1 && (
         <>
           <div className="cdr-entities">
             {entities.map(e => (
-              <button
-                key={e.id}
-                type="button"
+              <button key={e.id} type="button"
                 className={`cdr-entity-card${activeEntity === e.id ? ' cdr-entity-card--active' : ''}`}
-                onClick={() => { setActiveEntity(e.id); setSelected(new Set()); }}
-              >
+                onClick={() => { setActiveEntity(e.id); setSelected(new Set()); }}>
                 <span className="cdr-entity-card__name">{e.name}</span>
                 <span className="cdr-entity-card__tipo">{e.tipo}</span>
               </button>
@@ -252,14 +301,9 @@ export default function DocumentosPage() {
           </div>
           <div className="cdr-entity-mobile">
             <div className="filter-wrap">
-              <select
-                className="filter-select"
-                value={activeEntity}
-                onChange={ev => { setActiveEntity(ev.target.value); setSelected(new Set()); }}
-              >
-                {entities.map(e => (
-                  <option key={e.id} value={e.id}>{e.name} — {e.tipo}</option>
-                ))}
+              <select className="filter-select" value={activeEntity}
+                onChange={ev => { setActiveEntity(ev.target.value); setSelected(new Set()); }}>
+                {entities.map(e => <option key={e.id} value={e.id}>{e.name} — {e.tipo}</option>)}
               </select>
               <svg className="filter-wrap__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
             </div>
@@ -267,77 +311,53 @@ export default function DocumentosPage() {
         </>
       )}
 
-      {/* Toolbar */}
       <div className="toolbar">
         <div className="toolbar__filters">
           <SearchInput value={search} onChange={setSearch} placeholder="Pesquisar por título..." />
-          <FilterBar groups={DOC_FILTERS} value={docFilters} onChange={handleDocFilter} />
+          <FilterBar groups={DOC_FILTERS} value={docFilters} onChange={(k, v) => setDocFilters(f => ({ ...f, [k]: v }))} />
         </div>
         <div className="toolbar__actions">
-          <button type="button" className="btn-toolbar">Despublicar</button>
-          <button type="button" className="btn-toolbar btn-toolbar--success">Publicar</button>
-          <button
-            type="button"
-            className="btn-toolbar btn-toolbar--danger"
-            disabled={selected.size === 0}
-            onClick={() => setDeleteModalOpen(true)}
-          >
-            Excluir
-          </button>
+          <button type="button" className="btn-toolbar" disabled={selected.size === 0}
+            onClick={() => handleBulkStatus('Rascunho')}>Despublicar</button>
+          <button type="button" className="btn-toolbar btn-toolbar--success" disabled={selected.size === 0}
+            onClick={() => handleBulkStatus('Publicado')}>Publicar</button>
+          <button type="button" className="btn-toolbar btn-toolbar--danger" disabled={selected.size === 0}
+            onClick={() => setDeleteModalOpen(true)}>Excluir</button>
           <span className="toolbar__count">
             {selected.size > 0 ? `${selected.size} de ` : ''}{filtered.length} doc{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-wrapper table-wrapper--responsive">
         <table className="data-table">
           <thead>
             <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  checked={filtered.length > 0 && selected.size === filtered.length}
-                  onChange={toggleAll}
-                />
-              </th>
-              <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'nome' ? ' th-sort--active' : ''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col === 'nome' ? dir : null} /></span></th>
-              <th className={`th-sort docs-col-pub${col === 'dataPub' ? ' th-sort--active' : ''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Publicação <SortIcon dir={col === 'dataPub' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'pagina' ? ' th-sort--active' : ''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col === 'pagina' ? dir : null} /></span></th>
-              <th className={`th-sort docs-col-center${col === 'publicadoPor' ? ' th-sort--active' : ''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col === 'publicadoPor' ? dir : null} /></span></th>
-              <th className={`th-sort${col === 'ultimaEdicao' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col === 'ultimaEdicao' ? dir : null} /></span></th>
-              <th className={`th-sort docs-col-center${col === 'ultimoEditor' ? ' th-sort--active' : ''}`} onClick={() => toggle('ultimoEditor')}><span className="th-sort-inner">Editado por <SortIcon dir={col === 'ultimoEditor' ? dir : null} /></span></th>
+              <th><input type="checkbox" checked={filtered.length > 0 && selected.size === filtered.length} onChange={toggleAll} /></th>
+              <th className={`th-sort${col==='status'?' th-sort--active':''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col==='status'?dir:null} /></span></th>
+              <th className={`th-sort${col==='nome'?' th-sort--active':''}`} onClick={() => toggle('nome')}><span className="th-sort-inner">Nome <SortIcon dir={col==='nome'?dir:null} /></span></th>
+              <th className={`th-sort docs-col-pub${col==='dataPub'?' th-sort--active':''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Publicação <SortIcon dir={col==='dataPub'?dir:null} /></span></th>
+              <th className={`th-sort${col==='pagina'?' th-sort--active':''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col==='pagina'?dir:null} /></span></th>
+              <th className={`th-sort docs-col-center${col==='publicadoPor'?' th-sort--active':''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col==='publicadoPor'?dir:null} /></span></th>
+              <th className={`th-sort${col==='ultimaEdicao'?' th-sort--active':''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col==='ultimaEdicao'?dir:null} /></span></th>
+              <th className={`th-sort docs-col-center${col==='ultimoEditor'?' th-sort--active':''}`} onClick={() => toggle('ultimoEditor')}><span className="th-sort-inner">Editado por <SortIcon dir={col==='ultimoEditor'?dir:null} /></span></th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="table-empty">Nenhum documento encontrado.</td>
-              </tr>
+            {loadingDocs ? (
+              <tr><td colSpan={9} className="table-empty">Carregando…</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={9} className="table-empty">Nenhum documento encontrado.</td></tr>
             ) : (
-              filtered.map((doc) => (
+              filtered.map(doc => (
                 <tr key={doc.id} className={selected.has(doc.id) ? 'docs-row--selected' : ''}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(doc.id)}
-                      onChange={() => toggleSelect(doc.id)}
-                    />
-                  </td>
-                  <td>
-                    <span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>
-                      {doc.status}
-                    </span>
-                  </td>
+                  <td><input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} /></td>
+                  <td><span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>{doc.status}</span></td>
                   <td className="docs-cell-nome">
                     <span className="docs-nome-title">{doc.nome}</span>
                     <div className="docs-nome-badges">
-                      {doc.idiomas.map(lang => (
-                        <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>
-                      ))}
+                      {doc.idiomas.map(lang => <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>)}
                     </div>
                   </td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
@@ -353,14 +373,15 @@ export default function DocumentosPage() {
                     </span>
                   </td>
                   <td className="docs-col-center">
-                    <div className={`docs-avatar${doc.fromCvm ? ' docs-avatar--cvm' : ''}`} title={doc.fromCvm ? 'Auto CVM' : doc.publicadoPor}>{doc.publicadoPor}</div>
+                    <div className={`docs-avatar${doc.fromCvm ? ' docs-avatar--cvm' : ''}`} title={doc.fromCvm ? 'Auto CVM' : doc.publicadoPor}>{doc.publicadoPor.slice(0,2).toUpperCase()}</div>
                   </td>
                   <td className="table-cell--muted">{doc.ultimaEdicao}</td>
                   <td className="docs-col-center">
-                    <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor}</div>
+                    <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor.slice(0,2).toUpperCase()}</div>
                   </td>
                   <td>
-                    <button type="button" className="btn-action btn-action--enter" onClick={() => { setReplaceDoc(doc); setReplaceFile(null); }}>Editar</button>
+                    <button type="button" className="btn-action btn-action--enter"
+                      onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
                   </td>
                 </tr>
               ))
@@ -371,129 +392,64 @@ export default function DocumentosPage() {
 
       {/* Mobile card list */}
       <div className="rcard-list">
-        {filtered.length === 0 ? (
-          <p style={{ textAlign: 'center', color: 'var(--color-gray-400)', fontSize: 'var(--text-sm)', padding: 'var(--space-6) 0' }}>
-            Nenhum documento encontrado.
-          </p>
-        ) : (
-          filtered.map((doc) => (
-            <div key={doc.id} className="rcard">
-              <div className="rcard__stripe" style={{ background: doc.status === 'Publicado' ? 'var(--color-primary-400)' : 'var(--color-gray-300)' }} />
-              <div className="rcard__inner">
-                <div className="rcard__body">
-                  <div className="docs-rcard__check">
-                    <input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} />
-                    <span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>{doc.status}</span>
-                  </div>
-                  <span className="rcard__title" style={{ padding: '0 var(--space-4)' }}>{doc.nome}</span>
-                  <div className="docs-nome-badges" style={{ padding: '0 var(--space-4)' }}>
-                    {doc.idiomas.map(lang => (
-                      <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>
-                    ))}
-                  </div>
+        {filtered.map(doc => (
+          <div key={doc.id} className="rcard">
+            <div className="rcard__stripe" style={{ background: doc.status === 'Publicado' ? 'var(--color-primary-400)' : 'var(--color-gray-300)' }} />
+            <div className="rcard__inner">
+              <div className="rcard__body">
+                <div className="docs-rcard__check">
+                  <input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} />
+                  <span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>{doc.status}</span>
                 </div>
-                <div className="docs-rcard__rows">
-                  <div className="docs-rcard__row">
-                    <span className="docs-rcard__label">Publicação</span>
-                    <span className="docs-rcard__value">{doc.dataPub}</span>
-                  </div>
-                  <div className="docs-rcard__row">
-                    <span className="docs-rcard__label">Página</span>
-                    <span className="docs-rcard__value docs-pagina-cell">
-                      {doc.pagina}
-                      {doc.externalLink && (
-                        <span className="docs-ext-badge" title={doc.externalLink}>
-                          <span className="material-symbols-outlined docs-ext-badge__icon">open_in_new</span>
-                          Link externo
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="docs-rcard__row">
-                    <span className="docs-rcard__label">Publicado por</span>
-                    <span className="docs-rcard__value">
-                      <div className={`docs-avatar${doc.fromCvm ? ' docs-avatar--cvm' : ''}`} title={doc.fromCvm ? 'Auto CVM' : doc.publicadoPor}>{doc.publicadoPor}</div>
-                    </span>
-                  </div>
-                  <div className="docs-rcard__row">
-                    <span className="docs-rcard__label">Última edição</span>
-                    <span className="docs-rcard__value">{doc.ultimaEdicao}</span>
-                  </div>
-                  <div className="docs-rcard__row">
-                    <span className="docs-rcard__label">Editado por</span>
-                    <span className="docs-rcard__value">
-                      <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor}</div>
-                    </span>
-                  </div>
-                </div>
-                <div className="rcard__footer">
-                  <button type="button" className="btn-action btn-action--enter" onClick={() => { setReplaceDoc(doc); setReplaceFile(null); }}>Editar</button>
-                </div>
+                <span className="rcard__title" style={{ padding: '0 var(--space-4)' }}>{doc.nome}</span>
+              </div>
+              <div className="docs-rcard__rows">
+                <div className="docs-rcard__row"><span className="docs-rcard__label">Publicação</span><span className="docs-rcard__value">{doc.dataPub}</span></div>
+                <div className="docs-rcard__row"><span className="docs-rcard__label">Página</span><span className="docs-rcard__value">{doc.pagina}</span></div>
+              </div>
+              <div className="rcard__footer">
+                <button type="button" className="btn-action btn-action--enter"
+                  onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
               </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
 
-      {/* ── Replace file modal ── */}
-      <Modal
-        open={!!replaceDoc}
-        onClose={() => setReplaceDoc(null)}
-        title="Substituir arquivo"
-        size="sm"
+      {/* ── Edit modal ── */}
+      <Modal open={!!replaceDoc} onClose={() => setReplaceDoc(null)} title="Editar documento" size="sm"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={() => setReplaceDoc(null)}>Cancelar</button>
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={!replaceFile}
-              onClick={() => {
-                setDocs(prev => prev.map(d => d.id === replaceDoc!.id ? { ...d, ultimaEdicao: new Date().toLocaleDateString('pt-BR'), ultimoEditor: 'MA' } : d));
-                setReplaceDoc(null);
-              }}
-            >
-              Salvar alterações
-            </button>
+            <button type="button" className="btn-primary" onClick={handleReplaceDoc}>Salvar alterações</button>
           </div>
-        }
-      >
+        }>
         <div className="doc-field" style={{ marginBottom: 'var(--space-4)' }}>
-          <label className="doc-field__label">Alterar título</label>
-          <input className="doc-field__input" type="text" defaultValue={replaceDoc?.nome ?? ''} />
+          <label className="doc-field__label">Título</label>
+          <input className="doc-field__input" type="text" value={replaceTitle}
+            onChange={e => setReplaceTitle(e.target.value)} autoFocus />
         </div>
-        <FileDropzone
-          file={replaceFile}
-          onChange={setReplaceFile}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-          hint="PDF, Word, Excel, PowerPoint"
-        />
+        <FileDropzone file={replaceFile} onChange={setReplaceFile}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hint="PDF, Word, Excel, PowerPoint" />
       </Modal>
 
       {/* ── New document modal ── */}
-      <Modal
-        open={drawerOpen}
-        onClose={closeDrawer}
-        title="Novo documento"
-        size="md"
+      <Modal open={drawerOpen} onClose={closeDrawer} title="Novo documento" size="md"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={closeDrawer}>Cancelar</button>
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              <button type="button" className="btn-outline" onClick={() => handleSave(true)}>
+              <button type="button" className="btn-outline" onClick={() => handleSave(true)} disabled={!primaryTitle || saving}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
                 Salvar rascunho
               </button>
-              <button type="button" className="btn-primary" onClick={() => handleSave(false)}
-                disabled={!form.titulo.trim() || (!form.allPages && form.paginaIds.length === 0)}>
-                Publicar
+              <button type="button" className="btn-primary" onClick={() => handleSave(false)} disabled={!canSave || saving}>
+                {saving ? 'Publicando…' : 'Publicar'}
               </button>
             </div>
           </div>
-        }
-      >
+        }>
         <div className="doc-modal-body">
-          {/* Active entity badge */}
           {(() => {
             const ent = entities.find(e => e.id === (form.entityId || activeEntity));
             return ent ? (
@@ -504,12 +460,10 @@ export default function DocumentosPage() {
             ) : null;
           })()}
 
-          {/* Language tabs */}
           {!ptOnly && PORTAL_CONFIG.languages.length > 1 && (
             <LangTabs active={docLocale} onChange={setDocLocale} />
           )}
 
-          {/* Apenas Português switch */}
           {PORTAL_CONFIG.languages.length > 1 && (docLocale === PORTAL_CONFIG.languages[0] || ptOnly) && (
             <label className="doc-pt-only-row">
               <span className="doc-pt-only-label">
@@ -517,65 +471,47 @@ export default function DocumentosPage() {
                 Apenas Português
                 <span className="doc-pt-only-hint">O mesmo arquivo será exibido em todos os idiomas</span>
               </span>
-              <button
-                type="button"
-                className={`cdr2-toggle${ptOnly ? ' cdr2-toggle--on' : ''}`}
-                onClick={() => { setPtOnly(v => !v); setDocLocale(PORTAL_CONFIG.languages[0]); }}
-                aria-pressed={ptOnly}
-              >
+              <button type="button" className={`cdr2-toggle${ptOnly ? ' cdr2-toggle--on' : ''}`}
+                onClick={() => { setPtOnly(v => !v); setDocLocale(PORTAL_CONFIG.languages[0]); }} aria-pressed={ptOnly}>
                 <span className="cdr2-toggle__knob" />
               </button>
             </label>
           )}
 
-          {/* Título */}
           <div className="doc-field">
-            <label className="doc-field__label">Título *</label>
+            <label className="doc-field__label">
+              Título *{PORTAL_CONFIG.languages.length > 1 && !ptOnly ? ` (${docLocale})` : ''}
+            </label>
             <input className="doc-field__input" type="text" placeholder="Nome do documento"
-              key={docLocale}
-              value={form.titulo} onChange={e => patchForm('titulo', e.target.value)} autoFocus />
+              value={form.titulos[docLocale] ?? ''}
+              onChange={e => patchForm('titulos', { ...form.titulos, [docLocale]: e.target.value })}
+              autoFocus />
           </div>
 
-          {/* File / External link toggle */}
           <div className="doc-source-toggle">
-            <button
-              type="button"
-              className={`doc-source-toggle__btn${!form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
-              onClick={() => patchForm('isExternalLink', false)}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>upload_file</span>
-              Arquivo
+            <button type="button" className={`doc-source-toggle__btn${!form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchForm('isExternalLink', false)}>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>upload_file</span>Arquivo
             </button>
-            <button
-              type="button"
-              className={`doc-source-toggle__btn${form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
-              onClick={() => patchForm('isExternalLink', true)}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>
-              Link externo
+            <button type="button" className={`doc-source-toggle__btn${form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchForm('isExternalLink', true)}>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>Link externo
             </button>
           </div>
 
           {form.isExternalLink ? (
             <div className="doc-field">
               <label className="doc-field__label">URL do documento *</label>
-              <input
-                className="doc-field__input"
-                type="url"
-                placeholder="https://..."
-                value={form.externalUrl}
-                onChange={e => patchForm('externalUrl', e.target.value)}
-              />
+              <input className="doc-field__input" type="url" placeholder="https://..."
+                value={form.externalUrl} onChange={e => patchForm('externalUrl', e.target.value)} />
               <span className="doc-field__hint">O documento abrirá em nova aba ao ser acessado no portal.</span>
             </div>
           ) : (
-            <div
-              className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
+            <div className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
               onDragOver={e => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
-              onClick={() => !form.file && fileInputRef.current?.click()}
-            >
+              onClick={() => !form.file && fileInputRef.current?.click()}>
               <input ref={fileInputRef} type="file" style={{ display: 'none' }}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
@@ -601,15 +537,11 @@ export default function DocumentosPage() {
             </div>
           )}
 
-          {/* Página */}
           <div className="up-form__section">
             <span className="up-form__section-label">Página de destino</span>
             <label className="up-form__check">
-              <input
-                type="checkbox"
-                checked={form.allPages}
-                onChange={e => patchForm('allPages', e.target.checked)}
-              />
+              <input type="checkbox" checked={form.allPages}
+                onChange={e => patchForm('allPages', e.target.checked)} />
               Todas as páginas do portal
             </label>
             {!form.allPages && (
@@ -620,41 +552,28 @@ export default function DocumentosPage() {
                   return (
                     <div key={p.id}>
                       <label className="up-form__check">
-                        <input
-                          type="checkbox"
-                          checked={checked}
+                        <input type="checkbox" checked={checked}
                           onChange={e => {
-                            const ids = e.target.checked
-                              ? [...form.paginaIds, p.id]
-                              : form.paginaIds.filter(id => id !== p.id);
+                            const ids = e.target.checked ? [...form.paginaIds, p.id] : form.paginaIds.filter(id => id !== p.id);
                             patchForm('paginaIds', ids);
-                            if (!e.target.checked) {
-                              patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
-                            }
-                          }}
-                        />
+                            if (!e.target.checked) patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
+                          }} />
                         {p.label}
                       </label>
                       {checked && p.subGroups.length > 0 && (
                         <div className="doc-subgroup">
                           <label className="doc-subgroup__check">
-                            <input
-                              type="checkbox"
-                              checked={subs.length === 0}
-                              onChange={() => patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] })}
-                            />
+                            <input type="checkbox" checked={subs.length === 0}
+                              onChange={() => patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] })} />
                             Todos os grupos
                           </label>
                           {p.subGroups.map(sg => (
                             <label key={sg} className="doc-subgroup__check">
-                              <input
-                                type="checkbox"
-                                checked={subs.includes(sg)}
+                              <input type="checkbox" checked={subs.includes(sg)}
                                 onChange={e => {
                                   const next = e.target.checked ? [...subs, sg] : subs.filter(s => s !== sg);
                                   patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: next });
-                                }}
-                              />
+                                }} />
                               {sg}
                             </label>
                           ))}
@@ -667,7 +586,6 @@ export default function DocumentosPage() {
             )}
           </div>
 
-          {/* Agendamento */}
           <div className="doc-field">
             <label className="doc-field__label">Agendamento</label>
             <label className="doc-schedule-toggle">
@@ -684,38 +602,18 @@ export default function DocumentosPage() {
               </div>
             )}
           </div>
-
         </div>
       </Modal>
 
-      {/* Delete modal */}
-      <Modal
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        title="Excluir documentos"
-        size="sm"
+      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Excluir documentos" size="sm"
         footer={
           <div className="modal-footer">
-            <button
-              type="button"
-              className="btn-outline"
-              onClick={() => setDeleteModalOpen(false)}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn-outline btn-outline--danger"
-              onClick={handleDelete}
-            >
-              Excluir
-            </button>
+            <button type="button" className="btn-outline" onClick={() => setDeleteModalOpen(false)}>Cancelar</button>
+            <button type="button" className="btn-outline btn-outline--danger" onClick={handleDelete}>Excluir</button>
           </div>
-        }
-      >
+        }>
         <p className="docs-delete-msg">
-          Tem certeza que deseja excluir{' '}
-          <strong>{selected.size} documento{selected.size !== 1 ? 's' : ''}</strong>? Esta ação não pode ser desfeita.
+          Tem certeza que deseja excluir <strong>{selected.size} documento{selected.size !== 1 ? 's' : ''}</strong>? Esta ação não pode ser desfeita.
         </p>
       </Modal>
     </div>
