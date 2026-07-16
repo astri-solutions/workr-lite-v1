@@ -324,7 +324,8 @@ export default function ClientLayout() {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
           },
           body: JSON.stringify({
-            repoName,
+            repoName: repoName ?? (portalRecord?.subdomain ? `portal-${portalRecord.subdomain}` : undefined),
+            portalId: activePortal?.id,
             portalNome: activePortal?.nome ?? '',
             layout: localStorage.getItem('portal_layout') ?? 'banner',
             colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },

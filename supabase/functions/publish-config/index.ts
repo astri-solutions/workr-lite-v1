@@ -275,10 +275,11 @@ Deno.serve(async (req) => {
     }
 
     const {
-      repoName, portalNome, layout, colors, fonts, footer, ticker,
+      repoName: repoNameRaw, portalId, portalNome, layout, colors, fonts, footer, ticker,
       canais, empresas, splash, cookies, errorPages, banner, logo, favicon,
     } = await req.json() as {
       repoName?: string;
+      portalId?: string;
       portalNome: string;
       layout?: string;
       colors: Colors;
@@ -302,6 +303,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'GITHUB_TOKEN secret not configured' }), {
         status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Resolve repoName: either passed directly, or looked up from portals table by portalId
+    let repoName = repoNameRaw;
+    if (!repoName && portalId) {
+      const adminClient = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const { data: portalRow } = await adminClient
+        .from('portals')
+        .select('github_repo')
+        .eq('id', portalId)
+        .single();
+      repoName = portalRow?.github_repo ?? undefined;
     }
 
     if (!repoName) {
