@@ -340,11 +340,19 @@ Deno.serve(async (req) => {
       await pushAsset(`favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
     }
 
-    // ── Step 5b: for sidebar layout, use home-side-bar.html as index.html ──
-    if ((layout ?? 'banner') === 'sidebar') {
-      const sidebarRes = await gh(`/repos/${githubOrg}/${repoName}/contents/home-side-bar.html`);
-      if (sidebarRes.ok) {
-        const sidebarData = await sidebarRes.json() as { content: string; sha: string };
+    // ── Step 5b: swap index.html with the correct layout template ───────────
+    // banner → index.html (already correct, no swap needed)
+    // sidebar → home-side-bar.html replaces index.html
+    // tabmenu → home-v2.html replaces index.html
+    const layoutTemplateMap: Record<string, string> = {
+      sidebar: 'home-side-bar.html',
+      tabmenu: 'home-v2.html',
+    };
+    const templateFile = layoutTemplateMap[layout ?? 'banner'];
+    if (templateFile) {
+      const tplRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${templateFile}`);
+      if (tplRes.ok) {
+        const tplData = await tplRes.json() as { content: string; sha: string };
         const indexRes = await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`);
         let indexSha: string | undefined;
         if (indexRes.ok) {
@@ -354,8 +362,8 @@ Deno.serve(async (req) => {
         await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`, {
           method: 'PUT',
           body: JSON.stringify({
-            message: 'chore: set sidebar layout as homepage',
-            content: sidebarData.content,
+            message: `chore: set ${layout} layout as homepage`,
+            content: tplData.content,
             ...(indexSha ? { sha: indexSha } : {}),
           }),
         });
