@@ -37,8 +37,21 @@ async function getToken(): Promise<string | null> {
 function loadPortaisFromStorage(): PortalWithEmpresas[] {
   try {
     const raw = localStorage.getItem('workr_portais');
-    const portais: Array<{ id: string; cliente: string }> = raw ? JSON.parse(raw) : [];
-    return portais.map(p => ({ id: p.id, nome: p.cliente, empresas: [] }));
+    const portais: Array<{ id: string; cliente: string; sites?: Array<{ id: string }> }> = raw ? JSON.parse(raw) : [];
+
+    // Load empresas from admin_empresas store (keyed by portal id)
+    let adminEmpresas: Array<{ id: string; portalId?: string; nome: string }> = [];
+    try {
+      const aeRaw = localStorage.getItem('admin_empresas');
+      if (aeRaw) adminEmpresas = JSON.parse(aeRaw);
+    } catch { /* ignore */ }
+
+    return portais.map(p => {
+      const empresas = adminEmpresas
+        .filter(e => e.portalId === p.id)
+        .map(e => ({ id: e.id, nome: e.nome }));
+      return { id: p.id, nome: p.cliente, empresas };
+    });
   } catch {
     return [];
   }
@@ -238,6 +251,7 @@ export default function UsuariosPage() {
       <EditUserModal
         user={editTarget}
         open={editTarget !== null}
+        portais={portais}
         onClose={() => setEditTarget(null)}
         onSave={handleSaveRole}
         onToggleStatus={handleToggleStatus}
@@ -338,11 +352,19 @@ export default function UsuariosPage() {
                           <span className="table-cell--muted">—</span>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span className="badge badge--gray" style={{ fontSize: '11px' }}>
+                            <span
+                              className="badge badge--gray"
+                              style={{ fontSize: '11px' }}
+                              title={portaisMap[u.portais[0]] ?? u.portais[0]}
+                            >
                               {portaisMap[u.portais[0]] ?? u.portais[0]}
                             </span>
                             {u.portais.length > 1 && (
-                              <span className="badge badge--gray" style={{ fontSize: '11px' }}>
+                              <span
+                                className="badge badge--info"
+                                style={{ fontSize: '11px', cursor: 'default' }}
+                                title={u.portais.slice(1).map(id => portaisMap[id] ?? id).join('\n')}
+                              >
                                 +{u.portais.length - 1}
                               </span>
                             )}

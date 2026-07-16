@@ -18,28 +18,10 @@ export interface PortalWithEmpresas {
   empresas?: { id: string; nome: string }[];
 }
 
-const PORTAIS_LIST: PortalWithEmpresas[] = [
-  {
-    id: '1', nome: 'Construtora Aurora',
-    empresas: [
-      { id: '1a', nome: 'Aurora Incorporadora' },
-      { id: '1b', nome: 'Aurora Imóveis' },
-    ],
-  },
-  {
-    id: '2', nome: 'International Meal Company',
-    empresas: [
-      { id: '2a', nome: 'IMC Brasil' },
-      { id: '2b', nome: 'IMC São Paulo' },
-      { id: '2c', nome: 'IMC Nordeste' },
-    ],
-  },
-  { id: '3', nome: 'Vetra Energia' },
-];
-
 interface EditUserModalProps {
   user: EditableUser | null;
   open: boolean;
+  portais: PortalWithEmpresas[];
   onClose: () => void;
   onSave: (id: string, role: 'super_admin' | 'client_user', portais: string[]) => void;
   onToggleStatus: (id: string) => void;
@@ -62,7 +44,7 @@ const PERFIS = [
 ];
 
 export default function EditUserModal({
-  user, open, onClose, onSave, onToggleStatus, onDelete,
+  user, open, portais, onClose, onSave, onToggleStatus, onDelete,
 }: EditUserModalProps) {
   const [tab, setTab] = useState<'info' | 'acesso'>('info');
   const [role, setRole] = useState<'super_admin' | 'client_user'>('client_user');
@@ -147,14 +129,14 @@ export default function EditUserModal({
     );
   }
 
-  const filteredPortais = PORTAIS_LIST.filter(p =>
+  const filteredPortais = portais.filter(p =>
     p.nome.toLowerCase().includes(search.toLowerCase()) ||
     (p.empresas ?? []).some(e => e.nome.toLowerCase().includes(search.toLowerCase()))
   );
 
   const totalSelecionados = (() => {
     let n = 0;
-    for (const p of PORTAIS_LIST) {
+    for (const p of portais) {
       const emp = p.empresas ?? [];
       if (emp.length === 0 && portaisIds.includes(p.id)) n++;
       else n += emp.filter(e => empresasIds.includes(e.id)).length;
