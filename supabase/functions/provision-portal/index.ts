@@ -340,6 +340,28 @@ Deno.serve(async (req) => {
       await pushAsset(`favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
     }
 
+    // ── Step 5b: for sidebar layout, use home-side-bar.html as index.html ──
+    if ((layout ?? 'banner') === 'sidebar') {
+      const sidebarRes = await gh(`/repos/${githubOrg}/${repoName}/contents/home-side-bar.html`);
+      if (sidebarRes.ok) {
+        const sidebarData = await sidebarRes.json() as { content: string; sha: string };
+        const indexRes = await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`);
+        let indexSha: string | undefined;
+        if (indexRes.ok) {
+          const indexData = await indexRes.json() as { sha: string };
+          indexSha = indexData.sha;
+        }
+        await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            message: 'chore: set sidebar layout as homepage',
+            content: sidebarData.content,
+            ...(indexSha ? { sha: indexSha } : {}),
+          }),
+        });
+      }
+    }
+
     const repoUrl  = `https://github.com/${githubOrg}/${repoName}`;
     let   vercelUrl = `https://${repoName}.vercel.app`;
     let   vercelCreated = false;
