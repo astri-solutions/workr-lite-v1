@@ -5,7 +5,7 @@ import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
-import { fetchPortais, updateEmpresaStatus, type Portal, type SiteTipo } from '../../lib/portalsApi';
+import { fetchPortais, updateEmpresaStatus, updateEmpresaData, type Portal, type SiteTipo } from '../../lib/portalsApi';
 
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
@@ -151,6 +151,77 @@ function AlterarDominioModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+interface EditEmpresaModalProps {
+  portal: Portal;
+  onClose: () => void;
+  onSave: (data: { cnpj: string; responsavel: string; email: string }) => void;
+}
+
+function EditEmpresaModal({ portal, onClose, onSave }: EditEmpresaModalProps) {
+  const [cnpj,        setCnpj]        = useState(portal.empresa.cnpj        || '');
+  const [responsavel, setResponsavel] = useState(portal.empresa.responsavel || '');
+  const [email,       setEmail]       = useState(portal.empresa.email       || '');
+  const [saving,      setSaving]      = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave({ cnpj, responsavel, email });
+    setSaving(false);
+    onClose();
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Editar dados da empresa"
+      size="sm"
+      footer={
+        <div className="modal-footer">
+          <button className="btn-outline" type="button" onClick={onClose}>Cancelar</button>
+          <button className="btn-primary" type="button" onClick={handleSave} disabled={saving}>
+            {saving ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--color-gray-700)' }}>
+          CNPJ
+          <input
+            style={{ padding: '8px 12px', border: '1px solid var(--color-gray-300)', borderRadius: '6px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' } as React.CSSProperties}
+            type="text"
+            value={cnpj}
+            placeholder="00.000.000/0000-00"
+            maxLength={18}
+            onChange={e => setCnpj(e.target.value)}
+          />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--color-gray-700)' }}>
+          Responsável
+          <input
+            style={{ padding: '8px 12px', border: '1px solid var(--color-gray-300)', borderRadius: '6px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' } as React.CSSProperties}
+            type="text"
+            value={responsavel}
+            placeholder="Nome do responsável"
+            onChange={e => setResponsavel(e.target.value)}
+          />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--color-gray-700)' }}>
+          E-mail
+          <input
+            style={{ padding: '8px 12px', border: '1px solid var(--color-gray-300)', borderRadius: '6px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' } as React.CSSProperties}
+            type="email"
+            value={email}
+            placeholder="email@empresa.com"
+            onChange={e => setEmail(e.target.value)}
+          />
+        </label>
+      </div>
+    </Modal>
+  );
+}
+
 export default function PortaisPage() {
   const navigate = useNavigate();
   const { enterPortal } = useAuth();
@@ -160,6 +231,7 @@ export default function PortaisPage() {
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [detalhesSite, setDetalhesSite] = useState<{ link: string; ip: string } | null>(null);
   const [alterarSite, setAlterarSite] = useState<boolean>(false);
+  const [editEmpresaPortal, setEditEmpresaPortal] = useState<Portal | null>(null);
 
   useEffect(() => {
     fetchPortais().then(data => {
@@ -170,6 +242,14 @@ export default function PortaisPage() {
 
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
+  }
+
+  async function handleEditEmpresa(portalId: string, data: { cnpj: string; responsavel: string; email: string }) {
+    setPortais(prev => prev.map(p => p.id !== portalId ? p : {
+      ...p,
+      empresa: { ...p.empresa, ...data },
+    }));
+    await updateEmpresaData(portalId, data);
   }
 
   async function toggleEmpresaStatus(portalId: string) {
@@ -282,6 +362,13 @@ export default function PortaisPage() {
                     <button
                       className="portais-btn portais-btn--outline-sm"
                       type="button"
+                      onClick={() => setEditEmpresaPortal(portal)}
+                    >
+                      Editar dados
+                    </button>
+                    <button
+                      className="portais-btn portais-btn--outline-sm"
+                      type="button"
                       onClick={() => toggleEmpresaStatus(portal.id)}
                     >
                       {portal.empresa.status === 'Ativa' ? 'Suspender conta' : 'Reativar conta'}
@@ -355,6 +442,13 @@ export default function PortaisPage() {
       )}
       {alterarSite && (
         <AlterarDominioModal onClose={() => setAlterarSite(false)} />
+      )}
+      {editEmpresaPortal && (
+        <EditEmpresaModal
+          portal={editEmpresaPortal}
+          onClose={() => setEditEmpresaPortal(null)}
+          onSave={(data) => handleEditEmpresa(editEmpresaPortal.id, data)}
+        />
       )}
     </div>
   );

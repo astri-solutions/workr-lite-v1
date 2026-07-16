@@ -171,6 +171,30 @@ export async function deletePortal(portalId: string): Promise<void> {
   await supabase.from('portals').delete().eq('portal_key', portalId);
 }
 
+export async function updateEmpresaData(
+  portalId: string,
+  data: { cnpj?: string; responsavel?: string; email?: string }
+): Promise<void> {
+  const locals = readLocalStorage();
+  const portal = locals.find(p => p.id === portalId);
+  if (portal) {
+    portal.empresa = { ...portal.empresa, ...data };
+    writeLocalStorage(locals);
+  }
+
+  if (!isSupabaseConfigured || !supabase) return;
+
+  const update: Record<string, string | null> = {};
+  if ('cnpj'        in data) update['cnpj']        = data.cnpj        || null;
+  if ('responsavel' in data) update['responsavel']  = data.responsavel || null;
+  if ('email'       in data) update['email']        = data.email       || null;
+
+  await supabase
+    .from('portals')
+    .update(update)
+    .eq('portal_key', portalId);
+}
+
 export async function updateEmpresaStatus(
   portalId: string,
   status: 'Ativa' | 'Suspensa'
