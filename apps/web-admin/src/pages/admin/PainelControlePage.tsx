@@ -4,6 +4,7 @@ import type { AdminOutletContext } from '../../components/AdminLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { loadPortalSiteAsync } from '../../utils/loadPortalSite';
 import { deletePortal } from '../../lib/portalsApi';
+import Modal from '../../components/Modal';
 import './AdminPages.css';
 import './PainelControlePage.css';
 
@@ -47,6 +48,7 @@ export default function PainelControlePage() {
   const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState(false);
   const [maintenance, setMaintenance] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [dangerInput1, setDangerInput1] = useState('');
   const [dangerInput2, setDangerInput2] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -164,6 +166,7 @@ export default function PainelControlePage() {
       const portals: Array<{ id: string }> = raw ? JSON.parse(raw) : [];
       localStorage.setItem('workr_portais', JSON.stringify(portals.filter(p => p.id !== site.portalId)));
 
+      setDeleteModalOpen(false);
       navigate('/admin/portais');
     } catch (e) {
       setDeleteError(String(e));
@@ -607,47 +610,46 @@ export default function PainelControlePage() {
               Esta ação é irreversível. O repositório GitHub{site.githubRepo ? ` (${site.githubRepo})` : ''} e o projeto Vercel vinculados a este portal serão removidos permanentemente.
             </p>
           </div>
-
-          <div className="painel-danger-inputs">
-            <div className="painel-danger-input-group">
-              <label className="painel-danger-label">
-                Digite o nome do portal para confirmar
-              </label>
-              <input
-                className="painel-danger-input"
-                type="text"
-                placeholder={site.link}
-                value={dangerInput1}
-                onChange={e => setDangerInput1(e.target.value)}
-                disabled={deleting}
-                autoComplete="off"
-              />
-            </div>
-            <div className="painel-danger-input-group">
-              <label className="painel-danger-label">
-                Digite <strong>excluir meu portal</strong> para confirmar
-              </label>
-              <input
-                className="painel-danger-input"
-                type="text"
-                placeholder="excluir meu portal"
-                value={dangerInput2}
-                onChange={e => setDangerInput2(e.target.value)}
-                disabled={deleting}
-                autoComplete="off"
-              />
-            </div>
-
-            {deleteError && (
-              <p className="painel-danger-error" style={{ whiteSpace: 'pre-line' }}>{deleteError}</p>
-            )}
-
+          <div>
             <button
-              className="painel-danger-btn"
               type="button"
+              className="painel-danger-btn-outline"
+              onClick={() => {
+                setDangerInput1('');
+                setDangerInput2('');
+                setDeleteError(null);
+                setDeleteModalOpen(true);
+              }}
+            >
+              Excluir portal
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Delete confirmation modal ───────────────────── */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => { if (!deleting) setDeleteModalOpen(false); }}
+        title="Excluir portal"
+        size="sm"
+        description={`Isso irá excluir permanentemente o portal e todos os recursos relacionados como Repositório GitHub, Projeto Vercel e Domínios.`}
+        footer={
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={deleting}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="painel-danger-btn"
               disabled={
                 deleting ||
-                dangerInput1.trim() !== site.link ||
+                dangerInput1.trim() !== site.cliente ||
                 dangerInput2.trim() !== 'excluir meu portal'
               }
               onClick={handleExcluirPortal}
@@ -655,12 +657,63 @@ export default function PainelControlePage() {
               {deleting ? (
                 <><span className="painel-spin painel-spin--white" /> Excluindo…</>
               ) : (
-                'Excluir portal permanentemente'
+                'Excluir portal'
               )}
             </button>
           </div>
+        }
+      >
+        <div className="painel-danger-inputs" style={{ maxWidth: 'none' }}>
+          <div className="painel-danger-input-group">
+            <label className="painel-danger-label">
+              Para confirmar, digite <strong>{site.cliente}</strong>
+            </label>
+            <input
+              className={`painel-danger-input${dangerInput1.length > 0 && dangerInput1.trim() !== site.cliente ? ' painel-danger-input--invalid' : ''}`}
+              type="text"
+              placeholder={site.cliente}
+              value={dangerInput1}
+              onChange={e => setDangerInput1(e.target.value)}
+              disabled={deleting}
+              autoComplete="off"
+            />
+            {dangerInput1.length > 0 && dangerInput1.trim() !== site.cliente && (
+              <p className="painel-danger-input-hint">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                O valor não corresponde a <em>{site.cliente}</em>
+              </p>
+            )}
+          </div>
+
+          <div className="painel-danger-input-group">
+            <label className="painel-danger-label">
+              Para confirmar, digite <strong>excluir meu portal</strong>
+            </label>
+            <input
+              className="painel-danger-input"
+              type="text"
+              placeholder="excluir meu portal"
+              value={dangerInput2}
+              onChange={e => setDangerInput2(e.target.value)}
+              disabled={deleting}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="painel-danger-warning">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Excluir <strong>{site.cliente}</strong> não pode ser desfeito.
+          </div>
+
+          {deleteError && (
+            <p className="painel-danger-error" style={{ whiteSpace: 'pre-line' }}>{deleteError}</p>
+          )}
         </div>
-      </div>
+      </Modal>
 
     </div>
   );

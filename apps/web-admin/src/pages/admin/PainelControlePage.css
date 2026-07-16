@@ -838,6 +838,60 @@
   cursor: not-allowed;
 }
 
+.painel-danger-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid #dc2626;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: #dc2626;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.painel-danger-btn-outline:hover {
+  background: #fef2f2;
+}
+
+.painel-danger-input--invalid {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px #fee2e233;
+}
+
+.painel-danger-input-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: #dc2626;
+  margin: 0;
+}
+
+.painel-danger-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: #991b1b;
+  line-height: 1.45;
+}
+
+.painel-danger-warning svg {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
 .painel-spin--white {
   border-color: rgba(255,255,255,0.35);
   border-top-color: #fff;
