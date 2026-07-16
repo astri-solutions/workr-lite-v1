@@ -1347,6 +1347,12 @@ export default function NovoPortalPage() {
             localStorage.setItem('portal_layout', form.tipo);
           }
 
+          // Salva fontes do portal (usadas por FontesPage e pelo Publicar site)
+          localStorage.setItem('portal_fontes', JSON.stringify({
+            heading: form.fonteTitulo,
+            body: form.fonteTexto,
+          }));
+
           // Adiciona usuário admin à lista global de usuários
           if (form.adminEmail) {
             const usuariosRaw = localStorage.getItem('workr_usuarios');
