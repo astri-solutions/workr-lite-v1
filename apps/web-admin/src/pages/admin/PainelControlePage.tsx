@@ -196,7 +196,7 @@ export default function PainelControlePage() {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="painel-breadcrumb__sep">
           <polyline points="9 18 15 12 9 6" />
         </svg>
-        <span className="painel-breadcrumb__current">{site.link}</span>
+        <span className="painel-breadcrumb__current">{site.cliente}</span>
       </div>
 
       <div className="painel-header">

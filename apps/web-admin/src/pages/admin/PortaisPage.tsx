@@ -16,7 +16,7 @@ const TIPO_BADGE: Record<SiteTipo, string> = {
 
 function SiteKebabMenu({
   onDetalhes,
-  onAlterarDominio,
+  onAlterarDominio: _onAlterarDominio,
 }: {
   onDetalhes: () => void;
   onAlterarDominio: () => void;
@@ -47,9 +47,7 @@ function SiteKebabMenu({
           <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onDetalhes(); }}>
             Detalhes do site
           </button>
-          <button className="portais-kebab__item" type="button" onClick={() => { setOpen(false); onAlterarDominio(); }}>
-            Alterar domínio
-          </button>
+          {/* Alterar domínio: oculto enquanto domínios customizados não estão disponíveis */}
         </div>
       )}
     </div>

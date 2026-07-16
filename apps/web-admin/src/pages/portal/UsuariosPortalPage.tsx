@@ -165,22 +165,30 @@ export default function UsuariosPortalPage() {
         error?: string;
       };
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      const mapped: PortalUser[] = (json.users ?? []).map(u => ({
-        id: u.id,
-        nome: u.nome,
-        email: u.email,
-        role: u.role === 'super_admin' ? 'admin' : 'editor',
-        empresaIds: [],
-        ativo: u.status !== 'Suspenso',
-        criadoEm: u.criadoEm ?? '',
-      }));
+      const activePortalId = user?.activePortalId;
+      const mapped: PortalUser[] = (json.users ?? [])
+        .filter(u => {
+          // Include super_admins and users assigned to this portal
+          if (u.role === 'super_admin') return true;
+          if (!activePortalId) return true;
+          return u.portais?.includes(activePortalId);
+        })
+        .map(u => ({
+          id: u.id,
+          nome: u.nome,
+          email: u.email,
+          role: u.role === 'super_admin' ? 'admin' : 'editor',
+          empresaIds: [],
+          ativo: u.status !== 'Suspenso',
+          criadoEm: u.criadoEm ?? '',
+        }));
       setUsers(mapped);
     } catch (e) {
       setError(String(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.activePortalId]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 

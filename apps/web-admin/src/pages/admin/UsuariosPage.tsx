@@ -99,6 +99,7 @@ export default function UsuariosPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditableUser | null>(null);
   const [desativarTarget, setDesativarTarget] = useState<UsuarioItem | null>(null);
+  const [desativarPortais, setDesativarPortais] = useState<string[]>([]); // selected portal ids to suspend from
   const [removerTarget, setRemoverTarget] = useState<UsuarioItem | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -184,10 +185,23 @@ export default function UsuariosPage() {
     setActionLoading(null);
   }
 
+  function openDesativar(u: UsuarioItem) {
+    setDesativarTarget(u);
+    // Pre-select all portals the user belongs to
+    setDesativarPortais(u.portais);
+  }
+
   async function confirmDesativar() {
     if (!desativarTarget) return;
+    const target = desativarTarget;
     setDesativarTarget(null);
-    await handleToggleStatus(desativarTarget.id);
+    if (target.portais.length > 1 && desativarPortais.length < target.portais.length) {
+      // Partial suspension: update portais to remove selected ones
+      const remaining = target.portais.filter(id => !desativarPortais.includes(id));
+      await handleSaveRole(target.id, target.role, remaining);
+    } else {
+      await handleToggleStatus(target.id);
+    }
   }
 
   async function confirmRemover() {
@@ -267,13 +281,54 @@ export default function UsuariosPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setDesativarTarget(null)}>Cancelar</button>
-              <button className="btn-danger" type="button" onClick={confirmDesativar}>Desativar</button>
+              <button
+                className="btn-outline btn-outline--danger"
+                type="button"
+                disabled={desativarTarget.portais.length > 1 && desativarPortais.length === 0}
+                onClick={confirmDesativar}
+              >
+                {desativarTarget.portais.length > 1 && desativarPortais.length < desativarTarget.portais.length
+                  ? 'Remover acesso'
+                  : 'Desativar'}
+              </button>
             </div>
           }
         >
-          <p className="ae-confirm-text">
-            <strong>{desativarTarget.nome}</strong> perderá acesso imediato a todos os conteúdos do portal. Deseja continuar?
-          </p>
+          {desativarTarget.portais.length > 1 ? (
+            <>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', marginBottom: '12px' }}>
+                <strong>{desativarTarget.nome}</strong> está cadastrado em {desativarTarget.portais.length} portais.
+                Selecione de quais portais deseja remover o acesso:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                {desativarTarget.portais.map(pid => {
+                  const checked = desativarPortais.includes(pid);
+                  const nome = portaisMap[pid] ?? pid;
+                  return (
+                    <label key={pid} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setDesativarPortais(prev =>
+                          checked ? prev.filter(id => id !== pid) : [...prev, pid]
+                        )}
+                      />
+                      {nome}
+                    </label>
+                  );
+                })}
+              </div>
+              {desativarPortais.length === desativarTarget.portais.length && (
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-danger)', lineHeight: 1.5 }}>
+                  Ao remover todos os portais, o usuário será desativado completamente.
+                </p>
+              )}
+            </>
+          ) : (
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.5 }}>
+              <strong>{desativarTarget.nome}</strong> perderá acesso imediato a todos os conteúdos do portal. Deseja continuar?
+            </p>
+          )}
         </Modal>
       )}
 
@@ -390,7 +445,7 @@ export default function UsuariosPage() {
                             className={`btn-action ${u.status === 'Suspenso' ? 'btn-action--activate' : 'btn-action--secondary'}`}
                             type="button"
                             disabled={isLoading}
-                            onClick={() => u.status === 'Ativo' ? setDesativarTarget(u) : handleToggleStatus(u.id)}
+                            onClick={() => u.status === 'Ativo' ? openDesativar(u) : handleToggleStatus(u.id)}
                           >
                             {u.status === 'Suspenso' ? 'Ativar' : 'Desativar'}
                           </button>
