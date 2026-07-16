@@ -1457,6 +1457,7 @@ export default function NovoPortalPage() {
                     body: JSON.stringify({
                       email: form.adminEmail,
                       nome: form.adminNome,
+                      portalId: newPortal.id,
                       redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
                     }),
                   }
