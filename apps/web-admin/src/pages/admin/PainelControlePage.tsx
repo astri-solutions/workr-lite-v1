@@ -53,6 +53,7 @@ export default function PainelControlePage() {
   const [dangerInput2, setDangerInput2] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteGhWarn, setDeleteGhWarn] = useState<string | null>(null);
   const [site, setSite] = useState<SiteData | null | undefined>(undefined);
   const dangerRef = useRef<HTMLDivElement>(null);
 
@@ -116,6 +117,7 @@ export default function PainelControlePage() {
     if (!site) return;
     setDeleting(true);
     setDeleteError(null);
+    setDeleteGhWarn(null);
     try {
       if (isSupabaseConfigured && supabase) {
         const { data: { session } } = await supabase.auth.getSession();
@@ -144,19 +146,16 @@ export default function PainelControlePage() {
             ok?: boolean;
             results?: { github?: string; vercel?: string; db?: string };
           };
-          // GitHub 403 = token sem delete_repo — avisa mas não bloqueia exclusão do banco
           if (delData.results?.github?.startsWith('error:')) {
             const ghErr = delData.results.github.replace('error:', '');
-            if (ghErr.includes('403') || ghErr.includes('Resource not accessible')) {
-              throw new Error(
-                `O repositório GitHub (${site.githubRepo}) não foi deletado automaticamente.\n\n` +
-                `Motivo: o token não tem permissão "delete_repo".\n\n` +
-                `Delete manualmente em: https://github.com/astri-solutions/${site.githubRepo}/settings → Danger Zone → Delete this repository.`
-              );
-            }
-            // 404 = já foi deletado manualmente — ok, continua
+            // 404 = já deletado manualmente — ok
+            // 403 = token sem delete_repo — avisa mas continua (não bloqueia)
             if (!ghErr.includes('404')) {
-              throw new Error(`Erro ao deletar repositório GitHub: ${ghErr}`);
+              setDeleteGhWarn(
+                site.githubRepo
+                  ? `Repositório GitHub (${site.githubRepo}) não deletado automaticamente. Delete manualmente em github.com/astri-solutions/${site.githubRepo} → Settings → Danger Zone.`
+                  : 'Repositório GitHub não deletado automaticamente. Verifique se já foi removido.'
+              );
             }
           }
           if (delData.results?.db?.startsWith('error:')) {
@@ -711,6 +710,9 @@ export default function PainelControlePage() {
             Excluir <strong>{site.cliente}</strong> não pode ser desfeito.
           </div>
 
+          {deleteGhWarn && (
+            <p className="painel-danger-error" style={{ background: '#fff8e1', borderColor: '#f59e0b', color: '#92400e', whiteSpace: 'pre-line' }}>{deleteGhWarn}</p>
+          )}
           {deleteError && (
             <p className="painel-danger-error" style={{ whiteSpace: 'pre-line' }}>{deleteError}</p>
           )}
