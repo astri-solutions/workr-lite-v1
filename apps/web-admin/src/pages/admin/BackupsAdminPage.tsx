@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Modal from '../../components/Modal';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import { loadPortalSite } from '../../utils/loadPortalSite';
@@ -58,6 +60,8 @@ export default function BackupsAdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [confirmBackup, setConfirmBackup] = useState<Backup | null>(null);
 
   const githubOrg = 'astri-solutions';
   const repoName = site?.githubRepo ?? (site?.subdomain ? `portal-${site.subdomain}` : null);
@@ -81,9 +85,44 @@ export default function BackupsAdminPage() {
   const { sorted: sortedBackups, col, dir, toggle } = useSort(backups);
   const lastBackup = backups[0];
 
-  function handleRestore(id: string) {
-    setRestoring(id);
-    setTimeout(() => setRestoring(null), 2200);
+  async function executeRestore(backup: Backup) {
+    if (!repoName) return;
+    setConfirmBackup(null);
+    setRestoring(backup.id);
+    setRestoreError(null);
+
+    try {
+      let token: string | null = null;
+      if (isSupabaseConfigured && supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        token = session?.access_token ?? null;
+      }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        headers['apikey'] = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/restore-backup`,
+        { method: 'POST', headers, body: JSON.stringify({ repoName, sha: backup.id }) }
+      );
+
+      const json = await res.json() as { ok?: boolean; error?: string };
+      if (!json.ok) {
+        setRestoreError(json.error ?? `Erro ${res.status}`);
+      }
+    } catch (e) {
+      setRestoreError(String(e));
+    } finally {
+      setRestoring(null);
+    }
+  }
+
+  function handleRestore(backup: Backup) {
+    setRestoreError(null);
+    setConfirmBackup(backup);
   }
 
   if (!site) {
@@ -228,7 +267,7 @@ export default function BackupsAdminPage() {
                         className={`db-row-btn${restoring === b.id ? ' bkp-btn--loading' : ''}`}
                         type="button"
                         title="Restaurar para este commit"
-                        onClick={() => handleRestore(b.id)}
+                        onClick={() => handleRestore(b)}
                         disabled={restoring !== null}
                       >
                         {restoring === b.id ? (
@@ -262,6 +301,46 @@ export default function BackupsAdminPage() {
           )}
         </div>
       )}
+      {/* Confirm restore modal */}
+      <Modal
+        open={!!confirmBackup}
+        onClose={() => setConfirmBackup(null)}
+        title="Restaurar portal"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button className="btn-outline" type="button" onClick={() => setConfirmBackup(null)}>Cancelar</button>
+            <button className="btn-outline btn-outline--danger" type="button" onClick={() => confirmBackup && executeRestore(confirmBackup)}>
+              Restaurar
+            </button>
+          </div>
+        }
+      >
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: '1.5' }}>
+          O repositório <strong>{repoName}</strong> será revertido para o commit{' '}
+          <code style={{ fontFamily: 'monospace', background: 'var(--color-gray-100)', padding: '1px 4px', borderRadius: '3px' }}>
+            {confirmBackup?.sha}
+          </code>{' '}
+          ("{confirmBackup?.message}"). Todos os commits posteriores serão removidos do histórico. Esta ação não pode ser desfeita.
+        </p>
+      </Modal>
+
+      {/* Restore error modal */}
+      <Modal
+        open={!!restoreError}
+        onClose={() => setRestoreError(null)}
+        title="Erro ao restaurar"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button className="btn-primary" type="button" onClick={() => setRestoreError(null)}>Fechar</button>
+          </div>
+        }
+      >
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: '1.5', whiteSpace: 'pre-line' }}>
+          {restoreError}
+        </p>
+      </Modal>
     </div>
   );
 }
