@@ -1,14 +1,24 @@
 import { useAuth } from '../contexts/AuthContext';
 import PORTAL_CONFIG from '../portalConfig';
 
-/** Returns the active portal's display name from the auth session.
- *  Falls back to PORTAL_CONFIG.name when no session portal is set (e.g. super_admin). */
+function nameFromStorage(id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  try {
+    const portais = JSON.parse(localStorage.getItem('workr_portais') ?? '[]') as Array<{ id: string; cliente?: string }>;
+    return portais.find(p => p.id === id)?.cliente;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Returns the active portal's display name. Checks auth session first, then workr_portais localStorage. */
 export function usePortalName(): string {
   const { user } = useAuth();
-  if (!user?.portais?.length) return PORTAL_CONFIG.name;
-  return (
-    user.portais.find(p => p.id === user.activePortalId)?.nome ??
-    user.portais[0].nome ??
-    PORTAL_CONFIG.name
-  );
+  const activeId = user?.activePortalId;
+
+  const fromSession =
+    user?.portais?.find(p => p.id === activeId)?.nome ??
+    user?.portais?.[0]?.nome;
+
+  return fromSession ?? nameFromStorage(activeId) ?? PORTAL_CONFIG.name;
 }
