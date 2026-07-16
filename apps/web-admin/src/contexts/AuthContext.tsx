@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const u = supabaseUserToUser(session.user);
+        const u = mergeWithStored(supabaseUserToUser(session.user));
         setUser(u);
         persist(u);
       } else {
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        const u = supabaseUserToUser(session.user);
+        const u = mergeWithStored(supabaseUserToUser(session.user));
         setUser(u);
         persist(u);
       } else {
@@ -137,6 +137,38 @@ export function useAuth(): AuthContextValue {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Preserve portais/activePortalId from the stored session when re-authenticating
+ * the same email. For client_user with no active portal, auto-detect from the
+ * portals list stored in localStorage (matched by empresa.email).
+ */
+function mergeWithStored(u: User): User {
+  const stored = userFromStorage();
+  let merged: User = stored && stored.email === u.email
+    ? { ...u, portais: stored.portais, activePortalId: stored.activePortalId }
+    : u;
+
+  // Auto-assign portal for client_user accounts that have none yet
+  if (merged.role === 'client_user' && !merged.activePortalId) {
+    try {
+      const portais = JSON.parse(localStorage.getItem('workr_portais') ?? '[]') as Array<{
+        id: string; cliente: string; empresa?: { email?: string };
+      }>;
+      const mine = portais.find(p => p.empresa?.email === merged.email);
+      if (mine) {
+        const entry = { id: mine.id, nome: mine.cliente };
+        merged = {
+          ...merged,
+          portais: [entry],
+          activePortalId: mine.id,
+        };
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  return merged;
+}
 
 function supabaseUserToUser(sbUser: { email?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }): User {
   const meta = sbUser.user_metadata ?? {};
