@@ -3,7 +3,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import { generateColorScale } from '../../utils/colorUtils';
+import { generateColorScale, contrastRatio, wcagLevel, bestTextColor, type WcagLevel } from '../../utils/colorUtils';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
@@ -175,6 +175,101 @@ const COLOR_DEFS = [
   { key: 'tertiary' as const,  label: 'Cor terciária',   desc: 'Elementos de apoio e variações' },
 ];
 
+// ── Contrast checker ──────────────────────────────────────────────────────────
+
+const LEVEL_META: Record<WcagLevel, { cls: string; tip: string }> = {
+  'AAA':      { cls: 'ca-badge ca-badge--aaa',   tip: 'Excelente — texto normal e pequeno' },
+  'AA':       { cls: 'ca-badge ca-badge--aa',    tip: 'Bom — texto normal (≥ 4,5:1)' },
+  'AA large': { cls: 'ca-badge ca-badge--aal',   tip: 'Apenas texto grande / ícones (≥ 3:1)' },
+  'Fail':     { cls: 'ca-badge ca-badge--fail',  tip: 'Contraste insuficiente' },
+};
+
+interface ContrastRowProps { bg: string; fg: string; label: string }
+
+function ContrastRow({ bg, fg, label }: ContrastRowProps) {
+  const ratio = contrastRatio(bg, fg);
+  const level = wcagLevel(ratio);
+  const meta  = LEVEL_META[level];
+  return (
+    <div className="ca-row">
+      <div className="ca-swatch" style={{ background: bg }}>
+        <span style={{ color: fg, fontWeight: 600, fontSize: '13px' }}>Aa</span>
+      </div>
+      <div className="ca-row__info">
+        <span className="ca-row__label">{label}</span>
+        <span className="ca-row__ratio">{ratio}:1</span>
+      </div>
+      <span className={meta.cls} title={meta.tip}>{level}</span>
+    </div>
+  );
+}
+
+interface ContrastCardProps { hex: string; name: string }
+
+function ContrastCard({ hex, name }: ContrastCardProps) {
+  const best = bestTextColor(hex);
+  const worst = best === '#ffffff' ? '#000000' : '#ffffff';
+  const bestLabel  = best  === '#ffffff' ? 'Texto branco' : 'Texto preto';
+  const worstLabel = worst === '#ffffff' ? 'Texto branco' : 'Texto preto';
+  const bestRatio  = contrastRatio(hex, best);
+  const bestLevel  = wcagLevel(bestRatio);
+  const worstLevel = wcagLevel(contrastRatio(hex, worst));
+
+  return (
+    <div className="ca-card">
+      <div className="ca-card__header">
+        <div className="ca-card__swatch" style={{ background: hex }} />
+        <div>
+          <div className="ca-card__name">{name}</div>
+          <div className="ca-card__hex">{hex.toUpperCase()}</div>
+        </div>
+        <div className={`ca-card__badge ${LEVEL_META[bestLevel].cls}`}>
+          Melhor texto: {bestLabel.replace('Texto ', '')}
+        </div>
+      </div>
+
+      {worstLevel === 'Fail' && (
+        <div className="ca-warning">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+            <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+          {worstLabel} nesta cor <strong>não atende WCAG</strong> — evite essa combinação.
+        </div>
+      )}
+
+      <div className="ca-rows">
+        <ContrastRow bg={hex}       fg={best}      label={bestLabel} />
+        <ContrastRow bg={hex}       fg={worst}     label={worstLabel} />
+        <ContrastRow bg="#ffffff"   fg={hex}       label="Cor sobre fundo branco" />
+        <ContrastRow bg="#141414"   fg={hex}       label="Cor sobre fundo escuro" />
+      </div>
+    </div>
+  );
+}
+
+function ContrastPanel({ palette }: { palette: Palette }) {
+  return (
+    <div className="ca-panel">
+      <div className="ca-panel__head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4m0 4h.01"/>
+        </svg>
+        <h2 className="ca-panel__title">Verificação de Acessibilidade WCAG 2.1</h2>
+      </div>
+      <p className="ca-panel__desc">
+        Contraste mínimo recomendado: <strong>4,5:1</strong> para texto normal (AA) e <strong>3:1</strong> para texto grande e ícones.
+        Cores vibrantes com contraste baixo causam fadiga visual mesmo quando tecnicamente aprovadas.
+      </p>
+      <div className="ca-grid">
+        <ContrastCard hex={palette.primary}   name="Cor Primária" />
+        <ContrastCard hex={palette.secondary} name="Cor Secundária" />
+        <ContrastCard hex={palette.tertiary}  name="Cor Terciária" />
+      </div>
+    </div>
+  );
+}
+
 export default function CoresPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
@@ -252,6 +347,9 @@ export default function CoresPage() {
         </div>
         <ColorPreview palette={preview} />
       </div>
+
+      {/* Accessibility checker — updates live as user picks colors */}
+      <ContrastPanel palette={draft} />
 
       <UnsavedModal
         open={blocker.state === 'blocked'}

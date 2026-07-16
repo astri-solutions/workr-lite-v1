@@ -79,6 +79,46 @@ export function applyColorScale(
   });
 }
 
+// ── WCAG Contrast ────────────────────────────────────────────────────────────
+
+function hexToLinear(channel: number): number {
+  const c = channel / 255;
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function relativeLuminance(hex: string): number {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return 0;
+  const r = hexToLinear(parseInt(hex.slice(1, 3), 16));
+  const g = hexToLinear(parseInt(hex.slice(3, 5), 16));
+  const b = hexToLinear(parseInt(hex.slice(5, 7), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** WCAG 2.1 contrast ratio between two hex colors (1–21). */
+export function contrastRatio(hex1: string, hex2: string): number {
+  const l1 = relativeLuminance(hex1);
+  const l2 = relativeLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker  = Math.min(l1, l2);
+  return parseFloat(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
+}
+
+export type WcagLevel = 'AAA' | 'AA' | 'AA large' | 'Fail';
+
+export function wcagLevel(ratio: number): WcagLevel {
+  if (ratio >= 7)   return 'AAA';
+  if (ratio >= 4.5) return 'AA';
+  if (ratio >= 3)   return 'AA large';
+  return 'Fail';
+}
+
+/** Returns '#ffffff' or '#000000' — whichever gives higher contrast on bg. */
+export function bestTextColor(bgHex: string): '#ffffff' | '#000000' {
+  const onWhite = contrastRatio(bgHex, '#ffffff');
+  const onBlack = contrastRatio(bgHex, '#000000');
+  return onWhite >= onBlack ? '#ffffff' : '#000000';
+}
+
 /**
  * Removes the inline --color-{name}-* properties, falling back to
  * whatever the stylesheet defines.
