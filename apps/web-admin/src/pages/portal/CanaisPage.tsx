@@ -7,6 +7,7 @@ import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, PageType, ListaAgrupadaSt
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
+import { savePortalConfig } from '../../lib/portalConfigApi';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import { loadCvmRoutedPageIds } from '../../services/cvm.service';
 import '../admin/AdminPages.css';
@@ -380,6 +381,7 @@ export default function CanaisPage() {
 
   function saveToStorage(updated: Canal[]) {
     localStorage.setItem(canaisKey, JSON.stringify(updated));
+    if (activePortalId) savePortalConfig(activePortalId, { canais: updated }).catch(console.error);
   }
   function handleSaveOrder() {
     saveToStorage(canais);

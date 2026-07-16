@@ -503,21 +503,34 @@ Deno.serve(async (req) => {
       vercelError = 'VERCEL_TOKEN não configurado';
     }
 
-    // ── Step 6: persist portal record in Supabase ────────────────────────────
-    // Allows publish-config to look up github_repo by portalId without localStorage
+    // ── Step 6: persist portal record + initial config in Supabase ──────────
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
-      await adminClient.from('portals').upsert({
+
+      // Upsert portals row
+      const { data: portalRow } = await adminClient.from('portals').upsert({
         portal_key: _portalId,
         cliente: nome,
         subdomain,
         github_repo: repoName,
         vercel_url: vercelUrl,
-      }, { onConflict: 'portal_key' });
-    } catch { /* non-fatal — portal still works, publish-config will need repoName from frontend */ }
+      }, { onConflict: 'portal_key' }).select('id').single();
+
+      // Create initial portal_config row
+      if (portalRow?.id) {
+        await adminClient.from('portal_config').upsert({
+          portal_id: portalRow.id,
+          canais: canais ?? [],
+          cores: colors ?? {},
+          fontes: fonts ?? {},
+          layout: layout ?? 'banner',
+          footer: footer ?? {},
+        }, { onConflict: 'portal_id' });
+      }
+    } catch { /* non-fatal — portal still works */ }
 
     return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },

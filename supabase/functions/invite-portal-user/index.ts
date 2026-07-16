@@ -45,17 +45,19 @@ Deno.serve(async (req) => {
     }
 
     // Only super_admin can invite portal users
-    const role = user.app_metadata?.role as string | undefined;
-    if (role !== 'super_admin') {
+    const callerRole = user.app_metadata?.role as string | undefined;
+    if (callerRole !== 'super_admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
         status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
-    const { email, nome, portalId, redirectTo } = await req.json() as {
+    const { email, nome, portalId, role, empresas, redirectTo } = await req.json() as {
       email: string;
       nome?: string;
       portalId?: string;
+      role?: string;
+      empresas?: string[] | null;
       redirectTo?: string;
     };
 
@@ -90,8 +92,21 @@ Deno.serve(async (req) => {
 
     let userId: string | null = null;
 
+    // Helper: upsert portal_users record
+    async function upsertPortalUser(uid: string) {
+      if (!dbUuid) return;
+      await adminClient.from('portal_users').upsert({
+        portal_id: dbUuid,
+        user_id: uid,
+        email,
+        nome: nome ?? '',
+        role: role ?? 'editor',
+        empresas: empresas ?? null,
+      }, { onConflict: 'portal_id,user_id' });
+    }
+
     if (error) {
-      // If user already exists, find them and patch app_metadata
+      // If user already exists, find them and patch app_metadata + portal_users
       if (error.message?.toLowerCase().includes('already') || error.message?.toLowerCase().includes('registered')) {
         try {
           const { data: { users } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
@@ -104,6 +119,7 @@ Deno.serve(async (req) => {
             await adminClient.auth.admin.updateUserById(existing.id, {
               app_metadata: { role: 'client_user', portalIds: merged },
             });
+            await upsertPortalUser(existing.id);
           }
         } catch { /* non-fatal */ }
         return new Response(JSON.stringify({ error: error.message, id: userId }), {
@@ -115,7 +131,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // New invite: set role + portalIds in app_metadata
+    // New invite: set role + portalIds in app_metadata + create portal_users record
     if (data.user?.id) {
       userId = data.user.id;
       const appMeta: Record<string, unknown> = { role: 'client_user' };
@@ -123,6 +139,7 @@ Deno.serve(async (req) => {
         appMeta.portalIds = dbUuid ? [dbUuid] : [portalId];
       }
       await adminClient.auth.admin.updateUserById(data.user.id, { app_metadata: appMeta });
+      await upsertPortalUser(data.user.id);
     }
 
     return new Response(JSON.stringify({ id: userId }), {

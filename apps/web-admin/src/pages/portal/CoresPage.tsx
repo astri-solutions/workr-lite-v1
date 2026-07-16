@@ -7,6 +7,7 @@ import { generateColorScale, contrastRatio, wcagLevel, bestTextColor, type WcagL
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
+import { savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
 
@@ -289,6 +290,7 @@ export default function CoresPage() {
   function handleSave() {
     setPreview(draft);
     localStorage.setItem(coresKey, JSON.stringify(draft));
+    if (portalId) savePortalConfig(portalId, { cores: draft }).catch(console.error);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

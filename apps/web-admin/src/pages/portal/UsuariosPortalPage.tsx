@@ -4,6 +4,14 @@ import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import {
+  fetchPortalUsers,
+  updatePortalUserStatus,
+  updatePortalUserRole,
+  deletePortalUser,
+  type PortalUserRecord,
+  type PortalUserRole,
+} from '../../lib/portalUsersApi';
 import '../admin/AdminPages.css';
 import './UsuariosPortalPage.css';
 
@@ -22,13 +30,25 @@ function loadEmpresas(portalId?: string): Empresa[] {
 type Role = 'admin' | 'editor';
 
 interface PortalUser {
-  id: string;
+  id: string;         // portal_users.id
   nome: string;
   email: string;
   role: Role;
   empresaIds: string[];
   ativo: boolean;
   criadoEm: string;
+}
+
+function recordToUser(r: PortalUserRecord): PortalUser {
+  return {
+    id: r.id,
+    nome: r.nome,
+    email: r.email,
+    role: r.role === 'admin' ? 'admin' : 'editor',
+    empresaIds: r.empresas ?? [],
+    ativo: r.status === 'Ativo',
+    criadoEm: r.createdAt ? new Date(r.createdAt).toLocaleDateString('pt-BR') : '',
+  };
 }
 
 const FN_BASE = import.meta.env.VITE_SUPABASE_URL
@@ -152,37 +172,10 @@ export default function UsuariosPortalPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = await getToken();
-      if (!token) {
-        setError('Sessão não encontrada. Faça login novamente.');
-        return;
-      }
-      const res = await fetch(`${FN_BASE}/list-users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json() as {
-        users?: Array<{ id: string; email: string; nome: string; role: string; portalIds: string[]; status: string; criadoEm?: string }>;
-        error?: string;
-      };
-      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
       const activePortalId = user?.activePortalId;
-      const mapped: PortalUser[] = (json.users ?? [])
-        .filter(u => {
-          // Include super_admins and users assigned to this portal
-          if (u.role === 'super_admin') return true;
-          if (!activePortalId) return true;
-          return u.portalIds?.includes(activePortalId);
-        })
-        .map(u => ({
-          id: u.id,
-          nome: u.nome,
-          email: u.email,
-          role: u.role === 'super_admin' ? 'admin' : 'editor',
-          empresaIds: [],
-          ativo: u.status !== 'Suspenso',
-          criadoEm: u.criadoEm ?? '',
-        }));
-      setUsers(mapped);
+      if (!activePortalId) { setUsers([]); return; }
+      const records = await fetchPortalUsers(activePortalId);
+      setUsers(records.map(recordToUser));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -233,41 +226,49 @@ export default function UsuariosPortalPage() {
 
   async function handleSave() {
     if (!form.nome.trim() || !form.email.trim()) return;
-    const empIds = form.allEmpresas ? [] : form.empresaIds;
+    const empIds = form.allEmpresas ? null : form.empresaIds;
+
+    // Edit existing user
     if (editing) {
-      setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, ...form, empresaIds: empIds } : u));
+      const role = form.role as PortalUserRole;
+      setUsers(prev => prev.map(u => u.id === editing.id
+        ? { ...u, role: form.role, empresaIds: empIds ?? [] } : u));
+      updatePortalUserRole(editing.id, role, empIds).catch(console.error);
       closeModal();
       return;
     }
 
+    // Invite new user
     setInviting(true);
     setInviteError('');
     try {
-      if (isSupabaseConfigured && supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        if (token) {
-          const res = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-portal-user`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-              },
-              body: JSON.stringify({
-                email: form.email,
-                nome: form.nome,
-                role: form.role,
-                redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
-              }),
-            }
-          );
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            throw new Error(body.error ?? 'Erro ao enviar convite');
-          }
+      const token = await getToken();
+      if (!token) throw new Error('Sessão não encontrada');
+      const res = await fetch(
+        `${FN_BASE}/invite-portal-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({
+            email: form.email,
+            nome: form.nome,
+            portalId: user?.activePortalId,
+            role: form.role,
+            empresas: empIds,
+            redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+          }),
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        const msg = body.error ?? 'Erro ao enviar convite';
+        // "already registered" still invited — treat as success for UX
+        if (!msg.toLowerCase().includes('already') && !msg.toLowerCase().includes('registered')) {
+          throw new Error(msg);
         }
       }
       setInvited(true);
@@ -369,7 +370,11 @@ export default function UsuariosPortalPage() {
               empresas={empresas}
               canManage={canInvite}
               onEdit={() => openEdit(u)}
-              onToggle={() => setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p))}
+              onToggle={() => {
+                const nextStatus = u.ativo ? 'Suspenso' : 'Ativo';
+                setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p));
+                updatePortalUserStatus(u.id, nextStatus).catch(console.error);
+              }}
               onDelete={() => setDeleteTarget(u)}
             />
           ))}
@@ -454,7 +459,11 @@ export default function UsuariosPortalPage() {
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
               <button className="btn-outline btn-outline--danger" type="button"
-                onClick={() => { setUsers(p => p.filter(u => u.id !== deleteTarget.id)); setDeleteTarget(null); }}>
+                onClick={() => {
+                  deletePortalUser(deleteTarget.id).catch(console.error);
+                  setUsers(p => p.filter(u => u.id !== deleteTarget.id));
+                  setDeleteTarget(null);
+                }}>
                 Remover
               </button>
             </div>

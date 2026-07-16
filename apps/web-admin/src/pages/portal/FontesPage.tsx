@@ -5,6 +5,7 @@ import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
+import { savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -143,7 +144,9 @@ export default function FontesPage() {
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
-    localStorage.setItem(fontesKey, JSON.stringify({ heading: headingFont, body: bodyFont }));
+    const value = { heading: headingFont, body: bodyFont };
+    localStorage.setItem(fontesKey, JSON.stringify(value));
+    if (portalId) savePortalConfig(portalId, { fontes: value }).catch(console.error);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
