@@ -135,6 +135,9 @@ function buildSiteConfig(opts: {
   banner?: BannerSlideCfg[] | null;
   logoExt?: string;
   faviconExt?: string;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  portalUuid?: string;
 }) {
   const year = new Date().getFullYear();
 
@@ -237,6 +240,12 @@ ${legalLinks}
 
   banner: ${opts.banner ? JSON.stringify(opts.banner, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : '[]'},
 
+  supabase: {
+    url:      ${JSON.stringify(opts.supabaseUrl ?? null)},
+    anonKey:  ${JSON.stringify(opts.supabaseAnonKey ?? null)},
+    portalId: ${JSON.stringify(opts.portalUuid ?? null)},
+  },
+
 };
 `;
 }
@@ -311,6 +320,7 @@ Deno.serve(async (req) => {
 
     // Resolve repoName: either passed directly, or looked up from portals table by portalId
     let repoName = repoNameRaw;
+    let resolvedPortalUuid: string | undefined;
     if (!repoName && portalId) {
       const adminClient = createClient(
         supabaseUrl,
@@ -318,10 +328,11 @@ Deno.serve(async (req) => {
       );
       const { data: portalRow } = await adminClient
         .from('portals')
-        .select('github_repo')
+        .select('github_repo, id')
         .eq('portal_key', portalId)
         .single();
       repoName = portalRow?.github_repo ?? undefined;
+      resolvedPortalUuid = portalRow?.id ?? undefined;
     }
 
     if (!repoName) {
@@ -356,6 +367,16 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
+
+      resolvedPortalUuid ??= portalRow.id;
+    } else if (!resolvedPortalUuid && repoName) {
+      // super_admin path: look up UUID by repo name if not already resolved
+      try {
+        const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+        const { data: portalRow } = await adminClient
+          .from('portals').select('id').eq('github_repo', repoName).single();
+        resolvedPortalUuid = portalRow?.id ?? undefined;
+      } catch { /* non-fatal */ }
     }
 
     const filePath = 'scripts/site.config.js';
@@ -374,6 +395,9 @@ Deno.serve(async (req) => {
       banner: banner ?? null,
       logoExt: logo?.ext,
       faviconExt: favicon?.ext,
+      supabaseUrl: Deno.env.get('SUPABASE_URL'),
+      supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
+      portalUuid: resolvedPortalUuid,
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 

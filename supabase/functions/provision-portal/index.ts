@@ -82,6 +82,9 @@ function buildSiteConfig(opts: {
   canais?: CanalCfg[];
   logoExt?: string;
   faviconExt?: string;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
+  portalUuid?: string;
 }) {
   const year = new Date().getFullYear();
   const f = opts.footer;
@@ -154,6 +157,12 @@ ${buildNavSection(opts.canais ?? [])}
     { id: 'principal', label: ${JSON.stringify(opts.nome)}, short: '${opts.nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || opts.nome.slice(0, 3).toUpperCase()}' },
   ],
 
+  supabase: {
+    url:      ${JSON.stringify(opts.supabaseUrl ?? null)},
+    anonKey:  ${JSON.stringify(opts.supabaseAnonKey ?? null)},
+    portalId: ${JSON.stringify(opts.portalUuid ?? null)},
+  },
+
   header: { variant: '${headerVariant(opts.layout)}' },
 
   restrictedNav: [],
@@ -188,9 +197,6 @@ function buildBlankPage(title: string, parentLabel: string | null): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="${title}" />
     <title>${title}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles/main.scss" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
@@ -359,6 +365,24 @@ Deno.serve(async (req) => {
       fileSha = fileData.sha;
     }
 
+    // ── Step 4a: upsert portal row early so we get the UUID for site.config.js ─
+    let portalUuid: string | undefined;
+    try {
+      const adminClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      );
+      const { data: earlyRow } = await adminClient.from('portals').upsert({
+        portal_key: _portalId,
+        cliente: nome,
+        subdomain,
+        github_repo: repoName,
+        vercel_url: `https://${repoName}.vercel.app`,
+        empresa_status: 'Ativo',
+      }, { onConflict: 'portal_key' }).select('id').single();
+      portalUuid = earlyRow?.id ?? undefined;
+    } catch { /* non-fatal */ }
+
     // ── Step 4: build and push customised site.config.js ─────────────────
     const siteConfigContent = buildSiteConfig({
       nome,
@@ -369,6 +393,9 @@ Deno.serve(async (req) => {
       canais: canais ?? [],
       logoExt:    logo?.ext,
       faviconExt: faviconAsset?.ext,
+      supabaseUrl:     Deno.env.get('SUPABASE_URL'),
+      supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
+      portalUuid,
     });
     const encoded = btoa(unescape(encodeURIComponent(siteConfigContent)));
 
@@ -495,27 +522,25 @@ Deno.serve(async (req) => {
       vercelError = 'VERCEL_TOKEN não configurado';
     }
 
-    // ── Step 6: persist portal record + initial config in Supabase ──────────
+    // ── Step 6: update portal record with final Vercel URL + create portal_config
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
 
-      // Upsert portals row
-      const { data: portalRow } = await adminClient.from('portals').upsert({
-        portal_key: _portalId,
-        cliente: nome,
-        subdomain,
-        github_repo: repoName,
-        vercel_url: vercelUrl,
-        empresa_status: 'Ativo',
-      }, { onConflict: 'portal_key' }).select('id').single();
+      // Update vercel_url now that we know the final Vercel project URL
+      const { data: portalRow } = await adminClient.from('portals')
+        .update({ vercel_url: vercelUrl })
+        .eq('portal_key', _portalId)
+        .select('id').single();
+
+      const pid = portalRow?.id ?? portalUuid;
 
       // Create initial portal_config row
-      if (portalRow?.id) {
+      if (pid) {
         await adminClient.from('portal_config').upsert({
-          portal_id: portalRow.id,
+          portal_id: pid,
           canais: canais ?? [],
           cores: colors ?? {},
           fontes: fonts ?? {},
