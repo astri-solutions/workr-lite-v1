@@ -421,6 +421,8 @@ Deno.serve(async (req) => {
       const tplRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${templateFile}`);
       if (tplRes.ok) {
         const tplData = await tplRes.json() as { content: string; sha: string };
+        // GitHub returns base64 with embedded newlines — strip them before re-pushing
+        const tplBase64 = tplData.content.replace(/\n/g, '');
         const indexRes = await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`);
         let indexSha: string | undefined;
         if (indexRes.ok) {
@@ -431,7 +433,7 @@ Deno.serve(async (req) => {
           method: 'PUT',
           body: JSON.stringify({
             message: `chore: set ${layout} layout as homepage`,
-            content: tplData.content,
+            content: tplBase64,
             ...(indexSha ? { sha: indexSha } : {}),
           }),
         });
@@ -474,7 +476,7 @@ Deno.serve(async (req) => {
         headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: subdomain,
-          framework: 'vite',
+          framework: null,
           gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
         }),
       });
@@ -483,22 +485,8 @@ Deno.serve(async (req) => {
         const vd = await vercelRes.json() as { name: string; id: string };
         vercelUrl = `https://${vd.name}.vercel.app`;
         vercelCreated = true;
-
-        // Trigger first deployment by pushing a deploy via Vercel API
-        await fetch('https://api.vercel.com/v13/deployments', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: vd.name,
-            gitSource: {
-              type: 'github',
-              org: githubOrg,
-              repo: repoName,
-              ref: 'main',
-            },
-            projectSettings: { framework: null },
-          }),
-        });
+        // Vercel auto-deploys when the GitHub integration is connected and commits are pushed.
+        // No manual deployment trigger needed — provision-portal already pushed commits above.
       } else {
         const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
         vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;

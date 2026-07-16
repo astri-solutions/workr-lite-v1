@@ -94,6 +94,30 @@ function buildNavSection(canais: CanalCfg[]): string {
   return `  nav: [\n${items},\n  ],`;
 }
 
+function buildEmpresasSection(empresas: EmpresaCfg[] | undefined, nome: string): string {
+  if (empresas && empresas.length > 0) {
+    return empresas.map(e =>
+      '    { id: ' + JSON.stringify(e.id) + ', label: ' + JSON.stringify(e.label) + ', short: ' + JSON.stringify(e.short) + ' }'
+    ).join(',\n');
+  }
+  const short = nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || nome.slice(0, 3).toUpperCase();
+  return '    { id: \'principal\', label: ' + JSON.stringify(nome) + ', short: ' + JSON.stringify(short) + ' }';
+}
+
+function buildSplashSection(splash: SplashCfg | null | undefined): string {
+  if (splash) {
+    return JSON.stringify(splash, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n');
+  }
+  return '{\n    enabled: false,\n    size: \'md\',\n    titulo: \'\',\n    texto: \'\',\n    conteudo: \'\',\n    legenda: \'\',\n    buttons: [],\n  }';
+}
+
+function buildCookiesSection(cookies: CookieCfg | null | undefined): string {
+  if (cookies) {
+    return JSON.stringify(cookies, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n');
+  }
+  return '{\n    enabled: true,\n    layout: \'full\',\n    theme: \'light\',\n    title: \'Utilizamos cookies\',\n    description: \'Usamos cookies para melhorar sua experiência.\',\n    acceptLabel: \'Aceitar todos\',\n    rejectLabel: \'Rejeitar\',\n    showReject: true,\n    showCustomize: false,\n  }';
+}
+
 // ── Unified site.config.js builder (shared schema with provision-portal) ──────
 // ticker uses singular object with `type` + `items[]` — matches provision-portal schema.
 function buildSiteConfig(opts: {
@@ -184,9 +208,7 @@ ${tickerItems}
 ${buildNavSection(opts.canais ?? [])}
 
   empresas: [
-${(opts.empresas ?? []).map(e =>
-    `    { id: ${JSON.stringify(e.id)}, label: ${JSON.stringify(e.label)}, short: ${JSON.stringify(e.short)} }`
-  ).join(',\n') || `    { id: 'principal', label: ${JSON.stringify(opts.nome)}, short: ${JSON.stringify(opts.nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || opts.nome.slice(0, 3).toUpperCase())} }`}
+${buildEmpresasSection(opts.empresas, opts.nome)}
   ],
 
   header: { variant: '${headerVariant(opts.layout)}' },
@@ -207,27 +229,9 @@ ${legalLinks}
     legalText: ${legalText},
   },
 
-  splash: ${opts.splash ? JSON.stringify(opts.splash, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : `{
-    enabled: false,
-    size: 'md',
-    titulo: '',
-    texto: '',
-    conteudo: '',
-    legenda: '',
-    buttons: [],
-  }`},
+  splash: ${buildSplashSection(opts.splash)},
 
-  cookies: ${opts.cookies ? JSON.stringify(opts.cookies, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : `{
-    enabled: true,
-    layout: 'full',
-    theme: 'light',
-    title: 'Utilizamos cookies',
-    description: 'Usamos cookies para melhorar sua experiência.',
-    acceptLabel: 'Aceitar todos',
-    rejectLabel: 'Rejeitar',
-    showReject: true,
-    showCustomize: false,
-  }`},
+  cookies: ${buildCookiesSection(opts.cookies)},
 
   errorPages: ${opts.errorPages ? JSON.stringify(opts.errorPages, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : '[]'},
 
@@ -467,14 +471,39 @@ Deno.serve(async (req) => {
       } catch { assetWarnings.push('favicon upload failed'); }
     }
 
-    // Self-healing: persist portal→repo mapping so future lookups work without localStorage
-    if (portalId && repoName) {
+    // Persist portal→repo mapping and sync portal_config to Supabase
+    if (portalId) {
       try {
         const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-        await adminClient.from('portals').upsert(
-          { portal_key: portalId, cliente: portalNome, github_repo: repoName },
-          { onConflict: 'portal_key' },
-        );
+
+        // Self-healing: ensure portals row exists with repo link
+        const { data: portalRow } = await adminClient
+          .from('portals')
+          .upsert(
+            { portal_key: portalId, cliente: portalNome, github_repo: repoName },
+            { onConflict: 'portal_key' },
+          )
+          .select('id')
+          .single();
+
+        // Sync all CMS config fields to portal_config so Supabase stays in sync with GitHub
+        if (portalRow?.id) {
+          await adminClient.from('portal_config').upsert({
+            portal_id: portalRow.id,
+            layout: layout ?? 'banner',
+            cores: colors,
+            fontes: fonts,
+            ticker: ticker ?? null,
+            footer: footer ?? null,
+            canais: canais ?? [],
+            empresas: empresas ?? [],
+            splash: splash ?? null,
+            cookies: cookies ?? null,
+            banner_slides: banner ?? null,
+            informacoes: null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'portal_id' });
+        }
       } catch { /* non-fatal */ }
     }
 

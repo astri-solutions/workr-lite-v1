@@ -31,8 +31,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+
     const anonClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      supabaseUrl,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
@@ -44,13 +46,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Only super_admin can invite portal users
     const callerRole = user.app_metadata?.role as string | undefined;
-    if (callerRole !== 'super_admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden: super_admin required' }), {
-        status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
-      });
-    }
+    const adminClient = createClient(
+      supabaseUrl,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const { email, nome, portalId, role, empresas, redirectTo } = await req.json() as {
       email: string;
@@ -67,17 +67,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { name: nome ?? '' },
-      redirectTo: redirectTo ?? `${Deno.env.get('SITE_URL') ?? ''}/definir-senha`,
-    });
-
-    // Resolve portal UUID (publish-config checks portals.id, not portal_key)
+    // Resolve portal UUID from portal_key
     let dbUuid: string | null = null;
     if (portalId) {
       try {
@@ -90,7 +80,33 @@ Deno.serve(async (req) => {
       } catch { /* non-fatal */ }
     }
 
-    let userId: string | null = null;
+    // Authorization: super_admin can always invite.
+    // client_user can invite only if they are an admin of the target portal.
+    if (callerRole !== 'super_admin') {
+      if (callerRole !== 'client_user' || !dbUuid) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      // Verify the caller has admin role in portal_users for this portal
+      const { data: callerEntry } = await adminClient
+        .from('portal_users')
+        .select('role')
+        .eq('portal_id', dbUuid)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (callerEntry?.role !== 'admin') {
+        return new Response(JSON.stringify({ error: 'Forbidden: portal admin role required' }), {
+          status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      // Portal admins can only invite editor/viewer — not other admins
+      if (role === 'admin') {
+        return new Response(JSON.stringify({ error: 'Forbidden: only super_admin can grant admin role' }), {
+          status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     // Helper: upsert portal_users record
     async function upsertPortalUser(uid: string) {
@@ -105,9 +121,17 @@ Deno.serve(async (req) => {
       }, { onConflict: 'portal_id,user_id' });
     }
 
+    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+      data: { name: nome ?? '' },
+      redirectTo: redirectTo ?? `${Deno.env.get('SITE_URL') ?? ''}/definir-senha`,
+    });
+
+    let userId: string | null = null;
+
     if (error) {
-      // If user already exists, find them and patch app_metadata + portal_users
-      if (error.message?.toLowerCase().includes('already') || error.message?.toLowerCase().includes('registered')) {
+      // User already exists — patch app_metadata and upsert portal_users, return 200
+      const msg = error.message?.toLowerCase() ?? '';
+      if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
         try {
           const { data: { users } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
           const existing = users.find(u => u.email === email);
@@ -122,8 +146,9 @@ Deno.serve(async (req) => {
             await upsertPortalUser(existing.id);
           }
         } catch { /* non-fatal */ }
-        return new Response(JSON.stringify({ error: error.message, id: userId }), {
-          status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+        // Return 200 — the user was successfully linked to the portal even if the invite wasn't sent
+        return new Response(JSON.stringify({ id: userId, alreadyExists: true }), {
+          status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
       return new Response(JSON.stringify({ error: error.message }), {

@@ -265,11 +265,7 @@ export default function UsuariosPortalPage() {
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string };
-        const msg = body.error ?? 'Erro ao enviar convite';
-        // "already registered" still invited — treat as success for UX
-        if (!msg.toLowerCase().includes('already') && !msg.toLowerCase().includes('registered')) {
-          throw new Error(msg);
-        }
+        throw new Error(body.error ?? 'Erro ao enviar convite');
       }
       setInvited(true);
       setTimeout(() => fetchUsers(), 1500);
