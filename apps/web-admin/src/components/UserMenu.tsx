@@ -14,7 +14,7 @@ function getInitials(name: string): string {
 }
 
 export default function UserMenu() {
-  const { user, logout, switchPortal } = useAuth();
+  const { user, logout, switchPortal, portalRole } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -107,6 +107,9 @@ export default function UserMenu() {
                 <span className="user-menu__identity-portal">
                   <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>domain</span>
                   {activePortal.nome}
+                  {portalRole && (
+                    <span className="um-role-badge um-role-badge--inline">{portalRole}</span>
+                  )}
                 </span>
               )}
             </div>
@@ -165,6 +168,9 @@ export default function UserMenu() {
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>domain</span>
                 </span>
                 <span className="um-portal-item__name">{portal.nome}</span>
+                {portal.role && (
+                  <span className={`um-role-badge um-role-badge--${portal.role}`}>{portal.role}</span>
+                )}
                 {isActive && (
                   <span className="um-portal-item__check">
                     <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check</span>

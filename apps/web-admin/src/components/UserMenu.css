@@ -313,3 +313,38 @@
   font-weight: var(--font-medium);
   color: var(--color-gray-600);
 }
+
+/* ── Role badge ─────────────────────────────────────────────────────────────── */
+.um-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.um-role-badge--inline {
+  margin-left: 6px;
+  background: var(--color-primary-100, #e6f4f1);
+  color: var(--color-primary-700, #0B5B68);
+}
+
+.um-role-badge--admin {
+  background: #e6f4f1;
+  color: #0B5B68;
+}
+
+.um-role-badge--editor {
+  background: #f0f0ff;
+  color: #4040c0;
+}
+
+.um-role-badge--viewer {
+  background: var(--color-gray-100, #f4f4f4);
+  color: var(--color-gray-500, #6F6F6F);
+}

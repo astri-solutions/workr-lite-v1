@@ -6,6 +6,7 @@ type Role = 'super_admin' | 'admin' | 'editor' | 'viewer' | 'client_user';
 export interface Portal {
   id: string;
   nome: string;
+  role?: 'admin' | 'editor' | 'viewer';
 }
 
 interface User {
@@ -20,6 +21,8 @@ interface User {
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
+  /** Role do usuário no portal ativo. null se super_admin ou sem portal ativo. */
+  portalRole: 'admin' | 'editor' | 'viewer' | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   switchPortal: (portalId: string) => void;
@@ -52,16 +55,48 @@ function persist(user: User | null) {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** Busca portais + roles do usuário na tabela portal_users (apenas client_user). */
+async function loadClientPortais(sbUserId: string): Promise<Portal[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('portal_users')
+      .select('role, portals!inner(portal_key, cliente)')
+      .eq('user_id', sbUserId);
+    if (error || !data) return [];
+    type Row = { role: string; portals: unknown };
+    return (data as Row[]).map(row => {
+      const p = row.portals as { portal_key: string; cliente: string };
+      return {
+        id: p.portal_key,
+        nome: p.cliente,
+        role: row.role as 'admin' | 'editor' | 'viewer',
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(userFromStorage);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
+  async function buildClientUser(sbUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }, stored: User | null): Promise<User> {
+    const base = mergeWithStored(supabaseUserToUser(sbUser), stored);
+    if (base.role !== 'client_user') return base;
+    const portais = await loadClientPortais(sbUser.id);
+    if (portais.length === 0) return base;
+    const activePortalId = base.activePortalId ?? portais[0].id;
+    return { ...base, portais, activePortalId };
+  }
+
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const u = mergeWithStored(supabaseUserToUser(session.user));
+        const u = await buildClientUser(session.user, userFromStorage());
         setUser(u);
         persist(u);
       } else {
@@ -71,9 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const u = mergeWithStored(supabaseUserToUser(session.user));
+        const u = await buildClientUser(session.user, userFromStorage());
         setUser(u);
         persist(u);
       } else {
@@ -89,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isSupabaseConfigured || !supabase) return false;
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error || !data.user) return false;
-    const u = supabaseUserToUser(data.user);
+    const u = await buildClientUser(data.user, userFromStorage());
     setUser(u);
     persist(u);
     return true;
@@ -123,8 +158,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  // Role do usuário no portal ativo (null para super_admin ou sem portal)
+  const activePortal = user?.portais?.find(p => p.id === user.activePortalId);
+  const portalRole: 'admin' | 'editor' | 'viewer' | null = activePortal?.role ?? null;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, switchPortal, enterPortal }}>
+    <AuthContext.Provider value={{ user, loading, portalRole, login, logout, switchPortal, enterPortal }}>
       {children}
     </AuthContext.Provider>
   );
@@ -143,8 +182,7 @@ export function useAuth(): AuthContextValue {
  * the same email. For client_user with no active portal, auto-detect from the
  * portals list stored in localStorage (matched by empresa.email).
  */
-function mergeWithStored(u: User): User {
-  const stored = userFromStorage();
+function mergeWithStored(u: User, stored: User | null = userFromStorage()): User {
   let merged: User = stored && stored.email === u.email
     ? { ...u, portais: stored.portais, activePortalId: stored.activePortalId }
     : u;

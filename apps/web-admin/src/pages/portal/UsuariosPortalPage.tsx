@@ -154,7 +154,7 @@ function UserCard({ user, empresas, canManage, onEdit, onToggle, onDelete }: Use
 }
 
 export default function UsuariosPortalPage() {
-  const { user } = useAuth();
+  const { user, portalRole } = useAuth();
   const [users, setUsers] = useState<PortalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -185,8 +185,8 @@ export default function UsuariosPortalPage() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const myPortalRole: Role = users.find(u => u.email === user?.email)?.role ?? 'editor';
-  const canInvite = myPortalRole === 'admin';
+  // super_admin tem acesso total; client_user depende do role no portal ativo
+  const canInvite = user?.role === 'super_admin' || portalRole === 'admin';
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
