@@ -176,6 +176,70 @@ ${legalLinks}
 `;
 }
 
+// ── Blank page builder ───────────────────────────────────────────────────────
+function buildBlankPage(title: string, parentLabel: string | null): string {
+  const breadcrumbParent = parentLabel
+    ? `<li>${parentLabel}</li>\n            `
+    : '';
+  return `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+    <link rel="stylesheet" href="/styles/main.scss" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="site-topbar"></div>
+    <header id="site-header"></header>
+
+    <main>
+      <section class="page-header" aria-labelledby="page-title">
+        <img class="page-header__bg"
+             src="/assets/img/header-interno/header-interno.jpg"
+             alt="" aria-hidden="true" />
+        <div class="page-header__overlay" aria-hidden="true"></div>
+        <div class="page-header__inner">
+          <ol class="page-header__breadcrumb" aria-label="Você está em">
+            <li><a href="/">Home</a></li>
+            ${breadcrumbParent}<li aria-current="page">${title}</li>
+          </ol>
+          <h1 id="page-title" class="page-header__title">${title}</h1>
+        </div>
+      </section>
+
+      <section class="page-section" aria-label="${title}" data-reveal>
+        <div class="page-section__container">
+          <div class="page-empty"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer id="site-footer"></footer>
+
+    <div class="search-overlay" id="search-overlay" aria-hidden="true" aria-label="Busca" role="dialog">
+      <div class="search-overlay__inner">
+        <div class="search-overlay__box">
+          <svg class="search-overlay__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-overlay__input" type="search" placeholder="O que você está procurando?" aria-label="Campo de busca" data-search-input />
+          <button class="search-overlay__close" type="button" aria-label="Fechar busca" data-search-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <p class="search-overlay__hint">Pressione <kbd>ESC</kbd> para fechar</p>
+      </div>
+    </div>
+
+    <script type="module" src="/scripts/page.js"></script>
+  </body>
+</html>
+`;
+}
+
+// Pages that ship with specialized JS/structure — never overwrite with blank
+const PROTECTED_HTML = new Set(['index.html', 'documentos-cvm.html']);
+
 // ── GitHub helper ─────────────────────────────────────────────────────────────
 function ghHeaders(token: string) {
   return {
@@ -367,6 +431,30 @@ Deno.serve(async (req) => {
             ...(indexSha ? { sha: indexSha } : {}),
           }),
         });
+      }
+    }
+
+    // ── Step 5c: generate blank pages from canais tree ────────────────────────
+    if (canais && canais.length > 0) {
+      for (const canal of canais) {
+        if (!canal.enabled) continue;
+        const enabledChildren = canal.children.filter((sc: SubCanalCfg) => sc.enabled);
+        if (enabledChildren.length > 0) {
+          for (const sub of enabledChildren) {
+            if (!sub.href || !sub.href.endsWith('.html')) continue;
+            const filePath = sub.href.replace(/^\//, '');
+            if (PROTECTED_HTML.has(filePath)) continue;
+            const html = buildBlankPage(sub.label, canal.label);
+            const b64 = btoa(unescape(encodeURIComponent(html)));
+            await pushAsset(filePath, b64);
+          }
+        } else if (canal.href && canal.href.endsWith('.html')) {
+          const filePath = canal.href.replace(/^\//, '');
+          if (PROTECTED_HTML.has(filePath)) continue;
+          const html = buildBlankPage(canal.label, null);
+          const b64 = btoa(unescape(encodeURIComponent(html)));
+          await pushAsset(filePath, b64);
+        }
       }
     }
 
