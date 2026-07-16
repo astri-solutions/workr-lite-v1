@@ -1315,8 +1315,10 @@ export default function NovoPortalPage() {
             JSON.stringify(form.canais && form.canais.length > 0 ? form.canais : DEFAULT_CANAIS),
           );
 
-          // Salva cores do portal
-          localStorage.setItem('portal_cores', JSON.stringify({
+          const pid = newPortal.id;
+
+          // Salva cores do portal (portal-scoped)
+          localStorage.setItem(`portal_cores_${pid}`, JSON.stringify({
             primary: form.corPrimaria,
             secondary: form.corSecundaria,
             tertiary: form.corTerciaria,
@@ -1325,32 +1327,32 @@ export default function NovoPortalPage() {
           // Salva favicon e logo como data URL (blob URLs não persistem entre sessões)
           if (form.faviconFile) {
             const faviconDataUrl = await fileToDataUrl(form.faviconFile);
-            localStorage.setItem('portal_favicon', faviconDataUrl);
+            localStorage.setItem(`portal_favicon_${pid}`, faviconDataUrl);
           }
           if (form.logoFile) {
             const logoDataUrl = await fileToDataUrl(form.logoFile);
-            localStorage.setItem('portal_logotipo', logoDataUrl);
+            localStorage.setItem(`portal_logotipo_${pid}`, logoDataUrl);
           }
 
-          // Salva idiomas do portal
-          localStorage.setItem('portal_idiomas', JSON.stringify(form.idiomas));
+          // Salva idiomas do portal (portal-scoped)
+          localStorage.setItem(`portal_idiomas_${pid}`, JSON.stringify(form.idiomas));
 
-          // Salva ticker do portal
+          // Salva ticker do portal (portal-scoped)
           if (form.tickerType !== 'none') {
-            localStorage.setItem('portal_ticker', JSON.stringify({
+            localStorage.setItem(`portal_ticker_${pid}`, JSON.stringify({
               type: form.tickerType,
               symbol: form.tickerSymbol || undefined,
               embedCode: form.tickerEmbedCode || undefined,
             }));
           }
 
-          // Salva template do portal
+          // Salva template do portal (portal-scoped)
           if (form.tipo) {
-            localStorage.setItem('portal_layout', form.tipo);
+            localStorage.setItem(`portal_layout_${pid}`, form.tipo);
           }
 
-          // Salva fontes do portal (usadas por FontesPage e pelo Publicar site)
-          localStorage.setItem('portal_fontes', JSON.stringify({
+          // Salva fontes do portal (portal-scoped)
+          localStorage.setItem(`portal_fontes_${pid}`, JSON.stringify({
             heading: form.fonteTitulo,
             body: form.fonteTexto,
           }));

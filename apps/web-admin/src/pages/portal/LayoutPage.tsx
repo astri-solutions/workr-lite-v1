@@ -5,6 +5,8 @@ import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { PORTAL_LAYOUT_KEY, PortalLayout } from '../../components/ClientLayout';
 import PORTAL_CONFIG, { PortalModel } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -82,16 +84,18 @@ const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
 
 export default function LayoutPage() {
   const portalName = usePortalName();
-  const [initial] = useState<PortalLayout>(() => (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar');
+  const portalId = useActivePortalId();
+  const layoutKey = pKey(PORTAL_LAYOUT_KEY, portalId);
+  const [initial] = useState<PortalLayout>(() => (localStorage.getItem(layoutKey) as PortalLayout) ?? 'sidebar');
   const [selected, setSelected] = useState<PortalLayout>(initial);
   const [saved, setSaved] = useState(false);
   const isDirty = selected !== initial && !saved;
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
-    localStorage.setItem(PORTAL_LAYOUT_KEY, selected);
+    localStorage.setItem(layoutKey, selected);
     // Notify same-tab listeners (ClientLayout uses useState, so dispatch manually)
-    window.dispatchEvent(new StorageEvent('storage', { key: PORTAL_LAYOUT_KEY, newValue: selected }));
+    window.dispatchEvent(new StorageEvent('storage', { key: layoutKey, newValue: selected }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

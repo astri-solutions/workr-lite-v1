@@ -3,7 +3,9 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
-import { processImage } from '../../utils/imageProcessor';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { processImageToDataUrl } from '../../utils/imageProcessor';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -11,10 +13,14 @@ export const FAVICON_KEY = 'portal_favicon';
 
 export default function FaviconPage() {
   const portalName = usePortalName();
-  const [initialFavicon] = useState<string | null>(() => localStorage.getItem(FAVICON_KEY));
+  const portalId = useActivePortalId();
+  const favKey = pKey(FAVICON_KEY, portalId);
+
+  const [initialFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
   const [favicon, setFavicon] = useState<string | null>(initialFavicon);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   const isDirty = !saved && favicon !== initialFavicon;
   const blocker = useUnsavedChanges(isDirty);
@@ -22,14 +28,16 @@ export default function FaviconPage() {
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const result = await processImage(file, 'favicon');
-    setFavicon(result.objectUrl);
+    const result = await processImageToDataUrl(file, 'favicon');
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    blobUrlRef.current = result.objectUrl;
+    setFavicon(result.dataUrl); // data URL persists across reloads
     setSaved(false);
   }
 
   function handleSave() {
-    if (favicon) localStorage.setItem(FAVICON_KEY, favicon);
-    else localStorage.removeItem(FAVICON_KEY);
+    if (favicon) localStorage.setItem(favKey, favicon);
+    else localStorage.removeItem(favKey);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

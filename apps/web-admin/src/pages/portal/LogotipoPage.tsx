@@ -3,24 +3,36 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
-import { processImage } from '../../utils/imageProcessor';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { processImageToDataUrl } from '../../utils/imageProcessor';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
-const LOGO_KEY = 'portal_logotipo';
-const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
+export const LOGO_KEY = 'portal_logotipo';
+export const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
 
 export default function LogotipoPage() {
   const portalName = usePortalName();
-  const [initialLogo] = useState<string | null>(() => localStorage.getItem(LOGO_KEY));
-  const [initialCollapsed] = useState<string | null>(() => localStorage.getItem(LOGO_COMPACT_KEY));
+  const portalId = useActivePortalId();
+
+  const logoKey = pKey(LOGO_KEY, portalId);
+  const logoCompactKey = pKey(LOGO_COMPACT_KEY, portalId);
+
+  // State holds data URLs (base64) which survive page reloads and are usable in <img src>
+  const [initialLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
+  const [initialCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
   const [logo, setLogo] = useState<string | null>(initialLogo);
   const [logoCollapsed, setLogoCollapsed] = useState<string | null>(initialCollapsed);
   const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
-  const logoUrlRef = useRef<string | null>(null);
-  const logoCollUrlRef = useRef<string | null>(null);
+  // Pending data URLs to write on save (null = no new file selected)
+  const pendingLogoDataUrl = useRef<string | null>(null);
+  const pendingLogoCollDataUrl = useRef<string | null>(null);
+  // Blob URLs for current-session preview (revoked on next upload)
+  const logoBlobUrlRef = useRef<string | null>(null);
+  const logoCollBlobUrlRef = useRef<string | null>(null);
 
   const isDirty = !saved && (logo !== initialLogo || logoCollapsed !== initialCollapsed);
   const blocker = useUnsavedChanges(isDirty);
@@ -28,23 +40,27 @@ export default function LogotipoPage() {
   async function handleFile(
     e: React.ChangeEvent<HTMLInputElement>,
     setter: (v: string) => void,
-    prevUrlRef: React.MutableRefObject<string | null>,
+    pendingRef: React.MutableRefObject<string | null>,
+    blobUrlRef: React.MutableRefObject<string | null>,
     slot: 'logo' | 'logo-compact',
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const result = await processImage(file, slot);
-    if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
-    prevUrlRef.current = result.objectUrl;
-    setter(result.objectUrl);
+    const result = await processImageToDataUrl(file, slot);
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    blobUrlRef.current = result.objectUrl;
+    pendingRef.current = result.dataUrl;
+    setter(result.dataUrl); // use data URL so preview also works after reload
     setSaved(false);
   }
 
   function handleSave() {
-    if (logo) localStorage.setItem(LOGO_KEY, logo);
-    else localStorage.removeItem(LOGO_KEY);
-    if (logoCollapsed) localStorage.setItem(LOGO_COMPACT_KEY, logoCollapsed);
-    else localStorage.removeItem(LOGO_COMPACT_KEY);
+    if (logo) localStorage.setItem(logoKey, logo);
+    else localStorage.removeItem(logoKey);
+    if (logoCollapsed) localStorage.setItem(logoCompactKey, logoCollapsed);
+    else localStorage.removeItem(logoCompactKey);
+    pendingLogoDataUrl.current = null;
+    pendingLogoCollDataUrl.current = null;
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -71,7 +87,7 @@ export default function LogotipoPage() {
           onPickFile={() => inputRef.current?.click()}
           onClear={() => { setLogo(null); setSaved(false); }}
           inputEl={<input ref={inputRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
-            onChange={e => handleFile(e, setLogo, logoUrlRef, 'logo')} />}
+            onChange={e => handleFile(e, setLogo, pendingLogoDataUrl, logoBlobUrlRef, 'logo')} />}
         />
         <UploadArea
           title="Logo compacto (sidebar/favicon nav)"
@@ -82,7 +98,7 @@ export default function LogotipoPage() {
           onPickFile={() => inputCollRef.current?.click()}
           onClear={() => { setLogoCollapsed(null); setSaved(false); }}
           inputEl={<input ref={inputCollRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
-            onChange={e => handleFile(e, setLogoCollapsed, logoCollUrlRef, 'logo-compact')} />}
+            onChange={e => handleFile(e, setLogoCollapsed, pendingLogoCollDataUrl, logoCollBlobUrlRef, 'logo-compact')} />}
         />
       </div>
 

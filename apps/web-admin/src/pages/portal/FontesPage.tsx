@@ -3,6 +3,8 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -36,9 +38,9 @@ const INITIAL_BODY = 'inter';
 
 export const FONTES_KEY = 'portal_fontes';
 
-function loadFontes() {
+function loadFontes(key: string) {
   try {
-    const raw = localStorage.getItem(FONTES_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return { heading: INITIAL_HEADING, body: INITIAL_BODY };
     return { heading: INITIAL_HEADING, body: INITIAL_BODY, ...JSON.parse(raw) };
   } catch { return { heading: INITIAL_HEADING, body: INITIAL_BODY }; }
@@ -123,7 +125,9 @@ function FontList({ active, onSelect, allFonts, uploading, uploadRef, onUpload, 
 
 export default function FontesPage() {
   const portalName = usePortalName();
-  const [initialFonts] = useState(loadFontes);
+  const portalId = useActivePortalId();
+  const fontesKey = pKey(FONTES_KEY, portalId);
+  const [initialFonts] = useState(() => loadFontes(fontesKey));
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
   const [headingFont, setHeadingFont] = useState(initialFonts.heading);
   const [bodyFont, setBodyFont] = useState(initialFonts.body);
@@ -139,7 +143,7 @@ export default function FontesPage() {
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
-    localStorage.setItem(FONTES_KEY, JSON.stringify({ heading: headingFont, body: bodyFont }));
+    localStorage.setItem(fontesKey, JSON.stringify({ heading: headingFont, body: bodyFont }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

@@ -5,6 +5,8 @@ import ColorPickerPopover from '../../components/ColorPickerPopover';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { generateColorScale } from '../../utils/colorUtils';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
 
@@ -22,9 +24,9 @@ const DEFAULT: Palette = {
 
 export const CORES_KEY = 'portal_cores';
 
-function loadCores(): Palette {
+function loadCores(key: string): Palette {
   try {
-    const raw = localStorage.getItem(CORES_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
   } catch { return DEFAULT; }
 }
@@ -175,7 +177,9 @@ const COLOR_DEFS = [
 
 export default function CoresPage() {
   const portalName = usePortalName();
-  const [initial] = useState<Palette>(loadCores);
+  const portalId = useActivePortalId();
+  const coresKey = pKey(CORES_KEY, portalId);
+  const [initial] = useState<Palette>(() => loadCores(coresKey));
   const [draft, setDraft] = useState<Palette>(initial);
   const [preview, setPreview] = useState<Palette>(initial);
   const [saved, setSaved] = useState(false);
@@ -189,7 +193,7 @@ export default function CoresPage() {
 
   function handleSave() {
     setPreview(draft);
-    localStorage.setItem(CORES_KEY, JSON.stringify(draft));
+    localStorage.setItem(coresKey, JSON.stringify(draft));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

@@ -97,6 +97,24 @@ export async function processImage(file: File, slot: ImageSlot): Promise<Process
   };
 }
 
+/**
+ * Like processImage, but also returns a base64 data URL suitable for localStorage persistence.
+ * Use this when the result needs to survive page reloads (blob URLs do not).
+ */
+export async function processImageToDataUrl(
+  file: File,
+  slot: ImageSlot,
+): Promise<ProcessedImage & { dataUrl: string }> {
+  const result = await processImage(file, slot);
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(result.file);
+  });
+  return { ...result, dataUrl };
+}
+
 function canvasToWebP(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(

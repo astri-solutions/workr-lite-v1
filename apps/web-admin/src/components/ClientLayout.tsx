@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { pKey } from '../utils/portalStorage';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
@@ -249,8 +250,10 @@ const PLATAFORMA_SECTION: NavSection = {
 export default function ClientLayout() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
+  const activePortalId = user?.activePortalId ?? user?.portais?.[0]?.id;
+  const layoutKey = pKey(PORTAL_LAYOUT_KEY, activePortalId);
   const [portalLayout, setPortalLayout] = useState<PortalLayout>(
-    () => (localStorage.getItem(PORTAL_LAYOUT_KEY) as PortalLayout) ?? 'sidebar'
+    () => (localStorage.getItem(layoutKey) as PortalLayout) ?? 'sidebar'
   );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -260,24 +263,27 @@ export default function ClientLayout() {
     setPublishing(true);
     setPublishStatus('idle');
     try {
-      // Aggregate CMS settings from localStorage
-      const cores = (() => { try { return JSON.parse(localStorage.getItem('portal_cores') ?? 'null'); } catch { return null; } })();
-      const fontes = (() => { try { return JSON.parse(localStorage.getItem('portal_fontes') ?? 'null'); } catch { return null; } })();
-      const footer = (() => { try { return JSON.parse(localStorage.getItem('portal_footer') ?? 'null'); } catch { return null; } })();
-      const ticker = (() => { try { return JSON.parse(localStorage.getItem('portal_ticker') ?? 'null'); } catch { return null; } })();
       const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
-      const canais = (() => { try { return JSON.parse(localStorage.getItem(`portal_canais_${activePortal?.id ?? 'default'}`) ?? 'null'); } catch { return null; } })();
-      const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null = (() => {
-        try { return JSON.parse(localStorage.getItem(`portal_empresas_${activePortal?.id ?? 'default'}`) ?? 'null'); } catch { return null; }
-      })();
+      const pid = activePortal?.id;
+
+      // Aggregate CMS settings from localStorage — all keys are portal-scoped
+      const ls = (key: string) => { try { return JSON.parse(localStorage.getItem(pKey(key, pid)) ?? 'null'); } catch { return null; } };
+      const cores      = ls('portal_cores');
+      const fontes     = ls('portal_fontes');
+      const footer     = ls('portal_footer');
+      const ticker     = ls('portal_ticker');
+      const canais     = ls(`portal_canais_${pid ?? 'default'}`);
+      const splash     = ls('portal_splash');
+      const cookies    = ls('portal_cookies');
+      const errorPages = ls('portal_error_pages');
+      const bannerRaw  = ls('portal_banner');
+
+      const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null =
+        (() => { try { return JSON.parse(localStorage.getItem(`portal_empresas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })();
       const empresas = (empresasRaw ?? [])
         .filter(e => e.ativo)
         .map(e => ({ id: e.id, label: e.nome, short: e.nome.split(' ').filter(w => w.length > 2).map(w => w[0]).join('').toUpperCase() || e.nome.slice(0, 3).toUpperCase() }));
 
-      const splash    = (() => { try { return JSON.parse(localStorage.getItem('portal_splash')      ?? 'null'); } catch { return null; } })();
-      const cookies   = (() => { try { return JSON.parse(localStorage.getItem('portal_cookies')     ?? 'null'); } catch { return null; } })();
-      const errorPages = (() => { try { return JSON.parse(localStorage.getItem('portal_error_pages') ?? 'null'); } catch { return null; } })();
-      const bannerRaw = (() => { try { return JSON.parse(localStorage.getItem('portal_banner')      ?? 'null'); } catch { return null; } })();
       // Strip imagem data URLs from banner slides to avoid oversized payloads
       const banner = Array.isArray(bannerRaw)
         ? bannerRaw.map((s: Record<string, unknown>) => ({ ...s, imagem: null }))
@@ -294,8 +300,8 @@ export default function ClientLayout() {
         };
         return { base64: m[2], ext: extMap[m[1]] ?? 'png' };
       }
-      const logo    = extractAsset(localStorage.getItem('portal_logotipo'));
-      const favicon = extractAsset(localStorage.getItem('portal_favicon'));
+      const logo    = extractAsset(localStorage.getItem(pKey('portal_logotipo', pid)));
+      const favicon = extractAsset(localStorage.getItem(pKey('portal_favicon', pid)));
 
       // Get githubRepo from the stored portal record
       const portaisRaw = localStorage.getItem('workr_portais');
@@ -327,7 +333,7 @@ export default function ClientLayout() {
             repoName: repoName ?? (portalRecord?.subdomain ? `portal-${portalRecord.subdomain}` : undefined),
             portalId: activePortal?.id,
             portalNome: activePortal?.nome ?? '',
-            layout: localStorage.getItem('portal_layout') ?? 'banner',
+            layout: localStorage.getItem(pKey('portal_layout', pid)) ?? 'banner',
             colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
             fonts: fontes ? { display: fontes.heading, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
             footer: footer ?? null,
@@ -361,13 +367,13 @@ export default function ClientLayout() {
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
-      if (e.key === PORTAL_LAYOUT_KEY) {
+      if (e.key === layoutKey) {
         setPortalLayout((e.newValue as PortalLayout) ?? 'sidebar');
       }
     }
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [layoutKey]);
 
   const portalSections: NavSection[] = SECTIONS.map(section => ({
     ...section,
