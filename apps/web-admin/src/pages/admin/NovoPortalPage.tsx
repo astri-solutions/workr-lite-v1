@@ -1277,7 +1277,8 @@ export default function NovoPortalPage() {
         setTimeout(() => { setCreatingStep(i); advance(); }, 900);
       } else {
         setTimeout(async () => {
-          setCreatingStep(CREATION_STEPS.length); // "done"
+          // Keep last step spinner active while real async work runs.
+          // setCreatingStep(CREATION_STEPS.length) is called AFTER all API calls finish.
 
           // Persiste o portal no localStorage para aparecer na lista
           const stored = localStorage.getItem('workr_portais');
@@ -1465,6 +1466,8 @@ export default function NovoPortalPage() {
             }
           }
 
+          // All real work done — now show the success checkmark
+          setCreatingStep(CREATION_STEPS.length);
           if (warnings.length > 0) setCreationWarnings(warnings);
           localStorage.removeItem(DRAFT_KEY);
           setTimeout(() => navigate('/admin/portais'), warnings.length > 0 ? 4000 : 1800);
