@@ -393,12 +393,12 @@ Deno.serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
       await adminClient.from('portals').upsert({
-        id: _portalId,
-        nome,
+        portal_key: _portalId,
+        cliente: nome,
         subdomain,
         github_repo: repoName,
         vercel_url: vercelUrl,
-      }, { onConflict: 'id' });
+      }, { onConflict: 'portal_key' });
     } catch { /* non-fatal — portal still works, publish-config will need repoName from frontend */ }
 
     return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError }), {

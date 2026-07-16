@@ -55,110 +55,9 @@ const ACTION_LABEL: Record<string, string> = {
   fez_upload: 'Upload',
 };
 
-const MOCK_LOGS: LogEntry[] = [
-  {
-    id: 'l001', timestamp: '2026-07-15T09:15:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'publicou', category: 'documento', entity: 'Apresentação de Resultados 2T26',
-    detail: 'Documento publicado no canal "Documentos CVM".',
-  },
-  {
-    id: 'l002', timestamp: '2026-07-15T09:08:00Z', user: 'Ana Lima', email: 'ana@imc.com.br',
-    action: 'editou', category: 'materia', entity: 'Destaques do trimestre',
-    detail: 'Texto e imagem de capa atualizados.',
-  },
-  {
-    id: 'l003', timestamp: '2026-07-15T08:55:00Z', user: 'Sistema', email: 'sistema@workrlite',
-    action: 'sincronizou', category: 'cvm', entity: 'International Meal Company',
-    detail: '3 documentos encontrados · 2 importados.',
-  },
-  {
-    id: 'l004', timestamp: '2026-07-14T18:40:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'convidou', category: 'usuario', entity: 'Beatriz Oliveira (beatriz@imc.com.br)',
-    detail: 'Convite enviado com perfil Visualizador.',
-  },
-  {
-    id: 'l005', timestamp: '2026-07-14T17:22:00Z', user: 'Ana Lima', email: 'ana@imc.com.br',
-    action: 'fez_upload', category: 'midia', entity: 'relatorio-anual-2025.pdf',
-    detail: 'Arquivo enviado para Biblioteca de Mídia.',
-  },
-  {
-    id: 'l006', timestamp: '2026-07-14T15:10:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'alterou', category: 'configuracao', entity: 'Cores do portal',
-    detail: 'Cor primária alterada de #0b5b68 para #1a7a8a.',
-  },
-  {
-    id: 'l007', timestamp: '2026-07-14T14:48:00Z', user: 'Sistema', email: 'sistema@workrlite',
-    action: 'gerou', category: 'backup', entity: 'Backup automático',
-    detail: 'Backup diário concluído. Tamanho: 142 MB.',
-  },
-  {
-    id: 'l008', timestamp: '2026-07-14T11:30:00Z', user: 'Ana Lima', email: 'ana@imc.com.br',
-    action: 'publicou', category: 'materia', entity: 'Nota de esclarecimento — Dividendos 2T26',
-    detail: 'Matéria publicada na página "Informações ao Investidor".',
-  },
-  {
-    id: 'l009', timestamp: '2026-07-13T10:02:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'pausou', category: 'cvm', entity: 'IMC Crédito Estruturado FII',
-    detail: 'Importação automática pausada manualmente.',
-  },
-  {
-    id: 'l010', timestamp: '2026-07-12T17:55:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'adicionou', category: 'cvm', entity: 'IMC Recebíveis FII',
-    detail: 'Entidade criada com CNPJ 44.123.456/0001-77 e código CVM 45012.',
-  },
-  {
-    id: 'l011', timestamp: '2026-07-12T16:20:00Z', user: 'Fernanda Costa', email: 'fernanda@imc.com.br',
-    action: 'editou', category: 'documento', entity: 'Formulário de Referência 2025',
-    detail: 'Data de publicação ajustada.',
-  },
-  {
-    id: 'l012', timestamp: '2026-07-11T14:05:00Z', user: 'Ana Lima', email: 'ana@imc.com.br',
-    action: 'alterou', category: 'layout', entity: 'Template do portal',
-    detail: 'Layout alterado de Sidebar para Banner.',
-  },
-  {
-    id: 'l013', timestamp: '2026-07-11T10:30:00Z', user: 'Sistema', email: 'sistema@workrlite',
-    action: 'sincronizou', category: 'cvm', entity: 'Construtora Aurora S.A.',
-    detail: '1 documento encontrado · 1 importado.',
-  },
-  {
-    id: 'l014', timestamp: '2026-07-10T09:15:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'removeu', category: 'midia', entity: 'apresentacao-antiga.pptx',
-    detail: 'Arquivo removido da Biblioteca de Mídia.',
-  },
-  {
-    id: 'l015', timestamp: '2026-07-09T16:45:00Z', user: 'Fernanda Costa', email: 'fernanda@imc.com.br',
-    action: 'publicou', category: 'documento', entity: 'Ata da Assembleia Geral 2026',
-    detail: 'Documento publicado no canal "Atas e Assembleias".',
-  },
-  {
-    id: 'l016', timestamp: '2026-07-08T11:10:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'ativou', category: 'cvm', entity: 'IMC Crédito Estruturado FII',
-    detail: 'Importação automática reativada.',
-  },
-  {
-    id: 'l017', timestamp: '2026-07-07T10:00:00Z', user: 'Ana Lima', email: 'ana@imc.com.br',
-    action: 'adicionou', category: 'usuario', entity: 'Fernanda Costa (fernanda@imc.com.br)',
-    detail: 'Usuário adicionado com perfil Visualizador.',
-  },
-  {
-    id: 'l018', timestamp: '2026-07-07T08:30:00Z', user: 'Sistema', email: 'sistema@workrlite',
-    action: 'gerou', category: 'backup', entity: 'Backup automático',
-    detail: 'Backup diário concluído. Tamanho: 139 MB.',
-  },
-  {
-    id: 'l019', timestamp: '2026-07-05T13:22:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'importou', category: 'cvm', entity: 'International Meal Company',
-    detail: 'Importação histórica desde 01/01/2024. 47 documentos enfileirados.',
-  },
-  {
-    id: 'l020', timestamp: '2026-07-01T09:05:00Z', user: 'Carlos Souza', email: 'carlos@imc.com.br',
-    action: 'alterou', category: 'configuracao', entity: 'Logotipo',
-    detail: 'Logotipo principal substituído.',
-  },
-];
+const MOCK_LOGS: LogEntry[] = [];
 
-const ALL_USERS = Array.from(new Set(MOCK_LOGS.map(l => l.user))).sort();
+const ALL_USERS: string[] = [];
 
 function categoryClass(cat: LogCategory) {
   const map: Record<LogCategory, string> = {
@@ -301,7 +200,11 @@ export default function LogPage() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="log-empty">Nenhum registro encontrado para os filtros selecionados.</td>
+                <td colSpan={6} className="log-empty">
+                  {sorted.length === 0
+                    ? 'Ainda não há registros de atividade neste portal.'
+                    : 'Nenhum registro encontrado para os filtros selecionados.'}
+                </td>
               </tr>
             ) : filtered.map(log => (
               <tr key={log.id}>

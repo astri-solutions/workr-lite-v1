@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
       const { data: portalRow } = await adminClient
         .from('portals')
         .select('github_repo')
-        .eq('id', portalId)
+        .eq('portal_key', portalId)
         .single();
       repoName = portalRow?.github_repo ?? undefined;
     }
@@ -448,6 +448,17 @@ Deno.serve(async (req) => {
       try {
         await pushAsset(favicon.base64, `favicon.${favicon.ext}`, `chore: update favicon via CMS [${portalNome}]`);
       } catch { assetWarnings.push('favicon upload failed'); }
+    }
+
+    // Self-healing: persist portal→repo mapping so future lookups work without localStorage
+    if (portalId && repoName) {
+      try {
+        const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+        await adminClient.from('portals').upsert(
+          { portal_key: portalId, cliente: portalNome, github_repo: repoName },
+          { onConflict: 'portal_key' },
+        );
+      } catch { /* non-fatal */ }
     }
 
     return new Response(JSON.stringify({ ok: true, warnings: assetWarnings.length ? assetWarnings : undefined }), {

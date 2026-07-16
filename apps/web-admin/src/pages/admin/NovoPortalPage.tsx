@@ -1309,9 +1309,11 @@ export default function NovoPortalPage() {
           enterPortal(newPortal.id, form.nome);
 
           // Inicializa a árvore de canais do portal no localStorage (per-portal key)
-          if (form.canais && form.canais.length > 0) {
-            localStorage.setItem(`portal_canais_${newPortal.id}`, JSON.stringify(form.canais));
-          }
+          // Usa os canais configurados no wizard ou DEFAULT_CANAIS como ponto de partida
+          localStorage.setItem(
+            `portal_canais_${newPortal.id}`,
+            JSON.stringify(form.canais && form.canais.length > 0 ? form.canais : DEFAULT_CANAIS),
+          );
 
           // Salva cores do portal
           localStorage.setItem('portal_cores', JSON.stringify({

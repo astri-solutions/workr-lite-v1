@@ -46,21 +46,21 @@ Deno.serve(async (req) => {
     const { data, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
     if (error) throw error;
 
-    const callerPortais = (user.app_metadata?.portais as string[] | undefined) ?? [];
+    const callerPortalIds = (user.app_metadata?.portalIds as string[] | undefined) ?? [];
 
     let allUsers = data.users.map(u => ({
       id: u.id,
       email: u.email ?? '',
       nome: (u.user_metadata?.name as string | undefined) || u.email || '',
       role: (u.app_metadata?.role as string | undefined) || 'client_user',
-      portais: (u.app_metadata?.portais as string[] | undefined) || [],
+      portalIds: (u.app_metadata?.portalIds as string[] | undefined) || [],
       status: u.banned_until ? 'Suspenso' : 'Ativo',
     }));
 
     // client_user only sees users that belong to at least one of their portals
     if (callerRole === 'client_user') {
       allUsers = allUsers.filter(u =>
-        callerPortais.length > 0 && u.portais.some(p => callerPortais.includes(p))
+        callerPortalIds.length > 0 && u.portalIds.some(p => callerPortalIds.includes(p))
       );
     }
 

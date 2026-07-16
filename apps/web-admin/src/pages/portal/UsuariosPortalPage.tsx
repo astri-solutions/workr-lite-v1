@@ -161,7 +161,7 @@ export default function UsuariosPortalPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json() as {
-        users?: Array<{ id: string; email: string; nome: string; role: string; portais: string[]; status: string; criadoEm?: string }>;
+        users?: Array<{ id: string; email: string; nome: string; role: string; portalIds: string[]; status: string; criadoEm?: string }>;
         error?: string;
       };
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -171,7 +171,7 @@ export default function UsuariosPortalPage() {
           // Include super_admins and users assigned to this portal
           if (u.role === 'super_admin') return true;
           if (!activePortalId) return true;
-          return u.portais?.includes(activePortalId);
+          return u.portalIds?.includes(activePortalId);
         })
         .map(u => ({
           id: u.id,
