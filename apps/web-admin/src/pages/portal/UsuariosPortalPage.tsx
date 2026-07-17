@@ -67,8 +67,8 @@ function initials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
-function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage }: {
-  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean; isAdmin: boolean; canManage: boolean;
+function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage, isSuperAdmin }: {
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean; isAdmin: boolean; canManage: boolean; isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -90,7 +90,7 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage }: {
         <div className="up-kebab__menu">
           {canManage && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onEdit(); }}>Editar acesso</button>}
           {canManage && !isAdmin && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>}
-          {canManage && !isAdmin && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
+          {canManage && (!isAdmin || isSuperAdmin) && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
           {!canManage && <span className="up-kebab__item up-kebab__item--disabled">Sem permissão</span>}
         </div>
       )}
@@ -105,12 +105,13 @@ interface UserCardProps {
   user: PortalUser;
   empresas: Empresa[];
   canManage: boolean;
+  isSuperAdmin: boolean;
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
 }
 
-function UserCard({ user, empresas, canManage, onEdit, onToggle, onDelete }: UserCardProps) {
+function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, onDelete }: UserCardProps) {
   const empresaNomes = user.empresaIds.length === 0
     ? null
     : user.empresaIds.map(id => empresas.find(e => e.id === id)?.nome ?? id);
@@ -132,7 +133,7 @@ function UserCard({ user, empresas, canManage, onEdit, onToggle, onDelete }: Use
           </span>
           {user.criadoEm && <span className="up-user-card__date">{user.criadoEm}</span>}
         </div>
-        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
+        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} isSuperAdmin={isSuperAdmin} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
       </div>
       <div className="up-user-card__footer">
         <span className="up-user-card__footer-label">
@@ -187,6 +188,7 @@ export default function UsuariosPortalPage() {
 
   // super_admin tem acesso total; client_user depende do role no portal ativo
   const canInvite = user?.role === 'super_admin' || portalRole === 'admin';
+  const isSuperAdmin = user?.role === 'super_admin';
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -365,6 +367,7 @@ export default function UsuariosPortalPage() {
               user={u}
               empresas={empresas}
               canManage={canInvite}
+              isSuperAdmin={isSuperAdmin}
               onEdit={() => openEdit(u)}
               onToggle={() => {
                 const nextStatus = u.ativo ? 'Suspenso' : 'Ativo';

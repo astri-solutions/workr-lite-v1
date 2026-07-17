@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
@@ -8,6 +8,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
+import { fetchPortalConfig, savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -99,9 +100,22 @@ export default function LayoutPage() {
   const isDirty = selected !== base;
   const blocker = useUnsavedChanges(isDirty);
 
+  // Hydrate from Supabase on mount so all users see the same layout
+  useEffect(() => {
+    if (!portalId) return;
+    fetchPortalConfig(portalId).then(data => {
+      if (data?.layout && typeof data.layout === 'string') {
+        const layout = data.layout as PortalLayout;
+        localStorage.setItem(layoutKey, layout);
+        setSelected(layout);
+      }
+    }).catch(console.error);
+  }, [portalId, layoutKey]);
+
   function saveDraft() {
     localStorage.setItem(layoutKey, selected);
     window.dispatchEvent(new StorageEvent('storage', { key: layoutKey, newValue: selected }));
+    if (portalId) savePortalConfig(portalId, { layout: selected }).catch(console.error);
     setIsDraft(true);
     notifyDraft();
   }

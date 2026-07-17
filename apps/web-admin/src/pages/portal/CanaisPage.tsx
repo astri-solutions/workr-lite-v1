@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, Fragment } from 'react';
+import { useState, useCallback, useRef, Fragment, useEffect } from 'react';
 import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
@@ -7,7 +7,7 @@ import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, PageType, ListaAgrupadaSt
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
-import { savePortalConfig } from '../../lib/portalConfigApi';
+import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import { loadCvmRoutedPageIds } from '../../services/cvm.service';
 import { usePublish } from '../../contexts/PublishContext';
@@ -332,6 +332,19 @@ export default function CanaisPage() {
       return orderKey(DEFAULT_CANAIS);
     }
   });
+
+  // Hydrate from Supabase on mount so all users see the same channel tree
+  useEffect(() => {
+    if (!activePortalId) return;
+    fetchPortalConfig(activePortalId).then(data => {
+      if (data?.canais) {
+        const canaisList = data.canais as Canal[];
+        localStorage.setItem(canaisKey, JSON.stringify(canaisList));
+        setCanais(canaisList);
+        setSavedOrderKey(orderKey(canaisList));
+      }
+    }).catch(console.error);
+  }, [activePortalId, canaisKey]);
 
   // Modals
   const [editModal, setEditModal] = useState<EditState | null>(null);

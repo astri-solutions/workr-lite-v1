@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
@@ -7,7 +7,7 @@ import { generateColorScale, contrastRatio, wcagLevel, bestTextColor, type WcagL
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
-import { savePortalConfig } from '../../lib/portalConfigApi';
+import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
@@ -288,6 +288,20 @@ export default function CoresPage() {
     draft.tertiary !== base.tertiary
   );
   const blocker = useUnsavedChanges(isDirty);
+
+  // Hydrate from Supabase on mount so all users see the same portal config
+  useEffect(() => {
+    if (!portalId) return;
+    fetchPortalConfig(portalId).then(data => {
+      if (data?.cores) {
+        const cores: Palette = { ...DEFAULT, ...(data.cores as Partial<Palette>) };
+        localStorage.setItem(coresKey, JSON.stringify(cores));
+        setBase(cores);
+        setDraft(cores);
+        setPreview(cores);
+      }
+    }).catch(console.error);
+  }, [portalId, coresKey]);
 
   function saveDraft() {
     setPreview(draft);
