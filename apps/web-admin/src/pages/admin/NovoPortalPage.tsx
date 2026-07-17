@@ -214,11 +214,11 @@ const TIPO_SITE_OPTIONS = [
 ];
 
 function StepIdentificacao({
-  nome, nomeFantasia, cnpj, cvmCode, autoCvm, tipoSite,
-  onNome, onNomeFantasia, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
+  nome, nomeFantasia, url, cnpj, cvmCode, autoCvm, tipoSite,
+  onNome, onNomeFantasia, onUrl, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
 }: {
-  nome: string; nomeFantasia: string; cnpj: string; cvmCode: string; autoCvm: boolean; tipoSite: string;
-  onNome: (v: string) => void; onNomeFantasia: (v: string) => void;
+  nome: string; nomeFantasia: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean; tipoSite: string;
+  onNome: (v: string) => void; onNomeFantasia: (v: string) => void; onUrl: (v: string) => void;
   onCnpj: (v: string) => void; onCvmCode: (v: string) => void; onAutoCvm: (v: boolean) => void;
   onTipoSite: (v: string) => void;
 }) {
@@ -243,6 +243,30 @@ function StepIdentificacao({
             maxLength={80}
           />
           {nome && <span className="np-input__hint">{nome.length}/80 caracteres</span>}
+        </div>
+
+        <div className="np-field">
+          <label className="np-label">Domínio do projeto</label>
+          <p className="np-field__hint">Identificador usado como nome do repositório GitHub e projeto Vercel. Gerado automaticamente a partir do nome do site.</p>
+          <div className="np-domain-wrap">
+            <span className="np-domain-prefix">workr-portal-</span>
+            <input
+              className="np-input np-domain-input"
+              type="text"
+              placeholder="nome-do-cliente"
+              value={url}
+              onChange={(e) => {
+                const slug = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                onUrl(slug);
+              }}
+              maxLength={50}
+            />
+          </div>
+          {url && (
+            <span className="np-input__hint np-input__hint--domain">
+              Repositório: <strong>workr-portal-{url}</strong>
+            </span>
+          )}
         </div>
 
         <div className="np-field">
@@ -276,8 +300,6 @@ function StepIdentificacao({
             </svg>
           </div>
         </div>
-
-        {/* Subdomain field hidden — Vercel generates its own URL; link is updated after provisioning */}
 
         <div className="np-id-row">
           <div className="np-field">
@@ -1283,7 +1305,7 @@ export default function NovoPortalPage() {
             },
             sites: [{
               id: `s${Date.now()}`,
-              link: form.url ? `${form.url}.vercel.app` : `${form.nome.toLowerCase().replace(/\s+/g, '-')}.vercel.app`,
+              link: form.url ? `workr-portal-${form.url}.vercel.app` : `workr-portal-${form.nome.toLowerCase().replace(/\s+/g, '-')}.vercel.app`,
               status: 'Ativo' as const,
               ip: '',
               tipo: (form.tipoSite as 'RI' | 'Institucional' | 'Fundo' | 'Landing Page') || 'RI',
@@ -1535,12 +1557,19 @@ export default function NovoPortalPage() {
           <StepIdentificacao
             nome={form.nome}
             nomeFantasia={form.nomeFantasia}
+            url={form.url}
             cnpj={form.cnpj}
             cvmCode={form.cvmCode}
             autoCvm={form.autoCvm}
             tipoSite={form.tipoSite}
-            onNome={(v) => setForm((f) => ({ ...f, nome: v }))}
+            onNome={(v) => setForm((f) => {
+              const derivedFromCurrent = f.nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+              const autoSync = f.url === '' || f.url === derivedFromCurrent;
+              const newSlug = v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+              return { ...f, nome: v, url: autoSync ? newSlug : f.url };
+            })}
             onNomeFantasia={(v) => setForm((f) => ({ ...f, nomeFantasia: v }))}
+            onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
             onCnpj={(v) => setForm((f) => ({ ...f, cnpj: v }))}
             onCvmCode={(v) => setForm((f) => ({ ...f, cvmCode: v }))}
             onAutoCvm={(v) => setForm((f) => ({ ...f, autoCvm: v }))}
