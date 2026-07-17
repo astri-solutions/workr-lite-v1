@@ -1513,7 +1513,7 @@ export default function NovoPortalPage() {
                     warnings.push(`INVITE_PENDING:${form.adminEmail}`);
                   }
                 } else if (invBody.emailError) {
-                  warnings.push(`INVITE_PENDING:${form.adminEmail}`);
+                  warnings.push(`INVITE_PENDING:${form.adminEmail}|${invBody.emailError}`);
                 }
               }
             } catch (e) {
@@ -1734,7 +1734,8 @@ export default function NovoPortalPage() {
                   <ul className="np-creation-warnings">
                     {creationWarnings.map((w, i) => {
                       if (w.startsWith('INVITE_PENDING:')) {
-                        const email = w.replace('INVITE_PENDING:', '');
+                        const [email, ...errParts] = w.replace('INVITE_PENDING:', '').split('|');
+                        const errDetail = errParts.join('|');
                         return (
                           <li key={i} className="np-creation-warning np-creation-warning--invite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -1744,6 +1745,12 @@ export default function NovoPortalPage() {
                               <strong>Convite não enviado para {email}</strong>
                               <br />
                               <span style={{ fontSize: '12px' }}>Falha no envio do e-mail de convite. Reenvie pelo Painel de Controle.</span>
+                              {errDetail && (
+                                <details style={{ marginTop: '4px' }}>
+                                  <summary style={{ fontSize: '11px', color: '#92400e', cursor: 'pointer' }}>Ver erro técnico</summary>
+                                  <code style={{ fontSize: '11px', display: 'block', marginTop: '4px', wordBreak: 'break-all' }}>{errDetail}</code>
+                                </details>
+                              )}
                               <br />
                               {createdSiteId && (
                                 <button
