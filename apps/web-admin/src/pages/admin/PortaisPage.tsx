@@ -242,7 +242,7 @@ export default function PortaisPage() {
     fetchPortais().then(data => {
       setPortais(data);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   function toggleExpand(portalId: string) {
