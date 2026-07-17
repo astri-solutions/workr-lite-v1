@@ -94,7 +94,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
             repoName: repoName ?? (portalRecord?.subdomain ? `portal-${portalRecord.subdomain}` : undefined),
             portalId: activePortal?.id,
             portalNome: activePortal?.nome ?? '',
-            layout: localStorage.getItem(pKey('portal_layout', pid)) ?? 'banner',
+            layout: localStorage.getItem(pKey('portal_layout', pid)) ?? 'sidebar',
             colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
             fonts: fontes ? { display: fontes.heading ?? fontes.display, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
             footer: footer ?? null,

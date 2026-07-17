@@ -36,11 +36,26 @@ function getPortalName(): string {
   return '';
 }
 
+function getPortalModel(): PortalModel {
+  try {
+    const auth = localStorage.getItem('workr_auth');
+    if (auth) {
+      const parsed = JSON.parse(auth);
+      const activeId = parsed?.activePortalId;
+      if (activeId) {
+        const stored = localStorage.getItem(`portal_layout_${activeId}`);
+        if (stored === 'sidebar' || stored === 'tabmenu' || stored === 'banner') return stored;
+      }
+    }
+  } catch { /* ignore */ }
+  return 'sidebar';
+}
+
 const PORTAL_CONFIG = {
   get name() { return getPortalName(); },
   get languages() { return getLanguages(); },
+  get model(): PortalModel { return getPortalModel(); },
   orgType: 'trimestral',
-  model: 'tabmenu' as PortalModel,
 };
 
 export { ALL_LOCALES };

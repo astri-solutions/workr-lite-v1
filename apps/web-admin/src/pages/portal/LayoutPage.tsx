@@ -77,18 +77,23 @@ const TIPOS = [
   },
 ];
 
-const portalModel = PORTAL_CONFIG.model as PortalModel;
-// Portals created with sidebar or tabmenu can switch between those two compact models.
-// Portals created with banner (full version) cannot change their layout.
-const isLocked = portalModel === 'banner';
-const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
-
 export default function LayoutPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const layoutKey = pKey(PORTAL_LAYOUT_KEY, portalId);
   const { publish, publishing } = usePublish();
-  const [base] = useState<PortalLayout>(() => (localStorage.getItem(layoutKey) as PortalLayout) ?? 'sidebar');
+
+  // Compute model dynamically inside the component so it reacts to the active portal.
+  // Portals created with sidebar or tabmenu can switch between those two.
+  // Portals created with banner cannot change layout after creation.
+  const portalModel = (localStorage.getItem(layoutKey) as PortalModel | null) ?? PORTAL_CONFIG.model;
+  const isLocked = portalModel === 'banner';
+  const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
+
+  const [base] = useState<PortalLayout>(() => {
+    const stored = localStorage.getItem(layoutKey) as PortalLayout | null;
+    return stored ?? PORTAL_CONFIG.model;
+  });
   const [selected, setSelected] = useState<PortalLayout>(base);
   const [isDraft, setIsDraft] = useState(false);
   const isDirty = selected !== base;
