@@ -112,7 +112,14 @@ export async function fetchPortais(): Promise<Portal[]> {
     return [];
   }
 
-  return data.map(row => dbToPortal(row as Record<string, unknown>, (row['portal_sites'] ?? []) as Record<string, unknown>[]));
+  return data.map(row => {
+    // portal_sites returns as object (not array) when portal_id has a UNIQUE constraint
+    const rawSites = row['portal_sites'];
+    const sites: Record<string, unknown>[] = Array.isArray(rawSites)
+      ? rawSites
+      : rawSites && typeof rawSites === 'object' ? [rawSites as Record<string, unknown>] : [];
+    return dbToPortal(row as Record<string, unknown>, sites);
+  });
 }
 
 export async function savePortal(portal: Portal): Promise<void> {
