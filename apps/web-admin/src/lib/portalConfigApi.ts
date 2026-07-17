@@ -32,6 +32,8 @@ export interface PortalConfigPatch {
   banner_slides?: unknown;
   informacoes?:  unknown;
   empresas?:     unknown;
+  logo_ext?:     string;
+  favicon_ext?:  string;
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────

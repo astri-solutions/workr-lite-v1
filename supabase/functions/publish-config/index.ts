@@ -386,6 +386,8 @@ Deno.serve(async (req) => {
     // Resolve repoName: either passed directly, or looked up from portals table by portalId
     let repoName = repoNameRaw;
     let resolvedPortalUuid: string | undefined;
+    let savedLogoExt: string | undefined;
+    let savedFaviconExt: string | undefined;
     if (!repoName && portalId) {
       const adminClient = createClient(
         supabaseUrl,
@@ -398,6 +400,21 @@ Deno.serve(async (req) => {
         .single();
       repoName = portalRow?.github_repo ?? undefined;
       resolvedPortalUuid = portalRow?.id ?? undefined;
+    }
+
+    // Fetch previously saved logo/favicon extensions so we don't reset them on publish
+    if (resolvedPortalUuid || portalId) {
+      try {
+        const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+        const query = resolvedPortalUuid
+          ? adminClient.from('portal_config').select('logo_ext, favicon_ext').eq('portal_id', resolvedPortalUuid).maybeSingle()
+          : adminClient.from('portal_config').select('logo_ext, favicon_ext, portal_id').eq('portal_id',
+              (await adminClient.from('portals').select('id').eq('portal_key', portalId!).maybeSingle()).data?.id ?? ''
+            ).maybeSingle();
+        const { data: cfgRow } = await query;
+        savedLogoExt = cfgRow?.logo_ext ?? undefined;
+        savedFaviconExt = cfgRow?.favicon_ext ?? undefined;
+      } catch { /* non-fatal */ }
     }
 
     if (!repoName) {
@@ -458,8 +475,8 @@ Deno.serve(async (req) => {
       cookies: cookies ?? null,
       errorPages: errorPages ?? null,
       banner: banner ?? null,
-      logoExt: logo?.ext,
-      faviconExt: favicon?.ext,
+      logoExt: logo?.ext ?? savedLogoExt,
+      faviconExt: favicon?.ext ?? savedFaviconExt,
       supabaseUrl: Deno.env.get('SUPABASE_URL'),
       supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
       portalUuid: resolvedPortalUuid,
@@ -506,13 +523,19 @@ Deno.serve(async (req) => {
 
     // ── Shared asset pusher ───────────────────────────────────────────────────
     async function pushAsset(assetBase64: string, ghPath: string, commitMsg: string) {
+      // Strip newlines from base64 — GitHub API rejects content with embedded newlines
+      const cleanBase64 = assetBase64.replace(/\n/g, '');
       const getR = await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, { headers: ghHeaders });
       const existingSha = getR.ok ? ((await getR.json()) as { sha?: string }).sha : undefined;
-      await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, {
+      const putR = await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, {
         method: 'PUT',
         headers: ghHeaders,
-        body: JSON.stringify({ message: commitMsg, content: assetBase64, ...(existingSha ? { sha: existingSha } : {}) }),
+        body: JSON.stringify({ message: commitMsg, content: cleanBase64, ...(existingSha ? { sha: existingSha } : {}) }),
       });
+      if (!putR.ok) {
+        const body = await putR.json().catch(() => ({})) as { message?: string };
+        throw new Error(`GitHub PUT ${ghPath} failed (${putR.status}): ${body.message ?? putR.statusText}`);
+      }
     }
 
     const assetWarnings: string[] = [];
@@ -655,7 +678,7 @@ Deno.serve(async (req) => {
 
         // Sync all CMS config fields to portal_config so Supabase stays in sync with GitHub
         if (portalRow?.id) {
-          await adminClient.from('portal_config').upsert({
+          const configPatch: Record<string, unknown> = {
             portal_id: portalRow.id,
             layout: layout ?? 'banner',
             cores: colors,
@@ -667,9 +690,11 @@ Deno.serve(async (req) => {
             splash: splash ?? null,
             cookies: cookies ?? null,
             banner_slides: banner ?? null,
-            informacoes: null,
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'portal_id' });
+          };
+          if (logo?.ext) configPatch.logo_ext = logo.ext;
+          if (favicon?.ext) configPatch.favicon_ext = favicon.ext;
+          await adminClient.from('portal_config').upsert(configPatch, { onConflict: 'portal_id' });
         }
       } catch { /* non-fatal */ }
     }

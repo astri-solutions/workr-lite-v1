@@ -7,6 +7,7 @@ import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
+import { savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -39,6 +40,16 @@ export default function FaviconPage() {
   function saveDraft() {
     if (favicon) localStorage.setItem(favKey, favicon);
     else localStorage.removeItem(favKey);
+    if (portalId && favicon) {
+      const m = favicon.match(/^data:([^;]+);base64,/);
+      const extMap: Record<string, string> = {
+        'image/svg+xml': 'svg', 'image/png': 'png',
+        'image/jpeg': 'jpg', 'image/webp': 'webp',
+        'image/x-icon': 'ico', 'image/vnd.microsoft.icon': 'ico',
+      };
+      const ext = m ? (extMap[m[1]] ?? 'png') : undefined;
+      if (ext) savePortalConfig(portalId, { favicon_ext: ext }).catch(console.error);
+    }
     setIsDraft(true);
     notifyDraft();
   }
