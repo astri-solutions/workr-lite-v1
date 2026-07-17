@@ -1406,6 +1406,9 @@ export default function NovoPortalPage() {
                       colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
                       fonts: { display: form.fonteTitulo, body: form.fonteTexto },
                       canais: form.canais,
+                      ticker: form.tickerType === 'none'
+                        ? { type: 'none' }
+                        : { type: 'iframe', iframeUrl: (form.tickerEmbedCode.match(/src=["']([^"']+)["']/)?.[1]) || '' },
                       ...(form.logoFile    ? { logo:    await fileToBase64(form.logoFile)    } : {}),
                       ...(form.faviconFile ? { favicon: await fileToBase64(form.faviconFile) } : {}),
                     }),

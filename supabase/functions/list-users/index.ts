@@ -46,10 +46,30 @@ Deno.serve(async (req) => {
     const { data, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
     if (error) throw error;
 
-    const callerPortalIds = (user.app_metadata?.portalIds as string[] | undefined) ?? [];
+    // Load portals to resolve UUID → portal_key and build display names
+    const { data: portalsData } = await adminClient.from('portals').select('id, portal_key, cliente');
+    const uuidToPortalKey: Record<string, string> = {};
+    const uuidToNome: Record<string, string> = {};
+    const keyToNome: Record<string, string> = {};
+    for (const p of portalsData ?? []) {
+      uuidToPortalKey[p.id] = p.portal_key;
+      uuidToNome[p.id] = p.cliente;
+      keyToNome[p.portal_key] = p.cliente;
+    }
+
+    function resolveIds(rawIds: string[]): string[] {
+      return rawIds.map(id => uuidToPortalKey[id] ?? id);
+    }
+
+    const callerRawIds = (user.app_metadata?.portalIds as string[] | undefined)
+      ?? (user.app_metadata?.portais as string[] | undefined) ?? [];
+    const callerPortalIds = resolveIds(callerRawIds);
 
     let allUsers = data.users.map(u => {
-      const ids = (u.app_metadata?.portalIds as string[] | undefined) || [];
+      const rawIds = (u.app_metadata?.portalIds as string[] | undefined)
+        ?? (u.app_metadata?.portais as string[] | undefined) ?? [];
+      const ids = resolveIds(rawIds);
+      const portaisNomes = ids.map(id => keyToNome[id] ?? uuidToNome[id] ?? id);
       return {
         id: u.id,
         email: u.email ?? '',
@@ -57,6 +77,7 @@ Deno.serve(async (req) => {
         role: (u.app_metadata?.role as string | undefined) || 'client_user',
         portalIds: ids,
         portais: ids, // backwards compat alias
+        portaisNomes,
         status: u.banned_until ? 'Suspenso' : 'Ativo',
       };
     });

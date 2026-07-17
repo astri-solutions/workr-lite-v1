@@ -109,7 +109,7 @@ function SidebarNavItem({
       {!collapsed && (
         <>
           <span className="admin-nav-item__label">{item.label}</span>
-          {item.badge !== undefined && (
+          {!!item.badge && (
             <span className="nav-badge">{item.badge}</span>
           )}
         </>

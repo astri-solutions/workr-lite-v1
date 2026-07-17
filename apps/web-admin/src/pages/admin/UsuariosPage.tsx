@@ -16,6 +16,7 @@ interface UsuarioItem {
   email: string;
   role: 'super_admin' | 'client_user';
   portais: string[];
+  portaisNomes?: string[];
   status: 'Ativo' | 'Suspenso';
 }
 
@@ -391,7 +392,7 @@ export default function UsuariosPage() {
                           <span className="table-cell--muted" style={{ fontSize: '13px' }}>
                             {u.portais.length === 0
                               ? '—'
-                              : (portaisMap[u.portais[0]] ?? u.portais[0])}
+                              : (u.portaisNomes?.[0] ?? portaisMap[u.portais[0]] ?? u.portais[0])}
                           </span>
                         )}
                       </td>
@@ -410,15 +411,15 @@ export default function UsuariosPage() {
                             <span
                               className="badge badge--gray"
                               style={{ fontSize: '11px' }}
-                              title={portaisMap[u.portais[0]] ?? u.portais[0]}
+                              title={u.portaisNomes?.[0] ?? portaisMap[u.portais[0]] ?? u.portais[0]}
                             >
-                              {portaisMap[u.portais[0]] ?? u.portais[0]}
+                              {u.portaisNomes?.[0] ?? portaisMap[u.portais[0]] ?? u.portais[0]}
                             </span>
                             {u.portais.length > 1 && (
                               <span
                                 className="badge badge--info"
                                 style={{ fontSize: '11px', cursor: 'default' }}
-                                title={u.portais.slice(1).map(id => portaisMap[id] ?? id).join('\n')}
+                                title={(u.portaisNomes ?? u.portais.map(id => portaisMap[id] ?? id)).slice(1).join('\n')}
                               >
                                 +{u.portais.length - 1}
                               </span>

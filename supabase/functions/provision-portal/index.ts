@@ -85,6 +85,7 @@ function buildSiteConfig(opts: {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   portalUuid?: string;
+  ticker?: { type: string; iframeUrl?: string };
 }) {
   const year = new Date().getFullYear();
   const f = opts.footer;
@@ -144,11 +145,9 @@ export const siteConfig = {
   },
 
   ticker: {
-    type:      'static',
-    iframeUrl: '',
-    items: [
-      { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },
-    ],
+    type:      ${JSON.stringify(opts.ticker?.type === 'iframe' ? 'iframe' : opts.ticker?.type === 'none' ? 'none' : 'static')},
+    iframeUrl: ${JSON.stringify(opts.ticker?.iframeUrl ?? '')},
+    items: ${(opts.ticker?.type === 'none' || opts.ticker?.type === 'iframe') ? '[]' : "[\n      { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' },\n    ]"},
   },
 
 ${buildNavSection(opts.canais ?? [])}
@@ -221,6 +220,7 @@ function buildBlankPage(title: string, parentLabel: string | null): string {
 
       <section class="page-section" aria-label="${title}" data-reveal>
         <div class="page-section__container">
+          <div data-materias></div>
           <div class="page-empty"></div>
         </div>
       </section>
@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset } = await req.json() as {
+    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker } = await req.json() as {
       portalId: string;
       nome: string;
       subdomain: string;
@@ -319,6 +319,7 @@ Deno.serve(async (req) => {
       canais?: CanalCfg[];
       logo?: AssetFile;
       favicon?: AssetFile;
+      ticker?: { type: string; iframeUrl?: string };
     };
 
     const githubToken  = Deno.env.get('GITHUB_TOKEN');
@@ -393,6 +394,7 @@ Deno.serve(async (req) => {
       canais: canais ?? [],
       logoExt:    logo?.ext,
       faviconExt: faviconAsset?.ext,
+      ticker,
       supabaseUrl:     Deno.env.get('SUPABASE_URL'),
       supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
       portalUuid,

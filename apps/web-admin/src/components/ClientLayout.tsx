@@ -99,7 +99,7 @@ const SECTIONS: NavSection[] = [
       {
         to: '/portal/interacoes',
         label: 'Interações',
-        badge: 2,
+        badge: 0,
         icon: (
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>mail</span>
         ),

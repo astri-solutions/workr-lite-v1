@@ -62,7 +62,7 @@ export default function UserMenu() {
   const initials = getInitials(user.name);
   const infoRoute = user.role === 'super_admin' ? '/admin/informacoes' : '/portal/informacoes';
   const portais = user.portais ?? [];
-  const hasMultiplePortais = portais.length > 1;
+  const hasMultiplePortais = portais.length > 1 && user.role !== 'super_admin';
   const rawActivePortal = portais.find(p => p.id === user.activePortalId);
   // On global admin routes, suppress the active portal so the admin doesn't
   // appear "logged into" a specific client's portal.
