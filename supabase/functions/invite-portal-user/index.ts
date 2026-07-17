@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendUserInvite } from '../_shared/postmark.ts';
 
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
@@ -128,50 +129,78 @@ Deno.serve(async (req) => {
       }, { onConflict: 'portal_id,user_id' });
     }
 
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { name: nome ?? '' },
-      redirectTo: redirectTo ?? `${Deno.env.get('SITE_URL') ?? ''}/definir-senha`,
-    });
-
     let userId: string | null = null;
 
-    if (error) {
-      // User already exists — patch app_metadata and upsert portal_users, return 200
-      const msg = error.message?.toLowerCase() ?? '';
-      if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
-        try {
-          const { data: { users } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-          const existing = users.find(u => u.email === email);
-          if (existing) {
-            userId = existing.id;
-            const existingIds: string[] = existing.app_metadata?.portalIds ?? [];
-            const newId = dbUuid ?? portalId;
-            const merged = newId && !existingIds.includes(newId) ? [...existingIds, newId] : existingIds;
-            await adminClient.auth.admin.updateUserById(existing.id, {
-              app_metadata: { role: 'client_user', portalIds: merged },
-            });
-            await upsertPortalUser(existing.id);
-          }
-        } catch { /* non-fatal */ }
-        // Return 200 — the user was successfully linked to the portal even if the invite wasn't sent
-        return new Response(JSON.stringify({ id: userId, alreadyExists: true }), {
-          status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
-        });
-      }
-      return new Response(JSON.stringify({ error: error.message }), {
+    // Check if user already exists before generating invite link
+    const { data: { users: existingUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    const existingUser = existingUsers.find(u => u.email === email);
+
+    if (existingUser) {
+      // User exists — patch app_metadata + upsert portal_users, no new invite needed
+      userId = existingUser.id;
+      const existingIds: string[] = existingUser.app_metadata?.portalIds ?? [];
+      const newId = dbUuid ?? portalId;
+      const merged = newId && !existingIds.includes(newId) ? [...existingIds, newId] : existingIds;
+      await adminClient.auth.admin.updateUserById(existingUser.id, {
+        app_metadata: { role: 'client_user', portalIds: merged },
+      });
+      await upsertPortalUser(existingUser.id);
+      return new Response(JSON.stringify({ id: userId, alreadyExists: true }), {
+        status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // New user — generate invite link (creates auth record, no Supabase email sent)
+    const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { data: { name: nome ?? '' }, redirectTo: inviteRedirectTo },
+    });
+
+    if (linkError || !linkData?.user) {
+      return new Response(JSON.stringify({ error: linkError?.message ?? 'Failed to generate invite link' }), {
         status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
 
-    // New invite: set role + portalIds in app_metadata + create portal_users record
-    if (data.user?.id) {
-      userId = data.user.id;
-      const appMeta: Record<string, unknown> = { role: 'client_user' };
-      if (portalId) {
-        appMeta.portalIds = dbUuid ? [dbUuid] : [portalId];
+    userId = linkData.user.id;
+
+    // Set app_metadata + portal_users
+    const appMeta: Record<string, unknown> = { role: 'client_user' };
+    if (portalId) appMeta.portalIds = dbUuid ? [dbUuid] : [portalId];
+    await adminClient.auth.admin.updateUserById(userId, { app_metadata: appMeta });
+    await upsertPortalUser(userId);
+
+    // Resolve portal name for email
+    let portalNome: string | undefined;
+    if (dbUuid) {
+      const { data: pRow } = await adminClient.from('portals').select('cliente').eq('id', dbUuid).maybeSingle();
+      portalNome = pRow?.cliente as string | undefined;
+    }
+
+    // Send invite email via Postmark (bypasses Supabase rate limit)
+    const postmarkToken = Deno.env.get('POSTMARK_TOKEN');
+    if (postmarkToken) {
+      try {
+        await sendUserInvite({
+          email,
+          nome: nome ?? undefined,
+          portalNome,
+          inviteLink: linkData.properties.action_link,
+        });
+      } catch (emailErr) {
+        // Email failed but user + portal_users were created — return warning
+        return new Response(JSON.stringify({ id: userId, emailError: String(emailErr) }), {
+          status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
       }
-      await adminClient.auth.admin.updateUserById(data.user.id, { app_metadata: appMeta });
-      await upsertPortalUser(data.user.id);
+    } else {
+      // No Postmark configured — fall back to Supabase invite email (may hit rate limit)
+      await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: { name: nome ?? '' },
+        redirectTo: inviteRedirectTo,
+      }).catch(() => { /* non-fatal */ });
     }
 
     return new Response(JSON.stringify({ id: userId }), {
