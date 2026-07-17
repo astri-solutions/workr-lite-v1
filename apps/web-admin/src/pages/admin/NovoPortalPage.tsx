@@ -245,19 +245,19 @@ function StepIdentificacao({
           {nome && <span className="np-input__hint">{nome.length}/80 caracteres</span>}
         </div>
 
-        {url && (
-          <div className="np-field">
-            <label className="np-label">Domínio do projeto</label>
-            <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Vercel.</p>
-            <div className="np-domain-readonly">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-              </svg>
-              <span className="np-domain-readonly__value">workr-portal-{url}</span>
-            </div>
+        <div className="np-field">
+          <label className="np-label">Domínio do projeto</label>
+          <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Vercel.</p>
+          <div className={`np-domain-readonly${!url ? ' np-domain-readonly--empty' : ''}`}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span className="np-domain-readonly__value">
+              {url ? `workr-portal-${url}` : 'workr-portal-nome-do-cliente'}
+            </span>
           </div>
-        )}
+        </div>
 
         <div className="np-field">
           <label className="np-label">Nome fantasia</label>

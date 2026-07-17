@@ -280,6 +280,15 @@
   font-weight: 500;
 }
 
+.np-domain-readonly--empty .np-domain-readonly__value {
+  color: var(--color-gray-300, #B8B8B8);
+  font-weight: 400;
+}
+
+.np-domain-readonly--empty svg {
+  opacity: 0.3;
+}
+
 /* ─── URL step ───────────────────────────────────────────── */
 .np-url-wrap {
   display: flex;
