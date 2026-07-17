@@ -225,7 +225,7 @@ function EditEmpresaModal({ portal, onClose, onSave }: EditEmpresaModalProps) {
 
 export default function PortaisPage() {
   const navigate = useNavigate();
-  const { enterPortal } = useAuth();
+  const { enterPortal, loading: authLoading } = useAuth();
   const [portais, setPortais] = useState<Portal[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -239,11 +239,12 @@ export default function PortaisPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return; // wait for Supabase session to restore before querying
     fetchPortais().then(data => {
       setPortais(data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [authLoading]);
 
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
