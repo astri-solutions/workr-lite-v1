@@ -183,6 +183,8 @@ export default function FooterPage() {
   const portalName = usePortalName();
   const portalLayout = (localStorage.getItem('portal_layout') ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
   const isBannerModel = portalLayout === 'banner';
+  // Non-banner layouts always use the simple/reduced footer regardless of the stored model
+  const effectiveModel = isBannerModel ? config.model : 'reduzido';
   const [config, setConfig] = useState<FooterConfig>(loadFooter);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -422,7 +424,7 @@ export default function FooterPage() {
       <div className="pers-section">
         <h2 className="pers-section__title">Pré-visualização</h2>
         <div className="footer-preview">
-          {config.model === 'completo' ? (
+          {effectiveModel === 'completo' ? (
             /* Completo: mapa do site + contato/sociais + barra inferior */
             <div className="fp fp--completo">
               <div className="fp__top">
@@ -495,7 +497,7 @@ export default function FooterPage() {
               </div>
               {config.disclaimer && <div className="fp__disclaimer">{config.disclaimer}</div>}
             </div>
-          ) : config.model === 'compacto' ? (
+          ) : effectiveModel === 'compacto' ? (
             /* Compacto: sem mapa do site, com contato/sociais + barra inferior */
             <div className="fp fp--completo">
               <div className="fp__top">

@@ -144,7 +144,12 @@ export default function FontesPage() {
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
-    const value = { heading: headingFont, body: bodyFont };
+    // Store the actual font-family name so Google Fonts URL is correct at runtime
+    const extractName = (family: string) => family.replace(/^['"](.+?)['"].*$/, '$1').trim();
+    const value = {
+      heading: extractName(heading?.family ?? headingFont),
+      body: extractName(body?.family ?? bodyFont),
+    };
     localStorage.setItem(fontesKey, JSON.stringify(value));
     if (portalId) savePortalConfig(portalId, { fontes: value }).catch(console.error);
     setSaved(true);
@@ -188,7 +193,7 @@ export default function FontesPage() {
         title="Fontes"
         description={<>Tipografia do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
+          <button className="btn-primary" type="button" onClick={handleSave} disabled={!isDirty}>
             {saved ? 'Salvo!' : 'Salvar alterações'}
           </button>
         }

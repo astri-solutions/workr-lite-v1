@@ -306,7 +306,7 @@ export default function CoresPage() {
         title="Cores"
         description={<>Paleta de cores do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
+          <button className="btn-primary" type="button" onClick={handleSave} disabled={!isDirty}>
             {saved ? 'Salvo!' : 'Salvar e aplicar'}
           </button>
         }
