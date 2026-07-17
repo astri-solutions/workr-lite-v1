@@ -595,21 +595,36 @@ function StepCores({
       </div>
       <div className="np-step__body">
         <div className="np-cores-preview" style={{ '--np-c1': primaria, '--np-c2': secundaria, '--np-c3': terciaria } as React.CSSProperties}>
+          {/* 60 / 30 / 10 proportion bar */}
           <div className="np-cores-preview__bar">
-            <div className="np-cores-preview__dot" style={{ background: primaria }} />
-            <div className="np-cores-preview__dot" style={{ background: secundaria }} />
-            <div className="np-cores-preview__dot" style={{ background: terciaria }} />
+            <div className="np-cores-preview__bar-seg" style={{ background: primaria, flex: 6 }} title="Primária — 60%" />
+            <div className="np-cores-preview__bar-seg" style={{ background: secundaria, flex: 3 }} title="Secundária — 30%" />
+            <div className="np-cores-preview__bar-seg" style={{ background: terciaria, flex: 1 }} title="Destaque — 10%" />
           </div>
           <div className="np-cores-preview__mock">
-            <div className="np-cores-preview__mock-title" style={{ color: terciaria }}>Portal de Relações com Investidores</div>
-            <div className="np-cores-preview__mock-sub">Acompanhe os resultados e comunicados</div>
-            <div className="np-cores-preview__mock-btn" style={{ background: primaria }}>Acessar portal</div>
+            {/* Header/nav (60% — primária) */}
+            <div className="np-cores-preview__mock-nav" style={{ background: primaria }}>
+              <span className="np-cores-preview__mock-nav-brand">Portal RI</span>
+              <span className="np-cores-preview__mock-nav-links">Sobre · Resultados · Contato</span>
+            </div>
+            {/* Body section (30% — secundária como fundo de apoio) */}
+            <div className="np-cores-preview__mock-body" style={{ background: secundaria + '18' }}>
+              <div className="np-cores-preview__mock-title" style={{ color: primaria }}>Portal de Relações com Investidores</div>
+              <div className="np-cores-preview__mock-sub">Acompanhe os resultados e comunicados</div>
+              {/* CTA button (10% — terciária destaque) */}
+              <div className="np-cores-preview__mock-btn" style={{ background: terciaria }}>Acessar portal</div>
+            </div>
+          </div>
+          <div className="np-cores-preview__legend">
+            <span><em style={{ background: primaria }} />Primária 60%</span>
+            <span><em style={{ background: secundaria }} />Secundária 30%</span>
+            <span><em style={{ background: terciaria }} />Destaque 10%</span>
           </div>
         </div>
         <div className="np-cores-grid">
-          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões e ações principais" required />
-          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Destaques e badges" />
-          <ColorField label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Elementos de apoio e variações" />
+          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Cabeçalho, navegação e títulos de marca — 60%" required />
+          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Seções, cards e fundo de apoio — 30%" />
+          <ColorField label="Cor de Destaque" value={terciaria} onChange={onTerciaria} hint="Botões de ação, links e badges — 10%" />
         </div>
       </div>
     </div>
@@ -1110,7 +1125,7 @@ export default function NovoPortalPage() {
       customFontName: '',
       corPrimaria: '#0B5B68',
       corSecundaria: '#00D865',
-      corTerciaria: '#141414',
+      corTerciaria: '#F4A261',
       logoFile: null,
       logoPreview: null,
       faviconFile: null,

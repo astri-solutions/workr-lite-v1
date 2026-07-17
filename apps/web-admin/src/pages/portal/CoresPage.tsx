@@ -172,9 +172,9 @@ function ScaleStrip({ hex, name }: { hex: string; name: string }) {
 }
 
 const COLOR_DEFS = [
-  { key: 'primary' as const,   label: 'Cor primária',    desc: 'Botões, links e elementos de ação' },
-  { key: 'secondary' as const, label: 'Cor secundária',  desc: 'Destaques, badges e acentos' },
-  { key: 'tertiary' as const,  label: 'Cor terciária',   desc: 'Elementos de apoio e variações' },
+  { key: 'primary' as const,   label: 'Cor primária',    desc: 'Cabeçalho, navegação e títulos de marca — 60%' },
+  { key: 'secondary' as const, label: 'Cor secundária',  desc: 'Seções, cards e fundo de apoio — 30%' },
+  { key: 'tertiary' as const,  label: 'Cor de destaque', desc: 'Botões de ação, links e badges — 10%' },
 ];
 
 // ── Contrast checker ──────────────────────────────────────────────────────────
