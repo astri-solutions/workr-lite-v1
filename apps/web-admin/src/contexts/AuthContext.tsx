@@ -55,24 +55,51 @@ function persist(user: User | null) {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Busca portais + roles do usuário na tabela portal_users (apenas client_user). */
+/** Busca portais + roles do usuário na tabela portal_users (apenas client_user).
+ *  Também popula workr_portais no localStorage para que "Ver portal" funcione. */
 async function loadClientPortais(sbUserId: string): Promise<Portal[]> {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
       .from('portal_users')
-      .select('role, portals!inner(portal_key, cliente)')
+      .select('role, portals!inner(portal_key, cliente, vercel_url, subdomain, github_repo, vercel_created)')
       .eq('user_id', sbUserId);
     if (error || !data) return [];
+    type PortalRow = {
+      portal_key: string; cliente: string;
+      vercel_url?: string; subdomain?: string;
+      github_repo?: string; vercel_created?: boolean;
+    };
     type Row = { role: string; portals: unknown };
-    return (data as Row[]).map(row => {
-      const p = row.portals as { portal_key: string; cliente: string };
-      return {
-        id: p.portal_key,
-        nome: p.cliente,
-        role: row.role as 'admin' | 'editor' | 'viewer',
-      };
+
+    const portais: Portal[] = (data as Row[]).map(row => {
+      const p = row.portals as PortalRow;
+      return { id: p.portal_key, nome: p.cliente, role: row.role as 'admin' | 'editor' | 'viewer' };
     });
+
+    // Populate workr_portais so "Ver portal" link resolves correctly
+    try {
+      const existing: unknown[] = JSON.parse(localStorage.getItem('workr_portais') ?? '[]');
+      const existingIds = new Set((existing as Array<{ id: string }>).map(e => e.id));
+      const toAdd = (data as Row[])
+        .map(row => {
+          const p = row.portals as PortalRow;
+          return {
+            id: p.portal_key,
+            cliente: p.cliente,
+            vercelUrl: p.vercel_url ?? null,
+            subdomain: p.subdomain ?? null,
+            githubRepo: p.github_repo ?? null,
+            vercelCreated: p.vercel_created ?? false,
+          };
+        })
+        .filter(entry => !existingIds.has(entry.id));
+      if (toAdd.length > 0) {
+        localStorage.setItem('workr_portais', JSON.stringify([...existing, ...toAdd]));
+      }
+    } catch { /* non-fatal */ }
+
+    return portais;
   } catch {
     return [];
   }
@@ -134,6 +161,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
+    // Clear all portal-scoped data to prevent bleed between users on shared devices
+    try {
+      const portalKeys = Object.keys(localStorage).filter(k =>
+        k.startsWith('portal_') || k === 'workr_portais'
+      );
+      portalKeys.forEach(k => localStorage.removeItem(k));
+      // Clear hydration flags
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('portal_hydrated_'))
+        .forEach(k => sessionStorage.removeItem(k));
+    } catch { /* non-fatal */ }
     setUser(null);
     persist(null);
   }

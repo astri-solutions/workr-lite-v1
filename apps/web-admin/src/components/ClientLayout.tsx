@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PublishProvider, usePublish } from '../contexts/PublishContext';
 import { pKey } from '../utils/portalStorage';
+import { fetchPortalConfig } from '../lib/portalConfigApi';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
@@ -257,6 +258,36 @@ function ClientLayoutInner() {
     () => (localStorage.getItem(layoutKey) as PortalLayout) ?? 'sidebar'
   );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const hydrating = useRef(false);
+
+  // Hydrate localStorage from Supabase portal_config when a client_user logs in.
+  // This ensures portal admins always see the config that was published by super admin,
+  // even on a fresh device with empty localStorage.
+  useEffect(() => {
+    if (!activePortalId || isSuperAdmin) return;
+    const hydrationKey = `portal_hydrated_${activePortalId}`;
+    if (sessionStorage.getItem(hydrationKey) || hydrating.current) return;
+    hydrating.current = true;
+
+    fetchPortalConfig(activePortalId).then(cfg => {
+      hydrating.current = false;
+      if (!cfg) return;
+      sessionStorage.setItem(hydrationKey, '1');
+      const pk = (base: string) => pKey(base, activePortalId);
+      if (cfg['canais'])        localStorage.setItem(pk('portal_canais'),   JSON.stringify(cfg['canais']));
+      if (cfg['cores'])         localStorage.setItem(pk('portal_cores'),    JSON.stringify(cfg['cores']));
+      if (cfg['fontes'])        localStorage.setItem(pk('portal_fontes'),   JSON.stringify(cfg['fontes']));
+      if (cfg['layout'])        localStorage.setItem(pk('portal_layout'),   cfg['layout'] as string);
+      if (cfg['footer'])        localStorage.setItem(pk('portal_footer'),   JSON.stringify(cfg['footer']));
+      if (cfg['ticker'])        localStorage.setItem(pk('portal_ticker'),   JSON.stringify(cfg['ticker']));
+      if (cfg['splash'])        localStorage.setItem(pk('portal_splash'),   JSON.stringify(cfg['splash']));
+      if (cfg['cookies'])       localStorage.setItem(pk('portal_cookies'),  JSON.stringify(cfg['cookies']));
+      if (cfg['banner_slides']) localStorage.setItem(pk('portal_banner'),   JSON.stringify(cfg['banner_slides']));
+      if (cfg['empresas'])      localStorage.setItem(`portal_empresas_${activePortalId}`, JSON.stringify(cfg['empresas']));
+      // Update portal layout in component state if it changed
+      if (cfg['layout']) setPortalLayout(cfg['layout'] as PortalLayout);
+    }).catch(() => { hydrating.current = false; });
+  }, [activePortalId, isSuperAdmin]);
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
