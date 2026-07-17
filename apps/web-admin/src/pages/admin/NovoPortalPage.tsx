@@ -614,17 +614,17 @@ function StepCores({
             <div className="np-cores-preview__bar-seg" style={{ background: primaria, flex: 1 }} title="Primária — 10%" />
           </div>
           <div className="np-cores-preview__mock">
-            {/* Header/nav (10% primária — elementos de destaque) */}
-            <div className="np-cores-preview__mock-nav" style={{ background: primaria }}>
+            {/* Header/nav usa secundária como background (30%) */}
+            <div className="np-cores-preview__mock-nav" style={{ background: secundaria }}>
               <span className="np-cores-preview__mock-nav-brand">Portal RI</span>
               <span className="np-cores-preview__mock-nav-links">Sobre · Resultados · Contato</span>
             </div>
-            {/* Body section (30% secundária como fundo de apoio) */}
-            <div className="np-cores-preview__mock-body" style={{ background: secundaria + '18' }}>
-              <div className="np-cores-preview__mock-title" style={{ color: primaria }}>Portal de Relações com Investidores</div>
+            {/* Body section — título em secundária, fundo neutro */}
+            <div className="np-cores-preview__mock-body">
+              <div className="np-cores-preview__mock-title" style={{ color: secundaria }}>Portal de Relações com Investidores</div>
               <div className="np-cores-preview__mock-sub">Acompanhe os resultados e comunicados</div>
-              {/* CTA button (destaque terciária) */}
-              <div className="np-cores-preview__mock-btn" style={{ background: terciaria }}>Acessar portal</div>
+              {/* CTA button usa primária (10%) */}
+              <div className="np-cores-preview__mock-btn" style={{ background: primaria }}>Acessar portal</div>
             </div>
           </div>
           <div className="np-cores-preview__legend">
@@ -634,9 +634,9 @@ function StepCores({
           </div>
         </div>
         <div className="np-cores-grid">
-          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Cabeçalho, navegação e destaques principais — 10%" required />
-          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Seções, cards e fundo de apoio — 30%" />
-          <ColorField label="Cor de Destaque" value={terciaria} onChange={onTerciaria} hint="Complemento para botões e badges em casos específicos" />
+          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="CTAs, botões e destaques — 10%" required />
+          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Títulos, backgrounds e seções — 30%" />
+          <ColorField label="Cor de Destaque" value={terciaria} onChange={onTerciaria} hint="Complemento para casos específicos" />
         </div>
       </div>
     </div>
