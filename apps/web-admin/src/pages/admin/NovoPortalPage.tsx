@@ -215,10 +215,10 @@ const TIPO_SITE_OPTIONS = [
 
 function StepIdentificacao({
   nome, nomeFantasia, url, cnpj, cvmCode, autoCvm, tipoSite,
-  onNome, onNomeFantasia, onUrl, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
+  onNome, onNomeFantasia, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
 }: {
   nome: string; nomeFantasia: string; url: string; cnpj: string; cvmCode: string; autoCvm: boolean; tipoSite: string;
-  onNome: (v: string) => void; onNomeFantasia: (v: string) => void; onUrl: (v: string) => void;
+  onNome: (v: string) => void; onNomeFantasia: (v: string) => void;
   onCnpj: (v: string) => void; onCvmCode: (v: string) => void; onAutoCvm: (v: boolean) => void;
   onTipoSite: (v: string) => void;
 }) {
@@ -245,29 +245,19 @@ function StepIdentificacao({
           {nome && <span className="np-input__hint">{nome.length}/80 caracteres</span>}
         </div>
 
-        <div className="np-field">
-          <label className="np-label">Domínio do projeto</label>
-          <p className="np-field__hint">Identificador usado como nome do repositório GitHub e projeto Vercel. Gerado automaticamente a partir do nome do site.</p>
-          <div className="np-domain-wrap">
-            <span className="np-domain-prefix">workr-portal-</span>
-            <input
-              className="np-input np-domain-input"
-              type="text"
-              placeholder="nome-do-cliente"
-              value={url}
-              onChange={(e) => {
-                const slug = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/^workr-portal-/, '');
-                onUrl(slug);
-              }}
-              maxLength={50}
-            />
+        {url && (
+          <div className="np-field">
+            <label className="np-label">Domínio do projeto</label>
+            <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Vercel.</p>
+            <div className="np-domain-readonly">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <span className="np-domain-readonly__value">workr-portal-{url}</span>
+            </div>
           </div>
-          {url && (
-            <span className="np-input__hint np-input__hint--domain">
-              Repositório: <strong>workr-portal-{url}</strong>
-            </span>
-          )}
-        </div>
+        )}
 
         <div className="np-field">
           <label className="np-label">Nome fantasia</label>
@@ -1571,7 +1561,6 @@ export default function NovoPortalPage() {
               return { ...f, nome: v, url: autoSync ? newSlug : f.url };
             })}
             onNomeFantasia={(v) => setForm((f) => ({ ...f, nomeFantasia: v }))}
-            onUrl={(v) => setForm((f) => ({ ...f, url: v }))}
             onCnpj={(v) => setForm((f) => ({ ...f, cnpj: v }))}
             onCvmCode={(v) => setForm((f) => ({ ...f, cvmCode: v }))}
             onAutoCvm={(v) => setForm((f) => ({ ...f, autoCvm: v }))}

@@ -256,44 +256,28 @@
 .np-input__hint--domain { color: var(--color-gray-500, #6F6F6F); margin-top: 4px; }
 .np-input__hint--domain strong { font-weight: 600; color: var(--color-primary-600, #0B5B68); }
 
-/* ─── Domain field ───────────────────────────────────────── */
-.np-domain-wrap {
-  display: flex;
+/* ─── Domain readonly display ────────────────────────────── */
+.np-domain-readonly {
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--color-bg-light, #F4F4F4);
   border: 1px solid var(--color-border, #E0E0E0);
   border-radius: 8px;
-  overflow: hidden;
-  background: var(--color-bg-input, #FAFAFA);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  color: var(--color-gray-600, #6F6F6F);
 }
 
-.np-domain-wrap:focus-within {
-  border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px var(--color-primary-100, #c7e8ed);
+.np-domain-readonly svg {
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 
-.np-domain-prefix {
-  padding: 10px 12px;
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-gray-500, #6F6F6F);
-  background: var(--color-bg-light, #F4F4F4);
-  border-right: 1px solid var(--color-border, #E0E0E0);
-  white-space: nowrap;
-  user-select: none;
-}
-
-.np-domain-input {
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  flex: 1;
-  min-width: 0;
+.np-domain-readonly__value {
   font-family: 'Courier New', Courier, monospace;
   font-size: var(--text-sm);
-  padding: 10px 12px;
+  color: var(--color-primary-700, #0B5B68);
+  font-weight: 500;
 }
 
 /* ─── URL step ───────────────────────────────────────────── */
