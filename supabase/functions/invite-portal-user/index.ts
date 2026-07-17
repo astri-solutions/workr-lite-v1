@@ -52,10 +52,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { email, nome, portalId, role, empresas, redirectTo } = await req.json() as {
+    const { email, nome, portalId, portalKey, role, empresas, redirectTo } = await req.json() as {
       email: string;
       nome?: string;
       portalId?: string;
+      portalKey?: string;
       role?: string;
       empresas?: string[] | null;
       redirectTo?: string;
@@ -67,16 +68,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve portal UUID from portal_key
+    // Resolve portal UUID: portalId may already be the UUID, or we look up by portalKey
     let dbUuid: string | null = null;
-    if (portalId) {
+    const lookupKey = portalKey ?? portalId;
+    if (lookupKey) {
       try {
-        const { data: row } = await adminClient
-          .from('portals')
-          .select('id')
-          .eq('portal_key', portalId)
-          .maybeSingle();
-        dbUuid = row?.id ?? null;
+        // First try treating portalId directly as the UUID (when provisioner returned it)
+        if (portalId && /^[0-9a-f-]{36}$/.test(portalId)) {
+          dbUuid = portalId;
+        } else {
+          const { data: row } = await adminClient
+            .from('portals')
+            .select('id')
+            .eq('portal_key', lookupKey)
+            .maybeSingle();
+          dbUuid = row?.id ?? null;
+        }
       } catch { /* non-fatal */ }
     }
 

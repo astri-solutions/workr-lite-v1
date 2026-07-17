@@ -75,6 +75,7 @@ function buildNavSection(canais: CanalCfg[]): string {
 
 function buildSiteConfig(opts: {
   nome: string;
+  nomeFantasia?: string;
   layout: string;
   colors: Colors;
   fonts: Fonts;
@@ -86,6 +87,9 @@ function buildSiteConfig(opts: {
   supabaseAnonKey?: string;
   portalUuid?: string;
   ticker?: { type: string; iframeUrl?: string };
+  idiomas?: string[];
+  seo?: { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string };
+  emailContato?: string;
 }) {
   const year = new Date().getFullYear();
   const f = opts.footer;
@@ -163,6 +167,19 @@ ${buildNavSection(opts.canais ?? [])}
   },
 
   header: { variant: '${headerVariant(opts.layout)}' },
+
+  seo: {
+    title:             ${JSON.stringify(opts.seo?.metaTitulo   ?? `${opts.nomeFantasia ?? opts.nome} — Relações com Investidores`)},
+    description:       ${JSON.stringify(opts.seo?.metaDescricao ?? '')},
+    googleAnalyticsId: ${JSON.stringify(opts.seo?.analyticsId  ?? '')},
+    clarityId:         ${JSON.stringify(opts.seo?.clarityId     ?? '')},
+  },
+
+  contact: {
+    email: ${JSON.stringify(opts.emailContato ?? '')},
+  },
+
+  languages: ${JSON.stringify(opts.idiomas && opts.idiomas.length > 0 ? opts.idiomas : ['pt-BR'])},
 
   restrictedNav: [],
 
@@ -308,9 +325,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker } = await req.json() as {
+    const { portalId: _portalId, nome, nomeFantasia, cnpj, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato } = await req.json() as {
       portalId: string;
       nome: string;
+      nomeFantasia?: string;
+      cnpj?: string;
       subdomain: string;
       layout?: string;
       colors?: Colors;
@@ -320,6 +339,9 @@ Deno.serve(async (req) => {
       logo?: AssetFile;
       favicon?: AssetFile;
       ticker?: { type: string; iframeUrl?: string };
+      idiomas?: string[];
+      seo?: { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string };
+      emailContato?: string;
     };
 
     const githubToken  = Deno.env.get('GITHUB_TOKEN');
@@ -380,6 +402,7 @@ Deno.serve(async (req) => {
         github_repo: repoName,
         vercel_url: `https://${repoName}.vercel.app`,
         empresa_status: 'Ativo',
+        ...(cnpj ? { cnpj } : {}),
       }, { onConflict: 'portal_key' }).select('id').single();
       portalUuid = earlyRow?.id ?? undefined;
     } catch { /* non-fatal */ }
@@ -387,6 +410,7 @@ Deno.serve(async (req) => {
     // ── Step 4: build and push customised site.config.js ─────────────────
     const siteConfigContent = buildSiteConfig({
       nome,
+      nomeFantasia,
       layout: layout ?? 'banner',
       colors: colors ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#141414' },
       fonts:  fonts  ?? { display: 'Plus Jakarta Sans', body: 'Inter' },
@@ -395,6 +419,9 @@ Deno.serve(async (req) => {
       logoExt:    logo?.ext,
       faviconExt: faviconAsset?.ext,
       ticker,
+      idiomas,
+      seo,
+      emailContato,
       supabaseUrl:     Deno.env.get('SUPABASE_URL'),
       supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
       portalUuid,
@@ -559,11 +586,17 @@ Deno.serve(async (req) => {
           fontes: fonts ?? {},
           layout: layout ?? 'banner',
           footer: footer ?? {},
+          informacoes: {
+            nomeFantasia: nomeFantasia ?? null,
+            emailContato: emailContato ?? null,
+            idiomas: idiomas ?? ['pt-BR'],
+            seo: seo ?? {},
+          },
         }, { onConflict: 'portal_id' });
       }
     } catch { /* non-fatal — portal still works */ }
 
-    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError }), {
+    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError, portalUuid }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
 

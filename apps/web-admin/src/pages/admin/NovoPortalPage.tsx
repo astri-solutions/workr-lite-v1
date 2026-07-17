@@ -1168,7 +1168,7 @@ export default function NovoPortalPage() {
   }, []);
 
   const canProceed = () => {
-    if (currentLabel === 'Identificação') return form.nome.trim().length > 0 && form.url.trim().length > 0;
+    if (currentLabel === 'Identificação') return form.nome.trim().length > 0;
     if (currentLabel === 'Tipo') return form.tipo !== '';
     if (currentLabel === 'Idioma') return form.idiomas.length > 0;
     if (currentLabel === 'Email') {
@@ -1351,6 +1351,7 @@ export default function NovoPortalPage() {
           }
 
           const warnings: string[] = [];
+          let provisionedUuid: string | undefined;
 
           // Provisiona repositório GitHub + projeto Vercel
           const subdomain = form.url || form.nome.toLowerCase().replace(/\s+/g, '-');
@@ -1371,6 +1372,10 @@ export default function NovoPortalPage() {
                     body: JSON.stringify({
                       portalId: newPortal.id,
                       nome: form.nome,
+                      nomeFantasia: form.nomeFantasia || form.nome,
+                      cnpj: form.cnpj,
+                      cvmCode: form.cvmCode,
+                      tipoSite: form.tipoSite,
                       subdomain,
                       layout: form.tipo,
                       colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
@@ -1379,6 +1384,14 @@ export default function NovoPortalPage() {
                       ticker: form.tickerType === 'none'
                         ? { type: 'none' }
                         : { type: 'iframe', iframeUrl: (form.tickerEmbedCode.match(/src=["']([^"']+)["']/)?.[1]) || '' },
+                      idiomas: form.idiomas,
+                      seo: {
+                        metaTitulo: form.metaTitulo,
+                        metaDescricao: form.metaDescricao,
+                        analyticsId: form.analyticsId,
+                        clarityId: form.clarityId,
+                      },
+                      emailContato: form.emailContato,
                       ...(form.logoFile    ? { logo:    await fileToBase64(form.logoFile)    } : {}),
                       ...(form.faviconFile ? { favicon: await fileToBase64(form.faviconFile) } : {}),
                     }),
@@ -1387,9 +1400,9 @@ export default function NovoPortalPage() {
                 if (provRes.ok) {
                   const provData = await provRes.json() as {
                     repoName: string; repoUrl: string; vercelUrl: string;
-                    vercelCreated: boolean; vercelError?: string;
+                    vercelCreated: boolean; vercelError?: string; portalUuid?: string;
                   };
-                  // Store GitHub repo name in portal record
+                  // Store GitHub repo + Supabase UUID in portal record
                   const portaisRaw = localStorage.getItem('workr_portais');
                   const portais = portaisRaw ? JSON.parse(portaisRaw) : [];
                   const idx = portais.findIndex((p: { id: string }) => p.id === newPortal.id);
@@ -1397,6 +1410,7 @@ export default function NovoPortalPage() {
                     portais[idx].githubRepo = provData.repoName;
                     portais[idx].vercelUrl = provData.vercelUrl;
                     portais[idx].vercelCreated = provData.vercelCreated;
+                    if (provData.portalUuid) { portais[idx].supabaseId = provData.portalUuid; provisionedUuid = provData.portalUuid; }
                     // Update site.link to the actual Vercel URL (Vercel generates its own slug)
                     if (provData.vercelUrl && portais[idx].sites?.length > 0) {
                       const cleanUrl = provData.vercelUrl.replace(/^https?:\/\//, '');
@@ -1436,7 +1450,8 @@ export default function NovoPortalPage() {
                     body: JSON.stringify({
                       email: form.adminEmail,
                       nome: form.adminNome,
-                      portalId: newPortal.id,
+                      portalId: provisionedUuid ?? newPortal.id,
+                      portalKey: newPortal.id,
                       role: 'admin',
                       redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
                     }),
