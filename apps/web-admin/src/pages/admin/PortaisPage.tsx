@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
-import { fetchPortais, updateEmpresaStatus, updateEmpresaData, type Portal, type SiteTipo } from '../../lib/portalsApi';
+import { fetchPortais, deletePortal, updateEmpresaStatus, updateEmpresaData, type Portal, type SiteTipo } from '../../lib/portalsApi';
 
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
@@ -232,6 +233,10 @@ export default function PortaisPage() {
   const [detalhesSite, setDetalhesSite] = useState<{ link: string; ip: string } | null>(null);
   const [alterarSite, setAlterarSite] = useState<boolean>(false);
   const [editEmpresaPortal, setEditEmpresaPortal] = useState<Portal | null>(null);
+  const [deletePortalTarget, setDeletePortalTarget] = useState<Portal | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPortais().then(data => {
@@ -261,6 +266,52 @@ export default function PortaisPage() {
       empresa: { ...p.empresa, status: newStatus },
     }));
     await updateEmpresaStatus(portalId, newStatus);
+  }
+
+  async function handleDeletePortal() {
+    if (!deletePortalTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const portal = deletePortalTarget;
+      if (isSupabaseConfigured && supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (token) {
+          const vercelProjectName = portal.vercelUrl
+            ? portal.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
+            : portal.subdomain ?? portal.githubRepo?.replace(/^portal-/, '');
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+              },
+              body: JSON.stringify({
+                repoName: portal.githubRepo ?? undefined,
+                vercelProjectName: vercelProjectName ?? undefined,
+                portalId: portal.id,
+              }),
+            }
+          );
+          const data = await res.json().catch(() => ({})) as { results?: { db?: string } };
+          if (data.results?.db?.startsWith('error:')) {
+            throw new Error(`Erro ao excluir do banco: ${data.results.db}`);
+          }
+        }
+      }
+      await deletePortal(portal.id);
+      setPortais(prev => prev.filter(p => p.id !== portal.id));
+      setDeletePortalTarget(null);
+      setDeleteConfirmInput('');
+    } catch (e) {
+      setDeleteError(String(e));
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const totalPortais = portais.length;
@@ -373,6 +424,14 @@ export default function PortaisPage() {
                     >
                       {portal.empresa.status === 'Ativa' ? 'Suspender conta' : 'Reativar conta'}
                     </button>
+                    <button
+                      className="portais-btn portais-btn--danger-sm"
+                      type="button"
+                      onClick={() => { setDeletePortalTarget(portal); setDeleteConfirmInput(''); setDeleteError(null); }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+                      Excluir portal
+                    </button>
                   </div>
                 </div>
               )}
@@ -449,6 +508,45 @@ export default function PortaisPage() {
           onClose={() => setEditEmpresaPortal(null)}
           onSave={(data) => handleEditEmpresa(editEmpresaPortal.id, data)}
         />
+      )}
+      {deletePortalTarget && (
+        <Modal
+          open
+          title="Excluir portal"
+          onClose={() => { if (!deleting) { setDeletePortalTarget(null); setDeleteConfirmInput(''); setDeleteError(null); } }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--color-gray-700)', margin: 0 }}>
+              Esta ação é <strong>irreversível</strong>. O portal <strong>{deletePortalTarget.cliente}</strong>, seu repositório GitHub e projeto Vercel serão excluídos permanentemente.
+            </p>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--color-gray-700)' }}>
+              Digite <strong>{deletePortalTarget.cliente}</strong> para confirmar
+              <input
+                style={{ padding: '8px 12px', border: '1px solid var(--color-gray-300)', borderRadius: '6px', fontSize: '13px', outline: 'none' }}
+                type="text"
+                value={deleteConfirmInput}
+                onChange={e => setDeleteConfirmInput(e.target.value)}
+                placeholder={deletePortalTarget.cliente}
+                disabled={deleting}
+                autoFocus
+              />
+            </label>
+            {deleteError && <p style={{ fontSize: '13px', color: 'var(--color-error-500)', margin: 0 }}>{deleteError}</p>}
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" onClick={() => { setDeletePortalTarget(null); setDeleteConfirmInput(''); setDeleteError(null); }} disabled={deleting}>
+                Cancelar
+              </button>
+              <button
+                className="btn-action btn-action--danger"
+                type="button"
+                disabled={deleteConfirmInput !== deletePortalTarget.cliente || deleting}
+                onClick={handleDeletePortal}
+              >
+                {deleting ? 'Excluindo…' : 'Excluir portal'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
