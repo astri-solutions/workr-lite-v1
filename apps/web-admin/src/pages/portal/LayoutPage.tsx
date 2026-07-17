@@ -81,7 +81,7 @@ export default function LayoutPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const layoutKey = pKey(PORTAL_LAYOUT_KEY, portalId);
-  const { publish, publishing } = usePublish();
+  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
 
   // Compute model dynamically inside the component so it reacts to the active portal.
   // Portals created with sidebar or tabmenu can switch between those two.
@@ -103,6 +103,7 @@ export default function LayoutPage() {
     localStorage.setItem(layoutKey, selected);
     window.dispatchEvent(new StorageEvent('storage', { key: layoutKey, newValue: selected }));
     setIsDraft(true);
+    notifyDraft();
   }
 
   async function handlePublish() {
@@ -122,7 +123,7 @@ export default function LayoutPage() {
               <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
                 Salvar rascunho
               </button>
-              <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+              <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} style={{ minWidth: 100 }}>
                 {publishing ? 'Publicando…' : 'Publicar'}
               </button>
             </div>

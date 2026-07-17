@@ -276,7 +276,7 @@ export default function CoresPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const coresKey = pKey(CORES_KEY, portalId);
-  const { publish, publishing } = usePublish();
+  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
   const [base, setBase] = useState<Palette>(() => loadCores(coresKey));
   const [draft, setDraft] = useState<Palette>(base);
   const [preview, setPreview] = useState<Palette>(base);
@@ -295,6 +295,7 @@ export default function CoresPage() {
     if (portalId) savePortalConfig(portalId, { cores: draft }).catch(console.error);
     setBase(draft);
     setIsDraft(true);
+    notifyDraft();
   }
 
   async function handlePublish() {
@@ -317,7 +318,7 @@ export default function CoresPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} style={{ minWidth: 100 }}>
               {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>

@@ -129,7 +129,7 @@ export default function FontesPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const fontesKey = pKey(FONTES_KEY, portalId);
-  const { publish, publishing } = usePublish();
+  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
   const [baseHeading, setBaseHeading] = useState(() => loadFontes(fontesKey).heading);
   const [baseBody, setBaseBody] = useState(() => loadFontes(fontesKey).body);
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
@@ -160,6 +160,7 @@ export default function FontesPage() {
     setBaseHeading(headingFont);
     setBaseBody(bodyFont);
     setIsDraft(true);
+    notifyDraft();
   }
 
   async function handlePublish() {
@@ -208,7 +209,7 @@ export default function FontesPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} style={{ minWidth: 100 }}>
               {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>

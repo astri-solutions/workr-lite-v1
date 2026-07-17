@@ -21,7 +21,7 @@ export default function LogotipoPage() {
   const logoCompactKey = pKey(LOGO_COMPACT_KEY, portalId);
 
   // State holds data URLs (base64) which survive page reloads and are usable in <img src>
-  const { publish, publishing } = usePublish();
+  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
   const [baseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
   const [baseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
   const [logo, setLogo] = useState<string | null>(baseLogo);
@@ -61,6 +61,7 @@ export default function LogotipoPage() {
     pendingLogoDataUrl.current = null;
     pendingLogoCollDataUrl.current = null;
     setIsDraft(true);
+    notifyDraft();
   }
 
   async function handlePublish() {
@@ -79,7 +80,7 @@ export default function LogotipoPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} style={{ minWidth: 100 }}>
               {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>

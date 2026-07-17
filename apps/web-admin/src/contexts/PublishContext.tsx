@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { pKey } from '../utils/portalStorage';
@@ -7,22 +7,44 @@ interface PublishContextValue {
   publish: () => Promise<boolean>;
   publishing: boolean;
   publishStatus: 'idle' | 'ok' | 'err';
+  hasPendingDraft: boolean;
+  notifyDraft: () => void;
 }
 
 const PublishContext = createContext<PublishContextValue>({
   publish: async () => false,
   publishing: false,
   publishStatus: 'idle',
+  hasPendingDraft: false,
+  notifyDraft: () => {},
 });
 
 export function usePublish() {
   return useContext(PublishContext);
 }
 
+const DRAFT_PENDING_KEY = 'portal_draft_pending';
+
 export function PublishProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
+  const pid = activePortal?.id;
+  const draftKey = pid ? pKey(DRAFT_PENDING_KEY, pid) : null;
+
   const [publishing, setPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+  const [hasPendingDraft, setHasPendingDraft] = useState(false);
+
+  // Sync hasPendingDraft from localStorage when the active portal becomes known
+  useEffect(() => {
+    if (!draftKey) return;
+    setHasPendingDraft(localStorage.getItem(draftKey) === 'true');
+  }, [draftKey]);
+
+  function notifyDraft() {
+    if (draftKey) localStorage.setItem(draftKey, 'true');
+    setHasPendingDraft(true);
+  }
 
   async function publish(): Promise<boolean> {
     setPublishing(true);
@@ -112,6 +134,9 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (res.ok) {
+        // Clear the global pending draft flag on successful publish
+        if (draftKey) localStorage.removeItem(draftKey);
+        setHasPendingDraft(false);
         setPublishStatus('ok');
         setTimeout(() => setPublishStatus('idle'), 4000);
         return true;
@@ -130,7 +155,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <PublishContext.Provider value={{ publish, publishing, publishStatus }}>
+    <PublishContext.Provider value={{ publish, publishing, publishStatus, hasPendingDraft, notifyDraft }}>
       {children}
     </PublishContext.Provider>
   );

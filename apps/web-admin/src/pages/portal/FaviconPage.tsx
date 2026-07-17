@@ -17,7 +17,7 @@ export default function FaviconPage() {
   const portalId = useActivePortalId();
   const favKey = pKey(FAVICON_KEY, portalId);
 
-  const { publish, publishing } = usePublish();
+  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
   const [baseFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
   const [favicon, setFavicon] = useState<string | null>(baseFavicon);
   const [isDraft, setIsDraft] = useState(false);
@@ -40,6 +40,7 @@ export default function FaviconPage() {
     if (favicon) localStorage.setItem(favKey, favicon);
     else localStorage.removeItem(favKey);
     setIsDraft(true);
+    notifyDraft();
   }
 
   async function handlePublish() {
@@ -58,7 +59,7 @@ export default function FaviconPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} style={{ minWidth: 100 }}>
               {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>

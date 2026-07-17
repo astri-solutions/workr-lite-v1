@@ -7,6 +7,7 @@ import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -58,6 +59,7 @@ export default function BannerPage() {
   const [slides, setSlides] = useState<BannerSlide[]>(loadSlides);
   const [activeId, setActiveId] = useState('b1');
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
+  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
   const [dirty, setDirty] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -116,12 +118,14 @@ export default function BannerPage() {
   function handleDraft() {
     localStorage.setItem(BANNER_KEY, JSON.stringify(slides));
     setDirty(false);
+    notifyDraft();
   }
 
-  function handlePublish() {
+  async function handlePublish() {
     localStorage.setItem(BANNER_KEY, JSON.stringify(slides));
     setDirty(false);
-    setPublishSuccess(true);
+    const ok = await publish();
+    if (ok) setPublishSuccess(true);
   }
 
   return (
@@ -135,9 +139,9 @@ export default function BannerPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" disabled={!dirty} onClick={handlePublish}>
+            <button className="btn-primary" type="button" disabled={!dirty && !hasPendingDraft} onClick={handlePublish}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>public</span>
-              Publicar
+              {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>
         }
