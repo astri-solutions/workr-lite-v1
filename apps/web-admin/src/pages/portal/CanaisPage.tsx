@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { savePortalConfig } from '../../lib/portalConfigApi';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import { loadCvmRoutedPageIds } from '../../services/cvm.service';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -308,6 +309,7 @@ function orderKey(list: Canal[]): string {
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
+  const { publish, publishing } = usePublish();
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
@@ -721,9 +723,12 @@ export default function CanaisPage() {
                 Salvar ordem
               </button>
             )}
-            <button className="btn-primary" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm(portalEmpresas)); setNewCanalOpen(true); }}>
+            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm(portalEmpresas)); setNewCanalOpen(true); }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
+            </button>
+            <button className="btn-primary" type="button" onClick={publish} disabled={publishing} style={{ minWidth: 100 }}>
+              {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>
         }

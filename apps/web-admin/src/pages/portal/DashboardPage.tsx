@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PORTAL_LAYOUT_KEY } from '../../components/ClientLayout';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './DashboardPage.css';
 
@@ -89,7 +90,34 @@ function getPortalInfo(activePortalId?: string): { url?: string; sites: SiteInfo
 export default function DashboardPage() {
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] ?? 'bem-vindo';
-  const { url: portalUrl, sites: portalSites } = getPortalInfo(user?.activePortalId);
+  const { url: localUrl, sites: portalSites } = getPortalInfo(user?.activePortalId);
+  const [portalUrl, setPortalUrl] = useState<string | undefined>(localUrl);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !user?.activePortalId) return;
+    supabase
+      .from('portals')
+      .select('vercel_url')
+      .eq('portal_key', user.activePortalId)
+      .single()
+      .then(({ data }) => {
+        if (data?.vercel_url) {
+          setPortalUrl(data.vercel_url as string);
+          // Sync back to localStorage so other pages get the correct URL too
+          try {
+            const raw = localStorage.getItem('workr_portais');
+            if (raw) {
+              const portals = JSON.parse(raw);
+              const idx = portals.findIndex((p: { id: string }) => p.id === user.activePortalId);
+              if (idx !== -1 && portals[idx].vercelUrl !== data.vercel_url) {
+                portals[idx].vercelUrl = data.vercel_url;
+                localStorage.setItem('workr_portais', JSON.stringify(portals));
+              }
+            }
+          } catch { /* non-fatal */ }
+        }
+      });
+  }, [user?.activePortalId]);
 
   const stats = useMemo(() => {
     const docCount = readCount('portal_documentos');
