@@ -20,7 +20,8 @@ export interface Empresa {
 }
 
 export interface Portal {
-  id: string;
+  id: string;       // portal_key (timestamp slug)
+  dbId?: string;    // portals.id (UUID) — set when loaded from Supabase
   cliente: string;
   criadoEm: string;
   empresa: Empresa;
@@ -58,6 +59,7 @@ function dbToPortal(row: Record<string, unknown>, sites: Record<string, unknown>
 
   return {
     id: (row['portal_key'] as string) ?? (row['id'] as string),
+    dbId: (row['id'] as string) ?? undefined,
     cliente: row['cliente'] as string,
     criadoEm,
     empresa: {

@@ -564,6 +564,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Step 6: update portal record with final Vercel URL + create portal_config
+    let siteUpsertError: string | undefined;
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
@@ -580,13 +581,14 @@ Deno.serve(async (req) => {
 
       // Create/upsert portal_sites row (the live site entry shown in admin panel)
       if (pid) {
-        await adminClient.from('portal_sites').upsert({
+        const { error: siteErr } = await adminClient.from('portal_sites').upsert({
           portal_id: pid,
           link: vercelUrl ? vercelUrl.replace(/^https?:\/\//, '') : `${repoName}.vercel.app`,
           status: 'Ativo',
-          ip: '',
+          ip: null,
           tipo: tipoSite ?? 'RI',
-        }, { onConflict: 'portal_id' }).catch(() => {});
+        }, { onConflict: 'portal_id' });
+        if (siteErr) siteUpsertError = siteErr.message;
       }
 
       // Create initial portal_config row
@@ -608,7 +610,7 @@ Deno.serve(async (req) => {
       }
     } catch { /* non-fatal — portal still works */ }
 
-    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError, portalUuid }), {
+    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError, portalUuid, siteUpsertError }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
 

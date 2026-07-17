@@ -448,6 +448,45 @@ export default function PortaisPage() {
               )}
 
               <div className="portal-card__sites">
+                {portal.sites.length === 0 && (
+                  <div className="portal-site-row portal-site-row--pending">
+                    <div className="portal-site-row__left">
+                      <span className="badge badge--warning">Configurando</span>
+                      <span style={{ fontSize: '13px', color: '#6F6F6F' }}>
+                        {portal.vercelUrl
+                          ? portal.vercelUrl.replace(/^https?:\/\//, '')
+                          : portal.githubRepo ?? 'Aguardando provisionamento'}
+                      </span>
+                    </div>
+                    <div className="portal-site-row__right">
+                      <button
+                        className="portais-btn portais-btn--panel"
+                        type="button"
+                        onClick={async () => {
+                          if (!isSupabaseConfigured || !supabase) return;
+                          const link = portal.vercelUrl
+                            ? portal.vercelUrl.replace(/^https?:\/\//, '')
+                            : `${portal.githubRepo ?? portal.id}.vercel.app`;
+                          const { data: newSite } = await supabase
+                            .from('portal_sites')
+                            .upsert({
+                              portal_id: portal.dbId ?? portal.id,
+                              link,
+                              status: 'Ativo',
+                              ip: '',
+                              tipo: 'RI',
+                            }, { onConflict: 'portal_id' })
+                            .select('id')
+                            .single();
+                          if (newSite?.id) navigate(`/admin/portais/${newSite.id}/painel`);
+                        }}
+                      >
+                        Painel de controle
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {portal.sites.map((site) => (
                   <div key={site.id} className="portal-site-row">
                     <div className="portal-site-row__left">

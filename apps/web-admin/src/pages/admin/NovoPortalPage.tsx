@@ -595,36 +595,36 @@ function StepCores({
       </div>
       <div className="np-step__body">
         <div className="np-cores-preview" style={{ '--np-c1': primaria, '--np-c2': secundaria, '--np-c3': terciaria } as React.CSSProperties}>
-          {/* 60 / 30 / 10 proportion bar */}
+          {/* 60 / 30 / 10 proportion bar — 60% neutras, 30% secundária, 10% primária */}
           <div className="np-cores-preview__bar">
-            <div className="np-cores-preview__bar-seg" style={{ background: primaria, flex: 6 }} title="Primária — 60%" />
+            <div className="np-cores-preview__bar-seg" style={{ background: '#e8edf2', flex: 6 }} title="Neutras — 60%" />
             <div className="np-cores-preview__bar-seg" style={{ background: secundaria, flex: 3 }} title="Secundária — 30%" />
-            <div className="np-cores-preview__bar-seg" style={{ background: terciaria, flex: 1 }} title="Destaque — 10%" />
+            <div className="np-cores-preview__bar-seg" style={{ background: primaria, flex: 1 }} title="Primária — 10%" />
           </div>
           <div className="np-cores-preview__mock">
-            {/* Header/nav (60% — primária) */}
+            {/* Header/nav (10% primária — elementos de destaque) */}
             <div className="np-cores-preview__mock-nav" style={{ background: primaria }}>
               <span className="np-cores-preview__mock-nav-brand">Portal RI</span>
               <span className="np-cores-preview__mock-nav-links">Sobre · Resultados · Contato</span>
             </div>
-            {/* Body section (30% — secundária como fundo de apoio) */}
+            {/* Body section (30% secundária como fundo de apoio) */}
             <div className="np-cores-preview__mock-body" style={{ background: secundaria + '18' }}>
               <div className="np-cores-preview__mock-title" style={{ color: primaria }}>Portal de Relações com Investidores</div>
               <div className="np-cores-preview__mock-sub">Acompanhe os resultados e comunicados</div>
-              {/* CTA button (10% — terciária destaque) */}
+              {/* CTA button (destaque terciária) */}
               <div className="np-cores-preview__mock-btn" style={{ background: terciaria }}>Acessar portal</div>
             </div>
           </div>
           <div className="np-cores-preview__legend">
-            <span><em style={{ background: primaria }} />Primária 60%</span>
+            <span><em style={{ background: '#e8edf2', border: '1px solid #d0d5db' }} />Neutra 60%</span>
             <span><em style={{ background: secundaria }} />Secundária 30%</span>
-            <span><em style={{ background: terciaria }} />Destaque 10%</span>
+            <span><em style={{ background: primaria }} />Primária 10%</span>
           </div>
         </div>
         <div className="np-cores-grid">
-          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Cabeçalho, navegação e títulos de marca — 60%" required />
+          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Cabeçalho, navegação e destaques principais — 10%" required />
           <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Seções, cards e fundo de apoio — 30%" />
-          <ColorField label="Cor de Destaque" value={terciaria} onChange={onTerciaria} hint="Botões de ação, links e badges — 10%" />
+          <ColorField label="Cor de Destaque" value={terciaria} onChange={onTerciaria} hint="Complemento para botões e badges em casos específicos" />
         </div>
       </div>
     </div>
@@ -1709,7 +1709,7 @@ export default function NovoPortalPage() {
                             <div>
                               <strong>Convite não enviado para {email}</strong>
                               <br />
-                              <span style={{ fontSize: '12px' }}>Limite de e-mails atingido. Reenvie o convite pelo Painel de Controle.</span>
+                              <span style={{ fontSize: '12px' }}>Falha no envio do e-mail de convite. Reenvie pelo Painel de Controle.</span>
                               <br />
                               {createdSiteId && (
                                 <button
