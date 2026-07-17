@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { email, nome, portalId, portalKey, role, empresas, redirectTo } = await req.json() as {
+    const { email, nome, portalId, portalKey, role, empresas, redirectTo, resend } = await req.json() as {
       email: string;
       nome?: string;
       portalId?: string;
@@ -61,6 +61,7 @@ Deno.serve(async (req) => {
       role?: string;
       empresas?: string[] | null;
       redirectTo?: string;
+      resend?: boolean;
     };
 
     if (!email) {
@@ -136,7 +137,6 @@ Deno.serve(async (req) => {
     const existingUser = existingUsers.find(u => u.email === email);
 
     if (existingUser) {
-      // User exists — patch app_metadata + upsert portal_users, no new invite needed
       userId = existingUser.id;
       const existingIds: string[] = existingUser.app_metadata?.portalIds ?? [];
       const newId = dbUuid ?? portalId;
@@ -145,6 +145,34 @@ Deno.serve(async (req) => {
         app_metadata: { role: 'client_user', portalIds: merged },
       });
       await upsertPortalUser(existingUser.id);
+
+      if (resend) {
+        // Re-send invite email via a new magic link (recovery link acts as login)
+        const inviteRedirectTo2 = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
+        const { data: linkData2, error: linkError2 } = await adminClient.auth.admin.generateLink({
+          type: 'recovery',
+          email,
+          options: { redirectTo: inviteRedirectTo2 },
+        });
+        if (!linkError2 && linkData2?.properties?.action_link) {
+          let portalNome2: string | undefined;
+          if (dbUuid) {
+            const { data: pRow2 } = await adminClient.from('portals').select('cliente').eq('id', dbUuid).maybeSingle();
+            portalNome2 = pRow2?.cliente as string | undefined;
+          }
+          try {
+            await sendUserInvite({ email, nome: nome ?? undefined, portalNome: portalNome2, inviteLink: linkData2.properties.action_link });
+          } catch (emailErr) {
+            return new Response(JSON.stringify({ id: userId, alreadyExists: true, emailError: String(emailErr) }), {
+              status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+            });
+          }
+          return new Response(JSON.stringify({ id: userId, alreadyExists: true, emailSent: true }), {
+            status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
       return new Response(JSON.stringify({ id: userId, alreadyExists: true }), {
         status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
       });

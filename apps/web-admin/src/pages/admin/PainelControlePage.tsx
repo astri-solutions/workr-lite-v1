@@ -225,6 +225,7 @@ export default function PainelControlePage() {
             portalId: site.portalId,
             portalKey: site.portalKey,
             role: 'admin',
+            resend: true,
             redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
           }),
         }
