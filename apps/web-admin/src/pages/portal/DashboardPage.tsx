@@ -197,33 +197,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Account manager */}
-        <div className="dash-block dash-account-block">
-          <h2 className="dash-block__title">Seu atendimento</h2>
-          <div className="dash-account">
-            <div className="dash-account__header">
-              <div className="dash-account__avatar">{ACCOUNT_MANAGER.avatar}</div>
-              <div>
-                <p className="dash-account__name">{ACCOUNT_MANAGER.name}</p>
-                <p className="dash-account__role">{ACCOUNT_MANAGER.role}</p>
-              </div>
-            </div>
-            <ul className="dash-account__contacts">
-              <li className="dash-account__contact-item">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>mail</span>
-                <a href={`mailto:${ACCOUNT_MANAGER.email}`}>{ACCOUNT_MANAGER.email}</a>
-              </li>
-              <li className="dash-account__contact-item">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>phone</span>
-                <a href={`tel:${ACCOUNT_MANAGER.phone}`}>{ACCOUNT_MANAGER.phone}</a>
-              </li>
-            </ul>
-            <Link to="/portal/atendimento" className="btn-primary dash-account__btn">
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>support_agent</span>
-              Entrar em contato
-            </Link>
-          </div>
-        </div>
+        {/* Account manager — hidden until feature is ready */}
       </div>
 
       {/* Site info */}
