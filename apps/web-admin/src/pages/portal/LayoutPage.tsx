@@ -7,6 +7,7 @@ import PORTAL_CONFIG, { PortalModel } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -86,18 +87,23 @@ export default function LayoutPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const layoutKey = pKey(PORTAL_LAYOUT_KEY, portalId);
-  const [initial] = useState<PortalLayout>(() => (localStorage.getItem(layoutKey) as PortalLayout) ?? 'sidebar');
-  const [selected, setSelected] = useState<PortalLayout>(initial);
-  const [saved, setSaved] = useState(false);
-  const isDirty = selected !== initial && !saved;
+  const { publish, publishing } = usePublish();
+  const [base] = useState<PortalLayout>(() => (localStorage.getItem(layoutKey) as PortalLayout) ?? 'sidebar');
+  const [selected, setSelected] = useState<PortalLayout>(base);
+  const [isDraft, setIsDraft] = useState(false);
+  const isDirty = selected !== base;
   const blocker = useUnsavedChanges(isDirty);
 
-  function handleSave() {
+  function saveDraft() {
     localStorage.setItem(layoutKey, selected);
-    // Notify same-tab listeners (ClientLayout uses useState, so dispatch manually)
     window.dispatchEvent(new StorageEvent('storage', { key: layoutKey, newValue: selected }));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setIsDraft(true);
+  }
+
+  async function handlePublish() {
+    if (isDirty) saveDraft();
+    const ok = await publish();
+    if (ok) setIsDraft(false);
   }
 
   return (
@@ -107,9 +113,14 @@ export default function LayoutPage() {
         description={<>Modelo de navegação do portal <strong>{portalName}</strong>.</>}
         action={
           !isLocked && (
-            <button className="btn-primary" type="button" onClick={handleSave}>
-              {saved ? 'Salvo!' : 'Salvar alterações'}
-            </button>
+            <div className="publish-actions">
+              <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
+                Salvar rascunho
+              </button>
+              <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+                {publishing ? 'Publicando…' : 'Publicar'}
+              </button>
+            </div>
           )
         }
       />
@@ -127,7 +138,7 @@ export default function LayoutPage() {
               type="button"
               className={`pers-tipo-card${selected === t.id ? ' pers-tipo-card--active' : ''}${isLocked ? ' pers-tipo-card--locked' : ''}`}
               disabled={isLocked}
-              onClick={() => { if (!isLocked) { setSelected(t.id as PortalLayout); if (t.id !== initial) setSaved(false); } }}
+              onClick={() => { if (!isLocked) setSelected(t.id as PortalLayout); }}
             >
               <div className="pers-tipo-card__thumb">{t.thumb}</div>
               <div className="pers-tipo-card__info">

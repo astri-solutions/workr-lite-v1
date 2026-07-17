@@ -6,6 +6,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -16,13 +17,14 @@ export default function FaviconPage() {
   const portalId = useActivePortalId();
   const favKey = pKey(FAVICON_KEY, portalId);
 
-  const [initialFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
-  const [favicon, setFavicon] = useState<string | null>(initialFavicon);
-  const [saved, setSaved] = useState(false);
+  const { publish, publishing } = usePublish();
+  const [baseFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
+  const [favicon, setFavicon] = useState<string | null>(baseFavicon);
+  const [isDraft, setIsDraft] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const blobUrlRef = useRef<string | null>(null);
 
-  const isDirty = !saved && favicon !== initialFavicon;
+  const isDirty = favicon !== baseFavicon;
   const blocker = useUnsavedChanges(isDirty);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -31,15 +33,19 @@ export default function FaviconPage() {
     const result = await processImageToDataUrl(file, 'favicon');
     if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     blobUrlRef.current = result.objectUrl;
-    setFavicon(result.dataUrl); // data URL persists across reloads
-    setSaved(false);
+    setFavicon(result.dataUrl);
   }
 
-  function handleSave() {
+  function saveDraft() {
     if (favicon) localStorage.setItem(favKey, favicon);
     else localStorage.removeItem(favKey);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setIsDraft(true);
+  }
+
+  async function handlePublish() {
+    if (isDirty) saveDraft();
+    const ok = await publish();
+    if (ok) setIsDraft(false);
   }
 
   return (
@@ -48,9 +54,14 @@ export default function FaviconPage() {
         title="Favicon"
         description={<>Ícone do portal <strong>{portalName}</strong> exibido nas abas do navegador.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          <div className="publish-actions">
+            <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
+              Salvar rascunho
+            </button>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+              {publishing ? 'Publicando…' : 'Publicar'}
+            </button>
+          </div>
         }
       />
 
@@ -73,7 +84,7 @@ export default function FaviconPage() {
             </div>
             <div className="fav-preview__actions">
               <button type="button" className="logo-btn logo-btn--replace" onClick={() => inputRef.current?.click()}>Substituir</button>
-              <button type="button" className="logo-btn logo-btn--remove" onClick={() => { setFavicon(null); setSaved(false); }}>Remover</button>
+              <button type="button" className="logo-btn logo-btn--remove" onClick={() => { setFavicon(null); }}>Remover</button>
             </div>
           </div>
         ) : (

@@ -6,6 +6,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
 import { savePortalConfig } from '../../lib/portalConfigApi';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -128,11 +129,13 @@ export default function FontesPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const fontesKey = pKey(FONTES_KEY, portalId);
-  const [initialFonts] = useState(() => loadFontes(fontesKey));
+  const { publish, publishing } = usePublish();
+  const [baseHeading, setBaseHeading] = useState(() => loadFontes(fontesKey).heading);
+  const [baseBody, setBaseBody] = useState(() => loadFontes(fontesKey).body);
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
-  const [headingFont, setHeadingFont] = useState(initialFonts.heading);
-  const [bodyFont, setBodyFont] = useState(initialFonts.body);
-  const [saved, setSaved] = useState(false);
+  const [headingFont, setHeadingFont] = useState(baseHeading);
+  const [bodyFont, setBodyFont] = useState(baseBody);
+  const [isDraft, setIsDraft] = useState(false);
   const [uploading, setUploading] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
 
@@ -140,20 +143,29 @@ export default function FontesPage() {
   const heading = allFonts.find(f => f.id === headingFont);
   const body = allFonts.find(f => f.id === bodyFont);
 
-  const isDirty = !saved && (headingFont !== initialFonts.heading || bodyFont !== initialFonts.body);
+  const isDirty = headingFont !== baseHeading || bodyFont !== baseBody;
   const blocker = useUnsavedChanges(isDirty);
 
-  function handleSave() {
-    // Store the actual font-family name so Google Fonts URL is correct at runtime
-    const extractName = (family: string) => family.replace(/^['"](.+?)['"].*$/, '$1').trim();
+  function extractName(family: string) {
+    return family.replace(/^['"](.+?)['"].*$/, '$1').trim();
+  }
+
+  function saveDraft() {
     const value = {
       heading: extractName(heading?.family ?? headingFont),
       body: extractName(body?.family ?? bodyFont),
     };
     localStorage.setItem(fontesKey, JSON.stringify(value));
     if (portalId) savePortalConfig(portalId, { fontes: value }).catch(console.error);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setBaseHeading(headingFont);
+    setBaseBody(bodyFont);
+    setIsDraft(true);
+  }
+
+  async function handlePublish() {
+    if (isDirty) saveDraft();
+    const ok = await publish();
+    if (ok) setIsDraft(false);
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -175,7 +187,6 @@ export default function FontesPage() {
         custom: true,
       };
       setCustomFonts(prev => [...prev, font]);
-      setSaved(false);
     }
     setUploading(false);
     if (e.target) e.target.value = '';
@@ -193,9 +204,14 @@ export default function FontesPage() {
         title="Fontes"
         description={<>Tipografia do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave} disabled={!isDirty}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          <div className="publish-actions">
+            <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
+              Salvar rascunho
+            </button>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+              {publishing ? 'Publicando…' : 'Publicar'}
+            </button>
+          </div>
         }
       />
 
@@ -216,13 +232,13 @@ export default function FontesPage() {
         <div className="pers-section">
           <h2 className="pers-section__title">Fonte de títulos</h2>
           <p className="pers-section__desc">Usada em headings, destaques e navegação.</p>
-          <FontList active={headingFont} onSelect={setHeadingFont} allFonts={allFonts} uploading={uploading} uploadRef={uploadRef} onUpload={handleUpload} onRemove={removeCustomFont} onMarkDirty={() => setSaved(false)} />
+          <FontList active={headingFont} onSelect={setHeadingFont} allFonts={allFonts} uploading={uploading} uploadRef={uploadRef} onUpload={handleUpload} onRemove={removeCustomFont} onMarkDirty={() => {}} />
         </div>
 
         <div className="pers-section">
           <h2 className="pers-section__title">Fonte de corpo</h2>
           <p className="pers-section__desc">Usada em textos, parágrafos e tabelas.</p>
-          <FontList active={bodyFont} onSelect={setBodyFont} allFonts={allFonts} uploading={uploading} uploadRef={uploadRef} onUpload={handleUpload} onRemove={removeCustomFont} onMarkDirty={() => setSaved(false)} />
+          <FontList active={bodyFont} onSelect={setBodyFont} allFonts={allFonts} uploading={uploading} uploadRef={uploadRef} onUpload={handleUpload} onRemove={removeCustomFont} onMarkDirty={() => {}} />
         </div>
       </div>
 

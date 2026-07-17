@@ -6,6 +6,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -20,21 +21,20 @@ export default function LogotipoPage() {
   const logoCompactKey = pKey(LOGO_COMPACT_KEY, portalId);
 
   // State holds data URLs (base64) which survive page reloads and are usable in <img src>
-  const [initialLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
-  const [initialCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
-  const [logo, setLogo] = useState<string | null>(initialLogo);
-  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(initialCollapsed);
-  const [saved, setSaved] = useState(false);
+  const { publish, publishing } = usePublish();
+  const [baseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
+  const [baseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
+  const [logo, setLogo] = useState<string | null>(baseLogo);
+  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(baseCollapsed);
+  const [isDraft, setIsDraft] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
-  // Pending data URLs to write on save (null = no new file selected)
   const pendingLogoDataUrl = useRef<string | null>(null);
   const pendingLogoCollDataUrl = useRef<string | null>(null);
-  // Blob URLs for current-session preview (revoked on next upload)
   const logoBlobUrlRef = useRef<string | null>(null);
   const logoCollBlobUrlRef = useRef<string | null>(null);
 
-  const isDirty = !saved && (logo !== initialLogo || logoCollapsed !== initialCollapsed);
+  const isDirty = logo !== baseLogo || logoCollapsed !== baseCollapsed;
   const blocker = useUnsavedChanges(isDirty);
 
   async function handleFile(
@@ -51,18 +51,22 @@ export default function LogotipoPage() {
     blobUrlRef.current = result.objectUrl;
     pendingRef.current = result.dataUrl;
     setter(result.dataUrl); // use data URL so preview also works after reload
-    setSaved(false);
   }
 
-  function handleSave() {
+  function saveDraft() {
     if (logo) localStorage.setItem(logoKey, logo);
     else localStorage.removeItem(logoKey);
     if (logoCollapsed) localStorage.setItem(logoCompactKey, logoCollapsed);
     else localStorage.removeItem(logoCompactKey);
     pendingLogoDataUrl.current = null;
     pendingLogoCollDataUrl.current = null;
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setIsDraft(true);
+  }
+
+  async function handlePublish() {
+    if (isDirty) saveDraft();
+    const ok = await publish();
+    if (ok) setIsDraft(false);
   }
 
   return (
@@ -71,9 +75,14 @@ export default function LogotipoPage() {
         title="Logotipo"
         description={<>Logotipos exibidos no portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          <div className="publish-actions">
+            <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
+              Salvar rascunho
+            </button>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+              {publishing ? 'Publicando…' : 'Publicar'}
+            </button>
+          </div>
         }
       />
 
@@ -82,10 +91,10 @@ export default function LogotipoPage() {
           title="Logotipo principal"
           desc="Exibido no header do portal. Recomendado: SVG ou PNG transparente, 300×80px mínimo."
           value={logo}
-          onChange={v => { setLogo(v); setSaved(false); }}
+          onChange={v => { setLogo(v); }}
           inputRef={inputRef}
           onPickFile={() => inputRef.current?.click()}
-          onClear={() => { setLogo(null); setSaved(false); }}
+          onClear={() => { setLogo(null); }}
           inputEl={<input ref={inputRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={e => handleFile(e, setLogo, pendingLogoDataUrl, logoBlobUrlRef, 'logo')} />}
         />
@@ -93,10 +102,10 @@ export default function LogotipoPage() {
           title="Logo compacto (sidebar/favicon nav)"
           desc="Versão reduzida usada quando a sidebar está recolhida. Recomendado: ícone quadrado 80×80px."
           value={logoCollapsed}
-          onChange={v => { setLogoCollapsed(v); setSaved(false); }}
+          onChange={v => { setLogoCollapsed(v); }}
           inputRef={inputCollRef}
           onPickFile={() => inputCollRef.current?.click()}
-          onClear={() => { setLogoCollapsed(null); setSaved(false); }}
+          onClear={() => { setLogoCollapsed(null); }}
           inputEl={<input ref={inputCollRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={e => handleFile(e, setLogoCollapsed, pendingLogoCollDataUrl, logoCollBlobUrlRef, 'logo-compact')} />}
         />

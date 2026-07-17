@@ -467,6 +467,32 @@ Deno.serve(async (req) => {
       }
     } catch { assetWarnings.push('theme.js update failed'); }
 
+    // Push latest footer.js from template
+    try {
+      const footerRes = await fetch(
+        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/scripts/components/footer.js`,
+        { headers: ghHeaders }
+      );
+      if (footerRes.ok) {
+        const footerData = await footerRes.json() as { content: string; sha: string };
+        const footerBase64 = footerData.content.replace(/\n/g, '');
+        await pushAsset(footerBase64, 'scripts/components/footer.js', `chore: update footer.js via CMS [${portalNome}]`);
+      }
+    } catch { assetWarnings.push('footer.js update failed'); }
+
+    // Push latest _topbar.scss from template (always black bg)
+    try {
+      const topbarRes = await fetch(
+        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/styles/components/_topbar.scss`,
+        { headers: ghHeaders }
+      );
+      if (topbarRes.ok) {
+        const topbarData = await topbarRes.json() as { content: string; sha: string };
+        const topbarBase64 = topbarData.content.replace(/\n/g, '');
+        await pushAsset(topbarBase64, 'styles/components/_topbar.scss', `chore: update _topbar.scss via CMS [${portalNome}]`);
+      }
+    } catch { assetWarnings.push('_topbar.scss update failed'); }
+
     // Ensure index.html matches the portal layout template (self-healing for mis-provisioned portals)
     const layoutTemplateFile: Record<string, string> = { sidebar: 'home-side-bar.html', tabmenu: 'home-v2.html' };
     const tplFile = layoutTemplateFile[layout ?? ''];

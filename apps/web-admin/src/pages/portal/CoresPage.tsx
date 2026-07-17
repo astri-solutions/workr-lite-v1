@@ -8,6 +8,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
 import { savePortalConfig } from '../../lib/portalConfigApi';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
 
@@ -275,29 +276,35 @@ export default function CoresPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const coresKey = pKey(CORES_KEY, portalId);
-  const [initial] = useState<Palette>(() => loadCores(coresKey));
-  const [draft, setDraft] = useState<Palette>(initial);
-  const [preview, setPreview] = useState<Palette>(initial);
-  const [saved, setSaved] = useState(false);
+  const { publish, publishing } = usePublish();
+  const [base, setBase] = useState<Palette>(() => loadCores(coresKey));
+  const [draft, setDraft] = useState<Palette>(base);
+  const [preview, setPreview] = useState<Palette>(base);
+  const [isDraft, setIsDraft] = useState(false);
 
-  const isDirty = !saved && (
-    draft.primary !== initial.primary ||
-    draft.secondary !== initial.secondary ||
-    draft.tertiary !== initial.tertiary
+  const isDirty = (
+    draft.primary !== base.primary ||
+    draft.secondary !== base.secondary ||
+    draft.tertiary !== base.tertiary
   );
   const blocker = useUnsavedChanges(isDirty);
 
-  function handleSave() {
+  function saveDraft() {
     setPreview(draft);
     localStorage.setItem(coresKey, JSON.stringify(draft));
     if (portalId) savePortalConfig(portalId, { cores: draft }).catch(console.error);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setBase(draft);
+    setIsDraft(true);
+  }
+
+  async function handlePublish() {
+    if (isDirty) saveDraft();
+    const ok = await publish();
+    if (ok) setIsDraft(false);
   }
 
   function setColor(key: keyof Palette, val: string) {
     setDraft(prev => ({ ...prev, [key]: val }));
-    setSaved(false);
   }
 
   return (
@@ -306,9 +313,14 @@ export default function CoresPage() {
         title="Cores"
         description={<>Paleta de cores do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave} disabled={!isDirty}>
-            {saved ? 'Salvo!' : 'Salvar e aplicar'}
-          </button>
+          <div className="publish-actions">
+            <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
+              Salvar rascunho
+            </button>
+            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft} style={{ minWidth: 100 }}>
+              {publishing ? 'Publicando…' : 'Publicar'}
+            </button>
+          </div>
         }
       />
 
@@ -345,7 +357,7 @@ export default function CoresPage() {
       <div className="cores-preview-section">
         <div className="cores-preview-section__head">
           <h2 className="pers-section__title" style={{ margin: 0 }}>Preview da aplicação</h2>
-          <span className="cores-preview-section__hint">Atualiza ao salvar</span>
+          <span className="cores-preview-section__hint">Atualiza ao salvar rascunho</span>
         </div>
         <ColorPreview palette={preview} />
       </div>

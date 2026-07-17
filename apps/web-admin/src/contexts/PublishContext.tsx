@@ -1,0 +1,136 @@
+import { createContext, useContext, useState } from 'react';
+import { useAuth } from './AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { pKey } from '../utils/portalStorage';
+
+interface PublishContextValue {
+  publish: () => Promise<boolean>;
+  publishing: boolean;
+  publishStatus: 'idle' | 'ok' | 'err';
+}
+
+const PublishContext = createContext<PublishContextValue>({
+  publish: async () => false,
+  publishing: false,
+  publishStatus: 'idle',
+});
+
+export function usePublish() {
+  return useContext(PublishContext);
+}
+
+export function PublishProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const [publishing, setPublishing] = useState(false);
+  const [publishStatus, setPublishStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+
+  async function publish(): Promise<boolean> {
+    setPublishing(true);
+    setPublishStatus('idle');
+    try {
+      const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
+      const pid = activePortal?.id;
+
+      const ls = (key: string) => { try { return JSON.parse(localStorage.getItem(pKey(key, pid)) ?? 'null'); } catch { return null; } };
+      const cores      = ls('portal_cores');
+      const fontes     = ls('portal_fontes');
+      const footer     = ls('portal_footer');
+      const ticker     = ls('portal_ticker');
+      const canais     = ls('portal_canais');
+      const splash     = ls('portal_splash');
+      const cookies    = ls('portal_cookies');
+      const errorPages = ls('portal_error_pages');
+      const bannerRaw  = ls('portal_banner');
+
+      const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null =
+        (() => { try { return JSON.parse(localStorage.getItem(`portal_empresas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })();
+      const empresas = (empresasRaw ?? [])
+        .filter(e => e.ativo)
+        .map(e => ({ id: e.id, label: e.nome, short: e.nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || e.nome.slice(0, 3).toUpperCase() }));
+
+      const banner = Array.isArray(bannerRaw)
+        ? bannerRaw.map((s: Record<string, unknown>) => ({ ...s, imagem: null }))
+        : null;
+
+      function extractAsset(dataUrl: string | null): { base64: string; ext: string } | null {
+        if (!dataUrl?.startsWith('data:')) return null;
+        const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!m) return null;
+        const extMap: Record<string, string> = {
+          'image/svg+xml': 'svg', 'image/png': 'png',
+          'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif',
+        };
+        return { base64: m[2], ext: extMap[m[1]] ?? 'png' };
+      }
+      const logo    = extractAsset(localStorage.getItem(pKey('portal_logotipo', pid)));
+      const favicon = extractAsset(localStorage.getItem(pKey('portal_favicon', pid)));
+
+      const portaisRaw = localStorage.getItem('workr_portais');
+      const portaisArr = portaisRaw ? JSON.parse(portaisRaw) : [];
+      const portalRecord = portaisArr.find((p: { id: string }) => p.id === activePortal?.id);
+      const repoName: string | undefined = portalRecord?.githubRepo;
+
+      if (!isSupabaseConfigured || !supabase) {
+        setPublishStatus('ok');
+        setTimeout(() => setPublishStatus('idle'), 3000);
+        return true;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { setPublishStatus('err'); return false; }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/publish-config`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({
+            repoName: repoName ?? (portalRecord?.subdomain ? `portal-${portalRecord.subdomain}` : undefined),
+            portalId: activePortal?.id,
+            portalNome: activePortal?.nome ?? '',
+            layout: localStorage.getItem(pKey('portal_layout', pid)) ?? 'banner',
+            colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
+            fonts: fontes ? { display: fontes.heading ?? fontes.display, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
+            footer: footer ?? null,
+            ticker: ticker ?? null,
+            canais: canais ?? [],
+            empresas,
+            splash:     splash ?? null,
+            cookies:    cookies ?? null,
+            errorPages: errorPages ?? null,
+            banner:     banner ?? null,
+            logo:       logo ?? null,
+            favicon:    favicon ?? null,
+          }),
+        }
+      );
+
+      if (res.ok) {
+        setPublishStatus('ok');
+        setTimeout(() => setPublishStatus('idle'), 4000);
+        return true;
+      } else {
+        setPublishStatus('err');
+        setTimeout(() => setPublishStatus('idle'), 4000);
+        return false;
+      }
+    } catch {
+      setPublishStatus('err');
+      setTimeout(() => setPublishStatus('idle'), 4000);
+      return false;
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  return (
+    <PublishContext.Provider value={{ publish, publishing, publishStatus }}>
+      {children}
+    </PublishContext.Provider>
+  );
+}

@@ -1,3 +1,10 @@
+/* ─── Draft / Publish action group in page headers ─── */
+.publish-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ─── Shared personalization layout ─────────────────── */
 .pers-section {
   background: #fff;
