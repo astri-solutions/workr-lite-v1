@@ -1429,12 +1429,26 @@ export default function NovoPortalPage() {
                     portais[idx].vercelCreated = provData.vercelCreated;
                     if (provData.portalUuid) { portais[idx].supabaseId = provData.portalUuid; provisionedUuid = provData.portalUuid; }
                     // Update site.link to the actual Vercel URL (Vercel generates its own slug)
-                    if (provData.vercelUrl && portais[idx].sites?.length > 0) {
-                      const cleanUrl = provData.vercelUrl.replace(/^https?:\/\//, '');
-                      portais[idx].sites[0].link = cleanUrl;
+                    const siteLink = (provData.vercelUrl ?? `https://${provData.repoName}.vercel.app`).replace(/^https?:\/\//, '');
+                    if (portais[idx].sites?.length > 0) {
+                      portais[idx].sites[0].link = siteLink;
                     }
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
                     savePortal(portais[idx]).catch(console.error);
+
+                    // Belt-and-suspenders: upsert portal_sites directly from the frontend
+                    // using the UUID returned by provision-portal, guaranteeing the record exists.
+                    if (provData.portalUuid && supabase) {
+                      supabase.from('portal_sites').upsert({
+                        portal_id: provData.portalUuid,
+                        link: siteLink,
+                        status: 'Ativo',
+                        ip: null,
+                        tipo: form.tipoSite || 'RI',
+                      }, { onConflict: 'portal_id' }).then(({ error }) => {
+                        if (error) console.error('portal_sites upsert fallback failed:', error.message);
+                      });
+                    }
                   }
                   if (!provData.vercelCreated) {
                     warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
