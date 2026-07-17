@@ -216,8 +216,8 @@ export default function PainelControlePage() {
           </div>
           <div>
             <div className="painel-header__title">
-              <a className="painel-header__link" href={`https://${site.link}`} target="_blank" rel="noreferrer">
-                {site.link}
+              <a className="painel-header__link" href={site.vercelUrl ?? `https://${site.link}`} target="_blank" rel="noreferrer">
+                {site.vercelUrl ? site.vercelUrl.replace(/^https?:\/\//, '') : site.link}
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
@@ -555,7 +555,7 @@ export default function PainelControlePage() {
                 <div>
                   <p className="painel-suspend-card__title painel-suspend-card__title--warn">Confirmar suspensão</p>
                   <p className="painel-suspend-card__desc">
-                    Tem certeza? O site <strong>{site.link}</strong> ficará offline imediatamente para todos os visitantes.
+                    Tem certeza? O site <strong>{site.vercelUrl ? site.vercelUrl.replace(/^https?:\/\//, '') : site.link}</strong> ficará offline imediatamente para todos os visitantes.
                   </p>
                 </div>
               </div>
@@ -603,7 +603,7 @@ export default function PainelControlePage() {
                 <div>
                   <p className="painel-suspend-card__title painel-suspend-card__title--off">Confirmar reativação</p>
                   <p className="painel-suspend-card__desc">
-                    O site <strong>{site.link}</strong> voltará a estar disponível para os visitantes imediatamente.
+                    O site <strong>{site.vercelUrl ? site.vercelUrl.replace(/^https?:\/\//, '') : site.link}</strong> voltará a estar disponível para os visitantes imediatamente.
                   </p>
                 </div>
               </div>
