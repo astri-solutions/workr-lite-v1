@@ -4,6 +4,7 @@ import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { persistMateria } from '../../hooks/useMateriasStore';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 import './NovoFormularioPage.css';
@@ -61,7 +62,6 @@ export default function NovoFormularioPage() {
   const editing = routeState?.editing ?? null;
 
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
-  const [titles, setTitles] = useState<Record<string, string>>({ [PORTAL_CONFIG.languages[0]]: editing?.titulo ?? '' });
   const [subtitles, setSubtitles] = useState<Record<string, string>>({});
   const [submitLabels, setSubmitLabels] = useState<Record<string, string>>({});
   const [successMessages, setSuccessMessages] = useState<Record<string, string>>({});
@@ -78,7 +78,9 @@ export default function NovoFormularioPage() {
   const dragIndex = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
 
-  const PAGINAS = ['Início', 'Resultados', 'Governança', 'Comunicados', 'Eventos', 'Press Release', 'Sobre', 'Contato'];
+  const allDestinos = useCanaisDestinos(activePortalId ?? undefined);
+  // Formulário is compatible with pages that have pageType 'formulario' or undefined (generic pages)
+  const COMPATIBLE_TYPES = ['formulario', undefined] as (string | undefined)[];
 
   function addField(type: FieldType) {
     const f = newField(type);
@@ -115,15 +117,16 @@ export default function NovoFormularioPage() {
     setTimeout(() => setSaved(false), 2500);
 
     if (page) {
+      const dest = allDestinos.find(d => d.id === page);
       const today = new Date().toLocaleDateString('pt-BR');
       persistMateria({
         id: (editing as { id?: string } | null)?.id ?? Math.random().toString(36).slice(2),
-        titulo: titles[PORTAL_CONFIG.languages[0]] || 'Formulário sem título',
+        titulo: dest?.label ?? subtitles[PORTAL_CONFIG.languages[0]] ?? 'Formulário',
         subtitulo: subtitles[PORTAL_CONFIG.languages[0]] ?? '',
         pageId: page,
-        pageLabel: page,
+        pageLabel: dest?.label ?? page,
         pageType: 'formulario',
-        pageSlugType: 'formulario',
+        pageSlugType: dest?.pageType ?? 'formulario',
         status: nextStatus === 'published' ? 'publicado' : nextStatus === 'scheduled' ? 'agendado' : 'rascunho',
         data: today,
         autor: 'Usuário',
@@ -160,17 +163,7 @@ export default function NovoFormularioPage() {
 
           {/* Page info */}
           <div className="nm-meta-card" key={locale}>
-            <div className="nm-meta-card__row">
-              <label className="nm-meta-label">
-                Título da página
-                <input
-                  className="nm-meta-input lang-fade"
-                  type="text"
-                  placeholder="Ex: Fale conosco"
-                  value={titles[locale] ?? ''}
-                  onChange={e => setTitles(p => ({ ...p, [locale]: e.target.value }))}
-                />
-              </label>
+            <div className="nm-meta-card__row nm-meta-card__row--single">
               <label className="nm-meta-label">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   Subtítulo <span className="nm-meta-optional">(opcional)</span>
@@ -315,7 +308,15 @@ export default function NovoFormularioPage() {
                 Página destino
                 <select className="nm-meta-select" value={page} onChange={e => setPage(e.target.value)}>
                   <option value="">Selecionar página</option>
-                  {PAGINAS.map(p => <option key={p} value={p}>{p}</option>)}
+                  {allDestinos.map(d => {
+                    const compatible = COMPATIBLE_TYPES.includes(d.pageType);
+                    const label = d.parentLabel ? `${d.parentLabel} › ${d.label}` : d.label;
+                    return (
+                      <option key={d.id} value={d.id} disabled={!compatible}>
+                        {label}{!compatible ? ' (incompatível)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
               <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>

@@ -3,6 +3,8 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './CookiesPage.css';
@@ -52,9 +54,9 @@ const DEFAULT: CookieConfig = {
   buttons: [],
 };
 
-function loadCookies(): CookieConfig {
+function loadCookies(storageKey: string): CookieConfig {
   try {
-    const raw = localStorage.getItem(COOKIES_KEY);
+    const raw = localStorage.getItem(storageKey);
     return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
   } catch {
     return DEFAULT;
@@ -205,7 +207,9 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
 /* ─── Page ───────────────────────────────────────────── */
 export default function CookiesPage() {
   const portalName = usePortalName();
-  const [initialCfg] = useState<CookieConfig>(loadCookies);
+  const activePortalId = useActivePortalId();
+  const storageKey = pKey(COOKIES_KEY, activePortalId ?? undefined);
+  const [initialCfg] = useState<CookieConfig>(() => loadCookies(storageKey));
   const [cfg, setCfg] = useState<CookieConfig>(initialCfg);
   const [saved, setSaved] = useState(false);
 
@@ -231,7 +235,7 @@ export default function CookiesPage() {
   }
 
   function handleSave() {
-    localStorage.setItem(COOKIES_KEY, JSON.stringify(cfg));
+    localStorage.setItem(storageKey, JSON.stringify(cfg));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
