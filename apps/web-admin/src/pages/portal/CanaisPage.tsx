@@ -377,7 +377,14 @@ export default function CanaisPage() {
   }
 
   const orderChanged = orderKey(canais) !== savedOrderKey;
-  const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => setCanais(fn), []);
+  const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => {
+    setCanais(prev => {
+      const next = fn(prev);
+      localStorage.setItem(canaisKey, JSON.stringify(next));
+      if (activePortalId) savePortalConfig(activePortalId, { canais: next }).catch(console.error);
+      return next;
+    });
+  }, [canaisKey, activePortalId]);
 
   function saveToStorage(updated: Canal[]) {
     localStorage.setItem(canaisKey, JSON.stringify(updated));
