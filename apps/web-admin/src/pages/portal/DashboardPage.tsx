@@ -6,13 +6,6 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './DashboardPage.css';
 
-const ACCOUNT_MANAGER = {
-  name: 'Luísa Carvalho',
-  role: 'Gerente de Conta',
-  email: 'luisa.carvalho@astri.solutions',
-  phone: '+55 (11) 91234-5678',
-  avatar: 'LC',
-};
 
 function readCount(key: string): number {
   try { return (JSON.parse(localStorage.getItem(key) ?? '[]') as unknown[]).length; } catch { return 0; }
