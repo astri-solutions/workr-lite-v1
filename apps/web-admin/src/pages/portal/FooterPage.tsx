@@ -183,9 +183,9 @@ export default function FooterPage() {
   const portalName = usePortalName();
   const portalLayout = (localStorage.getItem('portal_layout') ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
   const isBannerModel = portalLayout === 'banner';
+  const [config, setConfig] = useState<FooterConfig>(loadFooter);
   // Non-banner layouts always use the simple/reduced footer regardless of the stored model
   const effectiveModel = isBannerModel ? config.model : 'reduzido';
-  const [config, setConfig] = useState<FooterConfig>(loadFooter);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
 
