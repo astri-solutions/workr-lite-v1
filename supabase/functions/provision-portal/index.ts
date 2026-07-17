@@ -349,7 +349,7 @@ Deno.serve(async (req) => {
     const vercelToken  = Deno.env.get('VERCEL_TOKEN');
     const githubOrg    = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
     const templateRepo = 'cliente-workr-lite';
-    const repoName     = `portal-${subdomain}`;
+    const repoName     = `workr-portal-${subdomain}`;
     const gh           = (url: string, init?: RequestInit) =>
       fetch(`https://api.github.com${url}`, { ...init, headers: { ...ghHeaders(githubToken!), ...(init?.headers ?? {}) } });
 
@@ -532,7 +532,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: subdomain,
+          name: repoName,
           framework: null,
           gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
         }),

@@ -126,7 +126,7 @@ Vercel auto-deploys on every push to `main`. No manual steps needed.
 
 ### Current setup (test/staging)
 - **Admin panel** (`workr-lite-v1`): deployed on Vercel, URL `workr-lite-v1.vercel.app`
-- **Each client portal**: gets its own GitHub repo (`astri-solutions/portal-{subdomain}`) generated from `cliente-workr-lite` template, and its own Vercel **project** (`{subdomain}.vercel.app`)
+- **Each client portal**: gets its own GitHub repo (`astri-solutions/workr-portal-{subdomain}`) generated from `cliente-workr-lite` template, and its own Vercel **project** (`workr-portal-{subdomain}.vercel.app`)
 - **Why separate Vercel projects**: `cliente-workr-lite` is a static HTML site — it cannot share a domain/project with the admin SPA (React) without complex routing workarounds. Separate projects give each portal an independent deploy pipeline.
 - **Subpath approach** (`workr-lite-v1.vercel.app/ri-gravit-studios`) was considered but rejected: the admin SPA at root and static HTML at subpaths conflict in Vercel's routing model.
 - Vercel project creation is automatic during portal provisioning, but **requires `VERCEL_TOKEN` secret** to be set in Supabase Edge Function secrets. Without it, the repo is created but Vercel deployment must be set up manually.
