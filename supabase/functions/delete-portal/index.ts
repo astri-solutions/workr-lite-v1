@@ -125,12 +125,39 @@ Deno.serve(async (req) => {
         }
 
         if (uuid) {
-          // Delete in dependency order (portal_config and portal_users reference portals.id)
-          await admin.from('portal_config').delete().eq('portal_id', uuid);
-          await admin.from('portal_users').delete().eq('portal_id', uuid);
-          await admin.from('portal_sites').delete().eq('portal_id', uuid);
+          // Find users that belong ONLY to this portal before deleting the junction rows
+          const { data: portalUserRows } = await admin
+            .from('portal_users')
+            .select('user_id')
+            .eq('portal_id', uuid);
+
+          const userIds: string[] = (portalUserRows ?? []).map((r: { user_id: string }) => r.user_id);
+
+          // Determine which users have no other portal memberships (orphan after this deletion)
+          const orphanUserIds: string[] = [];
+          for (const uid of userIds) {
+            const { count } = await admin
+              .from('portal_users')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', uid)
+              .neq('portal_id', uuid);
+            if ((count ?? 0) === 0) orphanUserIds.push(uid);
+          }
+
+          // Deleting portals cascades to: portal_sites, portal_users, portal_config,
+          // portal_materias, portal_documents, portal_results, portal_quarters
           const { error: delErr } = await admin.from('portals').delete().eq('id', uuid);
           results.db = delErr ? `error:${delErr.message}` : 'deleted';
+
+          // Remove orphan auth users (invited solely for this portal)
+          const authErrors: string[] = [];
+          for (const uid of orphanUserIds) {
+            const { error: authErr } = await admin.auth.admin.deleteUser(uid);
+            if (authErr) authErrors.push(authErr.message);
+          }
+          if (authErrors.length > 0) {
+            results.db += `:auth_warn:${authErrors.join(',')}`;
+          }
         } else {
           results.db = 'not_found';
         }
