@@ -113,7 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const base = mergeWithStored(supabaseUserToUser(sbUser), stored);
     if (base.role !== 'client_user') return base;
     const portais = await loadClientPortais(sbUser.id);
-    if (portais.length === 0) return base;
+    if (portais.length === 0) {
+      // No portals means the user's access was revoked (portal deleted). Force sign-out.
+      if (supabase) await supabase.auth.signOut();
+      persist(null);
+      return base; // onAuthStateChange will set user to null
+    }
     const activePortalId = base.activePortalId ?? portais[0].id;
     return { ...base, portais, activePortalId };
   }
