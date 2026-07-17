@@ -512,8 +512,19 @@ Deno.serve(async (req) => {
         const vd = await vercelRes.json() as { name: string; id: string };
         vercelUrl = `https://${vd.name}.vercel.app`;
         vercelCreated = true;
-        // Vercel auto-deploys when the GitHub integration is connected and commits are pushed.
-        // No manual deployment trigger needed — provision-portal already pushed commits above.
+
+        // Commits were pushed before the Vercel project existed, so Vercel never saw them.
+        // Trigger an explicit deployment from the main branch now.
+        await fetch('https://api.vercel.com/v13/deployments', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: vd.name,
+            project: vd.id,
+            target: 'production',
+            gitSource: { type: 'github', org: githubOrg, repo: repoName, ref: 'main' },
+          }),
+        });
       } else {
         const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
         vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
