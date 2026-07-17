@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AdminOutletContext } from '../../components/AdminLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import { loadPortalSiteAsync } from '../../utils/loadPortalSite';
 import { deletePortal } from '../../lib/portalsApi';
 import Modal from '../../components/Modal';
@@ -45,6 +46,7 @@ export default function PainelControlePage() {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
   const { setPortalCtx } = useOutletContext<AdminOutletContext>();
+  const { loading: authLoading } = useAuth();
   const [cacheClearing, setCacheClearing] = useState(false);
   const [cacheDone, setCacheDone] = useState(false);
   const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
@@ -60,6 +62,7 @@ export default function PainelControlePage() {
   const dangerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!siteId) { setSite(null); return; }
     loadPortalSiteAsync(siteId).then(info => {
       if (!info) { setSite(null); return; }
@@ -85,7 +88,7 @@ export default function PainelControlePage() {
         subdomain: info.subdomain,
       });
     });
-  }, [siteId]);
+  }, [siteId, authLoading]);
 
   useEffect(() => {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });

@@ -112,7 +112,7 @@ export async function fetchPortais(): Promise<Portal[]> {
     return [];
   }
 
-  return data.map(row => {
+  const portals = data.map(row => {
     // portal_sites returns as object (not array) when portal_id has a UNIQUE constraint
     const rawSites = row['portal_sites'];
     const sites: Record<string, unknown>[] = Array.isArray(rawSites)
@@ -120,6 +120,11 @@ export async function fetchPortais(): Promise<Portal[]> {
       : rawSites && typeof rawSites === 'object' ? [rawSites as Record<string, unknown>] : [];
     return dbToPortal(row as Record<string, unknown>, sites);
   });
+
+  // Cache to localStorage so sync consumers (BancoDeDadosPage, etc.) can find portal data
+  writeLocalStorage(portals);
+
+  return portals;
 }
 
 export async function savePortal(portal: Portal): Promise<void> {
