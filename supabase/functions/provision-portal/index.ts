@@ -531,7 +531,7 @@ Deno.serve(async (req) => {
 
       // Update vercel_url now that we know the final Vercel project URL
       const { data: portalRow } = await adminClient.from('portals')
-        .update({ vercel_url: vercelUrl })
+        .update({ vercel_url: vercelUrl, vercel_created: vercelCreated })
         .eq('portal_key', _portalId)
         .select('id').single();
 

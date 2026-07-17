@@ -27,6 +27,7 @@ export interface Portal {
   sites: Site[];
   githubRepo?: string;
   vercelUrl?: string;
+  vercelCreated?: boolean;
   subdomain?: string;
 }
 
@@ -74,6 +75,7 @@ function dbToPortal(row: Record<string, unknown>, sites: Record<string, unknown>
     })),
     githubRepo: (row['github_repo'] as string) ?? undefined,
     vercelUrl: (row['vercel_url'] as string) ?? undefined,
+    vercelCreated: (row['vercel_created'] as boolean) ?? false,
     subdomain: (row['subdomain'] as string) ?? undefined,
   };
 }
@@ -135,6 +137,7 @@ export async function savePortal(portal: Portal): Promise<void> {
       empresa_status: portal.empresa.status,
       github_repo: portal.githubRepo ?? null,
       vercel_url: portal.vercelUrl ?? null,
+      vercel_created: portal.vercelCreated ?? false,
       subdomain: portal.subdomain ?? null,
     }, { onConflict: 'portal_key' })
     .select('id')
@@ -234,7 +237,7 @@ export async function updateSiteStatus(
 export async function fetchPortalSite(siteId: string): Promise<{
   siteId: string; portalId: string; cliente: string; link: string;
   ip: string; status: 'Ativo' | 'Suspenso'; criadoEm: string;
-  githubRepo?: string; vercelUrl?: string; subdomain?: string;
+  githubRepo?: string; vercelUrl?: string; vercelCreated?: boolean; subdomain?: string;
 } | undefined> {
   if (!isSupabaseConfigured || !supabase) {
     return fromLocalStorage(siteId);
@@ -266,6 +269,7 @@ export async function fetchPortalSite(siteId: string): Promise<{
     criadoEm,
     githubRepo: (portal['github_repo'] as string) ?? undefined,
     vercelUrl: (portal['vercel_url'] as string) ?? undefined,
+    vercelCreated: (portal['vercel_created'] as boolean) ?? false,
     subdomain: (portal['subdomain'] as string) ?? undefined,
   };
 }
@@ -286,6 +290,7 @@ function fromLocalStorage(siteId: string) {
           criadoEm: portal.criadoEm,
           githubRepo: portal.githubRepo,
           vercelUrl: portal.vercelUrl,
+          vercelCreated: portal.vercelCreated,
           subdomain: portal.subdomain,
         };
       }

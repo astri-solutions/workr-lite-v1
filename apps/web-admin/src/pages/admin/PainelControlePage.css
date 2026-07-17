@@ -896,3 +896,35 @@
   border-color: rgba(255,255,255,0.35);
   border-top-color: #fff;
 }
+
+.painel-vercel-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: #78350f;
+}
+
+.painel-vercel-banner__icon {
+  flex-shrink: 0;
+  color: #d97706;
+}
+
+.painel-vercel-banner__text {
+  flex: 1;
+  line-height: 1.45;
+}
+
+.painel-vercel-banner__btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}

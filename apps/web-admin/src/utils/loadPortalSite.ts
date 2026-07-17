@@ -10,6 +10,7 @@ export interface PortalSiteInfo {
   criadoEm: string;
   githubRepo?: string;
   vercelUrl?: string;
+  vercelCreated?: boolean;
   subdomain?: string;
 }
 
@@ -19,7 +20,7 @@ export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
     const raw = localStorage.getItem('workr_portais');
     const portals: Array<{
       id: string; cliente: string; criadoEm: string;
-      githubRepo?: string; vercelUrl?: string; subdomain?: string;
+      githubRepo?: string; vercelUrl?: string; vercelCreated?: boolean; subdomain?: string;
       sites: Array<{ id: string; link: string; status: string; ip?: string }>;
     }> = raw ? JSON.parse(raw) : [];
     for (const portal of portals) {
@@ -35,6 +36,7 @@ export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
           criadoEm: portal.criadoEm,
           githubRepo: portal.githubRepo,
           vercelUrl: portal.vercelUrl,
+          vercelCreated: portal.vercelCreated,
           subdomain: portal.subdomain,
         };
       }

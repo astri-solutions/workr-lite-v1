@@ -1423,6 +1423,7 @@ export default function NovoPortalPage() {
                   if (idx !== -1) {
                     portais[idx].githubRepo = provData.repoName;
                     portais[idx].vercelUrl = provData.vercelUrl;
+                    portais[idx].vercelCreated = provData.vercelCreated;
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
                     savePortal(portais[idx]).catch(console.error);
                   }
