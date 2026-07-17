@@ -52,6 +52,71 @@ interface BannerSlideContent { titulo: string; subtitulo: string; cta: string; }
 interface BannerSlideCfg { id: string; content: Record<string, BannerSlideContent>; }
 interface AssetCfg { base64: string; ext: string; }
 
+// Pages that ship with specialized JS/structure — never overwrite with blank
+const PROTECTED_HTML = new Set(['index.html', 'documentos-cvm.html']);
+
+function buildBlankPage(title: string, parentLabel: string | null): string {
+  const breadcrumbParent = parentLabel
+    ? `<li>${parentLabel}</li>\n            `
+    : '';
+  return `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="${title}" />
+    <title>${title}</title>
+    <link rel="stylesheet" href="/styles/main.scss" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="site-topbar"></div>
+    <header id="site-header"></header>
+
+    <main>
+      <section class="page-header" aria-labelledby="page-title">
+        <img class="page-header__bg"
+             src="/assets/img/header-interno/header-interno.jpg"
+             alt="" aria-hidden="true" />
+        <div class="page-header__overlay" aria-hidden="true"></div>
+        <div class="page-header__inner">
+          <ol class="page-header__breadcrumb" aria-label="Você está em">
+            <li><a href="/">Home</a></li>
+            ${breadcrumbParent}<li aria-current="page">${title}</li>
+          </ol>
+          <h1 id="page-title" class="page-header__title">${title}</h1>
+        </div>
+      </section>
+
+      <section class="page-section" aria-label="${title}" data-reveal>
+        <div class="page-section__container">
+          <div data-materias></div>
+          <div class="page-empty"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer id="site-footer"></footer>
+
+    <div class="search-overlay" id="search-overlay" aria-hidden="true" aria-label="Busca" role="dialog">
+      <div class="search-overlay__inner">
+        <div class="search-overlay__box">
+          <svg class="search-overlay__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-overlay__input" type="search" placeholder="O que você está procurando?" aria-label="Campo de busca" data-search-input />
+          <button class="search-overlay__close" type="button" aria-label="Fechar busca" data-search-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <p class="search-overlay__hint">Pressione <kbd>ESC</kbd> para fechar</p>
+      </div>
+    </div>
+
+    <script type="module" src="/scripts/page.js"></script>
+  </body>
+</html>
+`;
+}
+
 function headerVariant(layout: string): string {
   if (layout === 'sidebar') return 'sidebar';
   if (layout === 'tabmenu') return 'tabmenu';
@@ -519,6 +584,58 @@ Deno.serve(async (req) => {
       try {
         await pushAsset(favicon.base64, `favicon.${favicon.ext}`, `chore: update favicon via CMS [${portalNome}]`);
       } catch { assetWarnings.push('favicon upload failed'); }
+    }
+
+    // Create missing HTML pages for newly added canais (idempotent — skips existing files)
+    async function createMissingPage(ghPath: string, html: string, commitMsg: string) {
+      const checkRes = await fetch(
+        `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`,
+        { headers: ghHeaders }
+      );
+      if (checkRes.ok) return; // file already exists, skip
+      const content = btoa(unescape(encodeURIComponent(html)));
+      await fetch(
+        `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`,
+        {
+          method: 'PUT',
+          headers: ghHeaders,
+          body: JSON.stringify({ message: commitMsg, content }),
+        }
+      );
+    }
+
+    if (canais && canais.length > 0) {
+      for (const canal of canais) {
+        if (!canal.enabled) continue;
+        if (canal.children && canal.children.length > 0) {
+          for (const sub of canal.children) {
+            if (!sub.enabled) continue;
+            const href = sub.href ?? '';
+            if (!href.endsWith('.html')) continue;
+            const ghPath = href.replace(/^\//, '');
+            if (PROTECTED_HTML.has(ghPath)) continue;
+            try {
+              await createMissingPage(
+                ghPath,
+                buildBlankPage(sub.label, canal.label),
+                `feat: add page ${ghPath} via CMS [${portalNome}]`
+              );
+            } catch { assetWarnings.push(`page creation failed: ${ghPath}`); }
+          }
+        } else {
+          const href = canal.href ?? '';
+          if (!href.endsWith('.html')) continue;
+          const ghPath = href.replace(/^\//, '');
+          if (PROTECTED_HTML.has(ghPath)) continue;
+          try {
+            await createMissingPage(
+              ghPath,
+              buildBlankPage(canal.label, null),
+              `feat: add page ${ghPath} via CMS [${portalNome}]`
+            );
+          } catch { assetWarnings.push(`page creation failed: ${ghPath}`); }
+        }
+      }
     }
 
     // Persist portal→repo mapping and sync portal_config to Supabase
