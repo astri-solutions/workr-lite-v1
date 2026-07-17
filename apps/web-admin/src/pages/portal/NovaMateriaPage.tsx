@@ -787,7 +787,7 @@ export default function NovaMateriaPage() {
   const isTabela = pageType === 'tabela';
   const isHtml = pageType === 'html';
 
-  const allDestinos = useCanaisDestinos();
+  const allDestinos = useCanaisDestinos(user?.activePortalId ?? undefined);
 
   // Filter destinations by article type compatibility
   const compatiblePageTypes: (string | undefined)[] = isGaleria
@@ -892,8 +892,8 @@ export default function NovaMateriaPage() {
         ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
         content: sections,
       };
-      persistMateria(m);
-      const portalKey = user?.activePortalId;
+      const portalKey = user?.activePortalId ?? undefined;
+      persistMateria(m, portalKey);
       if (portalKey) {
         const portalDbId = await resolvePortalId(portalKey);
         if (portalDbId) syncMateriaToSupabase(m, portalDbId);

@@ -1,5 +1,6 @@
 import { Canal, DEFAULT_CANAIS, CANAIS_KEY, PageType } from '../components/ChannelEditor';
 import { pageHasPublishedMateria } from './useMateriasStore';
+import { pKey } from '../utils/portalStorage';
 
 export interface Destino {
   id: string;
@@ -10,7 +11,7 @@ export interface Destino {
   hasPublishedMateria: boolean; // show pages already occupied
 }
 
-function buildDestinos(canais: Canal[]): Destino[] {
+function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
   const result: Destino[] = [];
   for (const canal of canais) {
     if (!canal.enabled) continue;
@@ -25,7 +26,7 @@ function buildDestinos(canais: Canal[]): Destino[] {
           parentLabel: canal.label,
           pageType: sub.pageType,
           canalHasHeaderImage,
-          hasPublishedMateria: sub.pageType === 'show' ? pageHasPublishedMateria(sub.id) : false,
+          hasPublishedMateria: sub.pageType === 'show' ? pageHasPublishedMateria(sub.id, portalKey) : false,
         });
         for (const ss of sub.children ?? []) {
           result.push({
@@ -34,7 +35,7 @@ function buildDestinos(canais: Canal[]): Destino[] {
             parentLabel: `${canal.label} › ${sub.label}`,
             pageType: ss.pageType,
             canalHasHeaderImage,
-            hasPublishedMateria: ss.pageType === 'show' ? pageHasPublishedMateria(ss.id) : false,
+            hasPublishedMateria: ss.pageType === 'show' ? pageHasPublishedMateria(ss.id, portalKey) : false,
           });
         }
       }
@@ -43,8 +44,9 @@ function buildDestinos(canais: Canal[]): Destino[] {
   return result;
 }
 
-export function useCanaisDestinos(): Destino[] {
-  const stored = localStorage.getItem(CANAIS_KEY);
+export function useCanaisDestinos(portalKey?: string): Destino[] {
+  const canaisKey = portalKey ? pKey(CANAIS_KEY, portalKey) : CANAIS_KEY;
+  const stored = localStorage.getItem(canaisKey);
   const canais: Canal[] = stored ? (JSON.parse(stored) as Canal[]) : DEFAULT_CANAIS;
-  return buildDestinos(canais);
+  return buildDestinos(canais, portalKey);
 }

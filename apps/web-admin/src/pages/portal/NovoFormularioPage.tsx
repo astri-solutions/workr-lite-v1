@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { persistMateria } from '../../hooks/useMateriasStore';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 import './NovoFormularioPage.css';
@@ -55,6 +56,7 @@ const DEFAULT_FIELDS: FormField[] = [
 export default function NovoFormularioPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const activePortalId = useActivePortalId();
   const routeState = location.state as { editing?: { titulo?: string; pagina?: string; status?: string } } | null;
   const editing = routeState?.editing ?? null;
 
@@ -127,7 +129,7 @@ export default function NovoFormularioPage() {
         autor: 'Usuário',
         ultimaEdicao: today,
         ultimoEditor: 'Usuário',
-      });
+      }, activePortalId ?? undefined);
     }
   }
 

@@ -325,7 +325,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, nomeFantasia, cnpj, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato } = await req.json() as {
+    const { portalId: _portalId, nome, nomeFantasia, cnpj, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite } = await req.json() as {
       portalId: string;
       nome: string;
       nomeFantasia?: string;
@@ -342,6 +342,7 @@ Deno.serve(async (req) => {
       idiomas?: string[];
       seo?: { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string };
       emailContato?: string;
+      tipoSite?: string;
     };
 
     const githubToken  = Deno.env.get('GITHUB_TOKEN');
@@ -576,6 +577,17 @@ Deno.serve(async (req) => {
         .select('id').single();
 
       const pid = portalRow?.id ?? portalUuid;
+
+      // Create/upsert portal_sites row (the live site entry shown in admin panel)
+      if (pid) {
+        await adminClient.from('portal_sites').upsert({
+          portal_id: pid,
+          link: vercelUrl ? vercelUrl.replace(/^https?:\/\//, '') : `${repoName}.vercel.app`,
+          status: 'Ativo',
+          ip: '',
+          tipo: tipoSite ?? 'RI',
+        }, { onConflict: 'portal_id' }).catch(() => {});
+      }
 
       // Create initial portal_config row
       if (pid) {

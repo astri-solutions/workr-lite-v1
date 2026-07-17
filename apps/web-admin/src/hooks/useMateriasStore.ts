@@ -1,5 +1,6 @@
 import { Canal, DEFAULT_CANAIS, CANAIS_KEY } from '../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { pKey } from '../utils/portalStorage';
 
 export const MATERIAS_KEY = 'portal_materias';
 
@@ -23,41 +24,45 @@ export interface StoredMateria {
   content?: unknown;
 }
 
-function loadRaw(): StoredMateria[] {
+function storageKey(portalKey?: string): string {
+  return portalKey ? pKey(MATERIAS_KEY, portalKey) : MATERIAS_KEY;
+}
+
+function loadRaw(portalKey?: string): StoredMateria[] {
   try {
-    const raw = localStorage.getItem(MATERIAS_KEY);
+    const raw = localStorage.getItem(storageKey(portalKey));
     return raw ? (JSON.parse(raw) as StoredMateria[]) : [];
   } catch {
     return [];
   }
 }
 
-function saveRaw(materias: StoredMateria[]) {
-  localStorage.setItem(MATERIAS_KEY, JSON.stringify(materias));
+function saveRaw(materias: StoredMateria[], portalKey?: string) {
+  localStorage.setItem(storageKey(portalKey), JSON.stringify(materias));
 }
 
-export function loadMaterias(): StoredMateria[] {
-  return loadRaw();
+export function loadMaterias(portalKey?: string): StoredMateria[] {
+  return loadRaw(portalKey);
 }
 
 /** Returns true if a 'show'-type page already has a published matéria */
-export function pageHasPublishedMateria(pageId: string): boolean {
-  return loadRaw().some(m => m.pageId === pageId && m.status === 'publicado');
+export function pageHasPublishedMateria(pageId: string, portalKey?: string): boolean {
+  return loadRaw(portalKey).some(m => m.pageId === pageId && m.status === 'publicado');
 }
 
 /** Save or update a matéria to localStorage, activating the page in canais if needed */
-export function persistMateria(materia: StoredMateria) {
-  const all = loadRaw();
+export function persistMateria(materia: StoredMateria, portalKey?: string) {
+  const all = loadRaw(portalKey);
   const idx = all.findIndex(m => m.id === materia.id);
   if (idx >= 0) {
     all[idx] = materia;
   } else {
     all.push(materia);
   }
-  saveRaw(all);
+  saveRaw(all, portalKey);
 
   if (materia.status === 'publicado' && materia.pageSlugType === 'show') {
-    activatePage(materia.pageId);
+    activatePage(materia.pageId, portalKey);
   }
 }
 
@@ -82,17 +87,18 @@ export async function syncMateriaToSupabase(materia: StoredMateria, portalDbId: 
   }, { onConflict: 'id' });
 }
 
-export function deleteMateria(id: string) {
-  const all = loadRaw().filter(m => m.id !== id);
-  saveRaw(all);
+export function deleteMateria(id: string, portalKey?: string) {
+  const all = loadRaw(portalKey).filter(m => m.id !== id);
+  saveRaw(all, portalKey);
   if (isSupabaseConfigured && supabase) {
     supabase.from('portal_materias').delete().eq('id', id).then(() => {});
   }
 }
 
-function activatePage(pageId: string) {
+function activatePage(pageId: string, portalKey?: string) {
   try {
-    const raw = localStorage.getItem(CANAIS_KEY);
+    const canaisKey = portalKey ? pKey(CANAIS_KEY, portalKey) : CANAIS_KEY;
+    const raw = localStorage.getItem(canaisKey);
     const canais: Canal[] = raw ? JSON.parse(raw) : DEFAULT_CANAIS;
     const updated = canais.map(c => ({
       ...c,
@@ -106,7 +112,7 @@ function activatePage(pageId: string) {
         };
       }),
     }));
-    localStorage.setItem(CANAIS_KEY, JSON.stringify(updated));
+    localStorage.setItem(canaisKey, JSON.stringify(updated));
   } catch {
     // silently ignore
   }

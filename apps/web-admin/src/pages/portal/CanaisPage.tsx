@@ -527,10 +527,10 @@ export default function CanaisPage() {
     }
 
     if (newSubForm.linkedMateriaIds.length > 0) {
-      const all = loadMaterias();
+      const all = loadMaterias(activePortalId ?? undefined);
       for (const mid of newSubForm.linkedMateriaIds) {
         const m = all.find(x => x.id === mid);
-        if (m) persistMateria({ ...m, pageId: newId, pageLabel: label });
+        if (m) persistMateria({ ...m, pageId: newId, pageLabel: label }, activePortalId ?? undefined);
       }
     }
 
@@ -604,10 +604,10 @@ export default function CanaisPage() {
     mutate(prev => [...prev, c]);
 
     if (newCanalForm.linkedMateriaIds.length > 0) {
-      const all = loadMaterias();
+      const all = loadMaterias(activePortalId ?? undefined);
       for (const mid of newCanalForm.linkedMateriaIds) {
         const m = all.find(x => x.id === mid);
-        if (m) persistMateria({ ...m, pageId: newId, pageLabel: label });
+        if (m) persistMateria({ ...m, pageId: newId, pageLabel: label }, activePortalId ?? undefined);
       }
     }
 
@@ -1209,6 +1209,7 @@ export default function CanaisPage() {
               <MateriasLinkPicker
                 selected={newSubForm.linkedMateriaIds}
                 onChange={ids => patchSub({ linkedMateriaIds: ids })}
+                portalKey={activePortalId ?? undefined}
               />
             ) : (
             <>
@@ -1775,6 +1776,7 @@ export default function CanaisPage() {
             <MateriasLinkPicker
               selected={newCanalForm.linkedMateriaIds}
               onChange={ids => setNewCanalForm(f => ({ ...f, linkedMateriaIds: ids }))}
+              portalKey={activePortalId ?? undefined}
             />
           </div>
         ) : newCanalForm.step === 1 ? (
@@ -2112,8 +2114,8 @@ function PageTypePicker({ value, onChange }: { value: PageType; onChange: (v: Pa
   );
 }
 
-function MateriasLinkPicker({ selected, onChange }: { selected: string[]; onChange: (ids: string[]) => void }) {
-  const materias = loadMaterias();
+function MateriasLinkPicker({ selected, onChange, portalKey }: { selected: string[]; onChange: (ids: string[]) => void; portalKey?: string }) {
+  const materias = loadMaterias(portalKey);
   return (
     <>
       <p className="ct-step2-label">
