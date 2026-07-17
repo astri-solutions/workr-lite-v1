@@ -928,3 +928,15 @@
   gap: 6px;
   white-space: nowrap;
 }
+
+.painel-vercel-banner--warning {
+  background: #fef3f2;
+  border-color: #fca5a5;
+  color: #7f1d1d;
+  align-items: flex-start;
+}
+
+.painel-vercel-banner--warning .painel-vercel-banner__icon {
+  color: #dc2626;
+  margin-top: 2px;
+}

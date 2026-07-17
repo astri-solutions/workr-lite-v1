@@ -1170,6 +1170,7 @@ export default function NovoPortalPage() {
   const [creating, setCreating] = useState(false);
   const [creatingStep, setCreatingStep] = useState(-1); // -1 = not started, 0..N = current step, N+1 = done
   const [creationWarnings, setCreationWarnings] = useState<string[]>([]);
+  const [createdSiteId, setCreatedSiteId] = useState<string | null>(null);
   const steps = getSteps(form.tipo);
   const currentLabel = steps[step - 1]?.label ?? '';
   const [fonteFase, setFonteFase] = useState<'titulo' | 'texto'>('titulo');
@@ -1289,6 +1290,7 @@ export default function NovoPortalPage() {
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
+          setCreatedSiteId(newPortal.sites[0].id);
 
           // Set the newly created portal as the active portal
           enterPortal(newPortal.id, form.nome);
@@ -1475,10 +1477,13 @@ export default function NovoPortalPage() {
                 if (!inviteRes.ok) {
                   const invBody = await inviteRes.json().catch(() => ({})) as { error?: string };
                   const msg = invBody.error ?? inviteRes.statusText;
-                  if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered')) {
-                    warnings.push(`Convite não enviado: ${form.adminEmail} já possui uma conta.`);
+                  const lower = msg.toLowerCase();
+                  if (lower.includes('already') || lower.includes('registered') || lower.includes('exists')) {
+                    warnings.push(`Convite não enviado: ${form.adminEmail} já possui uma conta. O vínculo com o portal foi criado.`);
+                  } else if (lower.includes('rate') || lower.includes('limit') || lower.includes('over_email')) {
+                    warnings.push(`INVITE_PENDING:${form.adminEmail}`);
                   } else {
-                    warnings.push(`Convite não enviado: ${msg}`);
+                    warnings.push(`INVITE_PENDING:${form.adminEmail}`);
                   }
                 }
               }
@@ -1491,7 +1496,9 @@ export default function NovoPortalPage() {
           setCreatingStep(CREATION_STEPS.length);
           if (warnings.length > 0) setCreationWarnings(warnings);
           localStorage.removeItem(DRAFT_KEY);
-          setTimeout(() => navigate('/admin/portais'), warnings.length > 0 ? 4000 : 1800);
+          const hasPendingInvite = warnings.some(w => w.startsWith('INVITE_PENDING:'));
+          // Don't auto-redirect when invite failed — user must click to proceed
+          if (!hasPendingInvite) setTimeout(() => navigate('/admin/portais'), warnings.length > 0 ? 3000 : 1800);
         }, 900);
       }
     }
@@ -1690,14 +1697,42 @@ export default function NovoPortalPage() {
                 </svg>
                 {creationWarnings.length > 0 && (
                   <ul className="np-creation-warnings">
-                    {creationWarnings.map((w, i) => (
-                      <li key={i} className="np-creation-warning">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                        {w}
-                      </li>
-                    ))}
+                    {creationWarnings.map((w, i) => {
+                      if (w.startsWith('INVITE_PENDING:')) {
+                        const email = w.replace('INVITE_PENDING:', '');
+                        return (
+                          <li key={i} className="np-creation-warning np-creation-warning--invite">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            <div>
+                              <strong>Convite não enviado para {email}</strong>
+                              <br />
+                              <span style={{ fontSize: '12px' }}>Limite de e-mails atingido. Reenvie o convite pelo Painel de Controle.</span>
+                              <br />
+                              {createdSiteId && (
+                                <button
+                                  className="btn-primary"
+                                  type="button"
+                                  style={{ marginTop: '10px', fontSize: '13px' }}
+                                  onClick={() => navigate(`/admin/portais/${createdSiteId}/painel`)}
+                                >
+                                  Ir para o Painel de Controle
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      }
+                      return (
+                        <li key={i} className="np-creation-warning">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                          </svg>
+                          {w}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </div>

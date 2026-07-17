@@ -61,6 +61,14 @@ export default function PainelControlePage() {
   const [site, setSite] = useState<SiteData | null | undefined>(undefined);
   const dangerRef = useRef<HTMLDivElement>(null);
 
+  // Admin invite state
+  const [hasAdmin, setHasAdmin] = useState<boolean | null>(null); // null = loading
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteNome, setInviteNome] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<'ok' | 'err' | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
     if (!siteId) { setSite(null); return; }
@@ -94,6 +102,17 @@ export default function PainelControlePage() {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
     return () => setPortalCtx(null);
   }, [site?.id]);
+
+  // Check if this portal has at least one admin user
+  useEffect(() => {
+    if (!site?.portalId || !isSupabaseConfigured || !supabase) return;
+    supabase
+      .from('portal_users')
+      .select('id', { count: 'exact', head: true })
+      .eq('portal_id', site.portalId)
+      .eq('role', 'admin')
+      .then(({ count }) => setHasAdmin((count ?? 0) > 0));
+  }, [site?.portalId]);
 
   if (site === undefined) {
     return (
@@ -179,6 +198,50 @@ export default function PainelControlePage() {
     } catch (e) {
       setDeleteError(String(e));
       setDeleting(false);
+    }
+  }
+
+  async function handleInviteAdmin() {
+    if (!inviteEmail || !site) return;
+    setInviting(true);
+    setInviteResult(null);
+    setInviteError(null);
+    try {
+      const { data: { session } } = await supabase!.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada');
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-portal-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({
+            email: inviteEmail,
+            nome: inviteNome || undefined,
+            portalId: site.portalId,
+            portalKey: site.portalKey,
+            role: 'admin',
+            redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+          }),
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? res.statusText);
+      }
+      setInviteResult('ok');
+      setHasAdmin(true);
+      setInviteEmail('');
+      setInviteNome('');
+    } catch (e) {
+      setInviteResult('err');
+      setInviteError(String(e));
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -280,6 +343,47 @@ export default function PainelControlePage() {
               <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
           </button>
+        </div>
+      )}
+
+      {hasAdmin === false && (
+        <div className="painel-vercel-banner painel-vercel-banner--warning">
+          <div className="painel-vercel-banner__icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div className="painel-vercel-banner__text" style={{ flex: 1 }}>
+            <strong>Sem administrador vinculado.</strong> Convide o admin do portal para que ele possa acessar o CMS.
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Nome (opcional)"
+                value={inviteNome}
+                onChange={e => setInviteNome(e.target.value)}
+                style={{ padding: '6px 10px', border: '1px solid var(--color-gray-300)', borderRadius: '6px', fontSize: '13px', width: '160px' }}
+              />
+              <input
+                type="email"
+                placeholder="E-mail do admin"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                style={{ padding: '6px 10px', border: '1px solid var(--color-gray-300)', borderRadius: '6px', fontSize: '13px', width: '210px' }}
+              />
+              <button
+                className="btn-primary"
+                type="button"
+                disabled={!inviteEmail || inviting}
+                onClick={handleInviteAdmin}
+                style={{ fontSize: '13px' }}
+              >
+                {inviting ? 'Enviando…' : 'Convidar admin'}
+              </button>
+              {inviteResult === 'ok' && <span style={{ color: 'var(--color-success-600)', fontSize: '13px' }}>✓ Convite enviado!</span>}
+              {inviteResult === 'err' && <span style={{ color: 'var(--color-error-600)', fontSize: '13px' }}>{inviteError}</span>}
+            </div>
+          </div>
         </div>
       )}
 
