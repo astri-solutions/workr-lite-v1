@@ -1470,21 +1470,22 @@ export default function NovoPortalPage() {
                       portalId: provisionedUuid ?? newPortal.id,
                       portalKey: newPortal.id,
                       role: 'admin',
+                      resend: true,
                       redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
                     }),
                   }
                 );
+                const invBody = await inviteRes.json().catch(() => ({})) as { error?: string; emailError?: string; alreadyExists?: boolean };
                 if (!inviteRes.ok) {
-                  const invBody = await inviteRes.json().catch(() => ({})) as { error?: string };
                   const msg = invBody.error ?? inviteRes.statusText;
                   const lower = msg.toLowerCase();
-                  if (lower.includes('already') || lower.includes('registered') || lower.includes('exists')) {
-                    warnings.push(`Convite não enviado: ${form.adminEmail} já possui uma conta. O vínculo com o portal foi criado.`);
-                  } else if (lower.includes('rate') || lower.includes('limit') || lower.includes('over_email')) {
+                  if (lower.includes('rate') || lower.includes('limit') || lower.includes('over_email')) {
                     warnings.push(`INVITE_PENDING:${form.adminEmail}`);
                   } else {
                     warnings.push(`INVITE_PENDING:${form.adminEmail}`);
                   }
+                } else if (invBody.emailError) {
+                  warnings.push(`INVITE_PENDING:${form.adminEmail}`);
                 }
               }
             } catch (e) {

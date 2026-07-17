@@ -151,10 +151,35 @@ Deno.serve(async (req) => {
 
           // Remove orphan auth users (invited solely for this portal)
           const authErrors: string[] = [];
+          const deletedUids = new Set<string>(orphanUserIds);
           for (const uid of orphanUserIds) {
             const { error: authErr } = await admin.auth.admin.deleteUser(uid);
             if (authErr) authErrors.push(authErr.message);
           }
+
+          // Also sweep auth users by app_metadata.portalIds — catches ghost accounts
+          // created by generateLink but never properly linked into portal_users
+          try {
+            const { data: { users: allUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+            for (const au of allUsers) {
+              if (deletedUids.has(au.id)) continue; // already handled above
+              const ids: string[] = au.app_metadata?.portalIds ?? [];
+              if (!ids.includes(uuid)) continue;
+              // Remove this portal from their portalIds
+              const remaining = ids.filter((id: string) => id !== uuid);
+              if (remaining.length === 0) {
+                // No other portals — delete the auth user
+                const { error: delErr2 } = await admin.auth.admin.deleteUser(au.id);
+                if (delErr2) authErrors.push(delErr2.message);
+              } else {
+                // Has other portals — just strip this portal from portalIds
+                await admin.auth.admin.updateUserById(au.id, {
+                  app_metadata: { ...au.app_metadata, portalIds: remaining },
+                });
+              }
+            }
+          } catch { /* non-fatal sweep */ }
+
           if (authErrors.length > 0) {
             results.db += `:auth_warn:${authErrors.join(',')}`;
           }
