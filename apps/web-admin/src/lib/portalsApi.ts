@@ -98,11 +98,14 @@ export async function fetchPortais(): Promise<Portal[]> {
   }
 
   if (data.length === 0) {
-    // Supabase is empty: migrate from localStorage if anything exists there
+    // Supabase is empty — only migrate from localStorage if the local portals
+    // have never been provisioned (no githubRepo). If they have a repo they
+    // were already synced to Supabase and the empty result means they were deleted.
     const local = readLocalStorage();
-    if (local.length > 0) {
-      await Promise.all(local.map(p => savePortal(p)));
-      return local;
+    const unsynced = local.filter(p => !p.githubRepo);
+    if (unsynced.length > 0) {
+      await Promise.all(unsynced.map(p => savePortal(p)));
+      return unsynced;
     }
     return [];
   }
@@ -165,9 +168,17 @@ export async function savePortal(portal: Portal): Promise<void> {
 }
 
 export async function deletePortal(portalId: string): Promise<void> {
-  // Remove from localStorage only — database cleanup is handled by the delete-portal edge function
+  // Remove from localStorage — database cleanup is handled by the delete-portal edge function
   const locals = readLocalStorage().filter(p => p.id !== portalId);
   writeLocalStorage(locals);
+
+  // Clean up all portal-scoped keys (portal_canais_<id>, portal_cores_<id>, etc.)
+  const prefix = `_${portalId}`;
+  Object.keys(localStorage)
+    .filter(k => k.endsWith(prefix))
+    .forEach(k => localStorage.removeItem(k));
+  // Also clean up the empresa-scoped key
+  localStorage.removeItem(`portal_empresas_${portalId}`);
 }
 
 export async function updateEmpresaData(
@@ -235,7 +246,7 @@ export async function updateSiteStatus(
 }
 
 export async function fetchPortalSite(siteId: string): Promise<{
-  siteId: string; portalId: string; cliente: string; link: string;
+  siteId: string; portalId: string; portalKey: string; cliente: string; link: string;
   ip: string; status: 'Ativo' | 'Suspenso'; criadoEm: string;
   githubRepo?: string; vercelUrl?: string; vercelCreated?: boolean; subdomain?: string;
 } | undefined> {
@@ -262,6 +273,7 @@ export async function fetchPortalSite(siteId: string): Promise<{
   return {
     siteId: data['id'] as string,
     portalId: portal['id'] as string,
+    portalKey: (portal['portal_key'] as string) ?? (portal['id'] as string),
     cliente: portal['cliente'] as string,
     link: data['link'] as string,
     ip: (data['ip'] as string) ?? '—',
@@ -283,6 +295,7 @@ function fromLocalStorage(siteId: string) {
         return {
           siteId: s.id,
           portalId: portal.id,
+          portalKey: portal.id,
           cliente: portal.cliente,
           link: s.link,
           ip: s.ip || '—',

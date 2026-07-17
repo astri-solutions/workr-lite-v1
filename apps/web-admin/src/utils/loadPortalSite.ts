@@ -3,6 +3,7 @@ import { fetchPortalSite } from '../lib/portalsApi';
 export interface PortalSiteInfo {
   siteId: string;
   portalId: string;
+  portalKey: string; // portal_key / localStorage id — used for deletePortal
   cliente: string;
   link: string;
   ip: string;
@@ -29,6 +30,7 @@ export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
         return {
           siteId: s.id,
           portalId: portal.id,
+          portalKey: portal.id,
           cliente: portal.cliente,
           link: s.link,
           ip: s.ip || '—',

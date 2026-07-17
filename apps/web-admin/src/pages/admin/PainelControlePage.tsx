@@ -11,6 +11,7 @@ import './PainelControlePage.css';
 interface SiteData {
   id: string;
   portalId: string;
+  portalKey: string;
   cliente: string;
   link: string;
   ip: string;
@@ -65,6 +66,7 @@ export default function PainelControlePage() {
       setSite({
         id: info.siteId,
         portalId: info.portalId,
+        portalKey: info.portalKey,
         cliente: info.cliente,
         link: info.link,
         ip: info.ip,
@@ -166,8 +168,8 @@ export default function PainelControlePage() {
         }
       }
 
-      // Remove from localStorage
-      await deletePortal(site.portalId);
+      // Remove from localStorage using portalKey (= portal_key / localStorage id)
+      await deletePortal(site.portalKey);
 
       setDeleteModalOpen(false);
       navigate('/admin/portais');
