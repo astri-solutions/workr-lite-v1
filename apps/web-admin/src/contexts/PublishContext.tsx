@@ -59,6 +59,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
         const extMap: Record<string, string> = {
           'image/svg+xml': 'svg', 'image/png': 'png',
           'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif',
+          'image/x-icon': 'ico', 'image/vnd.microsoft.icon': 'ico',
         };
         return { base64: m[2], ext: extMap[m[1]] ?? 'png' };
       }

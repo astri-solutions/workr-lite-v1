@@ -42,6 +42,8 @@ const PROFILES: Record<ImageSlot, SizeProfile> = {
 };
 
 const PASSTHROUGH_TYPES = new Set(['image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon']);
+// Favicons must stay as PNG/ICO/SVG — WebP is not supported as a favicon format
+const FAVICON_PASSTHROUGH_TYPES = new Set(['image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/png']);
 
 export interface ProcessedImage {
   file: File;
@@ -58,7 +60,8 @@ export interface ProcessedImage {
  * Revoke the objectUrl when no longer needed to free memory.
  */
 export async function processImage(file: File, slot: ImageSlot): Promise<ProcessedImage> {
-  if (PASSTHROUGH_TYPES.has(file.type)) {
+  const passthroughs = slot === 'favicon' ? FAVICON_PASSTHROUGH_TYPES : PASSTHROUGH_TYPES;
+  if (passthroughs.has(file.type)) {
     const objectUrl = URL.createObjectURL(file);
     return { file, objectUrl, originalSize: file.size, processedSize: file.size, width: 0, height: 0 };
   }
