@@ -237,13 +237,23 @@ export default function PortaisPage() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (authLoading) return; // wait for Supabase session to restore before querying
+  const loadPortais = () => {
+    setLoading(true);
+    setFetchError(null);
     fetchPortais().then(data => {
       setPortais(data);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((e: unknown) => {
+      setFetchError(String(e));
+      setLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    if (authLoading) return; // wait for Supabase session to restore before querying
+    loadPortais();
   }, [authLoading]);
 
   function toggleExpand(portalId: string) {
@@ -480,11 +490,25 @@ export default function PortaisPage() {
           );
         })}
 
-        {!loading && portais.length === 0 && (
+        {!loading && fetchError && (
+          <div className="page-placeholder">
+            <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px', color: 'var(--color-danger)' }}>error</span>
+            <h2>Erro ao carregar portais</h2>
+            <p style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--color-gray-500)', maxWidth: '400px', wordBreak: 'break-all' }}>{fetchError}</p>
+            <button className="btn-outline" type="button" onClick={loadPortais} style={{ marginTop: '12px' }}>
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {!loading && !fetchError && portais.length === 0 && (
           <div className="page-placeholder">
             <span className="material-symbols-outlined page-placeholder__icon" style={{ fontSize: '40px' }}>language</span>
             <h2>Nenhum portal cadastrado</h2>
             <p>Crie o primeiro portal clicando em <strong>Novo Portal</strong>.</p>
+            <button className="btn-outline" type="button" onClick={loadPortais} style={{ marginTop: '12px' }}>
+              Recarregar
+            </button>
           </div>
         )}
 

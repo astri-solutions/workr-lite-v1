@@ -92,8 +92,10 @@ export async function fetchPortais(): Promise<Portal[]> {
     .select('*, portal_sites(*)')
     .order('created_at', { ascending: true });
 
-  if (error || !data) {
-    // Supabase failed — fall back to localStorage
+  if (error) {
+    throw new Error(`Supabase error: ${error.message} (code: ${error.code})`);
+  }
+  if (!data) {
     return readLocalStorage();
   }
 
