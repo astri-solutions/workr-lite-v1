@@ -256,7 +256,7 @@ function StepIdentificacao({
               placeholder="nome-do-cliente"
               value={url}
               onChange={(e) => {
-                const slug = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                const slug = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/^workr-portal-/, '');
                 onUrl(slug);
               }}
               maxLength={50}
@@ -1393,7 +1393,9 @@ export default function NovoPortalPage() {
           let provisionedUuid: string | undefined;
 
           // Provisiona repositório GitHub + projeto Vercel
-          const subdomain = form.url || form.nome.toLowerCase().replace(/\s+/g, '-');
+          // Strip any accidental 'workr-portal-' prefix — the edge function always prepends it
+          const rawSlug = form.url || form.nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const subdomain = rawSlug.replace(/^workr-portal-/, '');
           if (isSupabaseConfigured && supabase) {
             try {
               const { data: { session: sess } } = await supabase.auth.getSession();
