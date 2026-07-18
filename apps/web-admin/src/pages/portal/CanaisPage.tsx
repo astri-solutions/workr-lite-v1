@@ -405,19 +405,29 @@ export default function CanaisPage() {
     movedCanalTimer.current = setTimeout(() => setMovedCanals([]), 500);
   }
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const orderChanged = orderKey(canais) !== savedOrderKey;
   const mutate = useCallback((fn: (prev: Canal[]) => Canal[]) => {
     setCanais(prev => {
       const next = fn(prev);
       localStorage.setItem(canaisKey, JSON.stringify(next));
-      if (activePortalId) savePortalConfig(activePortalId, { canais: next }).catch(console.error);
+      if (activePortalId) {
+        savePortalConfig(activePortalId, { canais: next })
+          .then(() => setSaveError(null))
+          .catch(err => { console.error(err); setSaveError(String(err?.message ?? err)); });
+      }
       return next;
     });
   }, [canaisKey, activePortalId]);
 
   function saveToStorage(updated: Canal[]) {
     localStorage.setItem(canaisKey, JSON.stringify(updated));
-    if (activePortalId) savePortalConfig(activePortalId, { canais: updated }).catch(console.error);
+    if (activePortalId) {
+      savePortalConfig(activePortalId, { canais: updated })
+        .then(() => setSaveError(null))
+        .catch(err => { console.error(err); setSaveError(String(err?.message ?? err)); });
+    }
   }
   function handleSaveOrder() {
     saveToStorage(canais);
@@ -429,7 +439,14 @@ export default function CanaisPage() {
   async function handlePublish() {
     localStorage.setItem(canaisKey, JSON.stringify(canais));
     if (activePortalId) {
-      try { await savePortalConfig(activePortalId, { canais }); } catch (e) { console.error(e); }
+      try {
+        await savePortalConfig(activePortalId, { canais });
+        setSaveError(null);
+      } catch (e) {
+        console.error(e);
+        setSaveError(String((e as Error)?.message ?? e));
+        return; // don't publish a state the database rejected
+      }
     }
     setSavedOrderKey(orderKey(canais));
     await publish();
@@ -769,6 +786,13 @@ export default function CanaisPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="ct-save-error" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco: {saveError}. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       {/* ── Accordion tree ────────────────────────────────────────────── */}
       <div className="ct-tree">

@@ -43,10 +43,13 @@ export interface PortalConfigPatch {
 export async function savePortalConfig(portalKey: string, patch: PortalConfigPatch): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
   const portalUuid = await resolvePortalUuid(portalKey);
-  if (!portalUuid) return;
-  await supabase
+  if (!portalUuid) throw new Error(`Portal não encontrado no banco (key ${portalKey})`);
+  const { error } = await supabase
     .from('portal_config')
     .upsert({ portal_id: portalUuid, ...patch }, { onConflict: 'portal_id' });
+  // supabase-js never throws — surface the error so callers can react
+  // (RLS rejections used to be silently swallowed here).
+  if (error) throw new Error(`Falha ao salvar configuração: ${error.message}`);
 }
 
 export async function fetchPortalConfig(portalKey: string): Promise<Record<string, unknown> | null> {
