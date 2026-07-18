@@ -342,6 +342,10 @@ export default function CanaisPage() {
         localStorage.setItem(canaisKey, JSON.stringify(canaisList));
         setCanais(canaisList);
         setSavedOrderKey(orderKey(canaisList));
+      } else {
+        // No canais in Supabase — seed DEFAULT_CANAIS so all users share the same initial state
+        savePortalConfig(activePortalId, { canais: DEFAULT_CANAIS }).catch(console.error);
+        localStorage.setItem(canaisKey, JSON.stringify(DEFAULT_CANAIS));
       }
     }).catch(console.error);
   }, [activePortalId, canaisKey]);
