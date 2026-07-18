@@ -7,6 +7,7 @@ import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import { savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -18,7 +19,7 @@ export default function FaviconPage() {
   const portalId = useActivePortalId();
   const favKey = pKey(FAVICON_KEY, portalId);
 
-  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [baseFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
   const [favicon, setFavicon] = useState<string | null>(baseFavicon);
   const [isDraft, setIsDraft] = useState(false);
@@ -70,9 +71,7 @@ export default function FaviconPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft}>
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
+            <PublishButton onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} />
           </div>
         }
       />

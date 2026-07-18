@@ -8,6 +8,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import { fetchPortalConfig, savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -82,7 +83,7 @@ export default function LayoutPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const layoutKey = pKey(PORTAL_LAYOUT_KEY, portalId);
-  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
 
   // Compute model dynamically inside the component so it reacts to the active portal.
   // Portals created with sidebar or tabmenu can switch between those two.
@@ -137,9 +138,7 @@ export default function LayoutPage() {
               <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
                 Salvar rascunho
               </button>
-              <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft}>
-                {publishing ? 'Publicando…' : 'Publicar'}
-              </button>
+              <PublishButton onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} />
             </div>
           )
         }

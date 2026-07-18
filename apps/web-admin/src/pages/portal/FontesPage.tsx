@@ -7,6 +7,7 @@ import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
 import { savePortalConfig } from '../../lib/portalConfigApi';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -129,7 +130,7 @@ export default function FontesPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const fontesKey = pKey(FONTES_KEY, portalId);
-  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [baseHeading, setBaseHeading] = useState(() => loadFontes(fontesKey).heading);
   const [baseBody, setBaseBody] = useState(() => loadFontes(fontesKey).body);
   const [customFonts, setCustomFonts] = useState<FontDef[]>([]);
@@ -209,9 +210,7 @@ export default function FontesPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft}>
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
+            <PublishButton onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} />
           </div>
         }
       />

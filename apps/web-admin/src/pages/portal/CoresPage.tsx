@@ -9,6 +9,7 @@ import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { pKey } from '../../utils/portalStorage';
 import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './CoresPage.css';
 
@@ -276,7 +277,7 @@ export default function CoresPage() {
   const portalName = usePortalName();
   const portalId = useActivePortalId();
   const coresKey = pKey(CORES_KEY, portalId);
-  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [base, setBase] = useState<Palette>(() => loadCores(coresKey));
   const [draft, setDraft] = useState<Palette>(base);
   const [preview, setPreview] = useState<Palette>(base);
@@ -332,9 +333,7 @@ export default function CoresPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft}>
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
+            <PublishButton onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} />
           </div>
         }
       />

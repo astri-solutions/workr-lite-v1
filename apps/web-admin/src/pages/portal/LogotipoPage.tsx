@@ -7,6 +7,7 @@ import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import { savePortalConfig } from '../../lib/portalConfigApi';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -22,7 +23,7 @@ export default function LogotipoPage() {
   const logoCompactKey = pKey(LOGO_COMPACT_KEY, portalId);
 
   // State holds data URLs (base64) which survive page reloads and are usable in <img src>
-  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [baseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
   const [baseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
   const [logo, setLogo] = useState<string | null>(baseLogo);
@@ -92,9 +93,7 @@ export default function LogotipoPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft}>
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
+            <PublishButton onClick={handlePublish} disabled={!isDirty && !isDraft && !hasPendingDraft} />
           </div>
         }
       />

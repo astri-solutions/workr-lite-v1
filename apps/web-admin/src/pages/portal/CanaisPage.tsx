@@ -11,6 +11,7 @@ import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import { loadCvmRoutedPageIds } from '../../services/cvm.service';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -309,7 +310,7 @@ function orderKey(list: Canal[]): string {
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
-  const { publish, publishing } = usePublish();
+  usePublish(); // keep context subscription for sidebar sync
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
@@ -747,9 +748,7 @@ export default function CanaisPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
-            <button className="btn-primary" type="button" onClick={publish} disabled={publishing}>
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
+            <PublishButton />
           </div>
         }
       />

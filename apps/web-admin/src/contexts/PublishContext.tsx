@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { pKey } from '../utils/portalStorage';
+import { fetchPortalConfig } from '../lib/portalConfigApi';
 
 interface PublishContextValue {
   publish: () => Promise<boolean>;
@@ -54,15 +55,21 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       const pid = activePortal?.id;
 
       const ls = (key: string) => { try { return JSON.parse(localStorage.getItem(pKey(key, pid)) ?? 'null'); } catch { return null; } };
-      const cores      = ls('portal_cores');
-      const fontes     = ls('portal_fontes');
-      const footer     = ls('portal_footer');
-      const ticker     = ls('portal_ticker');
-      const canais     = ls('portal_canais');
-      const splash     = ls('portal_splash');
-      const cookies    = ls('portal_cookies');
-      const errorPages = ls('portal_error_pages');
-      const bannerRaw  = ls('portal_banner');
+
+      // Fetch from Supabase as authoritative source; fall back to localStorage
+      // so any user's publish reflects the last saved state, not their own browser's cache.
+      let remoteConfig: Record<string, unknown> | null = null;
+      try { remoteConfig = pid ? await fetchPortalConfig(pid) : null; } catch { /* use localStorage */ }
+
+      const cores      = remoteConfig?.cores      ?? ls('portal_cores');
+      const fontes     = remoteConfig?.fontes     ?? ls('portal_fontes');
+      const footer     = remoteConfig?.footer     ?? ls('portal_footer');
+      const ticker     = remoteConfig?.ticker     ?? ls('portal_ticker');
+      const canais     = remoteConfig?.canais     ?? ls('portal_canais');
+      const splash     = remoteConfig?.splash     ?? ls('portal_splash');
+      const cookies    = remoteConfig?.cookies    ?? ls('portal_cookies');
+      const errorPages = remoteConfig?.error_pages ?? ls('portal_error_pages');
+      const bannerRaw  = remoteConfig?.banner     ?? ls('portal_banner');
 
       const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null =
         (() => { try { return JSON.parse(localStorage.getItem(`portal_empresas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })();

@@ -54,6 +54,11 @@
 .btn-primary:hover { background: var(--color-primary-600); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary:disabled:hover { background: var(--color-primary-500); }
+.btn-primary--ok { background: #16a34a !important; }
+.btn-primary--ok:hover { background: #15803d !important; }
+.btn-primary--ok:disabled { opacity: 1; }
+.btn-primary--err { background: #dc2626 !important; }
+.btn-primary--err:hover { background: #b91c1c !important; }
 
 /* ─── Standard toolbar pattern ─────────────────────────────
    Use on pages that have filters + bulk actions:
