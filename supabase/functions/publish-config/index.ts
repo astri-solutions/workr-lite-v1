@@ -635,15 +635,17 @@ Deno.serve(async (req) => {
         }
       } catch { assetWarnings.push('index.html layout swap failed'); }
     }
+    // Static assets live under public/ — Vite only copies public/ into the
+    // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.base64) {
       try {
-        await pushAsset(logo.base64, `assets/logotipo/logotipo-original.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
-        await pushAsset(logo.base64, `assets/logotipo/logotipo-negative.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
+        await pushAsset(logo.base64, `public/assets/logotipo/logotipo-original.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
+        await pushAsset(logo.base64, `public/assets/logotipo/logotipo-negative.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
       } catch { assetWarnings.push('logo upload failed'); }
     }
     if (favicon?.base64) {
       try {
-        await pushAsset(favicon.base64, `favicon.${favicon.ext}`, `chore: update favicon via CMS [${portalNome}]`);
+        await pushAsset(favicon.base64, `public/favicon.${favicon.ext}`, `chore: update favicon via CMS [${portalNome}]`);
       } catch { assetWarnings.push('favicon upload failed'); }
     }
 

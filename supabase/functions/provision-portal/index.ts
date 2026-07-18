@@ -428,7 +428,7 @@ Deno.serve(async (req) => {
         subdomain,
         github_repo: repoName,
         vercel_url: `https://${repoName}.vercel.app`,
-        empresa_status: 'Ativo',
+        empresa_status: 'Ativa',
         ...(cnpj ? { cnpj } : {}),
       }, { onConflict: 'portal_key' }).select('id').maybeSingle();
       if (earlyErr) portalUpsertError = `portals upsert: ${earlyErr.message}`;
@@ -488,13 +488,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Static assets live under public/ — Vite only copies public/ into the
+    // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.b64) {
       const ext = logo.ext ?? 'svg';
-      await pushAsset(`assets/logotipo/logotipo-original.${ext}`, logo.b64);
-      await pushAsset(`assets/logotipo/logotipo-negative.${ext}`, logo.b64);
+      await pushAsset(`public/assets/logotipo/logotipo-original.${ext}`, logo.b64);
+      await pushAsset(`public/assets/logotipo/logotipo-negative.${ext}`, logo.b64);
     }
     if (faviconAsset?.b64) {
-      await pushAsset(`favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
+      await pushAsset(`public/favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
     }
 
     // ── Step 5b: swap index.html with the correct layout template ───────────

@@ -1446,12 +1446,14 @@ export default function NovoPortalPage() {
                       portais[idx].sites[0].link = siteLink;
                     }
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
-                    savePortal(portais[idx]).catch(console.error);
+                    // Await: savePortalConfig below resolves the portal UUID from the
+                    // portals table — the row must exist before we try to write config.
+                    try { await savePortal(portais[idx]); } catch (e) { console.error(e); }
 
                     // Belt-and-suspenders: write the full initial config from the
                     // frontend too, so the CMS state is guaranteed even if the
                     // Edge Function's portal_config upsert failed silently.
-                    savePortalConfig(newPortal.id, {
+                    await savePortalConfig(newPortal.id, {
                       canais: form.canais,
                       cores: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
                       fontes: { heading: form.fonteTitulo, body: form.fonteTexto },
@@ -1469,8 +1471,6 @@ export default function NovoPortalPage() {
                         importarDesde: '',
                         ativo: true,
                       }],
-                    }).then(() => {
-                      console.info('portal_config inicial gravado via frontend');
                     }).catch(err => {
                       warnings.push(`Falha ao gravar configuração inicial: ${String(err)}`);
                     });
