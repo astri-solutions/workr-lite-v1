@@ -64,6 +64,15 @@ export const DEFAULT_CANAIS: Canal[] = [
   },
 ];
 
+/** Default tree for flat layouts (sidebar/tabmenu): every canal is a direct page, no children. */
+export const DEFAULT_CANAIS_FLAT: Canal[] = [
+  { id: 'central-resultados', label: 'Resultados', href: '/central-resultados.html', enabled: true, children: [] },
+  { id: 'docs-cvm', label: 'Documentos CVM', href: '/documentos-cvm.html', enabled: true, children: [] },
+  { id: 'atas-assembleias', label: 'Atas e Assembleias', href: '/atas-assembleias.html', enabled: true, children: [] },
+  { id: 'fale-ri', label: 'Fale com RI', href: '/fale-com-ri.html', enabled: true, children: [] },
+  { id: 'mailing', label: 'Mailing', href: '/mailing.html', enabled: true, children: [] },
+];
+
 function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
@@ -71,9 +80,11 @@ function genId() {
 interface Props {
   value: Canal[];
   onChange: (canais: Canal[]) => void;
+  /** Flat mode (sidebar/tabmenu layouts): each canal is a direct page — sub-pages are not allowed. */
+  flat?: boolean;
 }
 
-export default function ChannelEditor({ value, onChange }: Props) {
+export default function ChannelEditor({ value, onChange, flat = false }: Props) {
   const [editing, setEditing] = useState<{ cid: string; sid?: string } | null>(null);
   const [editLabel, setEditLabel] = useState('');
 
@@ -124,7 +135,9 @@ export default function ChannelEditor({ value, onChange }: Props) {
   }
 
   function addCanal() {
-    const c: Canal = { id: genId(), label: 'Nova seção', enabled: true, children: [] };
+    const c: Canal = flat
+      ? { id: genId(), label: 'Nova página', href: `/${genId()}.html`, enabled: true, children: [] }
+      : { id: genId(), label: 'Nova seção', enabled: true, children: [] };
     onChange([...value, c]);
     startEdit(c.id, c.label);
   }
@@ -186,7 +199,7 @@ export default function ChannelEditor({ value, onChange }: Props) {
               </div>
             </div>
 
-            {canal.children.length > 0 && (
+            {!flat && canal.children.length > 0 && (
               <div className="ce-subs">
                 {canal.children.map((sub, si) => (
                   <div key={sub.id} className={`ce-sub${sub.enabled ? '' : ' ce-sub--disabled'}`}>
@@ -230,17 +243,19 @@ export default function ChannelEditor({ value, onChange }: Props) {
               </div>
             )}
 
-            <button className="ce-add-sub" type="button" onClick={() => addSub(canal.id)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
-              Adicionar página
-            </button>
+            {!flat && (
+              <button className="ce-add-sub" type="button" onClick={() => addSub(canal.id)}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+                Adicionar página
+              </button>
+            )}
           </div>
         ))}
       </div>
 
       <button className="ce-add-canal" type="button" onClick={addCanal}>
         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-        Adicionar seção
+        {flat ? 'Adicionar página' : 'Adicionar seção'}
       </button>
     </div>
   );

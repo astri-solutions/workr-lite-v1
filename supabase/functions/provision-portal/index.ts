@@ -616,7 +616,8 @@ Deno.serve(async (req) => {
         if (siteErr) siteUpsertError = siteErr.message;
       }
 
-      // Create initial portal_config row
+      // Create initial portal_config row — the FULL initial state, so the CMS
+      // (any user, any browser) opens with exactly what the wizard defined.
       if (pid) {
         await adminClient.from('portal_config').upsert({
           portal_id: pid,
@@ -625,6 +626,18 @@ Deno.serve(async (req) => {
           fontes: fonts ?? {},
           layout: layout ?? 'banner',
           footer: footer ?? {},
+          ticker: ticker ?? { type: 'none' },
+          empresas: [{
+            id: `principal-${_portalId}`,
+            nome: nomeFantasia ?? nome,
+            tipo: 'EMPRESA',
+            cnpj: cnpj ?? '',
+            cvmCodigo: '',
+            autoCvm: false,
+            importarDesde: '',
+            ativo: true,
+          }],
+          interacoes: [],
           informacoes: {
             nomeFantasia: nomeFantasia ?? null,
             emailContato: emailContato ?? null,

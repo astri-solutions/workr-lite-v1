@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { processImage, ImageSlot } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ChannelEditor, { Canal, DEFAULT_CANAIS } from '../../components/ChannelEditor';
+import ChannelEditor, { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { savePortal } from '../../lib/portalsApi';
 import { cvmService } from '../../services/cvm.service';
@@ -12,17 +12,9 @@ import './NovoPortalPage.css';
 import '../../components/InviteUserModal.css';
 
 /* ─── Default canais por tipo ──────────────────────────────────────────── */
-const DEFAULT_CANAIS_SIDEBAR: Canal[] = [
-  { id: 'central-resultados', label: 'Resultados', href: '/central-resultados.html', enabled: true, children: [] },
-  { id: 'docs-cvm', label: 'Documentos CVM', href: '/documentos-cvm.html', enabled: true, children: [] },
-  { id: 'atas-assembleias', label: 'Atas e Assembleias', href: '/atas-assembleias.html', enabled: true, children: [] },
-  { id: 'fale-ri', label: 'Fale com RI', href: '/fale-com-ri.html', enabled: true, children: [] },
-  { id: 'mailing', label: 'Mailing', href: '/mailing.html', enabled: true, children: [] },
-];
-
 function defaultCanaisForTipo(tipo: string): Canal[] {
   if (tipo === 'banner') return DEFAULT_CANAIS;
-  return DEFAULT_CANAIS_SIDEBAR;
+  return DEFAULT_CANAIS_FLAT;
 }
 
 /* ─── Dynamic steps ────────────────────────────────────────────────────── */
@@ -411,11 +403,11 @@ function StepCanais({ value, onChange, tipo }: { value: Canal[]; onChange: (v: C
         <p className="np-step__desc">
           {isBanner
             ? 'Configure as seções e páginas que farão parte do portal. Você pode alterar isso depois.'
-            : 'Selecione e organize os canais que aparecerão na navegação do portal. Pré-configurados com as seções mais comuns de RI.'}
+            : 'Cada canal é uma página direta na navegação do portal — este layout não usa sub-páginas. Pré-configurado com as seções mais comuns de RI.'}
         </p>
       </div>
       <div className="np-step__body">
-        <ChannelEditor value={value} onChange={onChange} />
+        <ChannelEditor value={value} onChange={onChange} flat={!isBanner} />
       </div>
     </div>
   );
@@ -1311,7 +1303,7 @@ export default function NovoPortalPage() {
           // Usa os canais configurados no wizard ou DEFAULT_CANAIS como ponto de partida
           localStorage.setItem(
             `portal_canais_${newPortal.id}`,
-            JSON.stringify(form.canais && form.canais.length > 0 ? form.canais : DEFAULT_CANAIS),
+            JSON.stringify(form.canais && form.canais.length > 0 ? form.canais : defaultCanaisForTipo(form.tipo)),
           );
 
           const pid = newPortal.id;

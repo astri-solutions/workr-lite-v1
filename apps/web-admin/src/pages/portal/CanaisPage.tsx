@@ -3,7 +3,7 @@ import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
-import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
+import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
@@ -320,20 +320,23 @@ export default function CanaisPage() {
   const portalLayout = (localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
   const isFlatLayout = portalLayout === 'sidebar' || portalLayout === 'tabmenu';
 
+  // Flat layouts (sidebar/tabmenu) default to direct pages; banner gets the full tree
+  const defaultCanais = isFlatLayout ? DEFAULT_CANAIS_FLAT : DEFAULT_CANAIS;
+
   const [canais, setCanais] = useState<Canal[]>(() => {
     try {
       const raw = localStorage.getItem(canaisKey);
-      return raw ? JSON.parse(raw) : DEFAULT_CANAIS;
+      return raw ? JSON.parse(raw) : defaultCanais;
     } catch {
-      return DEFAULT_CANAIS;
+      return defaultCanais;
     }
   });
   const [savedOrderKey, setSavedOrderKey] = useState(() => {
     try {
       const raw = localStorage.getItem(canaisKey);
-      return orderKey(raw ? JSON.parse(raw) : DEFAULT_CANAIS);
+      return orderKey(raw ? JSON.parse(raw) : defaultCanais);
     } catch {
-      return orderKey(DEFAULT_CANAIS);
+      return orderKey(defaultCanais);
     }
   });
 
@@ -347,11 +350,14 @@ export default function CanaisPage() {
         setCanais(canaisList);
         setSavedOrderKey(orderKey(canaisList));
       } else {
-        // No canais in Supabase — seed DEFAULT_CANAIS so all users share the same initial state
-        savePortalConfig(activePortalId, { canais: DEFAULT_CANAIS }).catch(console.error);
-        localStorage.setItem(canaisKey, JSON.stringify(DEFAULT_CANAIS));
+        // No canais in Supabase — seed the layout-appropriate default so all users share the same initial state
+        savePortalConfig(activePortalId, { canais: defaultCanais }).catch(console.error);
+        localStorage.setItem(canaisKey, JSON.stringify(defaultCanais));
+        setCanais(defaultCanais);
+        setSavedOrderKey(orderKey(defaultCanais));
       }
     }).catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePortalId, canaisKey]);
 
   // Modals
