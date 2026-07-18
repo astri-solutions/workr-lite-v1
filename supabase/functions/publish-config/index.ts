@@ -619,6 +619,19 @@ Deno.serve(async (req) => {
       }
     } catch { assetWarnings.push('_topbar.scss update failed'); }
 
+    // Push latest _form.scss from template (dynamic CMS form styles)
+    try {
+      const formScssRes = await fetch(
+        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/styles/components/_form.scss`,
+        { headers: ghHeaders }
+      );
+      if (formScssRes.ok) {
+        const formScssData = await formScssRes.json() as { content: string };
+        const formScssBase64 = formScssData.content.replace(/\n/g, '');
+        await pushAsset(formScssBase64, 'styles/components/_form.scss', `chore: update _form.scss via CMS [${portalNome}]`);
+      }
+    } catch { assetWarnings.push('_form.scss update failed'); }
+
     // Ensure index.html matches the portal layout template (self-healing for mis-provisioned portals)
     const layoutTemplateFile: Record<string, string> = { sidebar: 'home-side-bar.html', tabmenu: 'home-v2.html' };
     const tplFile = layoutTemplateFile[layout ?? ''];

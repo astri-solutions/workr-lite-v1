@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
-import { persistMateria } from '../../hooks/useMateriasStore';
+import { persistMateria, syncMateriaToSupabase } from '../../hooks/useMateriasStore';
+import { resolvePortalId } from '../../lib/portalDb';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import '../admin/AdminPages.css';
@@ -111,7 +112,7 @@ export default function NovoFormularioPage() {
     });
   }
 
-  function handleSave(nextStatus: PublishStatus) {
+  async function handleSave(nextStatus: PublishStatus) {
     setStatus(nextStatus);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -119,20 +120,37 @@ export default function NovoFormularioPage() {
     if (page) {
       const dest = allDestinos.find(d => d.id === page);
       const today = new Date().toLocaleDateString('pt-BR');
-      persistMateria({
+      const primary = PORTAL_CONFIG.languages[0];
+      const materia = {
         id: (editing as { id?: string } | null)?.id ?? Math.random().toString(36).slice(2),
-        titulo: dest?.label ?? subtitles[PORTAL_CONFIG.languages[0]] ?? 'Formulário',
-        subtitulo: subtitles[PORTAL_CONFIG.languages[0]] ?? '',
+        titulo: dest?.label ?? subtitles[primary] ?? 'Formulário',
+        subtitulo: subtitles[primary] ?? '',
         pageId: page,
         pageLabel: dest?.label ?? page,
-        pageType: 'formulario',
+        pageType: 'formulario' as const,
         pageSlugType: dest?.pageType ?? 'formulario',
-        status: nextStatus === 'published' ? 'publicado' : nextStatus === 'scheduled' ? 'agendado' : 'rascunho',
+        status: nextStatus === 'published' ? 'publicado' as const : nextStatus === 'scheduled' ? 'agendado' as const : 'rascunho' as const,
         data: today,
         autor: 'Usuário',
         ultimaEdicao: today,
         ultimoEditor: 'Usuário',
-      }, activePortalId ?? undefined);
+        // Full form definition — the site's materias.js renders the form from this
+        content: {
+          kind: 'formulario',
+          fields: fields.map(f => ({ id: f.id, type: f.type, label: f.label, placeholder: f.placeholder, required: f.required, options: f.options })),
+          submitLabel: submitLabels[primary] || 'Enviar',
+          successMessage: successMessages[primary] || 'Mensagem enviada com sucesso!',
+          receiverEmail,
+          replyTo,
+        },
+      };
+      persistMateria(materia, activePortalId ?? undefined);
+      if (activePortalId) {
+        try {
+          const portalDbId = await resolvePortalId(activePortalId);
+          if (portalDbId) await syncMateriaToSupabase(materia, portalDbId);
+        } catch (e) { console.error('sync formulário:', e); }
+      }
     }
   }
 
