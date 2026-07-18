@@ -63,7 +63,8 @@ export default function UserMenu() {
   const infoRoute = user.role === 'super_admin' ? '/admin/informacoes' : '/portal/informacoes';
   const portais = user.portais ?? [];
   const hasMultiplePortais = portais.length > 1 && user.role !== 'super_admin';
-  const rawActivePortal = portais.find(p => p.id === user.activePortalId);
+  // Fall back to first portal if activePortalId doesn't match (e.g. client_user with one portal)
+  const rawActivePortal = portais.find(p => p.id === user.activePortalId) ?? (portais.length === 1 ? portais[0] : undefined);
   // On global admin routes, suppress the active portal so the admin doesn't
   // appear "logged into" a specific client's portal.
   const isAdminGlobal = location.pathname.startsWith('/admin');
@@ -91,7 +92,7 @@ export default function UserMenu() {
           <span className="user-menu__avatar">{initials}</span>
           <span className="user-menu__trigger-info">
             <span className="user-menu__email">
-              {user.email}
+              {user.name}
               {activePortal && (
                 <><span className="user-menu__email-sep"> | </span>{activePortal.nome}</>
               )}
