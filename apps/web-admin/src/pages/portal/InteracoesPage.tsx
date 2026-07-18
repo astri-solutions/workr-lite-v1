@@ -5,6 +5,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import FilterBar from '../../components/FilterBar';
 import { usePortalName } from '../../hooks/usePortalName';
+import { usePortalState } from '../../hooks/usePortalState';
 import '../admin/AdminPages.css';
 import './InteracoesPage.css';
 
@@ -21,11 +22,7 @@ interface Interacao {
   data: string;
 }
 
-const INT_KEY = 'portal_interacoes';
-
-function loadInteracoes(): Interacao[] {
-  try { return JSON.parse(localStorage.getItem(INT_KEY) ?? '[]') as Interacao[]; } catch { return []; }
-}
+export const INT_KEY = 'portal_interacoes';
 
 const STATUS_LABEL: Record<Status, string> = { novo: 'Novo', lido: 'Lido', respondido: 'Respondido' };
 const STATUS_BADGE: Record<Status, string> = { novo: 'badge--warning', lido: 'badge--gray', respondido: 'badge--success' };
@@ -55,7 +52,7 @@ const INT_FILTERS = [
 
 export default function InteracoesPage() {
   const portalName = usePortalName();
-  const [items, setItems] = useState<Interacao[]>(loadInteracoes);
+  const [items, setItems] = usePortalState<Interacao[]>(INT_KEY, 'interacoes', []);
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [selected, setSelected] = useState<Interacao | null>(null);
 
@@ -66,13 +63,8 @@ export default function InteracoesPage() {
   });
   const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
 
-  function persist(next: Interacao[]) {
-    setItems(next);
-    localStorage.setItem(INT_KEY, JSON.stringify(next));
-  }
-
   function markAs(id: string, status: Status) {
-    persist(items.map(i => i.id === id ? { ...i, status } : i));
+    setItems(prev => prev.map(i => i.id === id ? { ...i, status } : i));
   }
 
   function openItem(item: Interacao) {

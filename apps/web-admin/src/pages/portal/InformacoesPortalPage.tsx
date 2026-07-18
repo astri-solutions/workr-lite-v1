@@ -4,6 +4,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { usePortalName } from '../../hooks/usePortalName';
+import { usePortalState } from '../../hooks/usePortalState';
 import '../admin/AdminPages.css';
 import '../../components/InformacoesModal.css';
 import '../admin/InformacoesPage.css';
@@ -82,19 +83,13 @@ export default function InformacoesPortalPage() {
   const portalName = usePortalName();
   const { user } = useAuth();
 
-  const [values, setValues] = useState<FieldValues>(() => {
-    try {
-      const raw = localStorage.getItem(INFORMACOES_PORTAL_KEY);
-      if (raw) return { ...JSON.parse(raw) };
-    } catch { /* fall through */ }
-    return {
-      nome: user?.name ?? '',
-      address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
-      telefone: '',
-      empresa: '',
-      email: user?.email ?? '',
-      emailRecup: '',
-    };
+  const [values, setValues] = usePortalState<FieldValues>(INFORMACOES_PORTAL_KEY, 'informacoes', {
+    nome: user?.name ?? '',
+    address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
+    telefone: '',
+    empresa: '',
+    email: user?.email ?? '',
+    emailRecup: '',
   });
 
   const [edit, setEdit] = useState<EditState | null>(null);
@@ -114,11 +109,7 @@ export default function InformacoesPortalPage() {
 
   function handleSave() {
     if (!edit) return;
-    setValues((v) => {
-      const next = { ...v, [edit.field]: edit.draft };
-      localStorage.setItem(INFORMACOES_PORTAL_KEY, JSON.stringify(next));
-      return next;
-    });
+    setValues((v) => ({ ...v, [edit.field]: edit.draft }));
     setEdit(null);
   }
 
@@ -128,11 +119,7 @@ export default function InformacoesPortalPage() {
   }
 
   function handleAddrSave() {
-    setValues((v) => {
-      const next = { ...v, address: addrDraft };
-      localStorage.setItem(INFORMACOES_PORTAL_KEY, JSON.stringify(next));
-      return next;
-    });
+    setValues((v) => ({ ...v, address: addrDraft }));
     setAddrOpen(false);
   }
 

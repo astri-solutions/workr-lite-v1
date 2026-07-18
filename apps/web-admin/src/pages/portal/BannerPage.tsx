@@ -7,6 +7,7 @@ import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
+import { usePortalState } from '../../hooks/usePortalState';
 import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -45,19 +46,22 @@ const INITIAL_SLIDES: BannerSlide[] = [
   },
 ];
 
-function loadSlides(): BannerSlide[] {
-  try {
-    const raw = localStorage.getItem(BANNER_KEY);
-    return raw ? JSON.parse(raw) : INITIAL_SLIDES;
-  } catch {
-    return INITIAL_SLIDES;
-  }
-}
-
 export default function BannerPage() {
   const portalName = usePortalName();
-  const [slides, setSlides] = useState<BannerSlide[]>(loadSlides);
+  const [persisted, setPersisted, { hydrated }] = usePortalState<BannerSlide[]>(
+    BANNER_KEY, 'banner_slides', INITIAL_SLIDES,
+  );
+  const [slides, setSlides] = useState<BannerSlide[]>(persisted);
   const [activeId, setActiveId] = useState('b1');
+
+  // Sync draft once the authoritative Supabase value arrives
+  useEffect(() => {
+    if (!hydrated) return;
+    const next = persisted.length > 0 ? persisted : INITIAL_SLIDES;
+    setSlides(next);
+    setActiveId(prev => (next.some(s => s.id === prev) ? prev : next[0].id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
   const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
   const [dirty, setDirty] = useState(false);
@@ -116,13 +120,13 @@ export default function BannerPage() {
   }
 
   function handleDraft() {
-    localStorage.setItem(BANNER_KEY, JSON.stringify(slides));
+    setPersisted(slides);
     setDirty(false);
     notifyDraft();
   }
 
   async function handlePublish() {
-    localStorage.setItem(BANNER_KEY, JSON.stringify(slides));
+    setPersisted(slides);
     setDirty(false);
     const ok = await publish();
     if (ok) setPublishSuccess(true);

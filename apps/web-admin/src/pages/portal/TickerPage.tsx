@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
+import { usePortalState } from '../../hooks/usePortalState';
 import '../admin/AdminPages.css';
 import './TickerPage.css';
 
@@ -29,26 +30,23 @@ const DEFAULT: TickerDraft = {
 
 export const TICKER_KEY = 'portal_ticker';
 
-function loadTicker(): TickerDraft {
-  try {
-    const raw = localStorage.getItem(TICKER_KEY);
-    return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
-  } catch {
-    return DEFAULT;
-  }
-}
-
 export default function TickerPage() {
   const portalName = usePortalName();
   const [saved, setSaved] = useState(false);
-  const [initialDraft] = useState<TickerDraft>(loadTicker);
-  const [draft, setDraft] = useState<TickerDraft>(initialDraft);
+  const [persisted, setPersisted, { hydrated }] = usePortalState<TickerDraft>(TICKER_KEY, 'ticker', DEFAULT);
+  const [draft, setDraft] = useState<TickerDraft>(persisted);
 
-  const isDirty = !saved && JSON.stringify(draft) !== JSON.stringify(initialDraft);
+  // Sync draft once the authoritative Supabase value arrives
+  useEffect(() => {
+    if (hydrated) setDraft({ ...DEFAULT, ...persisted });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const isDirty = !saved && JSON.stringify(draft) !== JSON.stringify(persisted);
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {
-    localStorage.setItem(TICKER_KEY, JSON.stringify(draft));
+    setPersisted(draft);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

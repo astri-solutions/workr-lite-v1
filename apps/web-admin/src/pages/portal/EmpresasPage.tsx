@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
@@ -6,8 +6,7 @@ import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
-import { resolvePortalId } from '../../lib/portalDb';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { usePortalState } from '../../hooks/usePortalState';
 import '../admin/AdminPages.css';
 import './EmpresasPage.css';
 
@@ -44,13 +43,20 @@ export default function EmpresasPage() {
   const activePortalId = user?.activePortalId;
   const storageKey = empresasKey(activePortalId);
 
-  const [empresas, setEmpresas] = useState<Empresa[]>(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) return JSON.parse(raw) as Empresa[];
-    } catch { /* ignore */ }
-    return [];
-  });
+  // Hook cache key is pKey('portal_empresas', portalId) → `portal_empresas_<id>`
+  // when a portal is active, which matches what cross-file readers use.
+  // Without a portal it would be bare `portal_empresas`, while readers expect
+  // `portal_empresas_default` — mirror to that key so they keep working.
+  const [empresas, setEmpresasRaw, { hydrated }] = usePortalState<Empresa[]>('portal_empresas', 'empresas', []);
+  const setEmpresas = useCallback((next: Empresa[] | ((prev: Empresa[]) => Empresa[])) => {
+    setEmpresasRaw(prev => {
+      const resolved = typeof next === 'function' ? next(prev) : next;
+      if (!activePortalId) {
+        try { localStorage.setItem(storageKey, JSON.stringify(resolved)); } catch { /* quota */ }
+      }
+      return resolved;
+    });
+  }, [setEmpresasRaw, activePortalId, storageKey]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Empresa | null>(null);
@@ -61,29 +67,10 @@ export default function EmpresasPage() {
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('choose');
   const [migrateTargetId, setMigrateTargetId] = useState('');
 
-  const portalDbIdRef = useRef<string | null>(null);
+  // Seed main company from portal name once the authoritative value has hydrated
   useEffect(() => {
-    if (!activePortalId) return;
-    resolvePortalId(activePortalId).then(id => { portalDbIdRef.current = id; });
-  }, [activePortalId]);
-
-  // Persist empresas to localStorage and Supabase
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(empresas));
-    const pid = portalDbIdRef.current;
-    if (!pid || !isSupabaseConfigured || !supabase) return;
-    supabase
-      .from('portal_config')
-      .update({ empresas })
-      .eq('portal_id', pid)
-      .then(() => { /* sync complete */ });
-  }, [empresas, storageKey]);
-
-  // Seed main company from portal name on first load for this portal
-  useEffect(() => {
-    if (!activePortalId || !portalName) return;
-    const raw = localStorage.getItem(storageKey);
-    if (raw && raw !== '[]') return; // already has data
+    if (!hydrated || !activePortalId || !portalName) return;
+    if (empresas.length > 0) return; // already has data
     const principalId = `principal-${activePortalId}`;
     setEmpresas([{
       id: principalId,
@@ -96,7 +83,7 @@ export default function EmpresasPage() {
       ativo: true,
     }]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePortalId, portalName]);
+  }, [hydrated, activePortalId, portalName]);
 
   // Toggle (ativar/desativar) confirm state
   const [toggleTarget, setToggleTarget] = useState<Empresa | null>(null);

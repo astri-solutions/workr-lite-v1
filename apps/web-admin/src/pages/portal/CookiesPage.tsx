@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
-import { useActivePortalId } from '../../hooks/useActivePortalId';
-import { pKey } from '../../utils/portalStorage';
+import { usePortalState } from '../../hooks/usePortalState';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './CookiesPage.css';
@@ -53,15 +52,6 @@ const DEFAULT: CookieConfig = {
   customizeLabel: 'Personalizar',
   buttons: [],
 };
-
-function loadCookies(storageKey: string): CookieConfig {
-  try {
-    const raw = localStorage.getItem(storageKey);
-    return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
-  } catch {
-    return DEFAULT;
-  }
-}
 
 /* ─── Layout options ─────────────────────────────────── */
 const LAYOUTS: { id: CkLayout; label: string; desc: string; thumb: React.ReactNode }[] = [
@@ -207,13 +197,17 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
 /* ─── Page ───────────────────────────────────────────── */
 export default function CookiesPage() {
   const portalName = usePortalName();
-  const activePortalId = useActivePortalId();
-  const storageKey = pKey(COOKIES_KEY, activePortalId ?? undefined);
-  const [initialCfg] = useState<CookieConfig>(() => loadCookies(storageKey));
-  const [cfg, setCfg] = useState<CookieConfig>(initialCfg);
+  const [persisted, setPersisted, { hydrated }] = usePortalState<CookieConfig>(COOKIES_KEY, 'cookies', DEFAULT);
+  const [cfg, setCfg] = useState<CookieConfig>(persisted);
   const [saved, setSaved] = useState(false);
 
-  const isDirty = !saved && JSON.stringify(cfg) !== JSON.stringify(initialCfg);
+  // Sync draft once the authoritative Supabase value arrives
+  useEffect(() => {
+    if (hydrated) setCfg({ ...DEFAULT, ...persisted });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const isDirty = !saved && JSON.stringify(cfg) !== JSON.stringify(persisted);
   const blocker = useUnsavedChanges(isDirty);
 
   function set<K extends keyof CookieConfig>(key: K, value: CookieConfig[K]) {
@@ -235,7 +229,7 @@ export default function CookiesPage() {
   }
 
   function handleSave() {
-    localStorage.setItem(storageKey, JSON.stringify(cfg));
+    setPersisted(cfg);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

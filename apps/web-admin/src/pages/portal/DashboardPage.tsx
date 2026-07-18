@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PORTAL_LAYOUT_KEY } from '../../components/ClientLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './DashboardPage.css';
 
@@ -113,16 +114,17 @@ export default function DashboardPage() {
   }, [user?.activePortalId]);
 
   const stats = useMemo(() => {
-    const docCount = readCount('portal_documentos');
-    const materiaCount = readFilteredCount('portal_materias', i => i.status === 'publicado');
-    const interCount = readFilteredCount('portal_interacoes', i => i.status === 'novo');
+    const pid = user?.activePortalId;
+    const docCount = readCount(pKey('portal_documentos', pid));
+    const materiaCount = readFilteredCount(pKey('portal_materias', pid), i => i.status === 'publicado');
+    const interCount = readFilteredCount(pKey('portal_interacoes', pid), i => i.status === 'novo');
     return [
       { label: 'Visitantes (30d)', value: '—', delta: 'Em breve', up: false },
       { label: 'Documentos publicados', value: String(docCount), delta: '', up: false },
       { label: 'Matérias ativas', value: String(materiaCount), delta: '', up: false },
       { label: 'Interações pendentes', value: String(interCount), delta: interCount > 0 ? 'Aguardando resposta' : '', up: false },
     ];
-  }, []);
+  }, [user?.activePortalId]);
 
   return (
     <div className="page dash-page">

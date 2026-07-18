@@ -1,7 +1,18 @@
 import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
+import { usePortalState } from '../../hooks/usePortalState';
 import '../admin/AdminPages.css';
 import './AtendimentoPage.css';
+
+interface InteracaoEntry {
+  id: string;
+  tipo: 'fale-ri';
+  nome: string;
+  email: string;
+  mensagem: string;
+  status: 'novo';
+  data: string;
+}
 
 type Assunto =
   | ''
@@ -38,13 +49,13 @@ export default function AtendimentoPage() {
   const [titulo, setTitulo] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [status, setStatus] = useState<Status>('idle');
+  const [, setInteracoes] = usePortalState<InteracaoEntry[]>('portal_interacoes', 'interacoes', []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!assunto || !titulo.trim() || !mensagem.trim()) return;
     setStatus('sending');
 
-    const INT_KEY = 'portal_interacoes';
     const now = new Date();
     const dataStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const entry = {
@@ -56,10 +67,7 @@ export default function AtendimentoPage() {
       status: 'novo' as const,
       data: dataStr,
     };
-    try {
-      const prev = JSON.parse(localStorage.getItem(INT_KEY) ?? '[]') as object[];
-      localStorage.setItem(INT_KEY, JSON.stringify([entry, ...prev]));
-    } catch { /* ignore */ }
+    setInteracoes(prev => [entry, ...prev]);
 
     setTimeout(() => {
       setStatus('sent');

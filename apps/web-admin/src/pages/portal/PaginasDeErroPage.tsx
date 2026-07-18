@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '../../components/PageHeader';
+import { usePortalState } from '../../hooks/usePortalState';
 import Modal from '../../components/Modal';
 import '../admin/AdminPages.css';
 import './PaginasDeErroPage.css';
@@ -95,19 +96,10 @@ const DEFAULT_PAGES: ErrorPage[] = [
   { code: 503, desc: 'Service Unavailable',     descPt: 'Serviço indisponível',     texts: null },
 ];
 
-function loadPages(): ErrorPage[] {
-  try {
-    const raw = localStorage.getItem(ERROR_PAGES_KEY);
-    if (!raw) return DEFAULT_PAGES;
-    const saved: ErrorPage[] = JSON.parse(raw);
-    return DEFAULT_PAGES.map(p => ({ ...p, ...saved.find(s => s.code === p.code) }));
-  } catch {
-    return DEFAULT_PAGES;
-  }
-}
-
 export default function PaginasDeErroPage() {
-  const [pages, setPages] = useState<ErrorPage[]>(loadPages);
+  const [persisted, setPersisted] = usePortalState<ErrorPage[]>(ERROR_PAGES_KEY, 'error_pages', DEFAULT_PAGES);
+  // Merge persisted entries over defaults so new default pages always appear
+  const pages: ErrorPage[] = DEFAULT_PAGES.map(p => ({ ...p, ...persisted.find(s => s.code === p.code) }));
   const [editing, setEditing] = useState<ErrorPage | null>(null);
   const [editTexts, setEditTexts] = useState<ErrorPageTexts>({ title: '', description: '', cta: '' });
   const [resetConfirm, setResetConfirm] = useState<number | null>(null);
@@ -123,22 +115,14 @@ export default function PaginasDeErroPage() {
       editTexts.title !== (DEFAULT_TEXTS[editing.code]?.title ?? '') ||
       editTexts.description !== (DEFAULT_TEXTS[editing.code]?.description ?? '') ||
       editTexts.cta !== (DEFAULT_TEXTS[editing.code]?.cta ?? '');
-    setPages(prev => {
-      const next = prev.map(p =>
-        p.code === editing.code ? { ...p, texts: hasChanges ? { ...editTexts } : null } : p
-      );
-      localStorage.setItem(ERROR_PAGES_KEY, JSON.stringify(next));
-      return next;
-    });
+    setPersisted(pages.map(p =>
+      p.code === editing.code ? { ...p, texts: hasChanges ? { ...editTexts } : null } : p
+    ));
     setEditing(null);
   }
 
   function resetPage(code: number) {
-    setPages(prev => {
-      const next = prev.map(p => p.code === code ? { ...p, texts: null } : p);
-      localStorage.setItem(ERROR_PAGES_KEY, JSON.stringify(next));
-      return next;
-    });
+    setPersisted(pages.map(p => p.code === code ? { ...p, texts: null } : p));
     setResetConfirm(null);
   }
 
