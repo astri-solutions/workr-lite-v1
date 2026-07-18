@@ -310,7 +310,7 @@ function orderKey(list: Canal[]): string {
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
-  usePublish(); // keep context subscription for sidebar sync
+  const { publish } = usePublish();
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
@@ -422,6 +422,17 @@ export default function CanaisPage() {
   function handleSaveOrder() {
     saveToStorage(canais);
     setSavedOrderKey(orderKey(canais));
+  }
+
+  // Publish must not race the async Supabase save: flush the CURRENT tree to
+  // portal_config and await it before publish() reads the config back.
+  async function handlePublish() {
+    localStorage.setItem(canaisKey, JSON.stringify(canais));
+    if (activePortalId) {
+      try { await savePortalConfig(activePortalId, { canais }); } catch (e) { console.error(e); }
+    }
+    setSavedOrderKey(orderKey(canais));
+    await publish();
   }
 
   // ── Canal actions ──────────────────────────────────────────────────────
@@ -754,7 +765,7 @@ export default function CanaisPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
-            <PublishButton />
+            <PublishButton onClick={handlePublish} />
           </div>
         }
       />
