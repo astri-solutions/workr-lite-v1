@@ -55,6 +55,11 @@
   white-space: nowrap;
 }
 
+.user-menu__email-sep {
+  color: var(--color-gray-400);
+  font-weight: var(--font-normal);
+}
+
 .user-menu__portal-name {
   font-family: var(--font-body);
   font-size: 11px;

@@ -90,10 +90,12 @@ export default function UserMenu() {
         >
           <span className="user-menu__avatar">{initials}</span>
           <span className="user-menu__trigger-info">
-            <span className="user-menu__email">{user.email}</span>
-            {activePortal && (
-              <span className="user-menu__portal-name">{activePortal.nome}</span>
-            )}
+            <span className="user-menu__email">
+              {user.email}
+              {activePortal && (
+                <><span className="user-menu__email-sep"> | </span>{activePortal.nome}</>
+              )}
+            </span>
           </span>
           <span className={`material-symbols-outlined user-menu__caret${open ? ' user-menu__caret--open' : ''}`} style={{ fontSize: '16px' }}>expand_more</span>
         </button>
