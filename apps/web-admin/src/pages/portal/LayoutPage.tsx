@@ -85,14 +85,17 @@ export default function LayoutPage() {
   const layoutKey = pKey(PORTAL_LAYOUT_KEY, portalId);
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
 
-  // Compute model dynamically inside the component so it reacts to the active portal.
   // Portals created with sidebar or tabmenu can switch between those two.
   // Portals created with banner cannot change layout after creation.
-  const portalModel = (localStorage.getItem(layoutKey) as PortalModel | null) ?? PORTAL_CONFIG.model;
+  // The model comes from Supabase (authoritative) — localStorage is only the
+  // initial cache, so a fresh browser doesn't wrongly show the banner lock.
+  const [portalModel, setPortalModel] = useState<PortalModel>(
+    () => (localStorage.getItem(layoutKey) as PortalModel | null) ?? PORTAL_CONFIG.model,
+  );
   const isLocked = portalModel === 'banner';
   const AVAILABLE_TIPOS = isLocked ? TIPOS : TIPOS.filter(t => t.id !== 'banner');
 
-  const [base] = useState<PortalLayout>(() => {
+  const [base, setBase] = useState<PortalLayout>(() => {
     const stored = localStorage.getItem(layoutKey) as PortalLayout | null;
     return stored ?? PORTAL_CONFIG.model;
   });
@@ -108,21 +111,25 @@ export default function LayoutPage() {
       if (data?.layout && typeof data.layout === 'string') {
         const layout = data.layout as PortalLayout;
         localStorage.setItem(layoutKey, layout);
+        setPortalModel(layout as PortalModel);
+        setBase(layout);
         setSelected(layout);
       }
     }).catch(console.error);
   }, [portalId, layoutKey]);
 
-  function saveDraft() {
+  async function saveDraft() {
     localStorage.setItem(layoutKey, selected);
     window.dispatchEvent(new StorageEvent('storage', { key: layoutKey, newValue: selected }));
-    if (portalId) savePortalConfig(portalId, { layout: selected }).catch(console.error);
     setIsDraft(true);
     notifyDraft();
+    if (portalId) {
+      try { await savePortalConfig(portalId, { layout: selected }); } catch (e) { console.error(e); }
+    }
   }
 
   async function handlePublish() {
-    if (isDirty) saveDraft();
+    if (isDirty) await saveDraft();
     const ok = await publish();
     if (ok) setIsDraft(false);
   }

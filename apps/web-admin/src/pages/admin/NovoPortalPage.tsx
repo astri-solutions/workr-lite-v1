@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ChannelEditor, { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT } from '../../components/ChannelEditor';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { savePortal } from '../../lib/portalsApi';
+import { savePortalConfig } from '../../lib/portalConfigApi';
 import { cvmService } from '../../services/cvm.service';
 import { useAuth } from '../../contexts/AuthContext';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
@@ -1424,7 +1425,12 @@ export default function NovoPortalPage() {
                   const provData = await provRes.json() as {
                     repoName: string; repoUrl: string; vercelUrl: string;
                     vercelCreated: boolean; vercelError?: string; portalUuid?: string;
+                    portalUpsertError?: string; configUpsertError?: string; siteUpsertError?: string;
+                    assetErrors?: string[];
                   };
+                  if (provData.portalUpsertError) warnings.push(`Registro do portal no banco: ${provData.portalUpsertError}`);
+                  if (provData.configUpsertError) warnings.push(`Configuração inicial no banco: ${provData.configUpsertError}`);
+                  if (provData.assetErrors?.length) warnings.push(`Upload de assets: ${provData.assetErrors.join('; ')}`);
                   // Store GitHub repo + Supabase UUID in portal record
                   const portaisRaw = localStorage.getItem('workr_portais');
                   const portais = portaisRaw ? JSON.parse(portaisRaw) : [];
@@ -1441,6 +1447,33 @@ export default function NovoPortalPage() {
                     }
                     localStorage.setItem('workr_portais', JSON.stringify(portais));
                     savePortal(portais[idx]).catch(console.error);
+
+                    // Belt-and-suspenders: write the full initial config from the
+                    // frontend too, so the CMS state is guaranteed even if the
+                    // Edge Function's portal_config upsert failed silently.
+                    savePortalConfig(newPortal.id, {
+                      canais: form.canais,
+                      cores: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
+                      fontes: { heading: form.fonteTitulo, body: form.fonteTexto },
+                      layout: form.tipo,
+                      ticker: form.tickerType === 'none'
+                        ? { type: 'none' }
+                        : { type: form.tickerType, symbol: form.tickerSymbol || undefined, embedCode: form.tickerEmbedCode || undefined },
+                      empresas: [{
+                        id: `principal-${newPortal.id}`,
+                        nome: form.nomeFantasia || form.nome,
+                        tipo: 'EMPRESA',
+                        cnpj: form.cnpj || '',
+                        cvmCodigo: form.cvmCode || '',
+                        autoCvm: form.autoCvm,
+                        importarDesde: '',
+                        ativo: true,
+                      }],
+                    }).then(() => {
+                      console.info('portal_config inicial gravado via frontend');
+                    }).catch(err => {
+                      warnings.push(`Falha ao gravar configuração inicial: ${String(err)}`);
+                    });
 
                     // Belt-and-suspenders: upsert portal_sites directly from the frontend
                     // using the UUID returned by provision-portal, guaranteeing the record exists.

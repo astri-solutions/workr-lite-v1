@@ -416,12 +416,13 @@ Deno.serve(async (req) => {
 
     // ── Step 4a: upsert portal row early so we get the UUID for site.config.js ─
     let portalUuid: string | undefined;
+    let portalUpsertError: string | undefined;
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
       );
-      const { data: earlyRow } = await adminClient.from('portals').upsert({
+      const { data: earlyRow, error: earlyErr } = await adminClient.from('portals').upsert({
         portal_key: _portalId,
         cliente: nome,
         subdomain,
@@ -429,9 +430,10 @@ Deno.serve(async (req) => {
         vercel_url: `https://${repoName}.vercel.app`,
         empresa_status: 'Ativo',
         ...(cnpj ? { cnpj } : {}),
-      }, { onConflict: 'portal_key' }).select('id').single();
+      }, { onConflict: 'portal_key' }).select('id').maybeSingle();
+      if (earlyErr) portalUpsertError = `portals upsert: ${earlyErr.message}`;
       portalUuid = earlyRow?.id ?? undefined;
-    } catch { /* non-fatal */ }
+    } catch (e) { portalUpsertError = String(e); }
 
     // ── Step 4: build and push customised site.config.js ─────────────────
     const siteConfigContent = buildSiteConfig({
@@ -464,6 +466,7 @@ Deno.serve(async (req) => {
     }));
 
     // ── Step 5: push logo and favicon if provided ─────────────────────────
+    const assetErrors: string[] = [];
     async function pushAsset(path: string, b64: string) {
       const existing = await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`);
       let sha: string | undefined;
@@ -471,7 +474,7 @@ Deno.serve(async (req) => {
         const d = await existing.json() as { sha: string };
         sha = d.sha;
       }
-      await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`, {
+      const putRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`, {
         method: 'PUT',
         body: JSON.stringify({
           message: `chore: add asset ${path}`,
@@ -479,6 +482,10 @@ Deno.serve(async (req) => {
           ...(sha ? { sha } : {}),
         }),
       });
+      if (!putRes.ok) {
+        const body = await putRes.json().catch(() => ({})) as { message?: string };
+        assetErrors.push(`${path}: GitHub ${putRes.status} ${body.message ?? ''}`.trim());
+      }
     }
 
     if (logo?.b64) {
@@ -590,6 +597,7 @@ Deno.serve(async (req) => {
 
     // ── Step 6: update portal record with final Vercel URL + create portal_config
     let siteUpsertError: string | undefined;
+    let configUpsertError: string | undefined;
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
@@ -597,12 +605,15 @@ Deno.serve(async (req) => {
       );
 
       // Update vercel_url now that we know the final Vercel project URL
-      const { data: portalRow } = await adminClient.from('portals')
+      const { data: portalRow, error: portalUpdateError } = await adminClient.from('portals')
         .update({ vercel_url: vercelUrl, vercel_created: vercelCreated })
         .eq('portal_key', _portalId)
-        .select('id').single();
+        .select('id')
+        .maybeSingle();
+      if (portalUpdateError) configUpsertError = `portals update: ${portalUpdateError.message}`;
 
       const pid = portalRow?.id ?? portalUuid;
+      if (!pid) configUpsertError = configUpsertError ?? 'portal UUID não resolvido — portal_config não foi criado';
 
       // Create/upsert portal_sites row (the live site entry shown in admin panel)
       if (pid) {
@@ -619,7 +630,7 @@ Deno.serve(async (req) => {
       // Create initial portal_config row — the FULL initial state, so the CMS
       // (any user, any browser) opens with exactly what the wizard defined.
       if (pid) {
-        await adminClient.from('portal_config').upsert({
+        const { error: cfgErr } = await adminClient.from('portal_config').upsert({
           portal_id: pid,
           canais: canais ?? [],
           cores: colors ?? {},
@@ -638,6 +649,8 @@ Deno.serve(async (req) => {
             ativo: true,
           }],
           interacoes: [],
+          ...(logo?.ext ? { logo_ext: logo.ext } : {}),
+          ...(faviconAsset?.ext ? { favicon_ext: faviconAsset.ext } : {}),
           informacoes: {
             nomeFantasia: nomeFantasia ?? null,
             emailContato: emailContato ?? null,
@@ -645,10 +658,11 @@ Deno.serve(async (req) => {
             seo: seo ?? {},
           },
         }, { onConflict: 'portal_id' });
+        if (cfgErr) configUpsertError = `portal_config upsert: ${cfgErr.message}`;
       }
-    } catch { /* non-fatal — portal still works */ }
+    } catch (e) { configUpsertError = configUpsertError ?? String(e); }
 
-    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError, portalUuid, siteUpsertError }), {
+    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError, portalUuid, siteUpsertError, configUpsertError, portalUpsertError, assetErrors: assetErrors.length ? assetErrors : undefined }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
 

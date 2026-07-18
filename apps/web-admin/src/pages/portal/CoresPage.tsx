@@ -304,17 +304,21 @@ export default function CoresPage() {
     }).catch(console.error);
   }, [portalId, coresKey]);
 
-  function saveDraft() {
+  async function saveDraft() {
     setPreview(draft);
     localStorage.setItem(coresKey, JSON.stringify(draft));
-    if (portalId) savePortalConfig(portalId, { cores: draft }).catch(console.error);
     setBase(draft);
     setIsDraft(true);
     notifyDraft();
+    // Await the Supabase write — publish() reads from Supabase, so the save
+    // must land before publishing or the site gets stale colors.
+    if (portalId) {
+      try { await savePortalConfig(portalId, { cores: draft }); } catch (e) { console.error(e); }
+    }
   }
 
   async function handlePublish() {
-    if (isDirty) saveDraft();
+    if (isDirty) await saveDraft();
     const ok = await publish();
     if (ok) setIsDraft(false);
   }

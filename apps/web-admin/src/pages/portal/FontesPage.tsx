@@ -151,21 +151,23 @@ export default function FontesPage() {
     return family.replace(/^['"](.+?)['"].*$/, '$1').trim();
   }
 
-  function saveDraft() {
+  async function saveDraft() {
     const value = {
       heading: extractName(heading?.family ?? headingFont),
       body: extractName(body?.family ?? bodyFont),
     };
     localStorage.setItem(fontesKey, JSON.stringify(value));
-    if (portalId) savePortalConfig(portalId, { fontes: value }).catch(console.error);
     setBaseHeading(headingFont);
     setBaseBody(bodyFont);
     setIsDraft(true);
     notifyDraft();
+    if (portalId) {
+      try { await savePortalConfig(portalId, { fontes: value }); } catch (e) { console.error(e); }
+    }
   }
 
   async function handlePublish() {
-    if (isDirty) saveDraft();
+    if (isDirty) await saveDraft();
     const ok = await publish();
     if (ok) setIsDraft(false);
   }

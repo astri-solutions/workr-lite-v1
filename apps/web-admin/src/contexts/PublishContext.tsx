@@ -61,18 +61,27 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       let remoteConfig: Record<string, unknown> | null = null;
       try { remoteConfig = pid ? await fetchPortalConfig(pid) : null; } catch { /* use localStorage */ }
 
-      const cores      = remoteConfig?.cores      ?? ls('portal_cores');
-      const fontes     = remoteConfig?.fontes     ?? ls('portal_fontes');
-      const footer     = remoteConfig?.footer     ?? ls('portal_footer');
-      const ticker     = remoteConfig?.ticker     ?? ls('portal_ticker');
-      const canais     = remoteConfig?.canais     ?? ls('portal_canais');
-      const splash     = remoteConfig?.splash     ?? ls('portal_splash');
-      const cookies    = remoteConfig?.cookies    ?? ls('portal_cookies');
-      const errorPages = remoteConfig?.error_pages ?? ls('portal_error_pages');
-      const bannerRaw  = remoteConfig?.banner_slides ?? ls('portal_banner');
+      // Empty {} / [] in portal_config means "never configured" (column defaults) —
+      // fall through to localStorage instead of publishing empty values.
+      const nonEmpty = (v: unknown) => {
+        if (v === null || v === undefined) return null;
+        if (Array.isArray(v)) return v.length > 0 ? v : null;
+        if (typeof v === 'object') return Object.keys(v as object).length > 0 ? v : null;
+        return v;
+      };
+
+      const cores      = nonEmpty(remoteConfig?.cores)      ?? ls('portal_cores');
+      const fontes     = nonEmpty(remoteConfig?.fontes)     ?? ls('portal_fontes');
+      const footer     = nonEmpty(remoteConfig?.footer)     ?? ls('portal_footer');
+      const ticker     = nonEmpty(remoteConfig?.ticker)     ?? ls('portal_ticker');
+      const canais     = nonEmpty(remoteConfig?.canais)     ?? ls('portal_canais');
+      const splash     = nonEmpty(remoteConfig?.splash)     ?? ls('portal_splash');
+      const cookies    = nonEmpty(remoteConfig?.cookies)    ?? ls('portal_cookies');
+      const errorPages = nonEmpty(remoteConfig?.error_pages) ?? ls('portal_error_pages');
+      const bannerRaw  = nonEmpty(remoteConfig?.banner_slides) ?? ls('portal_banner');
 
       const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null =
-        (remoteConfig?.empresas as Array<{ id: string; nome: string; ativo: boolean }> | undefined) ??
+        (nonEmpty(remoteConfig?.empresas) as Array<{ id: string; nome: string; ativo: boolean }> | null) ??
         (() => { try { return JSON.parse(localStorage.getItem(`portal_empresas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })();
       const empresas = (empresasRaw ?? [])
         .filter(e => e.ativo)
