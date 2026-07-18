@@ -68,10 +68,11 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       const canais     = remoteConfig?.canais     ?? ls('portal_canais');
       const splash     = remoteConfig?.splash     ?? ls('portal_splash');
       const cookies    = remoteConfig?.cookies    ?? ls('portal_cookies');
-      const errorPages = ls('portal_error_pages');
+      const errorPages = remoteConfig?.error_pages ?? ls('portal_error_pages');
       const bannerRaw  = remoteConfig?.banner_slides ?? ls('portal_banner');
 
       const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null =
+        (remoteConfig?.empresas as Array<{ id: string; nome: string; ativo: boolean }> | undefined) ??
         (() => { try { return JSON.parse(localStorage.getItem(`portal_empresas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })();
       const empresas = (empresasRaw ?? [])
         .filter(e => e.ativo)
@@ -123,7 +124,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
             repoName: repoName ?? (portalRecord?.subdomain ? `portal-${portalRecord.subdomain}` : undefined),
             portalId: activePortal?.id,
             portalNome: activePortal?.nome ?? '',
-            layout: localStorage.getItem(pKey('portal_layout', pid)) ?? 'sidebar',
+            layout: (remoteConfig?.layout as string | undefined) ?? localStorage.getItem(pKey('portal_layout', pid)) ?? 'sidebar',
             colors: cores ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#F4A261' },
             fonts: fontes ? { display: fontes.heading ?? fontes.display, body: fontes.body } : { display: 'Plus Jakarta Sans', body: 'Inter' },
             footer: footer ?? null,

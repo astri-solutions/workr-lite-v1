@@ -34,6 +34,8 @@ export interface PortalConfigPatch {
   empresas?:     unknown;
   logo_ext?:     string;
   favicon_ext?:  string;
+  error_pages?:  unknown;
+  interacoes?:   unknown;
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
