@@ -26,8 +26,8 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
-interface SubCanalCfg { label: string; href: string; enabled: boolean; }
-interface CanalCfg { label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; }
+interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; }
+interface CanalCfg { id?: string; label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; }
 
 // ── site.config.js builder ───────────────────────────────────────────────────
 function headerVariant(layout: string): string {
@@ -62,12 +62,31 @@ function buildNavSection(canais: CanalCfg[]): string {
   const items = enabled.map(c => {
     const enabledChildren = c.children.filter(sc => sc.enabled);
     if (enabledChildren.length === 0) {
-      return `    { label: ${JSON.stringify(c.label)}, href: ${JSON.stringify(c.href ?? '/')}, children: [] }`;
+      const fields = [
+        `id: ${JSON.stringify(c.id ?? '')}`,
+        `label: ${JSON.stringify(c.label)}`,
+        `href: ${JSON.stringify(c.href ?? '/')}`,
+        ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+        `children: []`,
+      ];
+      return `    { ${fields.join(', ')} }`;
     }
-    const childLines = enabledChildren
-      .map(sc => `      { label: ${JSON.stringify(sc.label)}, href: ${JSON.stringify(sc.href)} }`)
-      .join(',\n');
-    return `    { label: ${JSON.stringify(c.label)}, children: [\n${childLines},\n    ] }`;
+    const childLines = enabledChildren.map(sc => {
+      const f = [
+        `id: ${JSON.stringify(sc.id ?? '')}`,
+        `label: ${JSON.stringify(sc.label)}`,
+        `href: ${JSON.stringify(sc.href)}`,
+        ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
+      ];
+      return `      { ${f.join(', ')} }`;
+    }).join(',\n');
+    const parentFields = [
+      `id: ${JSON.stringify(c.id ?? '')}`,
+      `label: ${JSON.stringify(c.label)}`,
+      ...(c.href ? [`href: ${JSON.stringify(c.href)}`] : []),
+      ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+    ];
+    return `    { ${parentFields.join(', ')}, children: [\n${childLines},\n    ] }`;
   }).join(',\n');
 
   return `  nav: [\n${items},\n  ],`;
@@ -265,7 +284,13 @@ function buildBlankPage(title: string, parentLabel: string | null): string {
 }
 
 // Pages that ship with specialized JS/structure — never overwrite with blank
-const PROTECTED_HTML = new Set(['index.html', 'documentos-cvm.html']);
+const PROTECTED_HTML = new Set([
+  'index.html', 'home-side-bar.html', 'home-v2.html',
+  'documentos-cvm.html', '404.html', 'area-restrita.html',
+  'politica-de-privacidade.html', 'termos-e-condicoes.html', 'definicao-de-cookies.html',
+  'cms-show.html', 'cms-lista.html', 'cms-lista-agrupada.html',
+  'cms-tabela.html', 'cms-blog.html', 'cms-galeria.html', 'cms-formulario.html',
+]);
 
 // ── GitHub helper ─────────────────────────────────────────────────────────────
 function ghHeaders(token: string) {

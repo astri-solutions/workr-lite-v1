@@ -27,8 +27,8 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
-interface SubCanalCfg { label: string; href: string; enabled: boolean; }
-interface CanalCfg { label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; }
+interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; }
+interface CanalCfg { id?: string; label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; }
 interface EmpresaCfg { id: string; label: string; short: string; }
 
 interface SplashBtn { label: string; url: string; variant: string; }
@@ -52,8 +52,14 @@ interface BannerSlideContent { titulo: string; subtitulo: string; cta: string; }
 interface BannerSlideCfg { id: string; content: Record<string, BannerSlideContent>; }
 interface AssetCfg { base64: string; ext: string; }
 
-// Pages that ship with specialized JS/structure — never overwrite with blank
-const PROTECTED_HTML = new Set(['index.html', 'documentos-cvm.html']);
+// Pages that ship with specialized JS/structure — never overwrite or delete
+const PROTECTED_HTML = new Set([
+  'index.html', 'home-side-bar.html', 'home-v2.html',
+  'documentos-cvm.html', '404.html', 'area-restrita.html',
+  'politica-de-privacidade.html', 'termos-e-condicoes.html', 'definicao-de-cookies.html',
+  'cms-show.html', 'cms-lista.html', 'cms-lista-agrupada.html',
+  'cms-tabela.html', 'cms-blog.html', 'cms-galeria.html', 'cms-formulario.html',
+]);
 
 function buildBlankPage(title: string, parentLabel: string | null): string {
   const breadcrumbParent = parentLabel
@@ -148,12 +154,31 @@ function buildNavSection(canais: CanalCfg[]): string {
   const items = enabled.map(c => {
     const enabledChildren = c.children.filter(sc => sc.enabled);
     if (enabledChildren.length === 0) {
-      return `    { label: ${JSON.stringify(c.label)}, href: ${JSON.stringify(c.href ?? '/')}, children: [] }`;
+      const fields = [
+        `id: ${JSON.stringify(c.id ?? '')}`,
+        `label: ${JSON.stringify(c.label)}`,
+        `href: ${JSON.stringify(c.href ?? '/')}`,
+        ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+        `children: []`,
+      ];
+      return `    { ${fields.join(', ')} }`;
     }
-    const childLines = enabledChildren
-      .map(sc => `      { label: ${JSON.stringify(sc.label)}, href: ${JSON.stringify(sc.href)} }`)
-      .join(',\n');
-    return `    { label: ${JSON.stringify(c.label)}, children: [\n${childLines},\n    ] }`;
+    const childLines = enabledChildren.map(sc => {
+      const f = [
+        `id: ${JSON.stringify(sc.id ?? '')}`,
+        `label: ${JSON.stringify(sc.label)}`,
+        `href: ${JSON.stringify(sc.href)}`,
+        ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
+      ];
+      return `      { ${f.join(', ')} }`;
+    }).join(',\n');
+    const parentFields = [
+      `id: ${JSON.stringify(c.id ?? '')}`,
+      `label: ${JSON.stringify(c.label)}`,
+      ...(c.href ? [`href: ${JSON.stringify(c.href)}`] : []),
+      ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+    ];
+    return `    { ${parentFields.join(', ')}, children: [\n${childLines},\n    ] }`;
   }).join(',\n');
 
   return `  nav: [\n${items},\n  ],`;
@@ -568,6 +593,19 @@ Deno.serve(async (req) => {
       }
     } catch { assetWarnings.push('footer.js update failed'); }
 
+    // Push latest materias.js from template — ensures canal id resolution works across all portals
+    try {
+      const materiasRes = await fetch(
+        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/scripts/components/materias.js`,
+        { headers: ghHeaders }
+      );
+      if (materiasRes.ok) {
+        const materiasData = await materiasRes.json() as { content: string };
+        const materiasBase64 = materiasData.content.replace(/\n/g, '');
+        await pushAsset(materiasBase64, 'scripts/components/materias.js', `chore: update materias.js via CMS [${portalNome}]`);
+      }
+    } catch { assetWarnings.push('materias.js update failed'); }
+
     // Push latest _topbar.scss from template (always black bg)
     try {
       const topbarRes = await fetch(
@@ -659,6 +697,41 @@ Deno.serve(async (req) => {
           } catch { assetWarnings.push(`page creation failed: ${ghPath}`); }
         }
       }
+    }
+
+    // Delete HTML files for canals that were removed from the tree
+    if (canais) {
+      try {
+        const activeHrefs = new Set<string>();
+        for (const canal of canais) {
+          if (canal.href?.endsWith('.html')) activeHrefs.add(canal.href.replace(/^\//, ''));
+          for (const sub of canal.children ?? []) {
+            if (sub.href?.endsWith('.html')) activeHrefs.add(sub.href.replace(/^\//, ''));
+          }
+        }
+        const contentsRes = await fetch(
+          `https://api.github.com/repos/${githubOrg}/${repoName}/contents/`,
+          { headers: ghHeaders }
+        );
+        if (contentsRes.ok) {
+          const files = await contentsRes.json() as { name: string; sha: string; type: string }[];
+          for (const file of files) {
+            if (file.type !== 'file' || !file.name.endsWith('.html')) continue;
+            if (PROTECTED_HTML.has(file.name) || activeHrefs.has(file.name)) continue;
+            await fetch(
+              `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${file.name}`,
+              {
+                method: 'DELETE',
+                headers: ghHeaders,
+                body: JSON.stringify({
+                  message: `chore: remove orphaned page ${file.name} via CMS [${portalNome}]`,
+                  sha: file.sha,
+                }),
+              }
+            );
+          }
+        }
+      } catch { assetWarnings.push('orphan page cleanup failed'); }
     }
 
     // Persist portal→repo mapping and sync portal_config to Supabase
