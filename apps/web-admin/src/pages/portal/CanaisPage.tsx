@@ -740,7 +740,7 @@ export default function CanaisPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
-            <button className="btn-primary" type="button" onClick={publish} disabled={publishing} style={{ minWidth: 100 }}>
+            <button className="btn-primary" type="button" onClick={publish} disabled={publishing}>
               {publishing ? 'Publicando…' : 'Publicar'}
             </button>
           </div>
