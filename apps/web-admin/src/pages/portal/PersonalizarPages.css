@@ -5,6 +5,18 @@
   gap: 8px;
 }
 
+@media (max-width: 600px) {
+  .publish-actions {
+    width: 100%;
+  }
+
+  .publish-actions .btn-outline,
+  .publish-actions .btn-primary {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 /* ─── Shared personalization layout ─────────────────── */
 .pers-section {
   background: #fff;
