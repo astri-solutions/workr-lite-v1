@@ -24,7 +24,17 @@ interface Materia {
   autor: string;
   ultimaEdicao: string;
   ultimoEditor: string;
+  tipo: string;
+  original: StoredMateria;
 }
+
+const TIPO_LABEL: Record<string, string> = {
+  show: 'Show',
+  galeria: 'Galeria',
+  tabela: 'Tabela',
+  formulario: 'Formulário',
+  html: 'HTML',
+};
 
 function loadCanais(): Canal[] {
   try {
@@ -132,6 +142,8 @@ export default function MateriasPage() {
       autor: m.autor,
       ultimaEdicao: m.ultimaEdicao,
       ultimoEditor: m.ultimoEditor,
+      tipo: m.pageType,
+      original: m,
     }));
     return [...initial, ...fromStore];
   });
@@ -184,6 +196,7 @@ export default function MateriasPage() {
             <tr>
               <th className={`th-sort${col === 'titulo' ? ' th-sort--active' : ''}`} onClick={() => toggle('titulo')}><span className="th-sort-inner">Título <SortIcon dir={col === 'titulo' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'pagina' ? ' th-sort--active' : ''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col === 'pagina' ? dir : null} /></span></th>
+              <th className={`th-sort${col === 'tipo' ? ' th-sort--active' : ''}`} onClick={() => toggle('tipo')}><span className="th-sort-inner">Tipo <SortIcon dir={col === 'tipo' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'status' ? ' th-sort--active' : ''}`} onClick={() => toggle('status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'status' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'data' ? ' th-sort--active' : ''}`} onClick={() => toggle('data')}><span className="th-sort-inner">Publicação <SortIcon dir={col === 'data' ? dir : null} /></span></th>
               <th className={`th-sort${col === 'autor' ? ' th-sort--active' : ''}`} onClick={() => toggle('autor')}><span className="th-sort-inner">Autor <SortIcon dir={col === 'autor' ? dir : null} /></span></th>
@@ -194,12 +207,13 @@ export default function MateriasPage() {
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} className="table-empty">Nenhuma matéria encontrada.</td></tr>
+              <tr><td colSpan={9} className="table-empty">Nenhuma matéria encontrada.</td></tr>
             ) : (
               filtered.map(m => (
                 <tr key={m.id}>
                   <td className="table-cell--bold mat-cell-titulo" data-label="Título">{m.titulo}</td>
                   <td className="table-cell--muted" data-label="Página">{m.pagina}</td>
+                  <td className="table-cell--muted" data-label="Tipo">{TIPO_LABEL[m.tipo] ?? m.tipo}</td>
                   <td data-label="Status"><span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span></td>
                   <td className="table-cell--muted" data-label="Publicação">{m.data}</td>
                   <td className="table-cell--muted" data-label="Autor">{m.autor}</td>
@@ -208,7 +222,10 @@ export default function MateriasPage() {
                   <td>
                     <div className="table-actions">
                       <button className="btn-action btn-action--enter" type="button"
-                        onClick={() => navigate('/portal/materias/nova', { state: { editing: m } })}>
+                        onClick={() => navigate(
+                          m.tipo === 'formulario' ? '/portal/materias/formulario' : '/portal/materias/nova',
+                          { state: { editing: m.original } },
+                        )}>
                         Editar
                       </button>
                       <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>

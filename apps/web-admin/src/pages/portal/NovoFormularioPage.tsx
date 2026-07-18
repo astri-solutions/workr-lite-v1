@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
-import { persistMateria, syncMateriaToSupabase } from '../../hooks/useMateriasStore';
+import { persistMateria, syncMateriaToSupabase, type StoredMateria } from '../../hooks/useMateriasStore';
 import { resolvePortalId } from '../../lib/portalDb';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
@@ -46,6 +46,19 @@ function newField(type: FieldType = 'text'): FormField {
   return { id: Math.random().toString(36).slice(2), type, label: '', placeholder: '', required: false, options: '' };
 }
 
+interface FormularioContent {
+  kind: 'formulario';
+  fields: FormField[];
+  submitLabel?: string;
+  successMessage?: string;
+  receiverEmail?: string;
+  replyTo?: boolean;
+}
+
+function isFormularioContent(content: unknown): content is FormularioContent {
+  return !!content && typeof content === 'object' && (content as { kind?: string }).kind === 'formulario';
+}
+
 const DEFAULT_FIELDS: FormField[] = [
   { id: 'f1', type: 'text',     label: 'Nome',             placeholder: 'Seu nome completo',                 required: true,  options: '' },
   { id: 'f2', type: 'subject',  label: 'Assunto',          placeholder: 'Escolha o assunto',                 required: true,  options: DEFAULT_SUBJECT_OPTIONS },
@@ -59,18 +72,28 @@ export default function NovoFormularioPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const activePortalId = useActivePortalId();
-  const routeState = location.state as { editing?: { titulo?: string; pagina?: string; status?: string } } | null;
+  const routeState = location.state as { editing?: StoredMateria } | null;
   const editing = routeState?.editing ?? null;
+  const editingContent = editing && isFormularioContent(editing.content) ? editing.content : null;
+  const primaryLang = PORTAL_CONFIG.languages[0];
 
-  const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
-  const [subtitles, setSubtitles] = useState<Record<string, string>>({});
-  const [submitLabels, setSubmitLabels] = useState<Record<string, string>>({});
-  const [successMessages, setSuccessMessages] = useState<Record<string, string>>({});
-  const [fields, setFields] = useState<FormField[]>(DEFAULT_FIELDS);
-  const [receiverEmail, setReceiverEmail] = useState('');
-  const [replyTo, setReplyTo] = useState(false);
-  const [page, setPage] = useState(editing?.pagina ?? '');
-  const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
+  const [locale, setLocale] = useState<LocaleCode>(primaryLang);
+  const [subtitles, setSubtitles] = useState<Record<string, string>>(
+    editing?.subtitulo ? { [primaryLang]: editing.subtitulo } : {},
+  );
+  const [submitLabels, setSubmitLabels] = useState<Record<string, string>>(
+    editingContent?.submitLabel ? { [primaryLang]: editingContent.submitLabel } : {},
+  );
+  const [successMessages, setSuccessMessages] = useState<Record<string, string>>(
+    editingContent?.successMessage ? { [primaryLang]: editingContent.successMessage } : {},
+  );
+  const [fields, setFields] = useState<FormField[]>(editingContent?.fields ?? DEFAULT_FIELDS);
+  const [receiverEmail, setReceiverEmail] = useState(editingContent?.receiverEmail ?? '');
+  const [replyTo, setReplyTo] = useState(editingContent?.replyTo ?? false);
+  const [page, setPage] = useState(editing?.pageId ?? '');
+  const [status, setStatus] = useState<PublishStatus>(
+    editing?.status === 'publicado' ? 'published' : editing?.status === 'agendado' ? 'scheduled' : 'draft',
+  );
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -122,7 +145,7 @@ export default function NovoFormularioPage() {
       const today = new Date().toLocaleDateString('pt-BR');
       const primary = PORTAL_CONFIG.languages[0];
       const materia = {
-        id: (editing as { id?: string } | null)?.id ?? Math.random().toString(36).slice(2),
+        id: editing?.id ?? Math.random().toString(36).slice(2),
         titulo: dest?.label ?? subtitles[primary] ?? 'Formulário',
         subtitulo: subtitles[primary] ?? '',
         pageId: page,
