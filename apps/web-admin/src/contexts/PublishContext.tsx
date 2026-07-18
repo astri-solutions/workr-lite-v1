@@ -68,8 +68,8 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       const canais     = remoteConfig?.canais     ?? ls('portal_canais');
       const splash     = remoteConfig?.splash     ?? ls('portal_splash');
       const cookies    = remoteConfig?.cookies    ?? ls('portal_cookies');
-      const errorPages = remoteConfig?.error_pages ?? ls('portal_error_pages');
-      const bannerRaw  = remoteConfig?.banner     ?? ls('portal_banner');
+      const errorPages = ls('portal_error_pages');
+      const bannerRaw  = remoteConfig?.banner_slides ?? ls('portal_banner');
 
       const empresasRaw: Array<{ id: string; nome: string; ativo: boolean }> | null =
         (() => { try { return JSON.parse(localStorage.getItem(`portal_empresas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })();
