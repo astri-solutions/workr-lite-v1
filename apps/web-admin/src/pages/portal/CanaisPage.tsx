@@ -753,6 +753,9 @@ export default function CanaisPage() {
 
       {/* ── Accordion tree ────────────────────────────────────────────── */}
       <div className="ct-tree">
+        {canais.length === 0 && (
+          <div className="ct-empty">Não há canais cadastrados</div>
+        )}
         {canais.map((canal, ci) => {
           const canalExpanded = expandedCanals.has(canal.id);
           const movedInfo = movedCanals.find(x => x.id === canal.id);
