@@ -337,7 +337,7 @@ export default function CanaisPage() {
   useEffect(() => {
     if (!activePortalId) return;
     fetchPortalConfig(activePortalId).then(data => {
-      if (data?.canais) {
+      if (Array.isArray(data?.canais) && (data.canais as Canal[]).length > 0) {
         const canaisList = data.canais as Canal[];
         localStorage.setItem(canaisKey, JSON.stringify(canaisList));
         setCanais(canaisList);
