@@ -316,6 +316,9 @@ export default function CanaisPage() {
   const cvmPageIds = loadCvmRoutedPageIds();
   const portalEmpresas = loadPortalEmpresas(activePortalId);
   const hasMultipleEmpresas = portalEmpresas.length > 1;
+  const portalLayout = (localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
+  const isFlatLayout = portalLayout === 'sidebar' || portalLayout === 'tabmenu';
+
   const [canais, setCanais] = useState<Canal[]>(() => {
     try {
       const raw = localStorage.getItem(canaisKey);
@@ -740,7 +743,7 @@ export default function CanaisPage() {
                 Salvar ordem
               </button>
             )}
-            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm(emptyNewCanalForm(portalEmpresas)); setNewCanalOpen(true); }}>
+            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm({ ...emptyNewCanalForm(portalEmpresas), tipo: isFlatLayout ? 'pagina' : 'pai' }); setNewCanalOpen(true); }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
@@ -796,10 +799,12 @@ export default function CanaisPage() {
                     onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
                     Excluir
                   </button>
-                  <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
-                    Página
-                  </button>
+                  {!isFlatLayout && (
+                    <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                      Página
+                    </button>
+                  )}
                 </div>
                 <button
                   className={`ct-expand ct-expand--l1${canalExpanded ? ' ct-expand--open' : ''}`}
@@ -867,10 +872,12 @@ export default function CanaisPage() {
                               onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
                               Excluir
                             </button>
-                            <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
-                              Sub-página
-                            </button>
+                            {!isFlatLayout && (
+                              <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                                Sub-página
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1133,7 +1140,7 @@ export default function CanaisPage() {
               </>
             )}
 
-            {!newSubForm.parentSubId && (
+            {!newSubForm.parentSubId && !isFlatLayout && (
               <>
                 <div className="canais-edit-divider" />
                 <p className="canais-edit-section-title">Estrutura</p>
@@ -1834,32 +1841,40 @@ export default function CanaisPage() {
                   onChange={e => setNewCanalForm(f => ({ ...f, subtitles: { ...f.subtitles, [f.locale]: e.target.value } }))} />
               </label>
             </div>
-            <div>
-              <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Tipo de canal</p>
-              <div className="canais-new-type-row">
-                {(['pai', 'pagina'] as const).map(t => (
-                  <button key={t} type="button"
-                    className={`canais-new-type-btn${newCanalForm.tipo === t ? ' canais-new-type-btn--active' : ''}`}
-                    onClick={() => setNewCanalForm(f => ({ ...f, tipo: t }))}
-                  >
-                    <span className="material-symbols-outlined canais-new-type-btn__icon">{t === 'pai' ? 'account_tree' : 'article'}</span>
-                    <span className="canais-new-type-btn__label">{t === 'pai' ? 'Canal pai' : 'Página direta'}</span>
-                    <span className="canais-new-type-btn__desc">{t === 'pai' ? 'Agrupa páginas filhas na navegação' : 'Link direto sem filhos na navegação'}</span>
-                    {newCanalForm.tipo === t && (
-                      <span className="canais-new-type-btn__check">
-                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
-                      </span>
-                    )}
-                  </button>
-                ))}
+            {isFlatLayout && (
+              <p className="ct-wizard-hint">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                No layout {portalLayout === 'sidebar' ? 'sidebar' : 'tabs'}, cada canal é uma página direta. Você escolherá o tipo de conteúdo no próximo passo.
+              </p>
+            )}
+            {!isFlatLayout && (
+              <div>
+                <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Tipo de canal</p>
+                <div className="canais-new-type-row">
+                  {(['pai', 'pagina'] as const).map(t => (
+                    <button key={t} type="button"
+                      className={`canais-new-type-btn${newCanalForm.tipo === t ? ' canais-new-type-btn--active' : ''}`}
+                      onClick={() => setNewCanalForm(f => ({ ...f, tipo: t }))}
+                    >
+                      <span className="material-symbols-outlined canais-new-type-btn__icon">{t === 'pai' ? 'account_tree' : 'article'}</span>
+                      <span className="canais-new-type-btn__label">{t === 'pai' ? 'Canal pai' : 'Página direta'}</span>
+                      <span className="canais-new-type-btn__desc">{t === 'pai' ? 'Agrupa páginas filhas na navegação' : 'Link direto sem filhos na navegação'}</span>
+                      {newCanalForm.tipo === t && (
+                        <span className="canais-new-type-btn__check">
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>check</span>
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {newCanalForm.tipo === 'pagina' && (
+                  <p className="ct-wizard-hint">
+                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                    Você escolherá o tipo de conteúdo no próximo passo.
+                  </p>
+                )}
               </div>
-              {newCanalForm.tipo === 'pagina' && (
-                <p className="ct-wizard-hint">
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
-                  Você escolherá o tipo de conteúdo no próximo passo.
-                </p>
-              )}
-            </div>
+            )}
             <label className="canais-new-draft-check">
               <input type="checkbox" checked={newCanalForm.draft}
                 onChange={e => setNewCanalForm(f => ({ ...f, draft: e.target.checked }))} />
