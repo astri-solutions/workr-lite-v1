@@ -6,6 +6,7 @@ import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import { persistMateria, syncMateriaToSupabase, type MateriaPageType } from '../../hooks/useMateriasStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
+import { usePublish } from '../../contexts/PublishContext';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
@@ -780,6 +781,7 @@ export default function NovaMateriaPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { publish } = usePublish();
   const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' } | null;
   const editing = routeState?.editing ?? null;
   const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' | 'tabela' | 'html' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
@@ -896,8 +898,10 @@ export default function NovaMateriaPage() {
       persistMateria(m, portalKey);
       if (portalKey) {
         const portalDbId = await resolvePortalId(portalKey);
-        if (portalDbId) syncMateriaToSupabase(m, portalDbId);
+        if (portalDbId) await syncMateriaToSupabase(m, portalDbId);
       }
+      // Match the sidebar's global publish button's real-site effect.
+      if (newStatus === 'published') await publish();
     }
   }
 

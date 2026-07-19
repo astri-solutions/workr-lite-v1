@@ -6,6 +6,7 @@ import { persistMateria, syncMateriaToSupabase, type StoredMateria } from '../..
 import { resolvePortalId } from '../../lib/portalDb';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
+import { usePublish } from '../../contexts/PublishContext';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 import './NovoFormularioPage.css';
@@ -72,6 +73,7 @@ export default function NovoFormularioPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const activePortalId = useActivePortalId();
+  const { publish } = usePublish();
   const routeState = location.state as { editing?: StoredMateria } | null;
   const editing = routeState?.editing ?? null;
   const editingContent = editing && isFormularioContent(editing.content) ? editing.content : null;
@@ -94,7 +96,6 @@ export default function NovoFormularioPage() {
   const [status, setStatus] = useState<PublishStatus>(
     editing?.status === 'publicado' ? 'published' : editing?.status === 'agendado' ? 'scheduled' : 'draft',
   );
-  const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -174,6 +175,10 @@ export default function NovoFormularioPage() {
           if (portalDbId) await syncMateriaToSupabase(materia, portalDbId);
         } catch (e) { console.error('sync formulário:', e); }
       }
+      // Matérias render from a live Supabase fetch, so the row itself is
+      // enough — but "Publicar" here must match the sidebar's global publish
+      // button so the user sees the same real-site effect either way.
+      if (nextStatus === 'published') await publish();
     }
   }
 
@@ -360,21 +365,6 @@ export default function NovoFormularioPage() {
                   })}
                 </select>
               </label>
-              <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>
-                Status
-                <select className="nm-meta-select" value={status} onChange={e => setStatus(e.target.value as PublishStatus)}>
-                  <option value="draft">Rascunho</option>
-                  <option value="published">Publicado</option>
-                  <option value="scheduled">Agendado</option>
-                </select>
-              </label>
-              {status === 'scheduled' && (
-                <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>
-                  Data de publicação
-                  <input className="nm-meta-input" type="datetime-local" value={scheduleDate}
-                    onChange={e => setScheduleDate(e.target.value)} />
-                </label>
-              )}
             </div>
           </div>
 
