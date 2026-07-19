@@ -1,8 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import '../admin/AdminPages.css';
 import './LogPage.css';
 
@@ -55,9 +58,18 @@ const ACTION_LABEL: Record<string, string> = {
   fez_upload: 'Upload',
 };
 
-const MOCK_LOGS: LogEntry[] = [];
-
-const ALL_USERS: string[] = [];
+function dbToLog(r: Record<string, unknown>): LogEntry {
+  return {
+    id: r.id as string,
+    timestamp: r.created_at as string,
+    user: (r.user_name as string) || 'Sistema',
+    email: (r.user_email as string) ?? '',
+    action: r.action as string,
+    category: r.category as LogCategory,
+    entity: (r.entity as string) ?? '',
+    detail: (r.detail as string) ?? '',
+  };
+}
 
 function categoryClass(cat: LogCategory) {
   const map: Record<LogCategory, string> = {
@@ -95,13 +107,37 @@ function initials(nome: string) {
 }
 
 export default function LogPage() {
+  const { user } = useAuth();
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState('');
   const [filterUser, setFilterUser] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  const { sorted, col, dir, toggle } = useSort(MOCK_LOGS, 'timestamp', 'desc');
+  useEffect(() => {
+    const portalKey = user?.activePortalId;
+    if (!portalKey) return;
+    resolvePortalId(portalKey).then(id => setPortalDbId(id));
+  }, [user?.activePortalId]);
+
+  const loadLogs = useCallback(async () => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    const { data } = await supabase
+      .from('portal_activity_log')
+      .select('*')
+      .eq('portal_id', portalDbId)
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (data) setLogs((data as Record<string, unknown>[]).map(dbToLog));
+  }, [portalDbId]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  const ALL_USERS = useMemo(() => Array.from(new Set(logs.map(l => l.user))), [logs]);
+
+  const { sorted, col, dir, toggle } = useSort(logs, 'timestamp', 'desc');
 
   const filtered = useMemo(() => {
     return sorted.filter(l => {

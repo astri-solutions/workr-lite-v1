@@ -13,6 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
 import { loadPortalCanais, buildDestPages as buildBasePages, type DestPage as BaseDestPage } from '../../utils/destPages';
+import { logActivity } from '../../lib/activityLog';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -242,6 +243,14 @@ export default function DocumentosPage() {
     if (!error) {
       closeDrawer();
       await loadDocs();
+      logActivity({
+        portalId: portalDbId,
+        userName,
+        userEmail: user?.email ?? '',
+        action: asDraft ? 'adicionou' : 'publicou',
+        category: 'documento',
+        entity: primaryTitle,
+      });
     } else if (filePath) {
       // Row insert failed after the file made it to storage — clean up the orphan.
       await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
@@ -250,25 +259,43 @@ export default function DocumentosPage() {
   }
 
   async function handleBulkStatus(status: DocStatus) {
-    if (!supabase || selected.size === 0) return;
+    if (!supabase || selected.size === 0 || !portalDbId) return;
     const ids = Array.from(selected);
+    const names = docs.filter(d => ids.includes(d.id)).map(d => d.nome).join(', ');
     await supabase
       .from('portal_documents')
       .update({ status, updated_at: new Date().toISOString() })
       .in('id', ids);
     setSelected(new Set());
     await loadDocs();
+    logActivity({
+      portalId: portalDbId,
+      userName: user?.name ?? user?.email ?? '',
+      userEmail: user?.email ?? '',
+      action: status === 'Publicado' ? 'publicou' : 'pausou',
+      category: 'documento',
+      entity: names,
+    });
   }
 
   async function handleDelete() {
-    if (!supabase || selected.size === 0) return;
+    if (!supabase || selected.size === 0 || !portalDbId) return;
     const ids = Array.from(selected);
+    const names = docs.filter(d => ids.includes(d.id)).map(d => d.nome).join(', ');
     const paths = docs.filter(d => ids.includes(d.id) && d.filePath).map(d => d.filePath!);
     await supabase.from('portal_documents').delete().in('id', ids);
     if (paths.length > 0) await supabase.storage.from(DOCS_BUCKET).remove(paths);
     setSelected(new Set());
     setDeleteModalOpen(false);
     await loadDocs();
+    logActivity({
+      portalId: portalDbId,
+      userName: user?.name ?? user?.email ?? '',
+      userEmail: user?.email ?? '',
+      action: 'removeu',
+      category: 'documento',
+      entity: names,
+    });
   }
 
   async function handleReplaceDoc() {

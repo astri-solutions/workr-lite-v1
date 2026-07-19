@@ -11,6 +11,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
+import { logActivity } from '../../lib/activityLog';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
 
@@ -278,6 +279,14 @@ export default function MidiaPage() {
       }
       await loadFiles();
       setSelectedId(newId);
+      logActivity({
+        portalId: portalDbId,
+        userName,
+        userEmail: user?.email ?? '',
+        action: 'fez_upload',
+        category: 'midia',
+        entity: uploadFile.name,
+      });
     } else if (uploadTab === 'url' && pendingUrl.trim()) {
       const name = pendingUrl.split('/').pop() ?? 'arquivo';
       const type = extType(name);
@@ -295,6 +304,14 @@ export default function MidiaPage() {
       if (!error) {
         await loadFiles();
         setSelectedId(newId);
+        logActivity({
+          portalId: portalDbId,
+          userName,
+          userEmail: user?.email ?? '',
+          action: 'adicionou',
+          category: 'midia',
+          entity: name,
+        });
       }
     }
     setPendingFile(null);
@@ -341,12 +358,20 @@ export default function MidiaPage() {
   }
 
   async function deleteFile(id: string) {
-    if (!supabase) return;
+    if (!supabase || !portalDbId) return;
     const target = files.find(f => f.id === id);
     await supabase.from('portal_media').delete().eq('id', id);
     if (target?.filePath) await supabase.storage.from(MEDIA_BUCKET).remove([target.filePath]);
     if (selectedId === id) setSelectedId(null);
     await loadFiles();
+    logActivity({
+      portalId: portalDbId,
+      userName,
+      userEmail: user?.email ?? '',
+      action: 'removeu',
+      category: 'midia',
+      entity: target?.name ?? '',
+    });
   }
 
   async function handleAddTag(id: string) {
