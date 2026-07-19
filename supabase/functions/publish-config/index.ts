@@ -515,186 +515,107 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
     };
 
-    const getRes = await fetch(
-      `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${filePath}`,
-      { headers: ghHeaders }
-    );
-
-    let sha: string | undefined;
-    if (getRes.ok) {
-      const fileData = await getRes.json();
-      sha = fileData.sha;
+    async function ghFetch(path: string, init?: RequestInit) {
+      return fetch(`https://api.github.com${path}`, { ...init, headers: { ...ghHeaders, ...(init?.headers ?? {}) } });
     }
 
-    const putRes = await fetch(
-      `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${filePath}`,
-      {
-        method: 'PUT',
-        headers: ghHeaders,
-        body: JSON.stringify({
-          message: `chore: update site.config.js via CMS [${portalNome}]`,
-          content: encoded,
-          ...(sha ? { sha } : {}),
-        }),
-      }
-    );
-
-    if (!putRes.ok) {
-      const putBody = await putRes.json().catch(() => ({}));
-      return new Response(JSON.stringify({ error: `GitHub: ${(putBody as { message?: string }).message ?? putRes.statusText}` }), {
+    // ── Batch every file change into ONE commit ──────────────────────────────
+    // GitHub triggers a Vercel deployment per push to main. The old code did a
+    // separate Contents-API PUT/DELETE per file (site.config.js, self-healed
+    // template files, logo, favicon, each new/removed canal page) — a single
+    // "Publicar" click could fire 10+ commits and burn through the account's
+    // daily Vercel deployment quota. Using the Git Data API (blobs → tree →
+    // commit → ref update), all of that becomes exactly one commit, one push,
+    // one deployment — regardless of how many files changed.
+    const refRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/ref/heads/main`);
+    if (!refRes.ok) {
+      const b = await refRes.json().catch(() => ({}));
+      return new Response(JSON.stringify({ error: `GitHub: could not read main ref — ${(b as { message?: string }).message ?? refRes.statusText}` }), {
         status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
+    const refData = await refRes.json() as { object: { sha: string } };
+    const baseCommitSha = refData.object.sha;
 
-    // ── Shared asset pusher ───────────────────────────────────────────────────
-    async function pushAsset(assetBase64: string, ghPath: string, commitMsg: string) {
-      // Strip newlines from base64 — GitHub API rejects content with embedded newlines
-      const cleanBase64 = assetBase64.replace(/\n/g, '');
-      const getR = await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, { headers: ghHeaders });
-      const existingSha = getR.ok ? ((await getR.json()) as { sha?: string }).sha : undefined;
-      const putR = await fetch(`https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`, {
-        method: 'PUT',
-        headers: ghHeaders,
-        body: JSON.stringify({ message: commitMsg, content: cleanBase64, ...(existingSha ? { sha: existingSha } : {}) }),
+    const commitRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/commits/${baseCommitSha}`);
+    if (!commitRes.ok) {
+      const b = await commitRes.json().catch(() => ({}));
+      return new Response(JSON.stringify({ error: `GitHub: could not read base commit — ${(b as { message?: string }).message ?? commitRes.statusText}` }), {
+        status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
       });
-      if (!putR.ok) {
-        const body = await putR.json().catch(() => ({})) as { message?: string };
-        throw new Error(`GitHub PUT ${ghPath} failed (${putR.status}): ${body.message ?? putR.statusText}`);
-      }
     }
+    const commitData = await commitRes.json() as { tree: { sha: string } };
+    const baseTreeSha = commitData.tree.sha;
 
+    const treeRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/trees/${baseTreeSha}?recursive=1`);
+    const treeData = await treeRes.json() as { tree: { path: string; type: string; sha: string }[] };
+    const existingPaths = new Set(treeData.tree.filter(t => t.type === 'blob').map(t => t.path));
+    const existingRootHtml = treeData.tree
+      .filter(t => t.type === 'blob' && !t.path.includes('/') && t.path.endsWith('.html'))
+      .map(t => t.path);
+
+    interface PendingWrite { path: string; base64: string; }
+    const writes: PendingWrite[] = [];
+    const deletes = new Set<string>();
     const assetWarnings: string[] = [];
 
-    // Push latest theme.js — fetched from the template repo so it's always up-to-date
-    try {
-      const templateOrg = githubOrg;
-      const themeRes = await fetch(
-        `https://api.github.com/repos/${templateOrg}/cliente-workr-lite/contents/scripts/components/theme.js`,
-        { headers: ghHeaders }
-      );
-      if (themeRes.ok) {
-        const themeData = await themeRes.json() as { content: string; sha: string };
-        // GitHub returns base64 with embedded newlines — strip them
-        const themeBase64 = themeData.content.replace(/\n/g, '');
-        await pushAsset(themeBase64, 'scripts/components/theme.js', `chore: update theme.js via CMS [${portalNome}]`);
-      }
-    } catch { assetWarnings.push('theme.js update failed'); }
+    function queueWrite(path: string, base64: string) {
+      // GitHub returns/expects base64 without embedded newlines
+      writes.push({ path, base64: base64.replace(/\n/g, '') });
+    }
 
-    // Push latest footer.js from template
-    try {
-      const footerRes = await fetch(
-        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/scripts/components/footer.js`,
-        { headers: ghHeaders }
-      );
-      if (footerRes.ok) {
-        const footerData = await footerRes.json() as { content: string; sha: string };
-        const footerBase64 = footerData.content.replace(/\n/g, '');
-        await pushAsset(footerBase64, 'scripts/components/footer.js', `chore: update footer.js via CMS [${portalNome}]`);
-      }
-    } catch { assetWarnings.push('footer.js update failed'); }
+    // scripts/site.config.js — the CMS-generated portal config
+    queueWrite(filePath, encoded);
 
-    // Push latest materias.js from template — ensures canal id resolution works across all portals
-    try {
-      const materiasRes = await fetch(
-        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/scripts/components/materias.js`,
-        { headers: ghHeaders }
-      );
-      if (materiasRes.ok) {
-        const materiasData = await materiasRes.json() as { content: string };
-        const materiasBase64 = materiasData.content.replace(/\n/g, '');
-        await pushAsset(materiasBase64, 'scripts/components/materias.js', `chore: update materias.js via CMS [${portalNome}]`);
-      }
-    } catch { assetWarnings.push('materias.js update failed'); }
-
-    // Push latest _topbar.scss from template (always black bg)
-    try {
-      const topbarRes = await fetch(
-        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/styles/components/_topbar.scss`,
-        { headers: ghHeaders }
-      );
-      if (topbarRes.ok) {
-        const topbarData = await topbarRes.json() as { content: string; sha: string };
-        const topbarBase64 = topbarData.content.replace(/\n/g, '');
-        await pushAsset(topbarBase64, 'styles/components/_topbar.scss', `chore: update _topbar.scss via CMS [${portalNome}]`);
-      }
-    } catch { assetWarnings.push('_topbar.scss update failed'); }
-
-    // Push latest _form.scss from template (dynamic CMS form styles)
-    try {
-      const formScssRes = await fetch(
-        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/styles/components/_form.scss`,
-        { headers: ghHeaders }
-      );
-      if (formScssRes.ok) {
-        const formScssData = await formScssRes.json() as { content: string };
-        const formScssBase64 = formScssData.content.replace(/\n/g, '');
-        await pushAsset(formScssBase64, 'styles/components/_form.scss', `chore: update _form.scss via CMS [${portalNome}]`);
-      }
-    } catch { assetWarnings.push('_form.scss update failed'); }
-
-    // Push latest vite.config.js from template — its rollup entries are built
-    // dynamically from whatever .html files exist, so this also repairs any
-    // portal repo whose build broke after an orphan .html page was deleted.
-    try {
-      const viteCfgRes = await fetch(
-        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/vite.config.js`,
-        { headers: ghHeaders }
-      );
-      if (viteCfgRes.ok) {
-        const viteCfgData = await viteCfgRes.json() as { content: string };
-        const viteCfgBase64 = viteCfgData.content.replace(/\n/g, '');
-        await pushAsset(viteCfgBase64, 'vite.config.js', `chore: update vite.config.js via CMS [${portalNome}]`);
-      }
-    } catch { assetWarnings.push('vite.config.js update failed'); }
+    // Self-healing shared runtime/styles/build-config files, always pulled
+    // fresh from the cliente-workr-lite template on every publish.
+    const templateFiles: { repoPath: string; label: string }[] = [
+      { repoPath: 'scripts/components/theme.js', label: 'theme.js' },
+      { repoPath: 'scripts/components/footer.js', label: 'footer.js' },
+      { repoPath: 'scripts/components/materias.js', label: 'materias.js' },
+      { repoPath: 'styles/components/_topbar.scss', label: '_topbar.scss' },
+      { repoPath: 'styles/components/_form.scss', label: '_form.scss' },
+      { repoPath: 'vite.config.js', label: 'vite.config.js' },
+    ];
+    for (const tf of templateFiles) {
+      try {
+        const res = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/contents/${tf.repoPath}`);
+        if (res.ok) {
+          const data = await res.json() as { content: string };
+          queueWrite(tf.repoPath, data.content);
+        }
+      } catch { assetWarnings.push(`${tf.label} update failed`); }
+    }
 
     // Ensure index.html matches the portal layout template (self-healing for mis-provisioned portals)
     const layoutTemplateFile: Record<string, string> = { sidebar: 'home-side-bar.html', tabmenu: 'home-v2.html' };
     const tplFile = layoutTemplateFile[layout ?? ''];
     if (tplFile) {
       try {
-        const tplRes = await fetch(
-          `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/${tplFile}`,
-          { headers: ghHeaders }
-        );
+        const tplRes = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/contents/${tplFile}`);
         if (tplRes.ok) {
           const tplData = await tplRes.json() as { content: string };
-          const tplBase64 = tplData.content.replace(/\n/g, '');
-          await pushAsset(tplBase64, 'index.html', `chore: set ${layout} layout template [${portalNome}]`);
+          queueWrite('index.html', tplData.content);
         }
       } catch { assetWarnings.push('index.html layout swap failed'); }
     }
+
     // Static assets live under public/ — Vite only copies public/ into the
     // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.base64) {
-      try {
-        await pushAsset(logo.base64, `public/assets/logotipo/logotipo-original.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
-        await pushAsset(logo.base64, `public/assets/logotipo/logotipo-negative.${logo.ext}`, `chore: update logotipo via CMS [${portalNome}]`);
-      } catch { assetWarnings.push('logo upload failed'); }
+      queueWrite(`public/assets/logotipo/logotipo-original.${logo.ext}`, logo.base64);
+      queueWrite(`public/assets/logotipo/logotipo-negative.${logo.ext}`, logo.base64);
     }
     if (favicon?.base64) {
-      try {
-        await pushAsset(favicon.base64, `public/favicon.${favicon.ext}`, `chore: update favicon via CMS [${portalNome}]`);
-      } catch { assetWarnings.push('favicon upload failed'); }
+      queueWrite(`public/favicon.${favicon.ext}`, favicon.base64);
     }
 
-    // Create missing HTML pages for newly added canais (idempotent — skips existing files)
-    async function createMissingPage(ghPath: string, html: string, commitMsg: string) {
-      const checkRes = await fetch(
-        `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`,
-        { headers: ghHeaders }
-      );
-      if (checkRes.ok) return; // file already exists, skip
-      const content = btoa(unescape(encodeURIComponent(html)));
-      await fetch(
-        `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${ghPath}`,
-        {
-          method: 'PUT',
-          headers: ghHeaders,
-          body: JSON.stringify({ message: commitMsg, content }),
-        }
-      );
+    // New pages for canais that don't have a file yet (idempotent — checked
+    // against the tree we already fetched, no extra API call per page).
+    function queueNewPage(ghPath: string, html: string) {
+      if (existingPaths.has(ghPath) || writes.some(w => w.path === ghPath)) return;
+      queueWrite(ghPath, btoa(unescape(encodeURIComponent(html))));
     }
-
     if (canais && canais.length > 0) {
       for (const canal of canais) {
         if (!canal.enabled) continue;
@@ -705,63 +626,96 @@ Deno.serve(async (req) => {
             if (!href.endsWith('.html')) continue;
             const ghPath = href.replace(/^\//, '');
             if (PROTECTED_HTML.has(ghPath)) continue;
-            try {
-              await createMissingPage(
-                ghPath,
-                buildBlankPage(sub.label, canal.label),
-                `feat: add page ${ghPath} via CMS [${portalNome}]`
-              );
-            } catch { assetWarnings.push(`page creation failed: ${ghPath}`); }
+            queueNewPage(ghPath, buildBlankPage(sub.label, canal.label));
           }
         } else {
           const href = canal.href ?? '';
           if (!href.endsWith('.html')) continue;
           const ghPath = href.replace(/^\//, '');
           if (PROTECTED_HTML.has(ghPath)) continue;
-          try {
-            await createMissingPage(
-              ghPath,
-              buildBlankPage(canal.label, null),
-              `feat: add page ${ghPath} via CMS [${portalNome}]`
-            );
-          } catch { assetWarnings.push(`page creation failed: ${ghPath}`); }
+          queueNewPage(ghPath, buildBlankPage(canal.label, null));
         }
       }
     }
 
-    // Delete HTML files for canals that were removed from the tree
+    // Orphaned pages: canais tree no longer references them — remove from repo
     if (canais) {
+      const activeHrefs = new Set<string>();
+      for (const canal of canais) {
+        if (canal.href?.endsWith('.html')) activeHrefs.add(canal.href.replace(/^\//, ''));
+        for (const sub of canal.children ?? []) {
+          if (sub.href?.endsWith('.html')) activeHrefs.add(sub.href.replace(/^\//, ''));
+        }
+      }
+      for (const file of existingRootHtml) {
+        if (PROTECTED_HTML.has(file) || activeHrefs.has(file)) continue;
+        deletes.add(file);
+      }
+    }
+
+    // ── Blobs → tree → commit → ref update (a single push) ───────────────────
+    if (writes.length > 0 || deletes.size > 0) {
+      let blobEntries: { path: string; mode: string; type: string; sha: string }[];
       try {
-        const activeHrefs = new Set<string>();
-        for (const canal of canais) {
-          if (canal.href?.endsWith('.html')) activeHrefs.add(canal.href.replace(/^\//, ''));
-          for (const sub of canal.children ?? []) {
-            if (sub.href?.endsWith('.html')) activeHrefs.add(sub.href.replace(/^\//, ''));
+        blobEntries = await Promise.all(writes.map(async w => {
+          const blobRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/blobs`, {
+            method: 'POST',
+            body: JSON.stringify({ content: w.base64, encoding: 'base64' }),
+          });
+          if (!blobRes.ok) {
+            const b = await blobRes.json().catch(() => ({}));
+            throw new Error(`blob create failed for ${w.path}: ${(b as { message?: string }).message ?? blobRes.statusText}`);
           }
-        }
-        const contentsRes = await fetch(
-          `https://api.github.com/repos/${githubOrg}/${repoName}/contents/`,
-          { headers: ghHeaders }
-        );
-        if (contentsRes.ok) {
-          const files = await contentsRes.json() as { name: string; sha: string; type: string }[];
-          for (const file of files) {
-            if (file.type !== 'file' || !file.name.endsWith('.html')) continue;
-            if (PROTECTED_HTML.has(file.name) || activeHrefs.has(file.name)) continue;
-            await fetch(
-              `https://api.github.com/repos/${githubOrg}/${repoName}/contents/${file.name}`,
-              {
-                method: 'DELETE',
-                headers: ghHeaders,
-                body: JSON.stringify({
-                  message: `chore: remove orphaned page ${file.name} via CMS [${portalNome}]`,
-                  sha: file.sha,
-                }),
-              }
-            );
-          }
-        }
-      } catch { assetWarnings.push('orphan page cleanup failed'); }
+          const blobData = await blobRes.json() as { sha: string };
+          return { path: w.path, mode: '100644', type: 'blob', sha: blobData.sha };
+        }));
+      } catch (e) {
+        return new Response(JSON.stringify({ error: `GitHub: ${String(e)}` }), {
+          status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const deleteEntries = [...deletes].map(path => ({ path, mode: '100644', type: 'blob', sha: null }));
+
+      const treeCreateRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/trees`, {
+        method: 'POST',
+        body: JSON.stringify({ base_tree: baseTreeSha, tree: [...blobEntries, ...deleteEntries] }),
+      });
+      if (!treeCreateRes.ok) {
+        const b = await treeCreateRes.json().catch(() => ({}));
+        return new Response(JSON.stringify({ error: `GitHub: tree create failed — ${(b as { message?: string }).message ?? treeCreateRes.statusText}` }), {
+          status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      const newTree = await treeCreateRes.json() as { sha: string };
+
+      const changedPaths = [...writes.map(w => w.path), ...deletes].join(', ');
+      const commitCreateRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/commits`, {
+        method: 'POST',
+        body: JSON.stringify({
+          message: `chore: publish via CMS [${portalNome}]\n\n${changedPaths}`,
+          tree: newTree.sha,
+          parents: [baseCommitSha],
+        }),
+      });
+      if (!commitCreateRes.ok) {
+        const b = await commitCreateRes.json().catch(() => ({}));
+        return new Response(JSON.stringify({ error: `GitHub: commit create failed — ${(b as { message?: string }).message ?? commitCreateRes.statusText}` }), {
+          status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      const newCommit = await commitCreateRes.json() as { sha: string };
+
+      const refUpdateRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/refs/heads/main`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sha: newCommit.sha }),
+      });
+      if (!refUpdateRes.ok) {
+        const b = await refUpdateRes.json().catch(() => ({}));
+        return new Response(JSON.stringify({ error: `GitHub: could not update main — ${(b as { message?: string }).message ?? refUpdateRes.statusText}` }), {
+          status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Persist portal→repo mapping and sync portal_config to Supabase
