@@ -590,8 +590,14 @@ Deno.serve(async (req) => {
       { repoPath: 'scripts/components/theme.js', label: 'theme.js' },
       { repoPath: 'scripts/components/footer.js', label: 'footer.js' },
       { repoPath: 'scripts/components/materias.js', label: 'materias.js' },
+      { repoPath: 'scripts/components/splash.js', label: 'splash.js' },
+      { repoPath: 'scripts/components/cookies.js', label: 'cookies.js' },
+      { repoPath: 'scripts/page.js', label: 'page.js' },
       { repoPath: 'styles/components/_topbar.scss', label: '_topbar.scss' },
       { repoPath: 'styles/components/_form.scss', label: '_form.scss' },
+      { repoPath: 'styles/components/_splash.scss', label: '_splash.scss' },
+      { repoPath: 'styles/components/_cookies.scss', label: '_cookies.scss' },
+      { repoPath: 'styles/main.scss', label: 'main.scss' },
       { repoPath: 'vite.config.js', label: 'vite.config.js' },
     ];
     for (const tf of templateFiles) {
