@@ -128,6 +128,8 @@ export default function MateriasPage() {
   const portalName = usePortalName();
   const activePortalId = useActivePortalId();
   const navigate = useNavigate();
+  const portalLayout = localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar';
+  const isFlatLayout = portalLayout === 'sidebar' || portalLayout === 'tabmenu';
 
   const [materias, setMaterias] = useState<Materia[]>(() => {
     const stored = loadMaterias(activePortalId ?? undefined);
@@ -176,7 +178,12 @@ export default function MateriasPage() {
         title="Matérias"
         description={<>Comunicados e artigos do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={() => { setSelectedType('show'); setTypePickerOpen(true); }}>
+          <button className="btn-primary" type="button" onClick={() => {
+            // Sidebar/tabmenu portals only support the formulário type — skip
+            // the picker and go straight to the form editor.
+            if (isFlatLayout) { navigate('/portal/materias/formulario'); return; }
+            setSelectedType('show'); setTypePickerOpen(true);
+          }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
             Nova matéria
           </button>

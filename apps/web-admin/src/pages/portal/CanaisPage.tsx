@@ -31,6 +31,11 @@ function loadPortalEmpresas(portalId?: string): PortalEmpresa[] {
   } catch { return []; }
 }
 
+// Sidebar/tabmenu portals are simple CVM-compliance sites: direct pages only,
+// no rich content sections. Only list (documents) and formulário (contact/
+// mailing) page types make sense there — banner portals allow every type.
+const FLAT_PAGE_TYPES: PageType[] = ['lista', 'formulario'];
+
 // ── Page type definitions ───────────────────────────────────────────────────
 const PAGE_TYPES: Array<{
   id: PageType;
@@ -778,7 +783,7 @@ export default function CanaisPage() {
                 Salvar ordem
               </button>
             )}
-            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm({ ...emptyNewCanalForm(portalEmpresas), tipo: isFlatLayout ? 'pagina' : 'pai' }); setNewCanalOpen(true); }}>
+            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm({ ...emptyNewCanalForm(portalEmpresas), tipo: isFlatLayout ? 'pagina' : 'pai', pageType: isFlatLayout ? 'lista' : 'show' }); setNewCanalOpen(true); }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
@@ -1530,6 +1535,7 @@ export default function CanaisPage() {
                 <PageTypePicker
                   value={canalEditModal.pageType}
                   onChange={v => setCanalEditModal(m => m ? { ...m, pageType: v } : m)}
+                  allowed={isFlatLayout ? FLAT_PAGE_TYPES : undefined}
                 />
               </>
             )}
@@ -1933,7 +1939,7 @@ export default function CanaisPage() {
           <div className="canais-edit-form">
             <p className="ct-step2-label">Selecione como o conteúdo será exibido nesta página.</p>
             <div className="ct-pt-grid">
-              {PAGE_TYPES.map(pt => (
+              {(isFlatLayout ? PAGE_TYPES.filter(pt => FLAT_PAGE_TYPES.includes(pt.id)) : PAGE_TYPES).map(pt => (
                 <button key={pt.id} type="button"
                   className={`ct-pt-card${newCanalForm.pageType === pt.id ? ' ct-pt-card--active' : ''}`}
                   onClick={() => setNewCanalForm(f => ({ ...f, pageType: pt.id }))}
@@ -2167,10 +2173,11 @@ export default function CanaisPage() {
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
-function PageTypePicker({ value, onChange }: { value: PageType; onChange: (v: PageType) => void }) {
+function PageTypePicker({ value, onChange, allowed }: { value: PageType; onChange: (v: PageType) => void; allowed?: PageType[] }) {
+  const options = allowed ? PAGE_TYPES.filter(pt => allowed.includes(pt.id)) : PAGE_TYPES;
   return (
     <div className="canais-page-types">
-      {PAGE_TYPES.map(pt => (
+      {options.map(pt => (
         <button key={pt.id} type="button"
           className={`canais-page-type${value === pt.id ? ' canais-page-type--active' : ''}`}
           onClick={() => onChange(pt.id)}
