@@ -632,6 +632,21 @@ Deno.serve(async (req) => {
       }
     } catch { assetWarnings.push('_form.scss update failed'); }
 
+    // Push latest vite.config.js from template — its rollup entries are built
+    // dynamically from whatever .html files exist, so this also repairs any
+    // portal repo whose build broke after an orphan .html page was deleted.
+    try {
+      const viteCfgRes = await fetch(
+        `https://api.github.com/repos/${githubOrg}/cliente-workr-lite/contents/vite.config.js`,
+        { headers: ghHeaders }
+      );
+      if (viteCfgRes.ok) {
+        const viteCfgData = await viteCfgRes.json() as { content: string };
+        const viteCfgBase64 = viteCfgData.content.replace(/\n/g, '');
+        await pushAsset(viteCfgBase64, 'vite.config.js', `chore: update vite.config.js via CMS [${portalNome}]`);
+      }
+    } catch { assetWarnings.push('vite.config.js update failed'); }
+
     // Ensure index.html matches the portal layout template (self-healing for mis-provisioned portals)
     const layoutTemplateFile: Record<string, string> = { sidebar: 'home-side-bar.html', tabmenu: 'home-v2.html' };
     const tplFile = layoutTemplateFile[layout ?? ''];
