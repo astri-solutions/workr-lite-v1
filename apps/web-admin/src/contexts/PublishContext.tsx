@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { pKey } from '../utils/portalStorage';
-import { fetchPortalConfig } from '../lib/portalConfigApi';
+import { fetchPortalConfig, resolvePortalUuid } from '../lib/portalConfigApi';
 import { logActivity } from '../lib/activityLog';
 
 interface PublishContextValue {
@@ -158,14 +158,17 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
         setPublishStatus('ok');
         setTimeout(() => setPublishStatus('idle'), 4000);
         if (pid) {
-          logActivity({
-            portalId: pid,
-            userName: user?.name ?? user?.email ?? '',
-            userEmail: user?.email ?? '',
-            action: 'publicou',
-            category: 'configuracao',
-            entity: 'Configurações do portal',
-            detail: 'Publicação enviada para o site ao vivo.',
+          resolvePortalUuid(pid).then(portalUuid => {
+            if (!portalUuid) return;
+            logActivity({
+              portalId: portalUuid,
+              userName: user?.name ?? user?.email ?? '',
+              userEmail: user?.email ?? '',
+              action: 'publicou',
+              category: 'configuracao',
+              entity: 'Configurações do portal',
+              detail: 'Publicação enviada para o site ao vivo.',
+            });
           });
         }
         return true;
