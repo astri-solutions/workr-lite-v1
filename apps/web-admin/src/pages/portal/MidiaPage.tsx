@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
@@ -8,8 +8,13 @@ import SearchInput from '../../components/SearchInput';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import '../admin/AdminPages.css';
 import './MidiaPage.css';
+
+const MEDIA_BUCKET = 'portal-media';
 
 type FileType = 'image' | 'pdf' | 'doc' | 'xls' | 'ppt' | 'video' | 'other';
 type ViewMode = 'grid' | 'list';
@@ -20,6 +25,7 @@ interface MediaFile {
   type: FileType;
   size: string;
   url: string | null;
+  filePath?: string;
   previewUrl?: string;
   uploadedAt: string;
   dimensions?: string;
@@ -33,6 +39,30 @@ interface MediaFile {
   legenda?: string;
   descricao?: string;
   link?: string;
+}
+
+function dbToMedia(r: Record<string, unknown>): MediaFile {
+  const filePath = r.file_path as string | null;
+  const publicUrl = filePath && supabase
+    ? supabase.storage.from(MEDIA_BUCKET).getPublicUrl(filePath).data.publicUrl
+    : null;
+  return {
+    id: r.id as string,
+    name: r.name as string,
+    type: r.type as FileType,
+    size: fmtSize(Number(r.size_bytes ?? 0)),
+    url: publicUrl ?? (r.external_url as string | null),
+    filePath: filePath ?? undefined,
+    previewUrl: r.type === 'image' ? (publicUrl ?? (r.external_url as string | undefined)) : undefined,
+    uploadedAt: new Date(r.created_at as string).toLocaleDateString('pt-BR'),
+    tags: (r.tags as string[]) ?? [],
+    uploadedBy: (r.uploaded_by as string) || '',
+    titulo: (r.titulo as string) ?? undefined,
+    alt: (r.alt as string) ?? undefined,
+    legenda: (r.legenda as string) ?? undefined,
+    descricao: (r.descricao as string) ?? undefined,
+    link: (r.link as string) ?? undefined,
+  };
 }
 
 interface UploadForm {
@@ -153,6 +183,8 @@ function IconList() {
 
 export default function MidiaPage() {
   const portalName = usePortalName();
+  const { user } = useAuth();
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '' });
@@ -177,6 +209,24 @@ export default function MidiaPage() {
   const replaceTarget = files.find(f => f.id === replaceTargetId) ?? null;
   const selectedFile = files.find(f => f.id === selectedId) ?? null;
 
+  useEffect(() => {
+    const portalKey = user?.activePortalId;
+    if (!portalKey) return;
+    resolvePortalId(portalKey).then(id => setPortalDbId(id));
+  }, [user?.activePortalId]);
+
+  const loadFiles = useCallback(async () => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    const { data } = await supabase
+      .from('portal_media')
+      .select('*')
+      .eq('portal_id', portalDbId)
+      .order('created_at', { ascending: false });
+    if (data) setFiles((data as Record<string, unknown>[]).map(dbToMedia));
+  }, [portalDbId]);
+
+  useEffect(() => { loadFiles(); }, [loadFiles]);
+
   const _filtered = files.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filters.tipo && f.type !== filters.tipo) return false;
@@ -184,56 +234,68 @@ export default function MidiaPage() {
   });
   const { sorted: filtered, col: sortCol, dir: sortDir, toggle: sortToggle } = useSort(_filtered);
 
-  async function fileToMedia(file: File, existingId?: string): Promise<MediaFile> {
-    const type = detectType(file);
-    let processedFile = file;
-    let previewUrl: string | undefined;
-    if (type === 'image') {
-      const result = await processImage(file, 'media-library');
-      processedFile = result.file;
-      previewUrl = result.objectUrl;
-    }
-    return {
-      id: existingId ?? ('u' + Math.random().toString(36).slice(2)),
-      name: processedFile.name,
-      type,
-      size: fmtSize(processedFile.size),
-      url: null,
-      previewUrl,
-      uploadedAt: new Date().toLocaleDateString('pt-BR'),
-      tags: [],
-      uploadedBy: 'Carlos Souza',
-    };
-  }
+  const userName = user?.name ?? user?.email ?? '';
 
   async function confirmUpload() {
+    if (!portalDbId || !supabase) return;
     const meta = {
-      titulo: uploadForm.titulo || undefined,
-      alt: uploadForm.alt || undefined,
-      descricao: uploadForm.descricao || undefined,
+      titulo: uploadForm.titulo || null,
+      alt: uploadForm.alt || null,
+      descricao: uploadForm.descricao || null,
       tags: uploadForm.tags,
-      link: uploadForm.link || undefined,
+      link: uploadForm.link || null,
     };
+
     if (uploadTab === 'computer' && pendingFile) {
-      const base = await fileToMedia(pendingFile);
-      const m: MediaFile = { ...base, ...meta };
-      setFiles(prev => [m, ...prev]);
-      setSelectedId(m.id);
+      const type = detectType(pendingFile);
+      let uploadFile = pendingFile;
+      if (type === 'image') {
+        const result = await processImage(pendingFile, 'media-library');
+        uploadFile = result.file;
+      }
+      const newId = crypto.randomUUID();
+      const ext = uploadFile.name.split('.').pop()?.toLowerCase() ?? 'bin';
+      const filePath = `${portalDbId}/${newId}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from(MEDIA_BUCKET)
+        .upload(filePath, uploadFile, { upsert: false });
+      if (uploadError) { console.error('media upload failed', uploadError); return; }
+
+      const { error } = await supabase.from('portal_media').insert({
+        id: newId,
+        portal_id: portalDbId,
+        name: uploadFile.name,
+        type,
+        size_bytes: uploadFile.size,
+        file_path: filePath,
+        uploaded_by: userName,
+        ...meta,
+      });
+      if (error) {
+        console.error('media insert failed', error);
+        await supabase.storage.from(MEDIA_BUCKET).remove([filePath]);
+        return;
+      }
+      await loadFiles();
+      setSelectedId(newId);
     } else if (uploadTab === 'url' && pendingUrl.trim()) {
       const name = pendingUrl.split('/').pop() ?? 'arquivo';
       const type = extType(name);
-      const m: MediaFile = {
-        id: 'u' + Math.random().toString(36).slice(2),
+      const newId = crypto.randomUUID();
+      const { error } = await supabase.from('portal_media').insert({
+        id: newId,
+        portal_id: portalDbId,
         name,
         type,
-        size: '—',
-        url: pendingUrl.trim(),
-        uploadedAt: new Date().toLocaleDateString('pt-BR'),
-        uploadedBy: 'Carlos Souza',
+        size_bytes: 0,
+        external_url: pendingUrl.trim(),
+        uploaded_by: userName,
         ...meta,
-      };
-      setFiles(prev => [m, ...prev]);
-      setSelectedId(m.id);
+      });
+      if (!error) {
+        await loadFiles();
+        setSelectedId(newId);
+      }
     }
     setPendingFile(null);
     setPendingUrl('');
@@ -247,32 +309,76 @@ export default function MidiaPage() {
   }
 
   async function confirmReplace() {
-    if (!replacePendingFile || !replaceTargetId) return;
-    const updated = await fileToMedia(replacePendingFile, replaceTargetId);
-    setFiles(prev => prev.map(f => f.id === replaceTargetId ? updated : f));
+    if (!replacePendingFile || !replaceTargetId || !portalDbId || !supabase) return;
+    const target = files.find(f => f.id === replaceTargetId);
+    const type = detectType(replacePendingFile);
+    let uploadFile = replacePendingFile;
+    if (type === 'image') {
+      const result = await processImage(replacePendingFile, 'media-library');
+      uploadFile = result.file;
+    }
+    const ext = uploadFile.name.split('.').pop()?.toLowerCase() ?? 'bin';
+    const newPath = `${portalDbId}/${replaceTargetId}.${ext}`;
+    if (target?.filePath && target.filePath !== newPath) {
+      await supabase.storage.from(MEDIA_BUCKET).remove([target.filePath]);
+    }
+    const { error: uploadError } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .upload(newPath, uploadFile, { upsert: true });
+    if (uploadError) { console.error('media replace upload failed', uploadError); return; }
+
+    await supabase.from('portal_media').update({
+      name: uploadFile.name,
+      type,
+      size_bytes: uploadFile.size,
+      file_path: newPath,
+      uploaded_by: userName,
+    }).eq('id', replaceTargetId);
+
     setReplaceTargetId(null);
     setReplacePendingFile(null);
+    await loadFiles();
   }
 
-  function deleteFile(id: string) {
-    setFiles(prev => prev.filter(f => f.id !== id));
+  async function deleteFile(id: string) {
+    if (!supabase) return;
+    const target = files.find(f => f.id === id);
+    await supabase.from('portal_media').delete().eq('id', id);
+    if (target?.filePath) await supabase.storage.from(MEDIA_BUCKET).remove([target.filePath]);
     if (selectedId === id) setSelectedId(null);
+    await loadFiles();
   }
 
-  function handleAddTag(id: string) {
+  async function handleAddTag(id: string) {
     const tag = newTag.trim();
-    if (!tag) { setAddTagId(null); return; }
-    setFiles(prev => prev.map(f => f.id === id ? { ...f, tags: [...f.tags, tag] } : f));
-    setNewTag('');
     setAddTagId(null);
+    if (!tag || !supabase) { setNewTag(''); return; }
+    const target = files.find(f => f.id === id);
+    const nextTags = [...(target?.tags ?? []), tag];
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, tags: nextTags } : f));
+    setNewTag('');
+    await supabase.from('portal_media').update({ tags: nextTags }).eq('id', id);
   }
 
-  function removeTag(id: string, tag: string) {
-    setFiles(prev => prev.map(f => f.id === id ? { ...f, tags: f.tags.filter(t => t !== tag) } : f));
+  async function removeTag(id: string, tag: string) {
+    if (!supabase) return;
+    const target = files.find(f => f.id === id);
+    const nextTags = (target?.tags ?? []).filter(t => t !== tag);
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, tags: nextTags } : f));
+    await supabase.from('portal_media').update({ tags: nextTags }).eq('id', id);
   }
+
+  const MEDIA_FIELD_COLUMN: Partial<Record<keyof MediaFile, string>> = {
+    titulo: 'titulo', alt: 'alt', legenda: 'legenda', descricao: 'descricao',
+  };
 
   function patchFile<K extends keyof MediaFile>(id: string, key: K, value: MediaFile[K]) {
     setFiles(prev => prev.map(f => f.id === id ? { ...f, [key]: value } : f));
+    const column = MEDIA_FIELD_COLUMN[key];
+    if (!column || !supabase) return;
+    supabase.from('portal_media').update({ [column]: value }).eq('id', id).then(({ error }) => {
+      if (error) console.error('media field update failed', error);
+    });
   }
 
   const canUpload = uploadTab === 'computer' ? !!pendingFile : !!pendingUrl.trim();
@@ -457,14 +563,15 @@ export default function MidiaPage() {
                     className="midia-detail__form-input midia-detail__form-input--readonly"
                     type="text"
                     readOnly
-                    value={selectedFile.url ?? `https://cdn.workr.com/media/${selectedFile.name}`}
+                    value={selectedFile.url ?? ''}
                   />
                   <button
                     type="button"
                     className="midia-detail__copy-btn"
+                    disabled={!selectedFile.url}
                     onClick={() => {
-                      const url = selectedFile.url ?? `https://cdn.workr.com/media/${selectedFile.name}`;
-                      navigator.clipboard.writeText(url).catch(() => {});
+                      if (!selectedFile.url) return;
+                      navigator.clipboard.writeText(selectedFile.url).catch(() => {});
                       setCopiedUrl(true);
                       setTimeout(() => setCopiedUrl(false), 2000);
                     }}
