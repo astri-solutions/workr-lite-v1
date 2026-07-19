@@ -139,8 +139,6 @@ export default function NovoFormularioPage() {
 
   async function handleSave(nextStatus: PublishStatus) {
     setStatus(nextStatus);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
 
     if (page) {
       const dest = allDestinos.find(d => d.id === page);
@@ -202,6 +200,12 @@ export default function NovoFormularioPage() {
       // button so the user sees the same real-site effect either way.
       if (nextStatus === 'published') await publish();
     }
+
+    // Only flip to "Salvo!"/"Publicado!" once the async work above (including
+    // the real publish for the 'published' path) has actually finished —
+    // showing it immediately was misleading while publish() was still running.
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   }
 
   const activeField = fields.find(f => f.id === editingField) ?? null;

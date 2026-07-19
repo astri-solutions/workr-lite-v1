@@ -872,9 +872,7 @@ export default function NovaMateriaPage() {
 
   async function handlePublish(newStatus: PublishStatus) {
     setStatus(newStatus);
-    setSaved(true);
     setDirty(false);
-    setTimeout(() => setSaved(false), 2500);
 
     if (page) {
       const dest = destinos.find(d => d.id === page);
@@ -903,6 +901,12 @@ export default function NovaMateriaPage() {
       // Match the sidebar's global publish button's real-site effect.
       if (newStatus === 'published') await publish();
     }
+
+    // Only flip to "Salvo!"/"Publicado!" once the async work above has
+    // actually finished — showing it immediately was misleading while
+    // publish() was still running.
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   }
 
   const statusLabel: Record<PublishStatus, string> = {
