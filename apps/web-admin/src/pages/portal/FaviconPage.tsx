@@ -9,6 +9,7 @@ import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import { savePortalConfig } from '../../lib/portalConfigApi';
+import FaviconCropModal from '../../components/FaviconCropModal';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -23,19 +24,34 @@ export default function FaviconPage() {
   const [baseFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
   const [favicon, setFavicon] = useState<string | null>(baseFavicon);
   const [isDraft, setIsDraft] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const blobUrlRef = useRef<string | null>(null);
 
   const isDirty = favicon !== baseFavicon;
   const blocker = useUnsavedChanges(isDirty);
 
+  // SVG/ICO are vector/container formats — cropping a fixed pixel region
+  // doesn't make sense for them, so they keep the original pass-through flow.
+  const CROPPABLE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp']);
+
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (CROPPABLE_TYPES.has(file.type)) {
+      setCropFile(file);
+      return;
+    }
     const result = await processImageToDataUrl(file, 'favicon');
     if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     blobUrlRef.current = result.objectUrl;
     setFavicon(result.dataUrl);
+  }
+
+  function handleCropConfirm(dataUrl: string) {
+    setFavicon(dataUrl);
+    setCropFile(null);
   }
 
   function saveDraft() {
@@ -128,6 +144,14 @@ export default function FaviconPage() {
           </div>
         </div>
       </div>
+
+      {cropFile && (
+        <FaviconCropModal
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onConfirm={handleCropConfirm}
+        />
+      )}
 
       <UnsavedModal
         open={blocker.state === 'blocked'}
