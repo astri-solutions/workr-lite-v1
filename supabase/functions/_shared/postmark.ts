@@ -126,6 +126,39 @@ export async function sendLeadAlert(opts: {
 }
 
 /**
+ * Send a notification for a CMS-configured form submission (any field set —
+ * "Fale com RI", "Mailing", or a custom formulário matéria).
+ */
+export async function sendFormSubmission(opts: {
+  portalNome: string;
+  formTitulo: string;
+  toEmail: string;
+  fields: { label: string; value: string }[];
+  replyToEmail?: string;
+}): Promise<void> {
+  const rows = opts.fields
+    .filter(f => f.value)
+    .map(f => `<tr><td style="padding:8px 0;color:#6F6F6F;width:140px;vertical-align:top">${f.label}</td><td>${f.value.replace(/\n/g, '<br>')}</td></tr>`)
+    .join('');
+  const textRows = opts.fields.filter(f => f.value).map(f => `${f.label}: ${f.value}`).join('\n');
+
+  await sendPostmark({
+    From: from(),
+    To: opts.toEmail,
+    ...(opts.replyToEmail ? { ReplyTo: opts.replyToEmail } : {}),
+    Subject: `[${opts.portalNome}] Novo envio — ${opts.formTitulo}`,
+    MessageStream: 'outbound',
+    HtmlBody: `
+<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto">
+  <h2 style="color:#0B5B68;margin-bottom:4px">Novo envio — ${opts.formTitulo}</h2>
+  <p style="color:#949494;font-size:13px;margin-top:0">Portal ${opts.portalNome}</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">${rows}</table>
+</div>`,
+    TextBody: `Novo envio — ${opts.formTitulo}\nPortal ${opts.portalNome}\n\n${textRows}`,
+  });
+}
+
+/**
  * Send an ops alert (Auto CVM errors, provisioning failures, etc.).
  */
 export async function sendCvmAlert(opts: {
