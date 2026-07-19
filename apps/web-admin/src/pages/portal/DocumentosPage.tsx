@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
@@ -12,6 +12,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
+import { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT } from '../../components/ChannelEditor';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -47,14 +48,48 @@ function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
 
-const LIST_PAGES = [
-  { id: 'composicao', label: 'Composição Acionária', group: 'Governança', subGroups: [] as string[] },
-  { id: 'atas', label: 'Atas e Assembleias', group: 'Governança', subGroups: ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'] },
-  { id: 'docs-cvm', label: 'Documentos CVM', group: 'Governança', subGroups: ['Fatos Relevantes', 'Comunicados ao Mercado', 'Avisos aos Acionistas', 'Documentos Societários', 'Informações Periódicas'] },
-  { id: 'resultados', label: 'Resultados', group: 'Investidores', subGroups: [] as string[] },
-  { id: 'calendario', label: 'Calendário de Eventos', group: 'Investidores', subGroups: [] as string[] },
-  { id: 'ratings', label: 'Ratings', group: 'Investidores', subGroups: [] as string[] },
-];
+// Known document sub-groupings for the default/seed canal ids (both the
+// banner-layout and flat-layout id variants). Any other canal — including
+// every custom page a client creates — just gets a flat document list with
+// no sub-group breakdown.
+const SUBGROUPS_BY_CANAL_ID: Record<string, string[]> = {
+  'atas': ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'],
+  'atas-assembleias': ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'],
+  'docs-cvm': ['Fatos Relevantes', 'Comunicados ao Mercado', 'Avisos aos Acionistas', 'Documentos Societários', 'Informações Periódicas'],
+};
+
+interface DestPage { id: string; label: string; group: string; subGroups: string[]; }
+
+// Mirrors the tree the portal actually publishes — never a hardcoded list.
+// Flat layouts (sidebar/tabmenu) have direct L1 pages with no children;
+// banner layouts nest documents pages under L2 (and sometimes L3).
+function loadPortalCanais(portalKey?: string): Canal[] {
+  try {
+    const raw = localStorage.getItem(`portal_canais_${portalKey ?? 'default'}`);
+    if (raw) return JSON.parse(raw) as Canal[];
+  } catch { /* fall through to default */ }
+  const layout = localStorage.getItem(`portal_layout_${portalKey ?? 'default'}`) ?? 'sidebar';
+  return (layout === 'sidebar' || layout === 'tabmenu') ? DEFAULT_CANAIS_FLAT : DEFAULT_CANAIS;
+}
+
+function buildDestPages(canais: Canal[]): DestPage[] {
+  const result: DestPage[] = [];
+  for (const c of canais) {
+    if (c.children.length === 0) {
+      // Direct page — the whole canal IS the destination (flat layouts, or
+      // a childless canal in a banner layout).
+      result.push({ id: c.id, label: c.label, group: 'Canal raiz', subGroups: SUBGROUPS_BY_CANAL_ID[c.id] ?? [] });
+      continue;
+    }
+    for (const s of c.children) {
+      result.push({ id: s.id, label: s.label, group: c.label, subGroups: SUBGROUPS_BY_CANAL_ID[s.id] ?? [] });
+      for (const ss of s.children ?? []) {
+        result.push({ id: ss.id, label: ss.label, group: `${c.label} → ${s.label}`, subGroups: [] });
+      }
+    }
+  }
+  return result;
+}
 
 interface DocForm {
   entityId: string;
@@ -82,13 +117,13 @@ function emptyDocForm(entityId = ''): DocForm {
 }
 
 // Convert DB row → DocRow
-function dbToRow(r: Record<string, unknown>): DocRow {
+function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>): DocRow {
   const titulo = (r.titulo as Record<string, string>) ?? {};
   const nomePrimary = titulo['PT'] ?? titulo[Object.keys(titulo)[0]] ?? String(r.id);
   const paginaIds = (r.pagina_ids as string[]) ?? [];
   const paginaLabel = paginaIds.length === 0
     ? '—'
-    : paginaIds.map(id => LIST_PAGES.find(p => p.id === id)?.label ?? id).join(', ');
+    : paginaIds.map(id => pageLabelById.get(id) ?? id).join(', ');
   const createdAt = r.created_at ? new Date(r.created_at as string).toLocaleDateString('pt-BR') : '—';
   const updatedAt = r.updated_at ? new Date(r.updated_at as string).toLocaleDateString('pt-BR') : '—';
   return {
@@ -133,7 +168,7 @@ export default function DocumentosPage() {
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [docs, setDocs] = useState<DocRow[]>([]);
+  const [rawDocs, setRawDocs] = useState<Record<string, unknown>[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState<DocForm>(emptyDocForm());
@@ -146,6 +181,10 @@ export default function DocumentosPage() {
   const [ptOnly, setPtOnly] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const destPages = useMemo(() => buildDestPages(loadPortalCanais(user?.activePortalId)), [user?.activePortalId]);
+  const pageLabelById = useMemo(() => new Map(destPages.map(p => [p.id, p.label])), [destPages]);
+  const docs = useMemo(() => rawDocs.map(r => dbToRow(r, pageLabelById)), [rawDocs, pageLabelById]);
+
   const loadDocs = useCallback(async () => {
     if (!portalDbId || !isSupabaseConfigured || !supabase) return;
     setLoadingDocs(true);
@@ -154,7 +193,7 @@ export default function DocumentosPage() {
       .select('*')
       .eq('portal_id', portalDbId)
       .order('created_at', { ascending: false });
-    if (data) setDocs(data.map(r => dbToRow(r as Record<string, unknown>)));
+    if (data) setRawDocs(data as Record<string, unknown>[]);
     setLoadingDocs(false);
   }, [portalDbId]);
 
@@ -610,7 +649,7 @@ export default function DocumentosPage() {
             </label>
             {!form.allPages && (
               <div className="up-form__emp-list">
-                {LIST_PAGES.map(p => {
+                {destPages.map(p => {
                   const checked = form.paginaIds.includes(p.id);
                   const subs = form.subGroupIds[p.id] ?? [];
                   return (
