@@ -286,6 +286,10 @@ function ClientLayoutInner() {
       if (cfg['error_pages'])   localStorage.setItem(pk('portal_error_pages'), JSON.stringify(cfg['error_pages']));
       if (cfg['interacoes'])    localStorage.setItem(pk('portal_interacoes'), JSON.stringify(cfg['interacoes']));
       if (cfg['informacoes'])   localStorage.setItem(pk('portal_informacoes'), JSON.stringify(cfg['informacoes']));
+      const infoIdiomas = (cfg['informacoes'] as { idiomas?: string[] } | undefined)?.idiomas;
+      if (Array.isArray(infoIdiomas) && infoIdiomas.length > 0) {
+        localStorage.setItem(pk('portal_idiomas'), JSON.stringify(infoIdiomas));
+      }
       if (cfg['empresas'])      localStorage.setItem(`portal_empresas_${activePortalId}`, JSON.stringify(cfg['empresas']));
       // Update portal layout in component state if it changed
       if (cfg['layout']) setPortalLayout(cfg['layout'] as PortalLayout);

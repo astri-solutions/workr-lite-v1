@@ -152,9 +152,21 @@
 
 .footer-legal-row {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 24px 1fr 1fr;
   align-items: center;
   gap: var(--space-3);
+}
+
+.footer-legal-row__page {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .footer-legal-row {
+    grid-template-columns: 24px 1fr;
+    grid-template-areas: "toggle label" ". page";
+  }
+  .footer-legal-row__page { grid-area: page; }
 }
 
 .footer-legal-toggle { display: flex; align-items: center; }

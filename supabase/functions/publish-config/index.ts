@@ -20,15 +20,29 @@ interface Fonts { display: string; body: string; }
 interface TickerItem { symbol: string; price: string; change: string; direction: string; }
 interface TickerCfg { type: string; iframeUrl?: string; items?: TickerItem[]; }
 interface SocialCfg { platform: string; url: string; }
-interface LegalLinkCfg { id: string; label: string; enabled: boolean; }
+interface LegalLinkCfg { id: string; label: string; enabled: boolean; pageId?: string; }
 interface FooterCfg {
   address?: string; email?: string; phone?: string; hours?: string;
   copyright?: string; disclaimer?: string;
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
-interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; }
+interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; children?: SubCanalCfg[]; }
 interface CanalCfg { id?: string; label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; }
+
+/** Resolves a legal link's custom pageId to the matching canal's real href. */
+function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | undefined {
+  for (const c of canais ?? []) {
+    if (c.id === id) return c.href ?? '/';
+    for (const s of c.children ?? []) {
+      if (s.id === id) return s.href;
+      for (const ss of s.children ?? []) {
+        if (ss.id === id) return ss.href;
+      }
+    }
+  }
+  return undefined;
+}
 interface EmpresaCfg { id: string; label: string; short: string; }
 
 interface SplashBtn { label: string; url: string; variant: string; }
@@ -253,11 +267,14 @@ function buildSiteConfig(opts: {
     { id: 'cookies', label: 'Definições de Cookies', enabled: true },
   ]).filter((l: LegalLinkCfg) => l.enabled);
   const legalLinks = legalLinksArr.map((l: LegalLinkCfg) => {
-    const href = l.id === 'termos' ? '/termos-e-condicoes.html'
+    const customHref = l.pageId ? findCanalHref(opts.canais, l.pageId) : undefined;
+    const href = customHref ?? (
+      l.id === 'termos' ? '/termos-e-condicoes.html'
       : l.id === 'privacidade' ? '/politica-de-privacidade.html'
       : l.id === 'cookies' ? '/definicao-de-cookies.html'
-      : `/${l.id}.html`;
-    return `      { label: ${JSON.stringify(l.label)}, href: '${href}' }`;
+      : `/${l.id}.html`
+    );
+    return `      { label: ${JSON.stringify(l.label)}, href: ${JSON.stringify(href)} }`;
   }).join(',\n');
 
   const socials = f?.socials ?? [];

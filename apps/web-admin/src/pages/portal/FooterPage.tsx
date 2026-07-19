@@ -5,6 +5,11 @@ import Modal from '../../components/Modal';
 import PORTAL_CONFIG from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
+import { savePortalConfig } from '../../lib/portalConfigApi';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
+import { loadPortalCanais, buildDestPages } from '../../utils/destPages';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 import './FooterPage.css';
@@ -12,7 +17,8 @@ import './FooterPage.css';
 type FooterModel = 'completo' | 'compacto' | 'reduzido';
 
 interface SocialLink { platform: string; url: string; icon: React.ReactNode }
-interface LegalLink  { id: string; label: string; enabled: boolean }
+/** pageId, when set, points this link at a real canal instead of the fixed legal page. */
+interface LegalLink  { id: string; label: string; enabled: boolean; pageId?: string }
 
 interface FooterConfig {
   model: FooterModel;
@@ -190,8 +196,15 @@ function reviveFooter(stored: Partial<StoredFooter>): FooterConfig {
 
 export default function FooterPage() {
   const portalName = usePortalName();
-  const portalLayout = (localStorage.getItem('portal_layout') ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
+  const activePortalId = useActivePortalId();
+  const { publish } = usePublish();
+  // portal_layout was previously read from the unscoped 'portal_layout' key
+  // (never written by anyone — the wizard/LayoutPage always write
+  // portal_layout_<id>), so isBannerModel was always false and the model
+  // picker never showed for banner portals.
+  const portalLayout = (localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
   const isBannerModel = portalLayout === 'banner';
+  const destPages = buildDestPages(loadPortalCanais(activePortalId));
   const [persisted, setPersisted, { hydrated }] = usePortalState<StoredFooter>(
     FOOTER_KEY, 'footer', stripIcons(DEFAULT),
   );
@@ -233,7 +246,7 @@ export default function FooterPage() {
     markDirty();
   }
 
-  function setLegal(id: string, field: 'label' | 'enabled', val: string | boolean) {
+  function setLegal(id: string, field: 'label' | 'enabled' | 'pageId', val: string | boolean) {
     setConfig(prev => ({
       ...prev,
       legalLinks: prev.legalLinks.map(l => l.id === id ? { ...l, [field]: val } : l),
@@ -249,12 +262,25 @@ export default function FooterPage() {
     markDirty();
   }
 
-  function handleSave() {
+  function saveDraft() {
     // Strip non-serializable icon nodes before persisting
     setPersisted(stripIcons(config));
     setDirty(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  }
+
+  async function handlePublish() {
+    // Flush the CURRENT config to Supabase and await it — publish() reads
+    // portal_config back immediately after, so an unawaited (fire-and-forget)
+    // save here would race it and the site could publish the previous footer.
+    const toSave = stripIcons(config);
+    setPersisted(toSave);
+    setDirty(false);
+    if (activePortalId) {
+      try { await savePortalConfig(activePortalId, { footer: toSave }); } catch (e) { console.error(e); }
+    }
+    await publish();
   }
 
   return (
@@ -263,9 +289,12 @@ export default function FooterPage() {
         title="Footer"
         description={<>Configuração do rodapé do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave} disabled={!dirty}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          <div className="publish-actions">
+            <button className="btn-outline" type="button" onClick={saveDraft} disabled={!dirty}>
+              {saved ? 'Salvo!' : 'Salvar rascunho'}
+            </button>
+            <PublishButton onClick={handlePublish} />
+          </div>
         }
       />
 
@@ -380,7 +409,10 @@ export default function FooterPage() {
       {/* Legal links */}
       <div className="pers-section">
         <h2 className="pers-section__title">Links legais</h2>
-        <p className="pers-section__desc">Configure os links exibidos na barra inferior do footer.</p>
+        <p className="pers-section__desc">
+          Configure os links exibidos na barra inferior do footer. Por padrão cada link aponta para sua página fixa
+          (Termos, Política de Privacidade, Cookies) — selecione uma página do portal para apontar para outro conteúdo.
+        </p>
         <div className="footer-legal-links">
           {config.legalLinks.map(l => (
             <div key={l.id} className="footer-legal-row">
@@ -398,6 +430,17 @@ export default function FooterPage() {
                 disabled={!l.enabled}
                 onChange={e => setLegal(l.id, 'label', e.target.value)}
               />
+              <select
+                className="footer-field__input filter-select footer-legal-row__page"
+                value={l.pageId ?? ''}
+                disabled={!l.enabled}
+                onChange={e => setLegal(l.id, 'pageId', e.target.value)}
+              >
+                <option value="">Página padrão</option>
+                {destPages.map(p => (
+                  <option key={p.id} value={p.id}>{p.group} → {p.label}</option>
+                ))}
+              </select>
             </div>
           ))}
         </div>

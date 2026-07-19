@@ -12,7 +12,7 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
-import { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT } from '../../components/ChannelEditor';
+import { loadPortalCanais, buildDestPages as buildBasePages, type DestPage as BaseDestPage } from '../../utils/destPages';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -48,47 +48,15 @@ function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
 
-// Known document sub-groupings for the default/seed canal ids (both the
-// banner-layout and flat-layout id variants). Any other canal — including
-// every custom page a client creates — just gets a flat document list with
-// no sub-group breakdown.
-const SUBGROUPS_BY_CANAL_ID: Record<string, string[]> = {
-  'atas': ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'],
-  'atas-assembleias': ['AGO', 'AGE', 'RCA', 'Assembleias Especiais'],
-  'docs-cvm': ['Fatos Relevantes', 'Comunicados ao Mercado', 'Avisos aos Acionistas', 'Documentos Societários', 'Informações Periódicas'],
-};
+// Sub-group categories (e.g. "Fatos Relevantes", "AGO/AGE") aren't a
+// registered concept anywhere in the CMS yet — there's no screen where a
+// client defines them for a canal. Fabricating a fixed taxonomy per canal id
+// showed categories the client never created. Until that configuration
+// screen exists, every canal gets a flat document list (no sub-groups).
+interface DestPage extends BaseDestPage { subGroups: string[]; }
 
-interface DestPage { id: string; label: string; group: string; subGroups: string[]; }
-
-// Mirrors the tree the portal actually publishes — never a hardcoded list.
-// Flat layouts (sidebar/tabmenu) have direct L1 pages with no children;
-// banner layouts nest documents pages under L2 (and sometimes L3).
-function loadPortalCanais(portalKey?: string): Canal[] {
-  try {
-    const raw = localStorage.getItem(`portal_canais_${portalKey ?? 'default'}`);
-    if (raw) return JSON.parse(raw) as Canal[];
-  } catch { /* fall through to default */ }
-  const layout = localStorage.getItem(`portal_layout_${portalKey ?? 'default'}`) ?? 'sidebar';
-  return (layout === 'sidebar' || layout === 'tabmenu') ? DEFAULT_CANAIS_FLAT : DEFAULT_CANAIS;
-}
-
-function buildDestPages(canais: Canal[]): DestPage[] {
-  const result: DestPage[] = [];
-  for (const c of canais) {
-    if (c.children.length === 0) {
-      // Direct page — the whole canal IS the destination (flat layouts, or
-      // a childless canal in a banner layout).
-      result.push({ id: c.id, label: c.label, group: 'Canal raiz', subGroups: SUBGROUPS_BY_CANAL_ID[c.id] ?? [] });
-      continue;
-    }
-    for (const s of c.children) {
-      result.push({ id: s.id, label: s.label, group: c.label, subGroups: SUBGROUPS_BY_CANAL_ID[s.id] ?? [] });
-      for (const ss of s.children ?? []) {
-        result.push({ id: ss.id, label: ss.label, group: `${c.label} → ${s.label}`, subGroups: [] });
-      }
-    }
-  }
-  return result;
+function buildDestPages(canais: Parameters<typeof buildBasePages>[0]): DestPage[] {
+  return buildBasePages(canais).map(p => ({ ...p, subGroups: [] }));
 }
 
 interface DocForm {

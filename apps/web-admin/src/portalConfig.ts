@@ -13,7 +13,12 @@ export type PortalModel = 'sidebar' | 'tabmenu' | 'banner';
 
 function getLanguages(): LocaleCode[] {
   try {
-    const raw = localStorage.getItem('portal_idiomas');
+    const auth = localStorage.getItem('workr_auth');
+    const activeId = auth ? JSON.parse(auth)?.activePortalId : undefined;
+    // portal_idiomas is written portal-scoped by the wizard/InformacoesPortalPage
+    // (portal_idiomas_<id>) — reading the bare key here always missed it,
+    // silently forcing every portal down to a single language (pt-BR).
+    const raw = activeId ? localStorage.getItem(`portal_idiomas_${activeId}`) : null;
     if (raw) {
       const parsed = JSON.parse(raw) as string[];
       if (Array.isArray(parsed) && parsed.length > 0) return parsed as LocaleCode[];
