@@ -7,6 +7,10 @@ import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
+import { savePortalConfig } from '../../lib/portalConfigApi';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 
@@ -114,6 +118,8 @@ const DEFAULT_SPLASH: SplashConfig = {
 
 export default function SplashPage() {
   const portalName = usePortalName();
+  const activePortalId = useActivePortalId();
+  const { publish } = usePublish();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [persisted, setPersisted, { hydrated }] = usePortalState<SplashConfig>(SPLASH_KEY, 'splash', DEFAULT_SPLASH);
   const [config, setConfig] = useState<SplashConfig>(persisted);
@@ -153,6 +159,16 @@ export default function SplashPage() {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  async function handlePublish() {
+    setPersisted(config);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    if (activePortalId) {
+      try { await savePortalConfig(activePortalId, { splash: config }); } catch (e) { console.error(e); }
+    }
+    await publish();
+  }
+
   const selectedSize = SIZE_OPTIONS.find(s => s.id === config.size)!;
 
   return (
@@ -166,9 +182,10 @@ export default function SplashPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
               Pré-visualizar
             </button>
-            <button type="button" className="btn-primary" onClick={handleSave}>
-              {saved ? 'Salvo!' : 'Salvar alterações'}
+            <button type="button" className="btn-outline" onClick={handleSave} disabled={!isDirty && saved}>
+              {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>
+            <PublishButton onClick={handlePublish} />
           </div>
         }
       />

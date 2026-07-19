@@ -4,6 +4,10 @@ import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
+import { savePortalConfig } from '../../lib/portalConfigApi';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './TickerPage.css';
 
@@ -32,6 +36,8 @@ export const TICKER_KEY = 'portal_ticker';
 
 export default function TickerPage() {
   const portalName = usePortalName();
+  const activePortalId = useActivePortalId();
+  const { publish } = usePublish();
   const [saved, setSaved] = useState(false);
   const [persisted, setPersisted, { hydrated }] = usePortalState<TickerDraft>(TICKER_KEY, 'ticker', DEFAULT);
   const [draft, setDraft] = useState<TickerDraft>(persisted);
@@ -51,6 +57,16 @@ export default function TickerPage() {
     setTimeout(() => setSaved(false), 2500);
   }
 
+  async function handlePublish() {
+    setPersisted(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    if (activePortalId) {
+      try { await savePortalConfig(activePortalId, { ticker: draft }); } catch (e) { console.error(e); }
+    }
+    await publish();
+  }
+
   function setType(t: TickerType) {
     setDraft(prev => ({ ...prev, type: t }));
     setSaved(false);
@@ -62,9 +78,12 @@ export default function TickerPage() {
         title="Ticker de Cotação"
         description={<>Configure o widget de cotação do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved ? 'Salvo!' : 'Salvar'}
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+            <button className="btn-outline" type="button" onClick={handleSave} disabled={!isDirty && saved}>
+              {saved ? 'Salvo!' : 'Salvar rascunho'}
+            </button>
+            <PublishButton onClick={handlePublish} />
+          </div>
         }
       />
 

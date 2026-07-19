@@ -4,6 +4,10 @@ import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
+import { savePortalConfig } from '../../lib/portalConfigApi';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './CookiesPage.css';
@@ -197,6 +201,8 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
 /* ─── Page ───────────────────────────────────────────── */
 export default function CookiesPage() {
   const portalName = usePortalName();
+  const activePortalId = useActivePortalId();
+  const { publish } = usePublish();
   const [persisted, setPersisted, { hydrated }] = usePortalState<CookieConfig>(COOKIES_KEY, 'cookies', DEFAULT);
   const [cfg, setCfg] = useState<CookieConfig>(persisted);
   const [saved, setSaved] = useState(false);
@@ -234,15 +240,28 @@ export default function CookiesPage() {
     setTimeout(() => setSaved(false), 2500);
   }
 
+  async function handlePublish() {
+    setPersisted(cfg);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    if (activePortalId) {
+      try { await savePortalConfig(activePortalId, { cookies: cfg }); } catch (e) { console.error(e); }
+    }
+    await publish();
+  }
+
   return (
     <div className="page">
       <StickyPageHeader
         title="Cookies"
         description={<>Configure o banner de consentimento de cookies do portal <strong>{portalName}</strong>.</>}
         action={
-          <button className="btn-primary" type="button" onClick={handleSave}>
-            {saved ? 'Salvo!' : 'Salvar alterações'}
-          </button>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+            <button className="btn-outline" type="button" onClick={handleSave} disabled={!isDirty && saved}>
+              {saved ? 'Salvo!' : 'Salvar rascunho'}
+            </button>
+            <PublishButton onClick={handlePublish} />
+          </div>
         }
       />
 
