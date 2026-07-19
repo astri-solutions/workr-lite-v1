@@ -4,6 +4,7 @@ import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { persistMateria, syncMateriaToSupabase, type StoredMateria } from '../../hooks/useMateriasStore';
 import { resolvePortalId } from '../../lib/portalDb';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import { usePublish } from '../../contexts/PublishContext';
@@ -145,8 +146,29 @@ export default function NovoFormularioPage() {
       const dest = allDestinos.find(d => d.id === page);
       const today = new Date().toLocaleDateString('pt-BR');
       const primary = PORTAL_CONFIG.languages[0];
+
+      // A canal has at most one attached formulário/matéria — without this
+      // lookup, opening "Nova matéria" fresh each time (instead of editing
+      // the existing one) generated a brand-new random id and inserted a
+      // duplicate row, stacking multiple published forms on the same page.
+      let reuseId = editing?.id;
+      if (!reuseId && activePortalId && isSupabaseConfigured && supabase) {
+        try {
+          const portalDbId = await resolvePortalId(activePortalId);
+          if (portalDbId) {
+            const { data } = await supabase
+              .from('portal_materias')
+              .select('id')
+              .eq('portal_id', portalDbId)
+              .eq('page_id', page)
+              .maybeSingle();
+            if (data?.id) reuseId = data.id as string;
+          }
+        } catch (e) { console.error('lookup existing matéria failed', e); }
+      }
+
       const materia = {
-        id: editing?.id ?? Math.random().toString(36).slice(2),
+        id: reuseId ?? Math.random().toString(36).slice(2),
         titulo: dest?.label ?? subtitles[primary] ?? 'Formulário',
         subtitulo: subtitles[primary] ?? '',
         pageId: page,
