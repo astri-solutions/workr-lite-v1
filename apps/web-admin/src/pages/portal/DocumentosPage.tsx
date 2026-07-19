@@ -38,6 +38,13 @@ interface DocRow {
   ultimoEditor: string;
   fromCvm?: boolean;
   externalLink?: string;
+  filePath?: string;
+}
+
+const DOCS_BUCKET = 'portal-documents';
+
+function fileExt(name: string): string {
+  return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
 
 const LIST_PAGES = [
@@ -99,6 +106,7 @@ function dbToRow(r: Record<string, unknown>): DocRow {
     ultimoEditor: r.ultimo_editor as string ?? '',
     fromCvm: r.from_cvm as boolean ?? false,
     externalLink: r.external_link as string | undefined,
+    filePath: r.file_path as string | undefined,
   };
 }
 
@@ -177,6 +185,7 @@ export default function DocumentosPage() {
     const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
     if (!primaryTitle) return;
     if (!portalDbId || !supabase) return;
+    if (!form.isExternalLink && !form.file) return; // need either a file or an external link
     setSaving(true);
 
     const titulos: Record<string, string> = {};
@@ -190,7 +199,23 @@ export default function DocumentosPage() {
     const now = new Date().toISOString();
     const userName = user?.name ?? user?.email ?? '';
 
+    // Generate the id up front so the storage path can reference it.
+    const newId = crypto.randomUUID();
+    let filePath: string | null = null;
+    if (!form.isExternalLink && form.file) {
+      filePath = `${portalDbId}/${newId}.${fileExt(form.file.name)}`;
+      const { error: uploadError } = await supabase.storage
+        .from(DOCS_BUCKET)
+        .upload(filePath, form.file, { upsert: false });
+      if (uploadError) {
+        console.error('upload failed', uploadError);
+        setSaving(false);
+        return;
+      }
+    }
+
     const { error } = await supabase.from('portal_documents').insert({
+      id: newId,
       portal_id: portalDbId,
       entity_id: form.entityId || activeEntity,
       titulo: titulos,
@@ -201,6 +226,7 @@ export default function DocumentosPage() {
       idiomas: ptOnly ? ['PT'] : form.idiomas,
       pt_only: ptOnly,
       external_link: form.isExternalLink ? form.externalUrl : null,
+      file_path: filePath,
       publicado_por: userName,
       ultimo_editor: userName,
       updated_at: now,
@@ -209,6 +235,9 @@ export default function DocumentosPage() {
     if (!error) {
       closeDrawer();
       await loadDocs();
+    } else if (filePath) {
+      // Row insert failed after the file made it to storage — clean up the orphan.
+      await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
     }
     setSaving(false);
   }
@@ -227,22 +256,48 @@ export default function DocumentosPage() {
   async function handleDelete() {
     if (!supabase || selected.size === 0) return;
     const ids = Array.from(selected);
+    const paths = docs.filter(d => ids.includes(d.id) && d.filePath).map(d => d.filePath!);
     await supabase.from('portal_documents').delete().in('id', ids);
+    if (paths.length > 0) await supabase.storage.from(DOCS_BUCKET).remove(paths);
     setSelected(new Set());
     setDeleteModalOpen(false);
     await loadDocs();
   }
 
   async function handleReplaceDoc() {
-    if (!replaceDoc || !supabase) return;
+    if (!replaceDoc || !supabase || !portalDbId) return;
     const now = new Date().toISOString();
-    await supabase.from('portal_documents').update({
+    const patch: Record<string, unknown> = {
       titulo: { ...((docs.find(d => d.id === replaceDoc.id) as unknown as { titulo?: Record<string, string> })?.titulo ?? {}), PT: replaceTitle || replaceDoc.nome },
       ultimo_editor: user?.name ?? user?.email ?? '',
       updated_at: now,
-    }).eq('id', replaceDoc.id);
+    };
+
+    if (replaceFile) {
+      const newPath = `${portalDbId}/${replaceDoc.id}.${fileExt(replaceFile.name)}`;
+      // Extension may have changed (e.g. .pdf → .docx) — the old object would
+      // be left orphaned under the previous filename, so remove it first.
+      if (replaceDoc.filePath && replaceDoc.filePath !== newPath) {
+        await supabase.storage.from(DOCS_BUCKET).remove([replaceDoc.filePath]);
+      }
+      const { error: uploadError } = await supabase.storage
+        .from(DOCS_BUCKET)
+        .upload(newPath, replaceFile, { upsert: true });
+      if (uploadError) { console.error('replace upload failed', uploadError); return; }
+      patch.file_path = newPath;
+    }
+
+    await supabase.from('portal_documents').update(patch).eq('id', replaceDoc.id);
     setReplaceDoc(null);
     await loadDocs();
+  }
+
+  async function handleDownload(doc: DocRow) {
+    if (doc.externalLink) { window.open(doc.externalLink, '_blank', 'noopener'); return; }
+    if (!doc.filePath || !supabase) return;
+    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(doc.filePath, 60);
+    if (error || !data) { console.error('signed url failed', error); return; }
+    window.open(data.signedUrl, '_blank', 'noopener');
   }
 
   const _filtered = docs.filter(d => {
@@ -272,7 +327,8 @@ export default function DocumentosPage() {
 
   const primaryLocale = PORTAL_CONFIG.languages[0];
   const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
-  const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0);
+  const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
+    && (form.isExternalLink ? !!form.externalUrl.trim() : !!form.file);
 
   return (
     <div className="page docs-page">
@@ -380,8 +436,13 @@ export default function DocumentosPage() {
                     <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor.slice(0,2).toUpperCase()}</div>
                   </td>
                   <td>
-                    <button type="button" className="btn-action btn-action--enter"
-                      onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
+                    <div className="table-actions">
+                      {(doc.filePath || doc.externalLink) && (
+                        <button type="button" className="btn-action btn-action--secondary" onClick={() => handleDownload(doc)}>Abrir</button>
+                      )}
+                      <button type="button" className="btn-action btn-action--enter"
+                        onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -408,6 +469,9 @@ export default function DocumentosPage() {
                 <div className="docs-rcard__row"><span className="docs-rcard__label">Página</span><span className="docs-rcard__value">{doc.pagina}</span></div>
               </div>
               <div className="rcard__footer">
+                {(doc.filePath || doc.externalLink) && (
+                  <button type="button" className="btn-action btn-action--secondary" onClick={() => handleDownload(doc)}>Abrir</button>
+                )}
                 <button type="button" className="btn-action btn-action--enter"
                   onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
               </div>
