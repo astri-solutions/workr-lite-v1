@@ -82,16 +82,12 @@ Deno.serve(async (req) => {
     }
 
     const resolvedRole = inviteRole === 'super_admin' ? 'super_admin' : 'client_user';
-    const portalIds = (portaisConfig ?? []).map(p => p.portalId);
     const userId = data.user.id;
 
-    await adminClient.auth.admin.updateUserById(userId, {
-      app_metadata: { role: resolvedRole, portais: portalIds },
-    });
-
-    // client_user access must always be tied to a specific portal + empresa —
-    // create the portal_users rows the same way invite-portal-user does,
-    // resolving each portalId (which may be a portal_key, not the UUID) first.
+    // Resolve every portalId to its real UUID FIRST — portaisConfig may carry
+    // a portal_key (localStorage id), but both portal_users.portal_id and the
+    // RLS policy on portal_users compare against the UUID in app_metadata.
+    const resolvedUuids: string[] = [];
     if (resolvedRole === 'client_user' && portaisConfig?.length) {
       for (const cfg of portaisConfig) {
         try {
@@ -104,6 +100,7 @@ Deno.serve(async (req) => {
             dbUuid = row?.id ?? null;
           }
           if (!dbUuid) continue;
+          resolvedUuids.push(dbUuid);
           await adminClient.from('portal_users').upsert({
             portal_id: dbUuid,
             user_id: userId,
@@ -115,6 +112,14 @@ Deno.serve(async (req) => {
         } catch { /* non-fatal per-portal */ }
       }
     }
+
+    // app_metadata key MUST be "portalIds" (not "portais") and hold the real
+    // UUIDs — the portal_users RLS policy reads auth.jwt() -> app_metadata ->
+    // 'portalIds' and matches it against portal_id (UUID). A wrong key name
+    // or portal_key values here make the RLS silently return zero rows.
+    await adminClient.auth.admin.updateUserById(userId, {
+      app_metadata: { role: resolvedRole, portalIds: resolvedUuids },
+    });
 
     // Send the invite e-mail via Postmark (reliable, bypasses Supabase's SMTP
     // rate limit); fall back to Supabase's native invite e-mail only if
