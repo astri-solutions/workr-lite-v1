@@ -1,14 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
 import Modal from '../../components/Modal';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import { usePortalName } from '../../hooks/usePortalName';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { resolvePortalId } from '../../lib/portalDb';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './MailingPage.css';
-
-export const MAILING_KEY = 'portal_mailing';
 
 type OrigemType = 'formulario' | 'importacao' | 'manual';
 type StatusType = 'ativo' | 'cancelado';
@@ -28,27 +29,15 @@ const ORIGEM_LABEL: Record<OrigemType, string> = {
   manual: 'Manual',
 };
 
-const MOCK_CONTATOS: Contato[] = [
-  { id: 'm001', nome: 'Ricardo Alves',    email: 'ricardo.alves@fundo.com.br',  origem: 'formulario', status: 'ativo',     inscritoEm: '2026-07-14' },
-  { id: 'm002', nome: 'Beatriz Moura',    email: 'bmoura@gestora.com.br',       origem: 'formulario', status: 'ativo',     inscritoEm: '2026-07-12' },
-  { id: 'm003', nome: 'Felipe Teixeira',  email: 'fteixeira@investfund.com',    origem: 'importacao', status: 'ativo',     inscritoEm: '2026-07-10' },
-  { id: 'm004', nome: 'Carla Nunes',      email: 'cnunes@btg.com.br',           origem: 'importacao', status: 'ativo',     inscritoEm: '2026-07-08' },
-  { id: 'm005', nome: 'André Fonseca',    email: 'afonseca@xp.com.br',          origem: 'manual',     status: 'ativo',     inscritoEm: '2026-07-05' },
-  { id: 'm006', nome: 'Juliana Rocha',    email: 'juliana.rocha@itau.com.br',   origem: 'formulario', status: 'ativo',     inscritoEm: '2026-07-03' },
-  { id: 'm007', nome: 'Marcelo Santos',   email: 'msantos@credit-suisse.com',   origem: 'importacao', status: 'cancelado', inscritoEm: '2026-06-28' },
-  { id: 'm008', nome: 'Priscila Lima',    email: 'p.lima@icatu.com.br',         origem: 'formulario', status: 'ativo',     inscritoEm: '2026-06-25' },
-  { id: 'm009', nome: 'Eduardo Campos',   email: 'ecampos@bradesco.com.br',     origem: 'manual',     status: 'ativo',     inscritoEm: '2026-06-20' },
-  { id: 'm010', nome: 'Fernanda Araújo',  email: 'faraújo@santander.com.br',    origem: 'importacao', status: 'cancelado', inscritoEm: '2026-06-15' },
-  { id: 'm011', nome: 'Gabriel Pinto',    email: 'gabriel.pinto@gauss.com.br',  origem: 'formulario', status: 'ativo',     inscritoEm: '2026-06-10' },
-  { id: 'm012', nome: 'Vanessa Correia',  email: 'vcorreia@kinea.com.br',       origem: 'formulario', status: 'ativo',     inscritoEm: '2026-06-05' },
-];
-
-function loadContatos(): Contato[] {
-  try {
-    const raw = localStorage.getItem(MAILING_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* fall through */ }
-  return MOCK_CONTATOS;
+function rowToContato(r: Record<string, unknown>): Contato {
+  return {
+    id: r.id as string,
+    nome: r.nome as string,
+    email: r.email as string,
+    origem: (r.origem as OrigemType) ?? 'manual',
+    status: (r.status as StatusType) ?? 'ativo',
+    inscritoEm: r.inscrito_em as string,
+  };
 }
 
 function fmtDate(iso: string) {
@@ -61,7 +50,10 @@ function initials(nome: string) {
 
 export default function MailingPage() {
   const portalName = usePortalName();
-  const [contatos, setContatos] = useState<Contato[]>(loadContatos);
+  const activePortalId = useActivePortalId();
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const [contatos, setContatos] = useState<Contato[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterOrigem, setFilterOrigem] = useState('');
@@ -71,6 +63,25 @@ export default function MailingPage() {
   const [addNome, setAddNome] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addError, setAddError] = useState('');
+
+  useEffect(() => {
+    if (!activePortalId) return;
+    resolvePortalId(activePortalId).then(setPortalDbId);
+  }, [activePortalId]);
+
+  const loadContatos = useCallback(async () => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) { setLoading(false); return; }
+    setLoading(true);
+    const { data } = await supabase
+      .from('portal_mailing_contatos')
+      .select('*')
+      .eq('portal_id', portalDbId)
+      .order('inscrito_em', { ascending: false });
+    if (data) setContatos(data.map(rowToContato));
+    setLoading(false);
+  }, [portalDbId]);
+
+  useEffect(() => { loadContatos(); }, [loadContatos]);
 
   const { sorted, col, dir, toggle } = useSort<Contato>(contatos, 'inscritoEm', 'desc');
 
@@ -88,11 +99,6 @@ export default function MailingPage() {
 
   const ativos = contatos.filter(c => c.status === 'ativo').length;
 
-  function persist(next: Contato[]) {
-    setContatos(next);
-    localStorage.setItem(MAILING_KEY, JSON.stringify(next));
-  }
-
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev);
@@ -109,45 +115,62 @@ export default function MailingPage() {
     }
   }
 
-  function handleRemoveSelected() {
-    persist(contatos.filter(c => !selected.has(c.id)));
+  async function handleRemoveSelected() {
+    if (!supabase) return;
+    const ids = Array.from(selected);
+    setContatos(prev => prev.filter(c => !ids.includes(c.id)));
     setSelected(new Set());
+    await supabase.from('portal_mailing_contatos').delete().in('id', ids);
   }
 
   function handleRemoveOne(c: Contato) {
     setRemoveTarget(c);
   }
 
-  function confirmRemove() {
-    if (!removeTarget) return;
-    persist(contatos.filter(c => c.id !== removeTarget.id));
-    setSelected(prev => { const n = new Set(prev); n.delete(removeTarget.id); return n; });
+  async function confirmRemove() {
+    if (!removeTarget || !supabase) return;
+    const id = removeTarget.id;
+    setContatos(prev => prev.filter(c => c.id !== id));
+    setSelected(prev => { const n = new Set(prev); n.delete(id); return n; });
     setRemoveTarget(null);
+    await supabase.from('portal_mailing_contatos').delete().eq('id', id);
   }
 
-  function handleToggleStatus(id: string) {
-    persist(contatos.map(c => c.id === id ? { ...c, status: c.status === 'ativo' ? 'cancelado' : 'ativo' } : c));
+  async function handleToggleStatus(id: string) {
+    if (!supabase) return;
+    const alvo = contatos.find(c => c.id === id);
+    if (!alvo) return;
+    const nextStatus: StatusType = alvo.status === 'ativo' ? 'cancelado' : 'ativo';
+    setContatos(prev => prev.map(c => c.id === id ? { ...c, status: nextStatus } : c));
+    await supabase.from('portal_mailing_contatos').update({ status: nextStatus }).eq('id', id);
   }
 
-  function handleAdd() {
+  async function handleAdd() {
     setAddError('');
     if (!addEmail.trim()) { setAddError('Email é obrigatório.'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addEmail.trim())) { setAddError('Email inválido.'); return; }
     if (contatos.some(c => c.email.toLowerCase() === addEmail.toLowerCase().trim())) {
       setAddError('Este email já está na lista.'); return;
     }
-    const novoContato: Contato = {
-      id: `m${Date.now()}`,
+    if (!portalDbId || !supabase) return;
+
+    const { data, error } = await supabase.from('portal_mailing_contatos').insert({
+      portal_id: portalDbId,
       nome: addNome.trim() || addEmail.trim(),
       email: addEmail.trim().toLowerCase(),
       origem: 'manual',
       status: 'ativo',
-      inscritoEm: new Date().toISOString().slice(0, 10),
-    };
-    persist([novoContato, ...contatos]);
-    setAddNome('');
-    setAddEmail('');
-    setAddOpen(false);
+      inscrito_em: new Date().toISOString().slice(0, 10),
+    }).select('*').single();
+
+    if (!error && data) {
+      setContatos(prev => [rowToContato(data), ...prev]);
+      setAddNome('');
+      setAddEmail('');
+      setAddOpen(false);
+    } else {
+      setAddError('Não foi possível adicionar o contato. Tente novamente.');
+    }
   }
 
   const allSelected = filtered.length > 0 && filtered.every(c => selected.has(c.id));
@@ -240,7 +263,9 @@ export default function MailingPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <tr><td colSpan={7} className="log-empty">Carregando…</td></tr>
+            ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="log-empty">Nenhum contato encontrado para os filtros selecionados.</td>
               </tr>
