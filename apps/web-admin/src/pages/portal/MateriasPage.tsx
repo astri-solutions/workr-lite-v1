@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
@@ -8,7 +8,7 @@ import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
-import { Canal, DEFAULT_CANAIS, CANAIS_KEY } from '../../components/ChannelEditor';
+import { useCanaisDestinos, type Destino } from '../../hooks/useCanaisDestinos';
 import { deleteMateria as deleteMateriaFromStore, type StoredMateria } from '../../hooks/useMateriasStore';
 import { resolvePortalId } from '../../lib/portalDb';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
@@ -38,31 +38,17 @@ const TIPO_LABEL: Record<string, string> = {
   html: 'HTML',
 };
 
-function loadCanais(): Canal[] {
-  try {
-    const raw = localStorage.getItem(CANAIS_KEY);
-    return raw ? (JSON.parse(raw) as Canal[]) : DEFAULT_CANAIS;
-  } catch {
-    return DEFAULT_CANAIS;
-  }
-}
-
 interface PaginaOption {
   value: string;
   label: string;
 }
 
-function buildPaginaOptions(canais: Canal[]): PaginaOption[] {
-  const result: PaginaOption[] = [];
-  for (const c of canais) {
-    for (const s of c.children) {
-      result.push({ value: s.label, label: `${c.label} → ${s.label}` });
-      for (const ss of s.children ?? []) {
-        result.push({ value: ss.label, label: `${c.label} → ${s.label} → ${ss.label}` });
-      }
-    }
-  }
-  return result;
+function destinoPath(d: Destino): string {
+  return d.parentLabel ? `${d.parentLabel} › ${d.label}` : d.label;
+}
+
+function buildPaginaOptions(destinos: Destino[]): PaginaOption[] {
+  return destinos.map(d => ({ value: d.id, label: destinoPath(d) }));
 }
 
 const INITIAL: Materia[] = [];
@@ -135,6 +121,8 @@ export default function MateriasPage() {
 
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const destinos = useCanaisDestinos(activePortalId ?? undefined);
+  const destinoById = useMemo(() => new Map(destinos.map(d => [d.id, d])), [destinos]);
 
   useEffect(() => {
     if (!activePortalId) return;
@@ -165,10 +153,14 @@ export default function MateriasPage() {
         ultimoEditor: (row.ultimo_editor as string) ?? '',
         content: row.content,
       };
+      // Reflect the current position in the árvore de canais (e.g. "Documentos › Mailing")
+      // instead of the flat label saved at creation time, so renames/reorders stay accurate.
+      const destino = destinoById.get(stored.pageId);
+      const pagina = destino ? destinoPath(destino) : stored.pageLabel;
       return {
         id: stored.id,
         titulo: stored.titulo,
-        pagina: stored.pageLabel,
+        pagina,
         status: stored.status,
         data: stored.data,
         autor: stored.autor,
@@ -179,7 +171,7 @@ export default function MateriasPage() {
       };
     });
     setMaterias(fromDb);
-  }, [portalDbId]);
+  }, [portalDbId, destinoById]);
 
   useEffect(() => { loadFromSupabase(); }, [loadFromSupabase]);
   const [search, setSearch] = useState('');
@@ -188,12 +180,12 @@ export default function MateriasPage() {
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'tabela' | 'formulario' | 'html'>('show');
 
-  const matFilters = buildMatFilters(buildPaginaOptions(loadCanais()));
+  const matFilters = buildMatFilters(buildPaginaOptions(destinos));
 
   const _filtered = materias.filter(m => {
     if (search && !m.titulo.toLowerCase().includes(search.toLowerCase())) return false;
     if (filters.status && m.status !== filters.status) return false;
-    if (filters.pagina && m.pagina !== filters.pagina) return false;
+    if (filters.pagina && m.original.pageId !== filters.pagina) return false;
     return true;
   });
   const { sorted: filtered, col, dir, toggle } = useSort(_filtered);
