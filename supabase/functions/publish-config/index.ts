@@ -593,6 +593,8 @@ Deno.serve(async (req) => {
       { repoPath: 'scripts/components/splash.js', label: 'splash.js' },
       { repoPath: 'scripts/components/cookies.js', label: 'cookies.js' },
       { repoPath: 'scripts/page.js', label: 'page.js' },
+      { repoPath: 'scripts/sidebar-nav.js', label: 'sidebar-nav.js' },
+      { repoPath: 'scripts/tab-menu.js', label: 'tab-menu.js' },
       { repoPath: 'styles/components/_topbar.scss', label: '_topbar.scss' },
       { repoPath: 'styles/components/_form.scss', label: '_form.scss' },
       { repoPath: 'styles/components/_splash.scss', label: '_splash.scss' },
