@@ -1524,6 +1524,7 @@ export default function NovoPortalPage() {
                       portalKey: newPortal.id,
                       role: 'admin',
                       resend: true,
+                      empresas: [`principal-${newPortal.id}`],
                       redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
                     }),
                   }

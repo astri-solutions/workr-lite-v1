@@ -99,7 +99,7 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage, isSu
 }
 
 interface UserForm { nome: string; email: string; role: Role; empresaIds: string[]; allEmpresas: boolean; }
-const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'editor', empresaIds: [], allEmpresas: true };
+const EMPTY_FORM: UserForm = { nome: '', email: '', role: 'editor', empresaIds: [], allEmpresas: false };
 
 interface UserCardProps {
   user: PortalUser;
@@ -207,7 +207,9 @@ export default function UsuariosPortalPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm(EMPTY_FORM);
+    // When the portal has a single empresa, pre-select it — a user must
+    // always be tied to at least one empresa, never left unassigned.
+    setForm({ ...EMPTY_FORM, empresaIds: empresas.length === 1 ? [empresas[0].id] : [] });
     setInvited(false);
     setModalOpen(true);
   }
@@ -227,14 +229,14 @@ export default function UsuariosPortalPage() {
   }
 
   async function handleSave() {
-    if (!form.nome.trim() || !form.email.trim()) return;
-    const empIds = form.allEmpresas ? null : form.empresaIds;
+    if (!form.nome.trim() || !form.email.trim() || form.empresaIds.length === 0) return;
+    const empIds = form.empresaIds;
 
     // Edit existing user
     if (editing) {
       const role = form.role as PortalUserRole;
       setUsers(prev => prev.map(u => u.id === editing.id
-        ? { ...u, role: form.role, empresaIds: empIds ?? [] } : u));
+        ? { ...u, role: form.role, empresaIds: empIds } : u));
       updatePortalUserRole(editing.id, role, empIds).catch(console.error);
       closeModal();
       return;
@@ -392,7 +394,7 @@ export default function UsuariosPortalPage() {
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
               <button className="btn-primary" type="button" onClick={handleSave}
-                disabled={!form.nome.trim() || !form.email.trim() || inviting}>
+                disabled={!form.nome.trim() || !form.email.trim() || form.empresaIds.length === 0 || inviting}>
                 {inviting ? 'Enviando…' : editing ? 'Salvar' : 'Enviar convite'}
               </button>
             </div>
@@ -431,21 +433,18 @@ export default function UsuariosPortalPage() {
             </label>
             <div className="up-form__section">
               <span className="up-form__section-label">Acesso às empresas</span>
-              <label className="up-form__check">
-                <input type="checkbox" checked={form.allEmpresas}
-                  onChange={e => setForm(f => ({ ...f, allEmpresas: e.target.checked, empresaIds: [] }))} />
-                Todas as empresas do portal
-              </label>
-              {!form.allEmpresas && (
-                <div className="up-form__emp-list">
-                  {empresas.map(emp => (
-                    <label key={emp.id} className="up-form__check">
-                      <input type="checkbox" checked={form.empresaIds.includes(emp.id)}
-                        onChange={() => toggleEmpresa(emp.id)} />
-                      {emp.nome}
-                    </label>
-                  ))}
-                </div>
+              <p className="up-form__hint">Selecione ao menos uma empresa — todo usuário deve estar vinculado a uma empresa do portal.</p>
+              <div className="up-form__emp-list">
+                {empresas.map(emp => (
+                  <label key={emp.id} className="up-form__check">
+                    <input type="checkbox" checked={form.empresaIds.includes(emp.id)}
+                      onChange={() => toggleEmpresa(emp.id)} />
+                    {emp.nome}
+                  </label>
+                ))}
+              </div>
+              {form.empresaIds.length === 0 && (
+                <p className="up-form__error">Selecione ao menos uma empresa.</p>
               )}
             </div>
           </div>
