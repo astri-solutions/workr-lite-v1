@@ -548,6 +548,27 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Step 5b2: remove the unused home-*.html template files ───────────────
+    // Every layout's own home file ships in the template repo (they're all
+    // needed there so publish-config can self-heal any of them later), but a
+    // freshly provisioned portal only ever uses ONE — leaving the other two
+    // in the repo is confusing (e.g. /home-side-bar.html reachable directly
+    // on a 'banner' portal) and was the source of a live mix-up.
+    const allHomeTemplateFiles = ['home-side-bar.html', 'home-v2.html'];
+    const unusedHomeFiles = allHomeTemplateFiles.filter(f => f !== templateFile);
+    for (const f of unusedHomeFiles) {
+      try {
+        const fileRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${f}`);
+        if (fileRes.ok) {
+          const fileData = await fileRes.json() as { sha: string };
+          await gh(`/repos/${githubOrg}/${repoName}/contents/${f}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ message: `chore: remove unused ${f} (layout is ${layout})`, sha: fileData.sha }),
+          });
+        }
+      } catch { /* non-fatal */ }
+    }
+
     // ── Step 5c: generate blank pages from canais tree ────────────────────────
     if (canais && canais.length > 0) {
       for (const canal of canais) {
