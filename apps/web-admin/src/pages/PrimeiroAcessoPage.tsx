@@ -54,7 +54,7 @@ export default function PrimeiroAcessoPage() {
         {step === 'create' && (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
 
             <div className="pa-welcome">
@@ -132,7 +132,7 @@ export default function PrimeiroAcessoPage() {
         {step === 'done' && (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
             <div className="rec-done-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00D865" strokeWidth="1.8">
@@ -171,7 +171,7 @@ export default function PrimeiroAcessoPage() {
           <span className="login-right__footer-label">astri.solutions</span>
           <div className="login-right__footer-right">
             <span className="login-right__developed">desenvolvido por:</span>
-            <img src="/logos/logotipo-negative.svg" alt="Astri" className="login-right__logo-img" />
+            <img src="/logos/logotipo-workr.png" alt="Astri" className="login-right__logo-img" />
           </div>
         </footer>
       </div>

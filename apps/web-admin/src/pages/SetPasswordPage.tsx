@@ -76,7 +76,7 @@ export default function SetPasswordPage() {
         {step === 'loading' && (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
             <p className="sp-desc" style={{ textAlign: 'center', marginTop: '24px' }}>Validando convite…</p>
           </div>
@@ -85,7 +85,7 @@ export default function SetPasswordPage() {
         {step === 'error' && (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
             <h1 className="login-title">Link inválido</h1>
             <p className="sp-desc">Este link de convite é inválido ou já expirou. Solicite um novo convite ao administrador.</p>
@@ -99,7 +99,7 @@ export default function SetPasswordPage() {
         {step === 'password' && (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
             <h1 className="login-title">Crie sua senha</h1>
             <p className="sp-desc">Bem-vindo(a)! Defina uma senha segura para acessar o portal.</p>
@@ -177,7 +177,7 @@ export default function SetPasswordPage() {
         {step === 'done' && (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
             <div className="rec-done-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00D865" strokeWidth="1.8">
@@ -213,7 +213,7 @@ export default function SetPasswordPage() {
           <span className="login-right__footer-label">astri.solutions</span>
           <div className="login-right__footer-right">
             <span className="login-right__developed">desenvolvido por:</span>
-            <img src="/logos/logotipo-negative.svg" alt="Astri" className="login-right__logo-img" />
+            <img src="/logos/logotipo-workr.png" alt="Astri" className="login-right__logo-img" />
           </div>
         </footer>
       </div>

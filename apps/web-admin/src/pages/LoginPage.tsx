@@ -41,7 +41,7 @@ function RecoveryFlow({ onBack }: { onBack: () => void }) {
         Voltar
       </button>
       <div className="login-logo">
-        <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+        <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
       </div>
       <h1 className="login-title">Recuperar senha</h1>
       <p className="rec-desc">Informe o e-mail cadastrado. Enviaremos um link para redefinir sua senha.</p>
@@ -76,7 +76,7 @@ function RecoveryFlow({ onBack }: { onBack: () => void }) {
   return (
     <div className="login-card">
       <div className="login-logo">
-        <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+        <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
       </div>
       <div className="rec-sent-icon">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0B5B68" strokeWidth="1.8">
@@ -139,7 +139,7 @@ export default function LoginPage() {
         ) : (
           <div className="login-card">
             <div className="login-logo">
-              <img src="/logos/logotipo-original.svg" alt="Astri" className="login-logo__img" />
+              <img src="/logos/logotipo-workr.png" alt="Astri" className="login-logo__img" />
             </div>
 
             <h1 className="login-title">Acesse sua conta</h1>
@@ -225,7 +225,7 @@ export default function LoginPage() {
           <div className="login-right__footer-right">
             <span className="login-right__developed">desenvolvido por:</span>
             <img
-              src="/logos/logotipo-negative.svg"
+              src="/logos/logotipo-workr.png"
               alt="Astri"
               className="login-right__logo-img"
             />

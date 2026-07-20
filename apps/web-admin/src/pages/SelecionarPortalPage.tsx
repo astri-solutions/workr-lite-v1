@@ -28,7 +28,7 @@ export default function SelecionarPortalPage() {
     <div className="sp-shell">
       <div className="sp-card">
         <div className="sp-header">
-          <img src="/logos/logotipo-original.svg" alt="Astri" className="sp-logo" />
+          <img src="/logos/logotipo-workr.png" alt="Astri" className="sp-logo" />
           <h1 className="sp-title">Selecione o portal</h1>
           <p className="sp-desc">Olá, <strong>{user.name}</strong>. Você tem acesso a mais de um portal. Escolha com qual deseja trabalhar.</p>
         </div>

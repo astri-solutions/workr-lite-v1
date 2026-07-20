@@ -39,7 +39,7 @@ export default function AdminLayout() {
       />
       <AppSidebar
         sections={SECTIONS}
-        logoSrc="/logos/logotipo-original.svg"
+        logoSrc="/logos/logotipo-workr.png"
         logoCollapsedSrc="/logos/logo-original.svg"
         logoAlt="Astri"
         mobileOpen={mobileNavOpen}
