@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { PublishProvider, usePublish } from '../contexts/PublishContext';
+import { PublishProvider } from '../contexts/PublishContext';
 import { pKey } from '../utils/portalStorage';
 import { fetchPortalConfig } from '../lib/portalConfigApi';
 import AppSidebar, { NavSection } from './AppSidebar';
@@ -250,7 +250,6 @@ const PLATAFORMA_SECTION: NavSection = {
 
 function ClientLayoutInner() {
   const { user } = useAuth();
-  const { publish, publishing, publishStatus } = usePublish();
   const isSuperAdmin = user?.role === 'super_admin';
   const activePortalId = user?.activePortalId ?? user?.portais?.[0]?.id;
   const layoutKey = pKey(PORTAL_LAYOUT_KEY, activePortalId);
@@ -330,33 +329,6 @@ function ClientLayoutInner() {
         logoAlt="Workr Lite"
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
-        footerContent={
-          <button
-            className={`sidebar-publish-btn${publishing ? ' sidebar-publish-btn--loading' : ''}${publishStatus === 'ok' ? ' sidebar-publish-btn--ok' : ''}${publishStatus === 'err' ? ' sidebar-publish-btn--err' : ''}`}
-            type="button"
-            onClick={publish}
-            disabled={publishing}
-          >
-            {publishStatus === 'ok' ? (
-              <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                Publicado!
-              </>
-            ) : publishStatus === 'err' ? (
-              <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                Erro ao publicar
-              </>
-            ) : publishing ? (
-              'Publicando…'
-            ) : (
-              <>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
-                Publicar site
-              </>
-            )}
-          </button>
-        }
       />
       <div className="admin-right">
         <AppTopbar
