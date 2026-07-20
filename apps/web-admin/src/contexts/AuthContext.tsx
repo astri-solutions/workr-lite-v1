@@ -119,7 +119,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       persist(null);
       return base; // onAuthStateChange will set user to null
     }
-    const activePortalId = base.activePortalId ?? portais[0].id;
+    // The stored activePortalId may point to a portal the user no longer has
+    // access to (e.g. leftover from a previous account/session on this same
+    // browser) — only trust it if it's actually in the freshly loaded list.
+    const activePortalId = base.activePortalId && portais.some(p => p.id === base.activePortalId)
+      ? base.activePortalId
+      : portais[0].id;
     return { ...base, portais, activePortalId };
   }
 
