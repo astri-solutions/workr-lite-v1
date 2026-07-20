@@ -230,9 +230,13 @@ export default function PainelControlePage() {
           }),
         }
       );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(body.error ?? res.statusText);
+      const body = await res.json().catch(() => ({})) as { id?: string; error?: string; emailError?: string };
+      if (!res.ok) throw new Error(body.error ?? res.statusText);
+      if (body.emailError) {
+        // The invite record was created but the e-mail never reached the admin —
+        // keep the "sem administrador vinculado" banner up so it's obvious the
+        // admin still can't actually access the CMS.
+        throw new Error(`Falha no envio do e-mail: ${body.emailError}`);
       }
       setInviteResult('ok');
       setHasAdmin(true);
