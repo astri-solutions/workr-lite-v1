@@ -95,7 +95,8 @@ export default function FaviconCropModal({ file, onCancel, onConfirm }: Props) {
       }
     >
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginBottom: 'var(--space-3)' }}>
-        Ajuste a área que será usada como favicon. Apenas a região dentro do quadro é exportada.
+        Ajuste a área que será usada como favicon. Apenas a região dentro do quadro é exportada,
+        gerando um arquivo PNG de {OUTPUT_SIZE}×{OUTPUT_SIZE}px (nítido em telas retina; exibido a 32×32/16×16px nas abas do navegador).
       </p>
       <div
         ref={stageRef}
