@@ -261,14 +261,14 @@
 }
 
 .admin-sidebar__logo-img {
-  height: 28px;
+  height: 44px;
   width: auto;
   display: block;
   transition: all 0.18s;
 }
 
 .admin-sidebar--collapsed .admin-sidebar__logo-img {
-  height: 32px;
+  height: 40px;
 }
 
 .admin-sidebar__logo-mark {
