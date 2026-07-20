@@ -227,7 +227,7 @@ export default function LoginPage() {
           <div className="login-right__footer-right">
             <span className="login-right__developed">Powered by:</span>
             <img
-              src="/logos/astri/logotipo-astri.png"
+              src="/logos/astri/logotipo-negative.svg"
               alt="Astri"
               className="login-right__logo-img"
             />

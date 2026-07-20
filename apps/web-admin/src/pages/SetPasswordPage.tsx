@@ -213,7 +213,7 @@ export default function SetPasswordPage() {
           <span className="login-right__footer-label">astri.solutions</span>
           <div className="login-right__footer-right">
             <span className="login-right__developed">Powered by:</span>
-            <img src="/logos/astri/logotipo-astri.png" alt="Astri" className="login-right__logo-img" />
+            <img src="/logos/astri/logotipo-negative.svg" alt="Astri" className="login-right__logo-img" />
           </div>
         </footer>
       </div>
