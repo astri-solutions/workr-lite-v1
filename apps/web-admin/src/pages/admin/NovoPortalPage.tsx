@@ -12,6 +12,18 @@ import './AdminPages.css';
 import './NovoPortalPage.css';
 import '../../components/InviteUserModal.css';
 
+/* ─── Slug helpers ─────────────────────────────────────────────────────── */
+// Strip accents (á→a, ç→c, ú→u...) before removing non a-z0-9 chars, so
+// accented names don't get truncated (e.g. "Itaú" → "itau", not "it").
+function slugify(v: string): string {
+  return v
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
 /* ─── Default canais por tipo ──────────────────────────────────────────── */
 function defaultCanaisForTipo(tipo: string): Canal[] {
   if (tipo === 'banner') return DEFAULT_CANAIS;
@@ -1288,7 +1300,7 @@ export default function NovoPortalPage() {
             },
             sites: [{
               id: `s${Date.now()}`,
-              link: form.url ? `workr-portal-${form.url}.vercel.app` : `workr-portal-${form.nome.toLowerCase().replace(/\s+/g, '-')}.vercel.app`,
+              link: form.url ? `workr-portal-${form.url}.vercel.app` : `workr-portal-${slugify(form.nome)}.vercel.app`,
               status: 'Ativo' as const,
               ip: '',
               tipo: (form.tipoSite as 'RI' | 'Institucional' | 'Fundo' | 'Landing Page') || 'RI',
@@ -1377,7 +1389,7 @@ export default function NovoPortalPage() {
 
           // Provisiona repositório GitHub + projeto Vercel
           // Strip any accidental 'workr-portal-' prefix — the edge function always prepends it
-          const rawSlug = form.url || form.nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const rawSlug = form.url || slugify(form.nome);
           const subdomain = rawSlug.replace(/^workr-portal-/, '');
           if (isSupabaseConfigured && supabase) {
             try {
@@ -1581,9 +1593,9 @@ export default function NovoPortalPage() {
             autoCvm={form.autoCvm}
             tipoSite={form.tipoSite}
             onNome={(v) => setForm((f) => {
-              const derivedFromCurrent = f.nome.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+              const derivedFromCurrent = slugify(f.nome);
               const autoSync = f.url === '' || f.url === derivedFromCurrent;
-              const newSlug = v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+              const newSlug = slugify(v);
               return { ...f, nome: v, url: autoSync ? newSlug : f.url };
             })}
             onNomeFantasia={(v) => setForm((f) => ({ ...f, nomeFantasia: v }))}
