@@ -172,7 +172,7 @@ export default function PaginasDeErroPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>
-            <PublishButton onClick={handlePublish} />
+            <PublishButton onClick={handlePublish} disabled={!isDirty} />
           </div>
         }
       />

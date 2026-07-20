@@ -144,6 +144,14 @@
   vertical-align: middle;
 }
 
+/* .data-table thead th sets text-align: left with higher specificity
+   (type + class vs. a single class here) — without this, the header
+   label stayed left-aligned while the cell content below it was centered. */
+.data-table thead th.docs-col-center .th-sort-inner {
+  justify-content: center;
+  width: 100%;
+}
+
 .docs-col-center > * {
   margin: 0 auto;
 }

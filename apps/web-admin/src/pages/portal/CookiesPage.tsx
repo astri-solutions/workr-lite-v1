@@ -260,7 +260,7 @@ export default function CookiesPage() {
             <button className="btn-outline" type="button" onClick={handleSave} disabled={!isDirty && saved}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>
-            <PublishButton onClick={handlePublish} />
+            <PublishButton onClick={handlePublish} disabled={!isDirty} />
           </div>
         }
       />

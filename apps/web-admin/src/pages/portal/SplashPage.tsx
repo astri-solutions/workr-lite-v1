@@ -185,7 +185,7 @@ export default function SplashPage() {
             <button type="button" className="btn-outline" onClick={handleSave} disabled={!isDirty && saved}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>
-            <PublishButton onClick={handlePublish} />
+            <PublishButton onClick={handlePublish} disabled={!isDirty} />
           </div>
         }
       />

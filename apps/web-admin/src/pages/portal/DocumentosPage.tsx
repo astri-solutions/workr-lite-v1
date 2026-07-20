@@ -429,7 +429,7 @@ export default function DocumentosPage() {
               <th className={`th-sort docs-col-pub${col==='dataPub'?' th-sort--active':''}`} onClick={() => toggle('dataPub')}><span className="th-sort-inner">Publicação <SortIcon dir={col==='dataPub'?dir:null} /></span></th>
               <th className={`th-sort${col==='pagina'?' th-sort--active':''}`} onClick={() => toggle('pagina')}><span className="th-sort-inner">Página <SortIcon dir={col==='pagina'?dir:null} /></span></th>
               <th className={`th-sort docs-col-center${col==='publicadoPor'?' th-sort--active':''}`} onClick={() => toggle('publicadoPor')}><span className="th-sort-inner">Publicado por <SortIcon dir={col==='publicadoPor'?dir:null} /></span></th>
-              <th className={`th-sort${col==='ultimaEdicao'?' th-sort--active':''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col==='ultimaEdicao'?dir:null} /></span></th>
+              <th className={`th-sort docs-col-center${col==='ultimaEdicao'?' th-sort--active':''}`} onClick={() => toggle('ultimaEdicao')}><span className="th-sort-inner">Última edição <SortIcon dir={col==='ultimaEdicao'?dir:null} /></span></th>
               <th className={`th-sort docs-col-center${col==='ultimoEditor'?' th-sort--active':''}`} onClick={() => toggle('ultimoEditor')}><span className="th-sort-inner">Editado por <SortIcon dir={col==='ultimoEditor'?dir:null} /></span></th>
               <th></th>
             </tr>
@@ -465,7 +465,7 @@ export default function DocumentosPage() {
                   <td className="docs-col-center">
                     <div className={`docs-avatar${doc.fromCvm ? ' docs-avatar--cvm' : ''}`} title={doc.fromCvm ? 'Auto CVM' : doc.publicadoPor}>{doc.publicadoPor.slice(0,2).toUpperCase()}</div>
                   </td>
-                  <td className="table-cell--muted">{doc.ultimaEdicao}</td>
+                  <td className="table-cell--muted docs-col-center">{doc.ultimaEdicao}</td>
                   <td className="docs-col-center">
                     <div className="docs-avatar" title={doc.ultimoEditor}>{doc.ultimoEditor.slice(0,2).toUpperCase()}</div>
                   </td>

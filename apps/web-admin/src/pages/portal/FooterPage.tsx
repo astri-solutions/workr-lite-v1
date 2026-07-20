@@ -293,7 +293,7 @@ export default function FooterPage() {
             <button className="btn-outline" type="button" onClick={saveDraft} disabled={!dirty}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>
-            <PublishButton onClick={handlePublish} />
+            <PublishButton onClick={handlePublish} disabled={!dirty} />
           </div>
         }
       />
