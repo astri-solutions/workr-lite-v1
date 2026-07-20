@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
@@ -9,7 +9,9 @@ import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { Canal, DEFAULT_CANAIS, CANAIS_KEY } from '../../components/ChannelEditor';
-import { loadMaterias, deleteMateria as deleteMateriaFromStore, type StoredMateria } from '../../hooks/useMateriasStore';
+import { deleteMateria as deleteMateriaFromStore, type StoredMateria } from '../../hooks/useMateriasStore';
+import { resolvePortalId } from '../../lib/portalDb';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
 
@@ -131,24 +133,55 @@ export default function MateriasPage() {
   const portalLayout = localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar';
   const isFlatLayout = portalLayout === 'sidebar' || portalLayout === 'tabmenu';
 
-  const [materias, setMaterias] = useState<Materia[]>(() => {
-    const stored = loadMaterias(activePortalId ?? undefined);
-    const storedIds = new Set(stored.map(m => m.id));
-    const initial = INITIAL.filter(m => !storedIds.has(m.id));
-    const fromStore: Materia[] = stored.map((m: StoredMateria) => ({
-      id: m.id,
-      titulo: m.titulo,
-      pagina: m.pageLabel,
-      status: m.status,
-      data: m.data,
-      autor: m.autor,
-      ultimaEdicao: m.ultimaEdicao,
-      ultimoEditor: m.ultimoEditor,
-      tipo: m.pageType,
-      original: m,
-    }));
-    return [...initial, ...fromStore];
-  });
+  const [materias, setMaterias] = useState<Materia[]>(INITIAL);
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activePortalId) return;
+    resolvePortalId(activePortalId).then(setPortalDbId);
+  }, [activePortalId]);
+
+  const loadFromSupabase = useCallback(async () => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    const { data } = await supabase
+      .from('portal_materias')
+      .select('*')
+      .eq('portal_id', portalDbId)
+      .order('created_at', { ascending: false });
+    if (!data) return;
+    const fromDb: Materia[] = data.map((row: Record<string, unknown>) => {
+      const stored: StoredMateria = {
+        id: row.id as string,
+        titulo: (row.titulo as string) ?? '',
+        subtitulo: (row.subtitulo as string) ?? '',
+        pageId: (row.page_id as string) ?? '',
+        pageLabel: (row.page_label as string) ?? '',
+        pageType: (row.page_type as StoredMateria['pageType']) ?? 'show',
+        pageSlugType: (row.page_slug as string | undefined) ?? undefined,
+        status: (row.status as StoredMateria['status']) ?? 'rascunho',
+        data: (row.data as string) ?? '',
+        autor: (row.autor as string) ?? '',
+        ultimaEdicao: (row.ultima_edicao as string) ?? '',
+        ultimoEditor: (row.ultimo_editor as string) ?? '',
+        content: row.content,
+      };
+      return {
+        id: stored.id,
+        titulo: stored.titulo,
+        pagina: stored.pageLabel,
+        status: stored.status,
+        data: stored.data,
+        autor: stored.autor,
+        ultimaEdicao: stored.ultimaEdicao,
+        ultimoEditor: stored.ultimoEditor,
+        tipo: stored.pageType,
+        original: stored,
+      };
+    });
+    setMaterias(fromDb);
+  }, [portalDbId]);
+
+  useEffect(() => { loadFromSupabase(); }, [loadFromSupabase]);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ pagina: '', status: '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
