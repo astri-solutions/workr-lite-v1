@@ -40,7 +40,7 @@ export default function AdminLayout() {
       <AppSidebar
         sections={SECTIONS}
         logoSrc="/logos/logotipo-workr.png"
-        logoCollapsedSrc="/logos/logo-original.svg"
+        logoCollapsedSrc="/favicon-workr.png"
         logoAlt="Astri"
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
