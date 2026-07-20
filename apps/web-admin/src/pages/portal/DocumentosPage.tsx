@@ -45,6 +45,10 @@ interface DocRow {
 
 const DOCS_BUCKET = 'portal-documents';
 
+// Documents only make sense on "lista"/"lista-agrupada" pages (accordion of
+// files) — pages without pageType set yet (legacy canais) stay selectable.
+const COMPATIBLE_DOC_TYPES = ['lista', 'lista-agrupada', undefined] as (string | undefined)[];
+
 function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
@@ -647,16 +651,17 @@ export default function DocumentosPage() {
                 {destPages.map(p => {
                   const checked = form.paginaIds.includes(p.id);
                   const subs = form.subGroupIds[p.id] ?? [];
+                  const compatible = COMPATIBLE_DOC_TYPES.includes(p.pageType);
                   return (
                     <div key={p.id}>
-                      <label className="up-form__check">
-                        <input type="checkbox" checked={checked}
+                      <label className="up-form__check" title={!compatible ? 'Esta página não é do tipo Lista — não aceita documentos' : undefined}>
+                        <input type="checkbox" checked={checked} disabled={!compatible}
                           onChange={e => {
                             const ids = e.target.checked ? [...form.paginaIds, p.id] : form.paginaIds.filter(id => id !== p.id);
                             patchForm('paginaIds', ids);
                             if (!e.target.checked) patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
                           }} />
-                        {p.label}
+                        {p.label}{!compatible ? ' (incompatível)' : ''}
                       </label>
                       {checked && p.subGroups.length > 0 && (
                         <div className="doc-subgroup">

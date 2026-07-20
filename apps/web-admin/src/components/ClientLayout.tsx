@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { PublishProvider } from '../contexts/PublishContext';
 import { pKey } from '../utils/portalStorage';
 import { fetchPortalConfig } from '../lib/portalConfigApi';
+import PORTAL_CONFIG from '../portalConfig';
 import AppSidebar, { NavSection } from './AppSidebar';
 import AppTopbar from './AppTopbar';
 import './AdminLayout.css';
@@ -286,12 +287,20 @@ function ClientLayoutInner() {
       if (cfg['interacoes'])    localStorage.setItem(pk('portal_interacoes'), JSON.stringify(cfg['interacoes']));
       if (cfg['informacoes'])   localStorage.setItem(pk('portal_informacoes'), JSON.stringify(cfg['informacoes']));
       const infoIdiomas = (cfg['informacoes'] as { idiomas?: string[] } | undefined)?.idiomas;
+      let idiomasChanged = false;
       if (Array.isArray(infoIdiomas) && infoIdiomas.length > 0) {
         localStorage.setItem(pk('portal_idiomas'), JSON.stringify(infoIdiomas));
+        idiomasChanged = JSON.stringify(infoIdiomas) !== JSON.stringify(PORTAL_CONFIG.languages);
       }
       if (cfg['empresas'])      localStorage.setItem(`portal_empresas_${activePortalId}`, JSON.stringify(cfg['empresas']));
       // Update portal layout in component state if it changed
       if (cfg['layout']) setPortalLayout(cfg['layout'] as PortalLayout);
+      // PORTAL_CONFIG.languages is computed once at module load, before this
+      // async hydration resolves — a page that already rendered with the
+      // stale (default pt-BR-only) value never re-reads it. Reload once so
+      // the module re-evaluates with the now-hydrated localStorage in place;
+      // the sessionStorage flag above prevents this from looping.
+      if (idiomasChanged) { window.location.reload(); return; }
     }).catch(() => { hydrating.current = false; });
   }, [activePortalId, isSuperAdmin]);
 

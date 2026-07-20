@@ -1,9 +1,10 @@
-import { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT } from '../components/ChannelEditor';
+import { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType } from '../components/ChannelEditor';
 
 export interface DestPage {
   id: string;
   label: string;
   group: string;
+  pageType?: PageType;
 }
 
 /**
@@ -27,13 +28,13 @@ export function buildDestPages(canais: Canal[]): DestPage[] {
     if (c.children.length === 0) {
       // Direct page — the whole canal IS the destination (flat layouts, or
       // a childless canal in a banner layout).
-      result.push({ id: c.id, label: c.label, group: 'Canal raiz' });
+      result.push({ id: c.id, label: c.label, group: 'Canal raiz', pageType: c.pageType });
       continue;
     }
     for (const s of c.children) {
-      result.push({ id: s.id, label: s.label, group: c.label });
+      result.push({ id: s.id, label: s.label, group: c.label, pageType: s.pageType });
       for (const ss of s.children ?? []) {
-        result.push({ id: ss.id, label: ss.label, group: `${c.label} → ${s.label}` });
+        result.push({ id: ss.id, label: ss.label, group: `${c.label} → ${s.label}`, pageType: ss.pageType });
       }
     }
   }

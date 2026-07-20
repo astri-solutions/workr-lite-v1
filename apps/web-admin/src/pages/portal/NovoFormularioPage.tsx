@@ -7,6 +7,7 @@ import { resolvePortalId } from '../../lib/portalDb';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
+import { usePortalName } from '../../hooks/usePortalName';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
@@ -49,6 +50,12 @@ function newField(type: FieldType = 'text'): FormField {
   return { id: Math.random().toString(36).slice(2), type, label: '', placeholder: '', required: false, options: '' };
 }
 
+interface InfoCard {
+  enabled: boolean;
+  titulo: string;
+  corpo: string;
+}
+
 interface FormularioContent {
   kind: 'formulario';
   fields: FormField[];
@@ -56,10 +63,25 @@ interface FormularioContent {
   successMessage?: string;
   receiverEmail?: string;
   replyTo?: boolean;
+  infoCard?: InfoCard;
 }
 
 function isFormularioContent(content: unknown): content is FormularioContent {
   return !!content && typeof content === 'object' && (content as { kind?: string }).kind === 'formulario';
+}
+
+function defaultInfoCard(portalName: string): InfoCard {
+  return {
+    enabled: true,
+    titulo: portalName ? `${portalName} — Relações com Investidores` : 'Relações com Investidores',
+    corpo:
+      'Endereço, 000, 0º andar\n' +
+      'Cidade/UF, CEP 00000-000\n' +
+      'Tel: (00) 0000-0000\n' +
+      'ri@empresa.com\n\n' +
+      'O atendimento aos acionistas é efetuado de segunda a sexta, das 08h às 18h, exceto feriados.\n\n' +
+      'Para informações sobre custódia e transferência de ações, entre em contato com o banco custodiante da companhia.',
+  };
 }
 
 const DEFAULT_FIELDS: FormField[] = [
@@ -75,6 +97,7 @@ export default function NovoFormularioPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const activePortalId = useActivePortalId();
+  const portalName = usePortalName();
   const { publish } = usePublish();
   const routeState = location.state as { editing?: StoredMateria } | null;
   const editing = routeState?.editing ?? null;
@@ -92,6 +115,7 @@ export default function NovoFormularioPage() {
     editingContent?.successMessage ? { [primaryLang]: editingContent.successMessage } : {},
   );
   const [fields, setFields] = useState<FormField[]>(editingContent?.fields ?? DEFAULT_FIELDS);
+  const [infoCard, setInfoCard] = useState<InfoCard>(editingContent?.infoCard ?? defaultInfoCard(portalName));
   const [receiverEmail, setReceiverEmail] = useState(editingContent?.receiverEmail ?? '');
   const [replyTo, setReplyTo] = useState(editingContent?.replyTo ?? false);
   const [page, setPage] = useState(editing?.pageId ?? '');
@@ -187,6 +211,7 @@ export default function NovoFormularioPage() {
           successMessage: successMessages[primary] || 'Mensagem enviada com sucesso!',
           receiverEmail,
           replyTo,
+          infoCard,
         },
       };
       persistMateria(materia, activePortalId ?? undefined);
@@ -366,6 +391,36 @@ export default function NovoFormularioPage() {
               </label>
             </div>
           </div>
+
+          {/* Card de contato (ex: "Fale conosco") */}
+          <div className="nf-section-header">
+            <span>Card de contato</span>
+            <label className="nf-field-editor__check" style={{ marginLeft: 'auto' }}>
+              <input type="checkbox" checked={infoCard.enabled}
+                onChange={e => setInfoCard(c => ({ ...c, enabled: e.target.checked }))} />
+              Exibir ao lado do formulário
+            </label>
+          </div>
+          {infoCard.enabled && (
+            <div className="nm-meta-card">
+              <div className="nm-meta-card__row nm-meta-card__row--single">
+                <label className="nm-meta-label">
+                  Título do card
+                  <input className="nm-meta-input" type="text" placeholder="Ex: Nome da empresa — Relações com Investidores"
+                    value={infoCard.titulo}
+                    onChange={e => setInfoCard(c => ({ ...c, titulo: e.target.value }))} />
+                </label>
+              </div>
+              <div className="nm-meta-card__row nm-meta-card__row--single">
+                <label className="nm-meta-label">
+                  Conteúdo <span className="nm-meta-optional">(endereço, telefone, e-mail, horário de atendimento etc. — use linhas em branco para separar parágrafos)</span>
+                  <textarea className="nm-meta-input" rows={8}
+                    value={infoCard.corpo}
+                    onChange={e => setInfoCard(c => ({ ...c, corpo: e.target.value }))} />
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Sidebar ── */}
