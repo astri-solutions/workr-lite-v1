@@ -212,7 +212,9 @@ export default function LoginPage() {
 
         <div className="login-right__content">
           <h2 className="login-right__headline">
-            <span className="login-right__headline--white">A Gestão da Comunicação em </span>
+            <span className="login-right__headline--white">A </span>
+            <span className="login-right__headline--white login-right__headline--strong">Gestão da Comunicação</span>
+            <span className="login-right__headline--white"> em </span>
             <span className="login-right__headline--green">uma única plataforma.</span>
           </h2>
           <p className="login-right__subtitle">
@@ -223,9 +225,9 @@ export default function LoginPage() {
         <footer className="login-right__footer">
           <span className="login-right__footer-label">astri.solutions</span>
           <div className="login-right__footer-right">
-            <span className="login-right__developed">desenvolvido por:</span>
+            <span className="login-right__developed">Powered by:</span>
             <img
-              src="/logos/logotipo-workr.png"
+              src="/logos/astri/logotipo-astri.png"
               alt="Astri"
               className="login-right__logo-img"
             />

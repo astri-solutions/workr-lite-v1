@@ -184,15 +184,16 @@
 
 .login-right__headline {
   font-family: var(--font-heading);
-  font-size: 2.625rem;
+  font-size: 1.75rem;
   font-weight: var(--font-bold);
   line-height: 1.2;
   margin: 0 0 var(--space-5) 0;
-  max-width: 560px;
+  white-space: nowrap;
 }
 
 .login-right__headline--white { color: #ffffff; }
 .login-right__headline--green { color: var(--color-secondary-500); }
+.login-right__headline--strong { font-weight: 800; }
 
 .login-right__subtitle {
   font-family: var(--font-body);
