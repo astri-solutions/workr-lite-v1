@@ -148,14 +148,26 @@ export default function UsuariosPage() {
     try {
       const token = await getToken();
       if (!token) return;
+      // Build per-portal role + empresa vinculation so the invited client_user
+      // is never left without an empresa tied to their access.
+      const portaisConfig = data.portaisIds.map(portalId => {
+        const portal = portais.find(p => p.id === portalId);
+        const portalEmpresaIds = (portal?.empresas ?? []).map(e => e.id);
+        return {
+          portalId,
+          role: data.portalRoles[portalId] ?? 'viewer',
+          empresas: data.empresasIds.filter(id => portalEmpresaIds.includes(id)),
+        };
+      });
       await fetch(`${FN_BASE}/invite-user`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: data.email,
           nome: data.nome,
-          portaisIds: data.portaisIds,
           role: data.perfil,
+          portaisConfig,
+          redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
         }),
       });
       // Refresh list after a short delay to allow Supabase to process the invite
