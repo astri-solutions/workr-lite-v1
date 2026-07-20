@@ -36,6 +36,7 @@ export interface PortalConfigPatch {
   favicon_ext?:  string;
   error_pages?:  unknown;
   interacoes?:   unknown;
+  idiomas?:      unknown;
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────

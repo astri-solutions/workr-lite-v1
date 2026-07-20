@@ -286,11 +286,14 @@ function ClientLayoutInner() {
       if (cfg['error_pages'])   localStorage.setItem(pk('portal_error_pages'), JSON.stringify(cfg['error_pages']));
       if (cfg['interacoes'])    localStorage.setItem(pk('portal_interacoes'), JSON.stringify(cfg['interacoes']));
       if (cfg['informacoes'])   localStorage.setItem(pk('portal_informacoes'), JSON.stringify(cfg['informacoes']));
-      const infoIdiomas = (cfg['informacoes'] as { idiomas?: string[] } | undefined)?.idiomas;
+      // idiomas lives in its own top-level column (not nested in informacoes,
+      // which InformacoesPortalPage overwrites wholesale on every save — that
+      // used to silently wipe out idiomas whenever someone edited company info).
+      const idiomas = (cfg['idiomas'] as string[] | undefined) ?? undefined;
       let idiomasChanged = false;
-      if (Array.isArray(infoIdiomas) && infoIdiomas.length > 0) {
-        localStorage.setItem(pk('portal_idiomas'), JSON.stringify(infoIdiomas));
-        idiomasChanged = JSON.stringify(infoIdiomas) !== JSON.stringify(PORTAL_CONFIG.languages);
+      if (Array.isArray(idiomas) && idiomas.length > 0) {
+        localStorage.setItem(pk('portal_idiomas'), JSON.stringify(idiomas));
+        idiomasChanged = JSON.stringify(idiomas) !== JSON.stringify(PORTAL_CONFIG.languages);
       }
       if (cfg['empresas'])      localStorage.setItem(`portal_empresas_${activePortalId}`, JSON.stringify(cfg['empresas']));
       // Update portal layout in component state if it changed

@@ -1470,6 +1470,7 @@ export default function NovoPortalPage() {
                       cores: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
                       fontes: { heading: form.fonteTitulo, body: form.fonteTexto },
                       layout: form.tipo,
+                      idiomas: form.idiomas,
                       ticker: form.tickerType === 'none'
                         ? { type: 'none' }
                         : { type: form.tickerType, symbol: form.tickerSymbol || undefined, embedCode: form.tickerEmbedCode || undefined },
