@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import PageHeader from '../../components/PageHeader';
+import { useState, useEffect } from 'react';
+import StickyPageHeader from '../../components/StickyPageHeader';
 import { usePortalState } from '../../hooks/usePortalState';
+import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { usePublish } from '../../contexts/PublishContext';
+import { savePortalConfig } from '../../lib/portalConfigApi';
+import PublishButton from '../../components/PublishButton';
 import Modal from '../../components/Modal';
 import '../admin/AdminPages.css';
 import './PaginasDeErroPage.css';
@@ -97,9 +101,21 @@ const DEFAULT_PAGES: ErrorPage[] = [
 ];
 
 export default function PaginasDeErroPage() {
-  const [persisted, setPersisted] = usePortalState<ErrorPage[]>(ERROR_PAGES_KEY, 'error_pages', DEFAULT_PAGES);
-  // Merge persisted entries over defaults so new default pages always appear
-  const pages: ErrorPage[] = DEFAULT_PAGES.map(p => ({ ...p, ...persisted.find(s => s.code === p.code) }));
+  const activePortalId = useActivePortalId();
+  const { publish } = usePublish();
+  const [persisted, setPersisted, { hydrated }] = usePortalState<ErrorPage[]>(ERROR_PAGES_KEY, 'error_pages', DEFAULT_PAGES);
+  const [draft, setDraft] = useState<ErrorPage[]>(persisted);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (hydrated) setDraft(persisted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const isDirty = !saved && JSON.stringify(draft) !== JSON.stringify(persisted);
+
+  // Merge draft entries over defaults so new default pages always appear
+  const pages: ErrorPage[] = DEFAULT_PAGES.map(p => ({ ...p, ...draft.find(s => s.code === p.code) }));
   const [editing, setEditing] = useState<ErrorPage | null>(null);
   const [editTexts, setEditTexts] = useState<ErrorPageTexts>({ title: '', description: '', cta: '' });
   const [resetConfirm, setResetConfirm] = useState<number | null>(null);
@@ -115,24 +131,50 @@ export default function PaginasDeErroPage() {
       editTexts.title !== (DEFAULT_TEXTS[editing.code]?.title ?? '') ||
       editTexts.description !== (DEFAULT_TEXTS[editing.code]?.description ?? '') ||
       editTexts.cta !== (DEFAULT_TEXTS[editing.code]?.cta ?? '');
-    setPersisted(pages.map(p =>
+    setDraft(pages.map(p =>
       p.code === editing.code ? { ...p, texts: hasChanges ? { ...editTexts } : null } : p
     ));
+    setSaved(false);
     setEditing(null);
   }
 
   function resetPage(code: number) {
-    setPersisted(pages.map(p => p.code === code ? { ...p, texts: null } : p));
+    setDraft(pages.map(p => p.code === code ? { ...p, texts: null } : p));
+    setSaved(false);
     setResetConfirm(null);
   }
 
   const isCustomized = (p: ErrorPage) => p.texts !== null;
 
+  function saveDraft() {
+    setPersisted(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  async function handlePublish() {
+    setPersisted(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+    if (activePortalId) {
+      try { await savePortalConfig(activePortalId, { error_pages: draft }); } catch (e) { console.error(e); }
+    }
+    await publish();
+  }
+
   return (
     <div className="page">
-      <PageHeader
+      <StickyPageHeader
         title="Páginas de erro"
         description="Personalize as páginas exibidas quando ocorre um erro no portal."
+        action={
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <button className="btn-outline" type="button" onClick={saveDraft} disabled={!isDirty}>
+              {saved ? 'Salvo!' : 'Salvar rascunho'}
+            </button>
+            <PublishButton onClick={handlePublish} />
+          </div>
+        }
       />
 
       <div className="ep-list">

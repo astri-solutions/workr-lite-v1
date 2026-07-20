@@ -8,6 +8,7 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 import './NovoFormularioPage.css';
@@ -221,9 +222,7 @@ export default function NovoFormularioPage() {
           <button className="btn-outline" type="button" onClick={() => handleSave('draft')}>
             {saved && status === 'draft' ? 'Salvo!' : 'Salvar rascunho'}
           </button>
-          <button className="btn-primary" type="button" onClick={() => handleSave('published')}>
-            {saved && status === 'published' ? 'Publicado!' : 'Publicar'}
-          </button>
+          <PublishButton onClick={() => handleSave('published')} />
         </div>
       </div>
 

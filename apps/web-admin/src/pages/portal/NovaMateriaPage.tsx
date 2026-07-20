@@ -7,6 +7,7 @@ import { persistMateria, syncMateriaToSupabase, type MateriaPageType } from '../
 import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
@@ -955,14 +956,10 @@ export default function NovaMateriaPage() {
               >
                 Salvar rascunho
               </button>
-              <button
-                type="button"
-                className="btn-primary"
+              <PublishButton
                 disabled={!dirty || !canPublish}
                 onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
-              >
-                {saved ? 'Salvo!' : 'Salvar alterações'}
-              </button>
+              />
             </>
           ) : (
             <>
@@ -974,15 +971,10 @@ export default function NovaMateriaPage() {
               >
                 {saved && status === 'draft' ? 'Salvo!' : 'Salvar como Rascunho'}
               </button>
-              <button
-                type="button"
-                className="btn-primary"
+              <PublishButton
                 disabled={!canPublish}
-                title={pageOccupied ? 'Esta página já possui uma matéria publicada.' : undefined}
                 onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
-              >
-                {saved && status !== 'draft' ? (status === 'scheduled' ? 'Agendado!' : 'Publicado!') : (scheduleDate ? 'Agendar' : 'Publicar')}
-              </button>
+              />
             </>
           )}
         </div>

@@ -9,6 +9,7 @@ import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
 import { usePublish } from '../../contexts/PublishContext';
+import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -63,7 +64,7 @@ export default function BannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
-  const { publish, publishing, hasPendingDraft, notifyDraft } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [dirty, setDirty] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -143,10 +144,7 @@ export default function BannerPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
               Salvar rascunho
             </button>
-            <button className="btn-primary" type="button" disabled={!dirty && !hasPendingDraft} onClick={handlePublish}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>public</span>
-              {publishing ? 'Publicando…' : 'Publicar'}
-            </button>
+            <PublishButton onClick={handlePublish} disabled={!dirty && !hasPendingDraft} />
           </div>
         }
       />
