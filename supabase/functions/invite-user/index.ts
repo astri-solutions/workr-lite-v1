@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendUserInvite } from '../_shared/postmark.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,54 +66,76 @@ Deno.serve(async (req) => {
     const resolvedRedirectTo = redirectTo
       ?? (Deno.env.get('SITE_URL') ? `${Deno.env.get('SITE_URL')}/definir-senha` : 'https://workr-lite-v1.vercel.app/definir-senha');
 
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      data: { name: nome ?? '' },
-      redirectTo: resolvedRedirectTo,
+    // Generate the invite link ourselves so we can send it via Postmark —
+    // Supabase's built-in inviteUserByEmail relies on the project's own SMTP
+    // config (rate-limited / often unconfigured) and ignores POSTMARK_FROM.
+    const { data, error } = await adminClient.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { data: { name: nome ?? '' }, redirectTo: resolvedRedirectTo },
     });
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
+    if (error || !data?.user) {
+      return new Response(JSON.stringify({ error: error?.message ?? 'Failed to generate invite link' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const resolvedRole = inviteRole === 'super_admin' ? 'super_admin' : 'client_user';
     const portalIds = (portaisConfig ?? []).map(p => p.portalId);
+    const userId = data.user.id;
 
-    if (data.user?.id) {
-      await adminClient.auth.admin.updateUserById(data.user.id, {
-        app_metadata: { role: resolvedRole, portais: portalIds },
-      });
+    await adminClient.auth.admin.updateUserById(userId, {
+      app_metadata: { role: resolvedRole, portais: portalIds },
+    });
 
-      // client_user access must always be tied to a specific portal + empresa —
-      // create the portal_users rows the same way invite-portal-user does,
-      // resolving each portalId (which may be a portal_key, not the UUID) first.
-      if (resolvedRole === 'client_user' && portaisConfig?.length) {
-        for (const cfg of portaisConfig) {
-          try {
-            let dbUuid: string | null = null;
-            if (/^[0-9a-f-]{36}$/.test(cfg.portalId)) {
-              dbUuid = cfg.portalId;
-            } else {
-              const { data: row } = await adminClient
-                .from('portals').select('id').eq('portal_key', cfg.portalId).maybeSingle();
-              dbUuid = row?.id ?? null;
-            }
-            if (!dbUuid) continue;
-            await adminClient.from('portal_users').upsert({
-              portal_id: dbUuid,
-              user_id: data.user.id,
-              email,
-              nome: nome ?? '',
-              role: cfg.role,
-              empresas: cfg.empresas.length > 0 ? cfg.empresas : null,
-            }, { onConflict: 'portal_id,user_id' });
-          } catch { /* non-fatal per-portal */ }
-        }
+    // client_user access must always be tied to a specific portal + empresa —
+    // create the portal_users rows the same way invite-portal-user does,
+    // resolving each portalId (which may be a portal_key, not the UUID) first.
+    if (resolvedRole === 'client_user' && portaisConfig?.length) {
+      for (const cfg of portaisConfig) {
+        try {
+          let dbUuid: string | null = null;
+          if (/^[0-9a-f-]{36}$/.test(cfg.portalId)) {
+            dbUuid = cfg.portalId;
+          } else {
+            const { data: row } = await adminClient
+              .from('portals').select('id').eq('portal_key', cfg.portalId).maybeSingle();
+            dbUuid = row?.id ?? null;
+          }
+          if (!dbUuid) continue;
+          await adminClient.from('portal_users').upsert({
+            portal_id: dbUuid,
+            user_id: userId,
+            email,
+            nome: nome ?? '',
+            role: cfg.role,
+            empresas: cfg.empresas.length > 0 ? cfg.empresas : null,
+          }, { onConflict: 'portal_id,user_id' });
+        } catch { /* non-fatal per-portal */ }
       }
     }
 
-    return new Response(JSON.stringify({ id: data.user?.id }), {
+    // Send the invite e-mail via Postmark (reliable, bypasses Supabase's SMTP
+    // rate limit); fall back to Supabase's native invite e-mail only if
+    // Postmark isn't configured.
+    const postmarkToken = Deno.env.get('POSTMARK_TOKEN');
+    if (postmarkToken) {
+      try {
+        await sendUserInvite({ email, nome: nome ?? undefined, inviteLink: data.properties.action_link });
+      } catch (emailErr) {
+        return new Response(JSON.stringify({ id: userId, emailError: String(emailErr) }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: { name: nome ?? '' },
+        redirectTo: resolvedRedirectTo,
+      }).catch(() => { /* non-fatal */ });
+    }
+
+    return new Response(JSON.stringify({ id: userId }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
