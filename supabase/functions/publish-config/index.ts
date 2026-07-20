@@ -590,6 +590,7 @@ Deno.serve(async (req) => {
       { repoPath: 'scripts/components/theme.js', label: 'theme.js' },
       { repoPath: 'scripts/components/footer.js', label: 'footer.js' },
       { repoPath: 'scripts/components/materias.js', label: 'materias.js' },
+      { repoPath: 'scripts/components/documentos.js', label: 'documentos.js' },
       { repoPath: 'scripts/components/splash.js', label: 'splash.js' },
       { repoPath: 'scripts/components/cookies.js', label: 'cookies.js' },
       { repoPath: 'scripts/page.js', label: 'page.js' },
