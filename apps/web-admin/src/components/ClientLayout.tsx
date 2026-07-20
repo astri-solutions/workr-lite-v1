@@ -325,7 +325,7 @@ function ClientLayoutInner() {
       <AppSidebar
         sections={sections}
         logoSrc="/logos/logotipo-workr.png"
-        logoCollapsedSrc="/favicon-workr.png"
+        logoCollapsedSrc="/favicon/favicon-60px.png"
         logoAlt="Workr Lite"
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
