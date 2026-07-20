@@ -126,6 +126,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
 
+    // SetPasswordPage (/definir-senha) owns the invite/recovery session itself
+    // while the user is creating their password. This provider's own listener
+    // was racing it: the instant the invite link's session appeared, it ran
+    // buildClientUser -> loadClientPortais, and if that portal_users lookup
+    // hadn't caught up yet it force-signed the session out (the "0 portais
+    // means access was revoked" rule below) — right as the user was about to
+    // submit their new password, producing "Auth session missing!".
+    if (window.location.pathname.startsWith('/definir-senha')) {
+      setLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const u = await buildClientUser(session.user, userFromStorage());
