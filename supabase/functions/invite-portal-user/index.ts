@@ -109,12 +109,7 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
-      // Portal admins can only invite editor/viewer — not other admins
-      if (role === 'admin') {
-        return new Response(JSON.stringify({ error: 'Forbidden: only super_admin can grant admin role' }), {
-          status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
-        });
-      }
+      // Portal admins can invite editor/viewer AND other admins of their own portal.
     }
 
     // Helper: upsert portal_users record

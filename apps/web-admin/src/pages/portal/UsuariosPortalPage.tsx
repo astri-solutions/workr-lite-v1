@@ -58,7 +58,11 @@ const FN_BASE = import.meta.env.VITE_SUPABASE_URL
 async function getToken(): Promise<string | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  if (session?.access_token) return session.access_token;
+  // Session missing from local state can just mean the token needs a
+  // refresh (e.g. tab was idle) — try once before reporting a real failure.
+  const { data: refreshed } = await supabase.auth.refreshSession();
+  return refreshed.session?.access_token ?? null;
 }
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'Admin', editor: 'Editor' };
@@ -207,16 +211,19 @@ export default function UsuariosPortalPage() {
 
   function openCreate() {
     setEditing(null);
-    // When the portal has a single empresa, pre-select it — a user must
-    // always be tied to at least one empresa, never left unassigned.
+    // When the portal has a single empresa, pre-select it automatically —
+    // there's nothing to actually choose. With 0 empresas there's also
+    // nothing to require. Only 2+ empresas need an explicit choice.
     setForm({ ...EMPTY_FORM, empresaIds: empresas.length === 1 ? [empresas[0].id] : [] });
     setInvited(false);
+    setInviteError('');
     setModalOpen(true);
   }
 
   function openEdit(u: PortalUser) {
     setEditing(u);
     setForm({ nome: u.nome, email: u.email, role: u.role, empresaIds: u.empresaIds, allEmpresas: u.empresaIds.length === 0 });
+    setInviteError('');
     setModalOpen(true);
   }
 
@@ -228,9 +235,15 @@ export default function UsuariosPortalPage() {
     setInviteError('');
   }
 
+  // With 2+ empresas the client must make an explicit choice (specific
+  // ones, or all). With 0 or 1 empresa there's nothing meaningful to pick,
+  // so it's never a blocking requirement.
+  const empresaSelectionRequired = empresas.length > 1;
+  const empresaSelectionOk = !empresaSelectionRequired || form.allEmpresas || form.empresaIds.length > 0;
+
   async function handleSave() {
-    if (!form.nome.trim() || !form.email.trim() || form.empresaIds.length === 0) return;
-    const empIds = form.empresaIds;
+    if (!form.nome.trim() || !form.email.trim() || !empresaSelectionOk) return;
+    const empIds = form.allEmpresas ? [] : form.empresaIds;
 
     // Edit existing user
     if (editing) {
@@ -394,7 +407,7 @@ export default function UsuariosPortalPage() {
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
               <button className="btn-primary" type="button" onClick={handleSave}
-                disabled={!form.nome.trim() || !form.email.trim() || form.empresaIds.length === 0 || inviting}>
+                disabled={!form.nome.trim() || !form.email.trim() || !empresaSelectionOk || inviting}>
                 {inviting ? 'Enviando…' : editing ? 'Salvar' : 'Enviar convite'}
               </button>
             </div>
@@ -427,26 +440,36 @@ export default function UsuariosPortalPage() {
                 <select className="filter-select up-form__select" value={form.role}
                   onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
                   <option value="editor">Editor — pode publicar e editar</option>
+                  <option value="admin">Admin — acesso total ao portal</option>
                 </select>
                 <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
               </div>
             </label>
-            <div className="up-form__section">
-              <span className="up-form__section-label">Acesso às empresas</span>
-              <p className="up-form__hint">Selecione ao menos uma empresa — todo usuário deve estar vinculado a uma empresa do portal.</p>
-              <div className="up-form__emp-list">
-                {empresas.map(emp => (
-                  <label key={emp.id} className="up-form__check">
-                    <input type="checkbox" checked={form.empresaIds.includes(emp.id)}
-                      onChange={() => toggleEmpresa(emp.id)} />
-                    {emp.nome}
-                  </label>
-                ))}
+            {empresas.length > 1 && (
+              <div className="up-form__section">
+                <span className="up-form__section-label">Acesso às empresas</span>
+                <p className="up-form__hint">Marque "Todas as empresas" ou selecione apenas as empresas específicas às quais esse usuário terá acesso.</p>
+                <label className="up-form__check">
+                  <input type="checkbox" checked={form.allEmpresas}
+                    onChange={e => setForm(f => ({ ...f, allEmpresas: e.target.checked, empresaIds: e.target.checked ? [] : f.empresaIds }))} />
+                  Todas as empresas do portal
+                </label>
+                {!form.allEmpresas && (
+                  <div className="up-form__emp-list">
+                    {empresas.map(emp => (
+                      <label key={emp.id} className="up-form__check">
+                        <input type="checkbox" checked={form.empresaIds.includes(emp.id)}
+                          onChange={() => toggleEmpresa(emp.id)} />
+                        {emp.nome}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {!empresaSelectionOk && (
+                  <p className="up-form__error">Selecione ao menos uma empresa, ou marque "Todas as empresas".</p>
+                )}
               </div>
-              {form.empresaIds.length === 0 && (
-                <p className="up-form__error">Selecione ao menos uma empresa.</p>
-              )}
-            </div>
+            )}
           </div>
         )}
       </Modal>}
