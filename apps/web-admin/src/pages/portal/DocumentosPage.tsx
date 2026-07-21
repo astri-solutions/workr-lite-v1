@@ -339,7 +339,9 @@ export default function DocumentosPage() {
   }
 
   const _filtered = docs.filter(d => {
-    if (d.entityId !== activeEntity) return false;
+    // With a single empresa, "entidade" isn't a meaningful dimension — don't hide
+    // documents whose entity_id was never set (e.g. created before this field existed).
+    if (entities.length > 1 && d.entityId !== activeEntity) return false;
     if (search && !d.nome.toLowerCase().includes(search.toLowerCase())) return false;
     if (docFilters.tipo && d.tipo !== docFilters.tipo) return false;
     if (docFilters.ano && !d.dataPub.includes(docFilters.ano)) return false;
