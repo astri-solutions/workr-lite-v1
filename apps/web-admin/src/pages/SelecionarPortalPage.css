@@ -3,7 +3,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-gray-50, #f4f4f4);
+  background-image: url('/img/bg-image-workr-login.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: var(--space-6);
 }
 
