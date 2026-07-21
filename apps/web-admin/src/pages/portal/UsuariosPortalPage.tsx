@@ -286,6 +286,7 @@ export default function UsuariosPortalPage() {
       }
       setInvited(true);
       setTimeout(() => fetchUsers(), 1500);
+      setTimeout(() => closeModal(), 3000);
     } catch (e) {
       setInviteError(e instanceof Error ? e.message : 'Erro ao enviar convite');
     } finally {
@@ -401,9 +402,7 @@ export default function UsuariosPortalPage() {
         title={editing ? 'Editar acesso' : 'Convidar usuário'}
         size="sm"
         footer={
-          invited ? (
-            <button className="btn-primary" type="button" onClick={closeModal}>Fechar</button>
-          ) : (
+          invited ? null : (
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
               <button className="btn-primary" type="button" onClick={handleSave}
