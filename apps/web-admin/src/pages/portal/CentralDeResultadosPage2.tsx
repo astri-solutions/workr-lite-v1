@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
@@ -6,9 +6,13 @@ import LangTabs from '../../components/LangTabs';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CentralDeResultadosPage2.css';
+
+const RESULTADOS_BUCKET = 'portal-documents';
 
 interface Entity { id: string; name: string; tipo: 'EMPRESA' | 'FUNDO'; }
 
@@ -48,6 +52,12 @@ interface FileEntry {
   fileName: string;
   status: 'draft' | 'published';
   locale: string;
+  filePath?: string;
+  externalLink?: string;
+  /** Raw File object for an entry not yet uploaded to Storage — set when
+   * added via drop/pick or when replacing an existing entry's file; cleared
+   * once persisted. */
+  file?: File;
 }
 
 const LOCALE_SHORT: Record<string, string> = { 'pt-BR': 'PT', 'en': 'EN', 'es': 'ES' };
@@ -103,6 +113,7 @@ function makeEntries(files: File[]): FileEntry[] {
     fileName: f.name,
     status: 'draft' as const,
     locale: 'pt-BR',
+    file: f,
   }));
 }
 
@@ -159,7 +170,11 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
     if (!editingId) return;
     const patch: Partial<FileEntry> = { nome: editNome, locale: editLocale };
     const f = editFileRef.current?.files?.[0];
-    if (f) { patch.fileName = f.name; patch.tipo = guessType(f.name) || (entries.find(e => e.id === editingId)?.tipo ?? ''); }
+    if (f) {
+      patch.fileName = f.name;
+      patch.tipo = guessType(f.name) || (entries.find(e => e.id === editingId)?.tipo ?? '');
+      patch.file = f;
+    }
     update(editingId, patch);
     setEditingId(null);
     if (editFileRef.current) editFileRef.current.value = '';
@@ -424,14 +439,57 @@ export default function CentralDeResultadosPage2() {
   const portalName = usePortalName();
   const { user } = useAuth();
   const ENTITIES = loadEntities(user?.activePortalId);
-  const [activeEntity, setActiveEntity] = useState('imc');
+  const [activeEntity, setActiveEntity] = useState(ENTITIES[0]?.id ?? '');
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterQuarter, setFilterQuarter] = useState('');
 
-  const [quarters, setQuarters] = useState<Quarter[]>([]);
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.activePortalId) return;
+    resolvePortalId(user.activePortalId).then(setPortalDbId).catch(() => setPortalDbId(null));
+  }, [user?.activePortalId]);
 
+  const [quarters, setQuarters] = useState<Quarter[]>([]);
   const [docs, setDocs] = useState<Record<string, FileEntry[]>>({});
+
+  const loadData = useCallback(async () => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    const [{ data: periodos }, { data: arquivos }] = await Promise.all([
+      supabase.from('portal_resultado_periodos').select('*').eq('portal_id', portalDbId).order('created_at', { ascending: false }),
+      supabase.from('portal_resultado_arquivos').select('*').eq('portal_id', portalDbId).order('ordem', { ascending: true }),
+    ]);
+    if (periodos) {
+      setQuarters((periodos as Record<string, unknown>[]).map(r => ({
+        id: r.id as string,
+        entityId: r.entity_id as string,
+        period: r.period as string,
+        exibirHome: r.exibir_home as boolean,
+        status: (r.status === 'Publicado' ? 'published' : 'draft') as 'draft' | 'published',
+      })));
+    }
+    if (arquivos) {
+      const grouped: Record<string, FileEntry[]> = {};
+      (arquivos as Record<string, unknown>[]).forEach(r => {
+        const filePath = (r.file_path as string | null) ?? undefined;
+        const entry: FileEntry = {
+          id: r.id as string,
+          nome: r.nome as string,
+          tipo: r.tipo as string,
+          fileName: filePath ? filePath.split('/').pop() ?? '' : ((r.external_link as string | null) ?? ''),
+          status: (r.status === 'Publicado' ? 'published' : 'draft') as 'draft' | 'published',
+          locale: r.locale as string,
+          filePath,
+          externalLink: (r.external_link as string | null) ?? undefined,
+        };
+        const periodoId = r.periodo_id as string;
+        (grouped[periodoId] ??= []).push(entry);
+      });
+      setDocs(grouped);
+    }
+  }, [portalDbId]);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   // ── Novo trimestre wizard ──────────────────────────────────
   type WizardStep = 'step1' | 'step2' | null;
@@ -475,15 +533,19 @@ export default function CentralDeResultadosPage2() {
     setWizardOpen('step2');
   }
 
-  function wizardSave(openEditor = false) {
+  async function wizardSave(openEditor = false) {
     const isExisting = quarters.some(q => q.id === pendingId);
-    if (isExisting) {
-      setDocs(prev => ({ ...prev, [pendingId]: wEntries }));
-    } else {
+    if (!isExisting) {
       const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
       setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const }, ...prev]);
-      setDocs(prev => ({ ...prev, [pendingId]: wEntries }));
+      if (portalDbId && supabase) {
+        await supabase.from('portal_resultado_periodos').insert({
+          id: pendingId, portal_id: portalDbId, entity_id: wEntity, period,
+          exibir_home: wExibirHome, status: 'Rascunho', updated_at: new Date().toISOString(),
+        });
+      }
     }
+    await updateQuarterDocs(pendingId, wEntries);
     setWizardOpen(null);
     if (openEditor) setEditingQuarterId(pendingId);
   }
@@ -493,14 +555,23 @@ export default function CentralDeResultadosPage2() {
     setWEntries([]);
   }
 
-  function toggleHome(id: string) {
-    setQuarters(prev => prev.map(q => q.id === id ? { ...q, exibirHome: !q.exibirHome } : q));
+  async function toggleHome(id: string) {
+    const next = !quarters.find(q => q.id === id)?.exibirHome;
+    setQuarters(prev => prev.map(q => q.id === id ? { ...q, exibirHome: next } : q));
+    if (portalDbId && supabase) {
+      await supabase.from('portal_resultado_periodos').update({ exibir_home: next, updated_at: new Date().toISOString() }).eq('id', id);
+    }
   }
 
-  function setQuarterStatus(id: string, status: 'draft' | 'published') {
+  async function setQuarterStatus(id: string, status: 'draft' | 'published') {
     setQuarters(prev => prev.map(q => q.id === id ? { ...q, status } : q));
     setEditingQuarterId(null);
     setSaveConfirmId(null);
+    if (portalDbId && supabase) {
+      await supabase.from('portal_resultado_periodos')
+        .update({ status: status === 'published' ? 'Publicado' : 'Rascunho', updated_at: new Date().toISOString() })
+        .eq('id', id);
+    }
   }
 
   function handleSaveQuarter(id: string | null) {
@@ -508,8 +579,53 @@ export default function CentralDeResultadosPage2() {
     setSaveConfirmId(id);
   }
 
-  function updateQuarterDocs(quarterId: string, entries: FileEntry[]) {
-    setDocs(prev => ({ ...prev, [quarterId]: entries }));
+  // Diffs `entries` against the last-loaded state for this período and syncs
+  // exactly the changes (insert/update/delete/reorder + upload pending files)
+  // to Supabase — shared by the full-page editor and both wizard paths (a
+  // brand-new período has no prior docs, so everything is treated as insert).
+  async function updateQuarterDocs(quarterId: string, entries: FileEntry[]) {
+    const prev = docs[quarterId] ?? [];
+    setDocs(p => ({ ...p, [quarterId]: entries }));
+    if (!portalDbId || !supabase) return;
+
+    const prevById = new Map(prev.map(e => [e.id, e]));
+    const nextIds = new Set(entries.map(e => e.id));
+
+    for (const old of prev) {
+      if (nextIds.has(old.id)) continue;
+      await supabase.from('portal_resultado_arquivos').delete().eq('id', old.id);
+      if (old.filePath) await supabase.storage.from(RESULTADOS_BUCKET).remove([old.filePath]);
+    }
+
+    for (const [idx, entry] of entries.entries()) {
+      const prevMatch = prevById.get(entry.id);
+      let filePath = entry.filePath;
+      if (entry.file) {
+        const ext = fileExt(entry.fileName);
+        filePath = `${portalDbId}/resultados/${entry.id}.${ext}`;
+        await supabase.storage.from(RESULTADOS_BUCKET).upload(filePath, entry.file, { upsert: true });
+      }
+      const status = entry.status === 'published' ? 'Publicado' : 'Rascunho';
+      if (!prevMatch) {
+        await supabase.from('portal_resultado_arquivos').insert({
+          id: entry.id, portal_id: portalDbId, periodo_id: quarterId,
+          nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
+          external_link: entry.externalLink ?? null, locale: entry.locale,
+          status, ordem: idx, updated_at: new Date().toISOString(),
+        });
+        continue;
+      }
+      const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
+        || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath;
+      if (changed) {
+        await supabase.from('portal_resultado_arquivos').update({
+          nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
+          locale: entry.locale, status, ordem: idx, updated_at: new Date().toISOString(),
+        }).eq('id', entry.id);
+      } else {
+        await supabase.from('portal_resultado_arquivos').update({ ordem: idx }).eq('id', entry.id);
+      }
+    }
   }
 
   const allQuarters = quarters.filter(q => q.entityId === activeEntity);
