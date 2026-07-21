@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import StickyPageHeader from '../../components/StickyPageHeader';
+import SearchInput from '../../components/SearchInput';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
 import './AdminDashboardPage.css';
@@ -22,6 +23,7 @@ export default function AdminDashboardPage() {
   const [portais, setPortais] = useState<PortalRow[]>([]);
   const [userCounts, setUserCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -55,6 +57,12 @@ export default function AdminDashboardPage() {
   const totalAtivos = portais.filter(p => (p.empresa_status ?? 'Ativo') === 'Ativo').length;
   const totalUsuarios = Object.values(userCounts).reduce((a, b) => a + b, 0);
 
+  const filteredPortais = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return portais;
+    return portais.filter(p => p.cliente.toLowerCase().includes(q));
+  }, [portais, search]);
+
   function handleAdminSite(portal: PortalRow) {
     enterPortal(portal.portal_key, portal.cliente);
     navigate('/portal/empresas');
@@ -87,45 +95,66 @@ export default function AdminDashboardPage() {
       </div>
 
       <section className="dashboard-portais-section">
-        <h2 className="dashboard-section-title">Seus Portais</h2>
+        <div className="toolbar">
+          <div className="toolbar__filters">
+            <h2 className="dashboard-section-title">Seus Portais</h2>
+            <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome da empresa…" />
+          </div>
+          <div className="toolbar__actions">
+            <span className="toolbar__count">
+              {filteredPortais.length} portal{filteredPortais.length !== 1 ? 'is' : ''}
+            </span>
+          </div>
+        </div>
         {loading ? (
           <p className="dashboard-empty">Carregando…</p>
-        ) : portais.length === 0 ? (
-          <p className="dashboard-empty">Nenhum portal encontrado.</p>
+        ) : filteredPortais.length === 0 ? (
+          <p className="dashboard-empty">
+            {portais.length === 0 ? 'Nenhum portal encontrado.' : 'Nenhum portal encontrado para essa busca.'}
+          </p>
         ) : (
-          <div className="dashboard-portais-grid">
-            {portais.map((portal) => (
-              <div key={portal.id} className="dashboard-portal-card">
-                <div className="dashboard-portal-card__header">
-                  <span className="dashboard-portal-card__name">{portal.cliente}</span>
-                  <span className={`badge ${(portal.empresa_status ?? 'Ativo') === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
-                    {portal.empresa_status ?? 'Ativo'}
-                  </span>
-                </div>
-                <div className="dashboard-portal-card__meta">
-                  <span className="dashboard-portal-card__empresa">
-                    {portal.vercel_url ?? portal.subdomain ?? portal.portal_key}
-                  </span>
-                  <span className="dashboard-portal-card__sites">
-                    {userCounts[portal.id] ?? 0} usuário{(userCounts[portal.id] ?? 0) !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="dashboard-portal-card__actions">
-                  <button
-                    className="btn-action btn-action--enter"
-                    onClick={() => navigate('/admin/portais')}
-                  >
-                    Ver portais
-                  </button>
-                  <button
-                    className="btn-action btn-action--publish"
-                    onClick={() => handleAdminSite(portal)}
-                  >
-                    Admin Site
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Empresa</th>
+                  <th>Status</th>
+                  <th>URL</th>
+                  <th>Usuários</th>
+                  <th style={{ width: 220 }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPortais.map((portal) => (
+                  <tr key={portal.id}>
+                    <td className="dashboard-portal-row__name">{portal.cliente}</td>
+                    <td>
+                      <span className={`badge ${(portal.empresa_status ?? 'Ativo') === 'Ativo' ? 'badge--success' : 'badge--error'}`}>
+                        {portal.empresa_status ?? 'Ativo'}
+                      </span>
+                    </td>
+                    <td>{portal.vercel_url ?? portal.subdomain ?? portal.portal_key}</td>
+                    <td>{userCounts[portal.id] ?? 0} usuário{(userCounts[portal.id] ?? 0) !== 1 ? 's' : ''}</td>
+                    <td>
+                      <div className="dashboard-portal-row__actions">
+                        <button
+                          className="btn-action btn-action--enter"
+                          onClick={() => navigate('/admin/portais')}
+                        >
+                          Ver portais
+                        </button>
+                        <button
+                          className="btn-action btn-action--publish"
+                          onClick={() => handleAdminSite(portal)}
+                        >
+                          Admin Site
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
