@@ -769,7 +769,11 @@ Deno.serve(async (req) => {
             ticker: ticker ?? null,
             footer: footer ?? null,
             canais: canais ?? [],
-            empresas: empresas ?? [],
+            // empresas is intentionally NOT synced here: this `empresas` var is
+            // the site.config.js-shaped array ({id, label, short}), while
+            // portal_config.empresas is EmpresasPage's own canonical shape
+            // ({id, nome, tipo, cnpj, cvmCodigo, autoCvm, ...}) — writing the
+            // former here silently clobbers the latter on every Publicar click.
             splash: splash ?? null,
             cookies: cookies ?? null,
             banner_slides: banner ?? null,
