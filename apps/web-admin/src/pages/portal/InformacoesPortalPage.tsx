@@ -10,6 +10,20 @@ import '../../components/InformacoesModal.css';
 import '../admin/InformacoesPage.css';
 
 export const INFORMACOES_PORTAL_KEY = 'portal_informacoes';
+export const IDIOMAS_KEY = 'portal_idiomas';
+
+interface LanguageOption {
+  code: string;
+  label: string;
+}
+
+const LANGUAGE_OPTIONS: LanguageOption[] = [
+  { code: 'pt-BR', label: 'Português' },
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+];
+
+const DEFAULT_LANGUAGES = ['pt-BR'];
 
 interface AddressValues {
   pais: string;
@@ -92,10 +106,25 @@ export default function InformacoesPortalPage() {
     emailRecup: '',
   });
 
+  const [idiomas, setIdiomas] = usePortalState<string[]>(IDIOMAS_KEY, 'idiomas', DEFAULT_LANGUAGES);
+
   const [edit, setEdit] = useState<EditState | null>(null);
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrDraft, setAddrDraft] = useState<AddressValues>(values.address);
+
+  function toggleLanguage(code: string) {
+    setIdiomas((current) => {
+      const active = current.includes(code);
+      // O primeiro idioma é o principal e não pode ser removido enquanto
+      // for o único selecionado.
+      if (active) {
+        if (current.length === 1) return current;
+        return current.filter((c) => c !== code);
+      }
+      return [...current, code];
+    });
+  }
 
   function openEdit(
     field: keyof Omit<FieldValues, 'address'>,
@@ -144,6 +173,47 @@ export default function InformacoesPortalPage() {
           <SettingsRow label="Empresa" value={values.empresa}
             onClick={() => openEdit('empresa', 'Atualize sua empresa', 'Empresa')} />
           <SettingsRow label="Moeda da conta" value="BRL" readOnly />
+        </div>
+      </div>
+
+      <div className="info-section">
+        <div className="info-section__header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.75" className="info-section__icon">
+            <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+          </svg>
+          <span className="info-section__title">Idiomas</span>
+        </div>
+        <p className="info-section__hint">
+          Ative os idiomas em que o portal aceita conteúdo. Com mais de um idioma ativo, a barra
+          superior do site passa a exibir automaticamente o seletor de idioma, e os formulários de
+          Documentos e Canais passam a mostrar abas para cadastrar o conteúdo em cada idioma.
+        </p>
+        <div className="info-rows">
+          {LANGUAGE_OPTIONS.map((opt) => {
+            const active = idiomas.includes(opt.code);
+            const isPrimary = idiomas[0] === opt.code;
+            return (
+              <SettingsRow
+                key={opt.code}
+                label={opt.label}
+                value=""
+                readOnly
+                renderValue={() => (
+                  <label className="info-lang-toggle" onClick={(e) => e.stopPropagation()}>
+                    {isPrimary && <span className="info-lang-toggle__badge">Principal</span>}
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      disabled={active && idiomas.length === 1}
+                      onChange={() => toggleLanguage(opt.code)}
+                    />
+                  </label>
+                )}
+              />
+            );
+          })}
         </div>
       </div>
 
