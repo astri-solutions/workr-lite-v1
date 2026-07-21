@@ -131,7 +131,12 @@ export default function DocumentosPage() {
     resolvePortalId(portalKey).then(id => setPortalDbId(id));
     try {
       const raw = localStorage.getItem(`portal_empresas_${portalKey}`);
-      const loaded: Entity[] = raw ? JSON.parse(raw) : [];
+      const items: Array<{ id: string; nome?: string; name?: string; tipo?: string }> = raw ? JSON.parse(raw) : [];
+      const loaded: Entity[] = items.map(e => ({
+        id: e.id,
+        name: e.nome ?? e.name ?? e.id,
+        tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
+      }));
       setEntities(loaded);
       if (loaded.length > 0) setActiveEntity(loaded[0].id);
     } catch { setEntities([]); }
