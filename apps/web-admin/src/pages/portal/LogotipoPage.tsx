@@ -28,8 +28,8 @@ export default function LogotipoPage() {
 
   // State holds data URLs (base64) which survive page reloads and are usable in <img src>
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
-  const [baseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
-  const [baseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
+  const [baseLogo, setBaseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
+  const [baseCollapsed, setBaseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
   const [logo, setLogo] = useState<string | null>(baseLogo);
   const [logoCollapsed, setLogoCollapsed] = useState<string | null>(baseCollapsed);
   const [isDraft, setIsDraft] = useState(false);
@@ -89,6 +89,8 @@ export default function LogotipoPage() {
       const ext = m ? (extMap[m[1]] ?? 'png') : undefined;
       if (ext) savePortalConfig(portalId, { logo_ext: ext }).catch(console.error);
     }
+    setBaseLogo(logo);
+    setBaseCollapsed(logoCollapsed);
     setIsDraft(true);
     notifyDraft();
   }

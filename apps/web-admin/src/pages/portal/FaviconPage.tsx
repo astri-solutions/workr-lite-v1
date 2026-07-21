@@ -21,7 +21,7 @@ export default function FaviconPage() {
   const favKey = pKey(FAVICON_KEY, portalId);
 
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
-  const [baseFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
+  const [baseFavicon, setBaseFavicon] = useState<string | null>(() => localStorage.getItem(favKey));
   const [favicon, setFavicon] = useState<string | null>(baseFavicon);
   const [isDraft, setIsDraft] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
@@ -67,6 +67,7 @@ export default function FaviconPage() {
       const ext = m ? (extMap[m[1]] ?? 'png') : undefined;
       if (ext) savePortalConfig(portalId, { favicon_ext: ext }).catch(console.error);
     }
+    setBaseFavicon(favicon);
     setIsDraft(true);
     notifyDraft();
   }

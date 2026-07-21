@@ -121,6 +121,7 @@ export default function LayoutPage() {
   async function saveDraft() {
     localStorage.setItem(layoutKey, selected);
     window.dispatchEvent(new StorageEvent('storage', { key: layoutKey, newValue: selected }));
+    setBase(selected);
     setIsDraft(true);
     notifyDraft();
     if (portalId) {
