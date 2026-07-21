@@ -129,6 +129,16 @@ export default function NovoFormularioPage() {
   const dragIndex = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
 
+  // Snapshot taken once at mount — compared against current state to gate
+  // Salvar rascunho / Publicar until something actually changed (matches the
+  // pattern used across every other portal settings page).
+  const initialSnapshot = useRef(JSON.stringify({
+    subtitles, submitLabels, successMessages, fields, infoCard, receiverEmail, replyTo, page,
+  })).current;
+  const isDirty = JSON.stringify({
+    subtitles, submitLabels, successMessages, fields, infoCard, receiverEmail, replyTo, page,
+  }) !== initialSnapshot;
+
   const allDestinos = useCanaisDestinos(activePortalId ?? undefined);
   // Formulário is compatible with pages that have pageType 'formulario' or undefined (generic pages)
   const COMPATIBLE_TYPES = ['formulario', undefined] as (string | undefined)[];
@@ -244,10 +254,10 @@ export default function NovoFormularioPage() {
           Matérias
         </button>
         <div className="nm-topbar__actions">
-          <button className="btn-outline" type="button" onClick={() => handleSave('draft')}>
+          <button className="btn-outline" type="button" onClick={() => handleSave('draft')} disabled={!isDirty}>
             {saved && status === 'draft' ? 'Salvo!' : 'Salvar rascunho'}
           </button>
-          <PublishButton onClick={() => handleSave('published')} />
+          <PublishButton onClick={() => handleSave('published')} disabled={!isDirty} />
         </div>
       </div>
 

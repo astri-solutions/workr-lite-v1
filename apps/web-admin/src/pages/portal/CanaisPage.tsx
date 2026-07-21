@@ -315,7 +315,7 @@ function orderKey(list: Canal[]): string {
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
-  const { publish } = usePublish();
+  const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
@@ -422,9 +422,10 @@ export default function CanaisPage() {
           .then(() => setSaveError(null))
           .catch(err => { console.error(err); setSaveError(String(err?.message ?? err)); });
       }
+      notifyDraft();
       return next;
     });
-  }, [canaisKey, activePortalId]);
+  }, [canaisKey, activePortalId, notifyDraft]);
 
   function saveToStorage(updated: Canal[]) {
     localStorage.setItem(canaisKey, JSON.stringify(updated));
@@ -433,6 +434,7 @@ export default function CanaisPage() {
         .then(() => setSaveError(null))
         .catch(err => { console.error(err); setSaveError(String(err?.message ?? err)); });
     }
+    notifyDraft();
   }
   function handleSaveOrder() {
     saveToStorage(canais);
@@ -787,7 +789,7 @@ export default function CanaisPage() {
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
-            <PublishButton onClick={handlePublish} />
+            <PublishButton onClick={handlePublish} disabled={!hasPendingDraft} />
           </div>
         }
       />
