@@ -567,10 +567,21 @@ export default function CentralDeResultadosPage2() {
     setQuarters(prev => prev.map(q => q.id === id ? { ...q, status } : q));
     setEditingQuarterId(null);
     setSaveConfirmId(null);
+    // Publishing the período also publishes every file inside it — a single
+    // "Publicar" click should be enough to make everything live on the site,
+    // matching what the wizard/editor visually implies ("Publicar trimestre").
+    if (status === 'published') {
+      setDocs(prev => ({ ...prev, [id]: (prev[id] ?? []).map(d => ({ ...d, status: 'published' })) }));
+    }
     if (portalDbId && supabase) {
       await supabase.from('portal_resultado_periodos')
         .update({ status: status === 'published' ? 'Publicado' : 'Rascunho', updated_at: new Date().toISOString() })
         .eq('id', id);
+      if (status === 'published') {
+        await supabase.from('portal_resultado_arquivos')
+          .update({ status: 'Publicado', updated_at: new Date().toISOString() })
+          .eq('periodo_id', id);
+      }
     }
   }
 
