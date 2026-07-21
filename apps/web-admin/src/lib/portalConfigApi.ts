@@ -37,6 +37,7 @@ export interface PortalConfigPatch {
   error_pages?:  unknown;
   interacoes?:   unknown;
   idiomas?:      unknown;
+  topbar?:       unknown;
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────

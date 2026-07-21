@@ -46,6 +46,7 @@ import TransmisoesPage from './pages/portal/TransmisoesPage';
 import FooterPage from './pages/portal/FooterPage';
 import CookiesPage from './pages/portal/CookiesPage';
 import TickerPage from './pages/portal/TickerPage';
+import TopbarPage from './pages/portal/TopbarPage';
 import AtendimentoPage from './pages/portal/AtendimentoPage';
 import BackupPage from './pages/portal/BackupPage';
 import PaginasDeErroPage from './pages/portal/PaginasDeErroPage';
@@ -126,6 +127,7 @@ const router = createBrowserRouter([
       { path: 'cookies', element: <CookiesPage /> },
       { path: 'paginas-de-erro', element: <PaginasDeErroPage /> },
       { path: 'ticker', element: <TickerPage /> },
+      { path: 'topbar', element: <TopbarPage /> },
       { path: 'atendimento', element: <AtendimentoPage /> },
       { path: 'informacoes', element: <InformacoesPortalPage /> },
       { path: 'auto-cvm', element: <AutoCvmPage /> },

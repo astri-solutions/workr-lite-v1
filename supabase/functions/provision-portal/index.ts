@@ -217,6 +217,12 @@ ${buildNavSection(opts.canais ?? [])}
 
   languages: ${JSON.stringify(opts.idiomas && opts.idiomas.length > 0 ? opts.idiomas : ['pt-BR'])},
 
+  topbar: {
+    ri: { label: 'Relações com Investidores', url: '/' },
+    institucional: { label: 'Institucional', url: '#' },
+    showTicker: true,
+  },
+
   restrictedNav: [],
 
   footer: {

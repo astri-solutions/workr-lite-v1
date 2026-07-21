@@ -162,6 +162,13 @@ const SECTIONS: NavSection[] = [
         ],
       },
       {
+        to: '/portal/topbar',
+        label: 'Topbar',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>web_asset</span>
+        ),
+      },
+      {
         to: '/portal/ticker',
         label: 'Ticker de Cotação',
         icon: (

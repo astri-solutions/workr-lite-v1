@@ -65,6 +65,8 @@ interface ErrorPageCfg { code: number; texts: ErrorPageTexts | null; }
 interface BannerSlideContent { titulo: string; subtitulo: string; cta: string; }
 interface BannerSlideCfg { id: string; content: Record<string, BannerSlideContent>; }
 interface AssetCfg { base64: string; ext: string; }
+interface TopbarLink { label: string; url: string; }
+interface TopbarCfg { institucional?: TopbarLink; ri?: TopbarLink; showTicker?: boolean; }
 
 // Pages that ship with specialized JS/structure — never overwrite or delete
 const PROTECTED_HTML = new Set([
@@ -242,6 +244,8 @@ function buildSiteConfig(opts: {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   portalUuid?: string;
+  topbar?: TopbarCfg | null;
+  languages?: string[];
 }) {
   const year = new Date().getFullYear();
 
@@ -281,6 +285,13 @@ function buildSiteConfig(opts: {
   const linkedin  = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'LinkedIn')?.url || '#');
   const instagram = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'Instagram')?.url || '#');
   const facebook  = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'Facebook')?.url || '#');
+
+  const tb = opts.topbar;
+  const topbarRi = tb?.ri ?? { label: 'Relações com Investidores', url: '/' };
+  const topbarInst = tb?.institucional ?? { label: 'Institucional', url: '#' };
+  const topbarShowTicker = tb?.showTicker ?? true;
+
+  const languages = opts.languages?.length ? opts.languages : ['pt-BR'];
 
   return `// scripts/site.config.js
 // Gerado pelo Workr Lite CMS — não editar manualmente.
@@ -322,6 +333,14 @@ ${buildEmpresasSection(opts.empresas, opts.nome)}
   ],
 
   header: { variant: '${headerVariant(opts.layout)}' },
+
+  languages: ${JSON.stringify(languages)},
+
+  topbar: {
+    ri: { label: ${JSON.stringify(topbarRi.label)}, url: ${JSON.stringify(topbarRi.url)} },
+    institucional: { label: ${JSON.stringify(topbarInst.label)}, url: ${JSON.stringify(topbarInst.url)} },
+    showTicker: ${JSON.stringify(topbarShowTicker)},
+  },
 
   restrictedNav: [],
 
@@ -396,7 +415,7 @@ Deno.serve(async (req) => {
 
     const {
       repoName: repoNameRaw, portalId, portalNome, layout, colors, fonts, footer, ticker,
-      canais, empresas, splash, cookies, errorPages, banner, logo, favicon,
+      canais, empresas, splash, cookies, errorPages, banner, logo, favicon, topbar, languages,
     } = await req.json() as {
       repoName?: string;
       portalId?: string;
@@ -414,6 +433,8 @@ Deno.serve(async (req) => {
       banner?: BannerSlideCfg[] | null;
       logo?: AssetCfg | null;
       favicon?: AssetCfg | null;
+      topbar?: TopbarCfg | null;
+      languages?: string[];
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -444,18 +465,20 @@ Deno.serve(async (req) => {
       resolvedPortalUuid = portalRow?.id ?? undefined;
     }
 
-    // Fetch previously saved logo/favicon extensions so we don't reset them on publish
+    // Fetch previously saved logo/favicon extensions + idiomas so we don't reset them on publish
+    let savedLanguages: string[] | undefined;
     if (resolvedPortalUuid || portalId) {
       try {
         const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
         const query = resolvedPortalUuid
-          ? adminClient.from('portal_config').select('logo_ext, favicon_ext').eq('portal_id', resolvedPortalUuid).maybeSingle()
-          : adminClient.from('portal_config').select('logo_ext, favicon_ext, portal_id').eq('portal_id',
+          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, idiomas').eq('portal_id', resolvedPortalUuid).maybeSingle()
+          : adminClient.from('portal_config').select('logo_ext, favicon_ext, idiomas, portal_id').eq('portal_id',
               (await adminClient.from('portals').select('id').eq('portal_key', portalId!).maybeSingle()).data?.id ?? ''
             ).maybeSingle();
         const { data: cfgRow } = await query;
         savedLogoExt = cfgRow?.logo_ext ?? undefined;
         savedFaviconExt = cfgRow?.favicon_ext ?? undefined;
+        savedLanguages = Array.isArray(cfgRow?.idiomas) && cfgRow.idiomas.length > 0 ? cfgRow.idiomas : undefined;
       } catch { /* non-fatal */ }
     }
 
@@ -522,6 +545,8 @@ Deno.serve(async (req) => {
       supabaseUrl: Deno.env.get('SUPABASE_URL'),
       supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
       portalUuid: resolvedPortalUuid,
+      topbar: topbar ?? null,
+      languages: languages?.length ? languages : savedLanguages,
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
@@ -584,38 +609,39 @@ Deno.serve(async (req) => {
     // scripts/site.config.js — the CMS-generated portal config
     queueWrite(filePath, encoded);
 
-    // Self-healing shared runtime/styles/build-config files, always pulled
-    // fresh from the cliente-workr-lite template on every publish.
-    const templateFiles: { repoPath: string; label: string }[] = [
-      { repoPath: 'scripts/components/theme.js', label: 'theme.js' },
-      { repoPath: 'scripts/components/footer.js', label: 'footer.js' },
-      { repoPath: 'scripts/components/materias.js', label: 'materias.js' },
-      { repoPath: 'scripts/components/documentos.js', label: 'documentos.js' },
-      { repoPath: 'scripts/components/resultados.js', label: 'resultados.js' },
-      { repoPath: 'scripts/components/splash.js', label: 'splash.js' },
-      { repoPath: 'scripts/components/cookies.js', label: 'cookies.js' },
-      { repoPath: 'scripts/page.js', label: 'page.js' },
-      { repoPath: 'scripts/sidebar-nav.js', label: 'sidebar-nav.js' },
-      { repoPath: 'scripts/tab-menu.js', label: 'tab-menu.js' },
-      { repoPath: 'styles/components/_topbar.scss', label: '_topbar.scss' },
-      { repoPath: 'styles/components/_form.scss', label: '_form.scss' },
-      { repoPath: 'styles/components/_splash.scss', label: '_splash.scss' },
-      { repoPath: 'styles/components/_cookies.scss', label: '_cookies.scss' },
-      { repoPath: 'styles/components/_list.scss', label: '_list.scss' },
-      { repoPath: 'styles/components/_tab-menu.scss', label: '_tab-menu.scss' },
-      { repoPath: 'styles/components/_filter.scss', label: '_filter.scss' },
-      { repoPath: 'styles/main.scss', label: 'main.scss' },
-      { repoPath: 'vite.config.js', label: 'vite.config.js' },
-    ];
-    for (const tf of templateFiles) {
-      try {
-        const res = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/contents/${tf.repoPath}`);
-        if (res.ok) {
-          const data = await res.json() as { content: string };
-          queueWrite(tf.repoPath, data.content);
+    // Self-healing shared runtime/styles/build-config files — every file
+    // under scripts/ and styles/ (plus vite.config.js) is pulled fresh from
+    // the cliente-workr-lite template on every publish, via its own recursive
+    // git tree, so new template files never need to be added to a hand-kept
+    // list here (that list drifted out of sync repeatedly — files got added
+    // to the template repo but never synced to already-provisioned portals).
+    // scripts/site.config.js is the one exception — that's the per-portal
+    // file this function itself generates above, never the template's copy.
+    const TEMPLATE_EXCLUDE = new Set(['scripts/site.config.js']);
+    try {
+      const tplRefRes = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/git/ref/heads/main`);
+      if (tplRefRes.ok) {
+        const tplRefData = await tplRefRes.json() as { object: { sha: string } };
+        const tplCommitRes = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/git/commits/${tplRefData.object.sha}`);
+        const tplCommitData = await tplCommitRes.json() as { tree: { sha: string } };
+        const tplTreeRes = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/git/trees/${tplCommitData.tree.sha}?recursive=1`);
+        const tplTreeData = await tplTreeRes.json() as { tree: { path: string; type: string; sha: string }[] };
+        const templateBlobs = tplTreeData.tree.filter(t =>
+          t.type === 'blob'
+          && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js')
+          && !TEMPLATE_EXCLUDE.has(t.path)
+        );
+        for (const tf of templateBlobs) {
+          try {
+            const blobRes = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/git/blobs/${tf.sha}`);
+            if (blobRes.ok) {
+              const blobData = await blobRes.json() as { content: string };
+              queueWrite(tf.path, blobData.content);
+            }
+          } catch { assetWarnings.push(`${tf.path} update failed`); }
         }
-      } catch { assetWarnings.push(`${tf.label} update failed`); }
-    }
+      }
+    } catch { assetWarnings.push('template sync failed'); }
 
     // Ensure index.html matches the portal layout template (self-healing for mis-provisioned portals)
     const layoutTemplateFile: Record<string, string> = { sidebar: 'home-side-bar.html', tabmenu: 'home-v2.html' };
@@ -785,6 +811,7 @@ Deno.serve(async (req) => {
           };
           if (logo?.ext) configPatch.logo_ext = logo.ext;
           if (favicon?.ext) configPatch.favicon_ext = favicon.ext;
+          if (topbar) configPatch.topbar = topbar;
           await adminClient.from('portal_config').upsert(configPatch, { onConflict: 'portal_id' });
         }
       } catch { /* non-fatal */ }
