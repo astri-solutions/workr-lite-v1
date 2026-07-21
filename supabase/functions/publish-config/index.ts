@@ -601,6 +601,8 @@ Deno.serve(async (req) => {
       { repoPath: 'styles/components/_form.scss', label: '_form.scss' },
       { repoPath: 'styles/components/_splash.scss', label: '_splash.scss' },
       { repoPath: 'styles/components/_cookies.scss', label: '_cookies.scss' },
+      { repoPath: 'styles/components/_list.scss', label: '_list.scss' },
+      { repoPath: 'styles/components/_tab-menu.scss', label: '_tab-menu.scss' },
       { repoPath: 'styles/main.scss', label: 'main.scss' },
       { repoPath: 'vite.config.js', label: 'vite.config.js' },
     ];
