@@ -331,27 +331,6 @@ export default function EmpresasPage() {
             )}
           </label>
 
-          <label className="emp-form__label">
-            Código CVM
-            <input
-              className="emp-form__input"
-              type="text"
-              placeholder="Ex: 23574"
-              value={form.cvmCodigo}
-              onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
-            />
-          </label>
-
-          <label className="emp-form__label">
-            Importar desde (retroativo)
-            <input
-              className="emp-form__input"
-              type="date"
-              value={form.importarDesde}
-              onChange={e => setForm(f => ({ ...f, importarDesde: e.target.value }))}
-            />
-          </label>
-
           <div className="emp-form__section">
             <span className="emp-form__label">Auto CVM</span>
             <div className="emp-cvm-radio-group">
@@ -379,6 +358,31 @@ export default function EmpresasPage() {
               </label>
             </div>
           </div>
+
+          {form.autoCvm && (
+            <>
+              <label className="emp-form__label">
+                Importar desde (retroativo)
+                <input
+                  className="emp-form__input"
+                  type="date"
+                  value={form.importarDesde}
+                  onChange={e => setForm(f => ({ ...f, importarDesde: e.target.value }))}
+                />
+              </label>
+
+              <label className="emp-form__label">
+                Código CVM
+                <input
+                  className="emp-form__input"
+                  type="text"
+                  placeholder="Ex: 23574"
+                  value={form.cvmCodigo}
+                  onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
+                />
+              </label>
+            </>
+          )}
         </div>
       </Modal>
 
