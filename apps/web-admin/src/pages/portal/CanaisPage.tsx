@@ -660,7 +660,7 @@ export default function CanaisPage() {
     const newId = genId();
     const c: Canal = {
       id: newId, label, enabled: !newCanalForm.draft, children: [],
-      ...(isLeaf ? { pageType: newCanalForm.pageType } : {}),
+      ...(isLeaf ? { pageType: newCanalForm.pageType, href: `/${newId}.html` } : {}),
       ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
     };
     mutate(prev => [...prev, c]);
