@@ -9,8 +9,12 @@ import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import { savePortalConfig } from '../../lib/portalConfigApi';
+import FaviconCropModal from '../../components/FaviconCropModal';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
+
+// Vector/container formats — cropping a fixed pixel region doesn't apply.
+const CROPPABLE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp']);
 
 export const LOGO_KEY = 'portal_logotipo';
 export const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
@@ -29,6 +33,7 @@ export default function LogotipoPage() {
   const [logo, setLogo] = useState<string | null>(baseLogo);
   const [logoCollapsed, setLogoCollapsed] = useState<string | null>(baseCollapsed);
   const [isDraft, setIsDraft] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
   const pendingLogoDataUrl = useRef<string | null>(null);
@@ -47,12 +52,23 @@ export default function LogotipoPage() {
     slot: 'logo' | 'logo-compact',
   ) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (slot === 'logo-compact' && CROPPABLE_TYPES.has(file.type)) {
+      setCropFile(file);
+      return;
+    }
     const result = await processImageToDataUrl(file, slot);
     if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     blobUrlRef.current = result.objectUrl;
     pendingRef.current = result.dataUrl;
     setter(result.dataUrl); // use data URL so preview also works after reload
+  }
+
+  function handleCompactCropConfirm(dataUrl: string) {
+    pendingLogoCollDataUrl.current = dataUrl;
+    setLogoCollapsed(dataUrl);
+    setCropFile(null);
   }
 
   function saveDraft() {
@@ -122,6 +138,17 @@ export default function LogotipoPage() {
             onChange={e => handleFile(e, setLogoCollapsed, pendingLogoCollDataUrl, logoCollBlobUrlRef, 'logo-compact')} />}
         />
       </div>
+
+      {cropFile && (
+        <FaviconCropModal
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onConfirm={handleCompactCropConfirm}
+          title="Recortar logo compacto"
+          outputSize={320}
+          hint="Ajuste a área que será usada como logo compacto (sidebar recolhida / navegação com favicon). Apenas a região dentro do quadro é exportada, gerando um arquivo PNG quadrado de 320×320px."
+        />
+      )}
 
       <UnsavedModal
         open={blocker.state === 'blocked'}

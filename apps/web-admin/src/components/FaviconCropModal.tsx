@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from './Modal';
 
-const OUTPUT_SIZE = 256; // rendered at 4x the 64px favicon target for crisp downscaling
 const FRAME_SIZE = 260;  // on-screen crop frame, in CSS px
 
 interface Props {
   file: File;
   onCancel: () => void;
   onConfirm: (dataUrl: string) => void;
+  title?: string;
+  outputSize?: number; // exported square size in px (rendered above the on-screen target for crisp downscaling)
+  hint?: string;
 }
 
-export default function FaviconCropModal({ file, onCancel, onConfirm }: Props) {
+export default function FaviconCropModal({
+  file, onCancel, onConfirm,
+  title = 'Recortar favicon',
+  outputSize = 256,
+  hint,
+}: Props) {
+  const OUTPUT_SIZE = outputSize;
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
@@ -85,7 +93,7 @@ export default function FaviconCropModal({ file, onCancel, onConfirm }: Props) {
     <Modal
       open
       onClose={onCancel}
-      title="Recortar favicon"
+      title={title}
       size="sm"
       footer={
         <div className="modal-footer">
@@ -95,8 +103,7 @@ export default function FaviconCropModal({ file, onCancel, onConfirm }: Props) {
       }
     >
       <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', marginBottom: 'var(--space-3)' }}>
-        Ajuste a área que será usada como favicon. Apenas a região dentro do quadro é exportada,
-        gerando um arquivo PNG de {OUTPUT_SIZE}×{OUTPUT_SIZE}px (nítido em telas retina; exibido a 32×32/16×16px nas abas do navegador).
+        {hint ?? `Ajuste a área que será usada. Apenas a região dentro do quadro é exportada, gerando um arquivo PNG de ${OUTPUT_SIZE}×${OUTPUT_SIZE}px (nítido em telas retina).`}
       </p>
       <div
         ref={stageRef}
