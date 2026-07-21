@@ -66,8 +66,8 @@
 }
 
 .cdr-entity-card--active {
+  background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.12);
 }
 
 .cdr-entity-card__name {
@@ -82,6 +82,11 @@
   color: var(--color-gray-500);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+.cdr-entity-card--active .cdr-entity-card__name,
+.cdr-entity-card--active .cdr-entity-card__tipo {
+  color: #fff;
 }
 
 
