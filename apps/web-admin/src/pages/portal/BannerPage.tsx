@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { processImage } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
-import Modal from '../../components/Modal';
+import ImageCropModal from '../../components/ImageCropModal';
+import PublishSuccessModal from '../../components/PublishSuccessModal';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
@@ -68,6 +68,7 @@ export default function BannerPage() {
   const [dirty, setDirty] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const blocker = useUnsavedChanges(dirty);
 
   // Auto-close the success modal after 2.5s
@@ -113,11 +114,16 @@ export default function BannerPage() {
     
   }
 
-  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const result = await processImage(file, 'banner');
-    updateImage(result.objectUrl);
+    setCropFile(file);
+  }
+
+  function handleCropConfirm(dataUrl: string) {
+    updateImage(dataUrl);
+    setCropFile(null);
   }
 
   function handleDraft() {
@@ -127,7 +133,12 @@ export default function BannerPage() {
   }
 
   async function handlePublish() {
-    setPersisted(slides);
+    // publish() reads portal_config back from Supabase immediately after —
+    // an unawaited save here would race it and the site could publish the
+    // previous banner (this is exactly how a just-added slide image failed
+    // to reach the site: the image write hadn't landed yet when publish()
+    // re-fetched banner_slides).
+    await setPersisted(slides);
     setDirty(false);
     const ok = await publish();
     if (ok) setPublishSuccess(true);
@@ -236,31 +247,25 @@ export default function BannerPage() {
         onLeave={() => blocker.proceed?.()}
       />
 
-      {/* ── Publish success modal ── */}
-      <Modal
+      {cropFile && (
+        <ImageCropModal
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onConfirm={handleCropConfirm}
+          title="Recortar imagem do banner"
+          hint="Ajuste a área que será usada — o banner ocupa toda a largura da tela, então enquadre o que deve ficar visível também nas bordas."
+          frameWidth={480}
+          frameHeight={180}
+          outputWidth={1920}
+          outputHeight={720}
+        />
+      )}
+
+      <PublishSuccessModal
         open={publishSuccess}
         onClose={() => setPublishSuccess(false)}
-        title=""
-        size="sm"
-        footer={
-          <div className="modal-footer" style={{ justifyContent: 'center' }}>
-            <button type="button" className="btn-primary" onClick={() => setPublishSuccess(false)}>
-              Fechar
-            </button>
-          </div>
-        }
-      >
-        <div className="banner-publish-success">
-          <div className="banner-success-icon">
-            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle className="banner-success-circle" cx="28" cy="28" r="26" stroke="#00D865" strokeWidth="3" />
-              <polyline className="banner-success-check" points="16,28 24,36 40,20" stroke="#00D865" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <p className="banner-success-title">Banner publicado!</p>
-          <p className="banner-success-desc">As alterações já estão visíveis no portal.</p>
-        </div>
-      </Modal>
+        title="Banner publicado!"
+      />
     </div>
   );
 }

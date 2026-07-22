@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
+import PublishSuccessModal from '../../components/PublishSuccessModal';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
 import LangTabs from '../../components/LangTabs';
@@ -526,6 +527,7 @@ export default function CentralDeResultadosPage2() {
   // ── Quarter full-page editor ───────────────────────────────
   const [editingQuarterId, setEditingQuarterId] = useState<string | null>(null);
   const [saveConfirmId, setSaveConfirmId] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState(false);
 
   function openWizard() {
     setWEntity(activeEntity);
@@ -599,6 +601,7 @@ export default function CentralDeResultadosPage2() {
           .eq('periodo_id', id);
       }
     }
+    if (status === 'published') setPublishSuccess(true);
   }
 
   function handleSaveQuarter(id: string | null) {
@@ -1120,6 +1123,12 @@ export default function CentralDeResultadosPage2() {
           Publicar tornará o trimestre e seus documentos visíveis no portal. Você pode alterar isso depois.
         </p>
       </Modal>
+
+      <PublishSuccessModal
+        open={publishSuccess}
+        onClose={() => setPublishSuccess(false)}
+        title="Trimestre publicado!"
+      />
     </div>
   );
 }

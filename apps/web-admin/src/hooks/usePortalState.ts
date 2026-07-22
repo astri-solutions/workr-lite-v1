@@ -22,7 +22,7 @@ export function usePortalState<T>(
   storageBase: string,
   configColumn: keyof PortalConfigPatch,
   defaultValue: T,
-): [T, (next: T | ((prev: T) => T)) => void, { hydrated: boolean; saveError: boolean }] {
+): [T, (next: T | ((prev: T) => T)) => Promise<void>, { hydrated: boolean; saveError: boolean }] {
   const { user } = useAuth();
   const portalId = user?.activePortalId;
   const cacheKey = pKey(storageBase, portalId);
@@ -62,18 +62,25 @@ export function usePortalState<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [portalId, cacheKey, configColumn]);
 
-  const update = useCallback((next: T | ((prev: T) => T)) => {
+  // Callers that immediately publish after calling this (setPersisted(x); await
+  // publish()) need the Supabase write to have actually landed first — publish()
+  // re-fetches portal_config as the authoritative source for every OTHER field,
+  // so if this field's write is still in flight, that fetch can race it and
+  // publish the value this same edit just replaced. Returning a promise that
+  // resolves after the write settles lets callers await it before publishing.
+  const update = useCallback((next: T | ((prev: T) => T)): Promise<void> => {
     dirtySinceMount.current = true;
+    let resolved!: T;
     setValue(prev => {
-      const resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next;
+      resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next;
       try { localStorage.setItem(cacheKey, JSON.stringify(resolved)); } catch { /* quota */ }
-      if (portalId) {
-        setSaveError(false);
-        savePortalConfig(portalId, { [configColumn]: resolved } as PortalConfigPatch)
-          .catch(err => { console.error(`savePortalConfig(${String(configColumn)})`, err); setSaveError(true); });
-      }
       return resolved;
     });
+    if (!portalId) return Promise.resolve();
+    setSaveError(false);
+    return savePortalConfig(portalId, { [configColumn]: resolved } as PortalConfigPatch)
+      .then(() => {})
+      .catch(err => { console.error(`savePortalConfig(${String(configColumn)})`, err); setSaveError(true); });
   }, [cacheKey, portalId, configColumn]);
 
   return [value, update, { hydrated, saveError }];

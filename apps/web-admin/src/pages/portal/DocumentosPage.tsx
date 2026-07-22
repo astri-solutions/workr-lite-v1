@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
+import PublishSuccessModal from '../../components/PublishSuccessModal';
 import LangTabs from '../../components/LangTabs';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FileDropzone from '../../components/FileDropzone';
@@ -146,6 +147,7 @@ export default function DocumentosPage() {
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
   const [rawDocs, setRawDocs] = useState<Record<string, unknown>[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -260,6 +262,7 @@ export default function DocumentosPage() {
         category: 'documento',
         entity: primaryTitle,
       });
+      if (!asDraft) setPublishSuccess(true);
     } else if (filePath) {
       // Row insert failed after the file made it to storage — clean up the orphan.
       await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
@@ -285,6 +288,7 @@ export default function DocumentosPage() {
       category: 'documento',
       entity: names,
     });
+    if (status === 'Publicado') setPublishSuccess(true);
   }
 
   async function handleDelete() {
@@ -726,6 +730,12 @@ export default function DocumentosPage() {
           Tem certeza que deseja excluir <strong>{selected.size} documento{selected.size !== 1 ? 's' : ''}</strong>? Esta ação não pode ser desfeita.
         </p>
       </Modal>
+
+      <PublishSuccessModal
+        open={publishSuccess}
+        onClose={() => setPublishSuccess(false)}
+        title="Documento publicado!"
+      />
     </div>
   );
 }
