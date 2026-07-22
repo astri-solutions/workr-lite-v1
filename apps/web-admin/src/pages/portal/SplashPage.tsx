@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { processImage } from '../../utils/imageProcessor';
+import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import UnsavedModal from '../../components/UnsavedModal';
@@ -253,8 +253,8 @@ export default function SplashPage() {
                   onChange={async e => {
                     const f = e.target.files?.[0];
                     if (!f) return;
-                    const result = await processImage(f, 'splash-header');
-                    patch('imageUrl', result.objectUrl);
+                    const result = await processImageToDataUrl(f, 'splash-header');
+                    patch('imageUrl', result.dataUrl);
                   }} />
                 {config.imageUrl ? (
                   <>

@@ -1,15 +1,17 @@
 .page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-10);
+  gap: var(--space-4) var(--space-10);
   margin-bottom: var(--space-6);
   padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--color-gray-200);
 }
 
 .page-header__content {
-  flex: 0 0 70%;
+  flex: 1 1 420px;
+  min-width: 0;
   max-width: 70%;
 }
 

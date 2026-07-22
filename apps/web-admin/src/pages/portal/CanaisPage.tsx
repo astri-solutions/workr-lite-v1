@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, Fragment, useEffect } from 'react';
-import { processImage } from '../../utils/imageProcessor';
+import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
@@ -2359,8 +2359,8 @@ function HeaderImageEditor({ value, onChange }: { value: string | null; onChange
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const result = await processImage(f, 'channel-header');
-    onChange(result.objectUrl);
+    const result = await processImageToDataUrl(f, 'channel-header');
+    onChange(result.dataUrl);
   }
   if (value) return (
     <div className="canal-header-img-preview">
