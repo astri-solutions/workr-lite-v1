@@ -574,7 +574,18 @@ export default function DocumentosPage() {
           </div>
         }>
         <div className="doc-modal-body">
-          {(() => {
+          {entities.length > 1 ? (
+            <label className="doc-entity-badge doc-entity-badge--select">
+              <span className="doc-entity-badge__label">Empresa</span>
+              <select
+                className="filter-select"
+                value={form.entityId || activeEntity}
+                onChange={e => patchForm('entityId', e.target.value)}
+              >
+                {entities.map(e => <option key={e.id} value={e.id}>{e.name} — {e.tipo}</option>)}
+              </select>
+            </label>
+          ) : (() => {
             const ent = entities.find(e => e.id === (form.entityId || activeEntity));
             return ent ? (
               <div className="doc-entity-badge">

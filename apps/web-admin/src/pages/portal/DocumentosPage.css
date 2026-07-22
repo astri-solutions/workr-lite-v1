@@ -556,6 +556,22 @@
   letter-spacing: 0.05em;
 }
 
+/* When there's more than one empresa, the badge becomes an editable select
+   so a wrong default (inherited from whichever tab was active) can be
+   corrected right in the modal instead of only by canceling and re-picking
+   the tab first. */
+.doc-entity-badge--select {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.doc-entity-badge__label {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* ── Page item + sub-group ───────────────────────────── */
 .doc-page-item {
   display: flex;
