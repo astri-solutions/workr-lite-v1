@@ -34,7 +34,7 @@ function loadPortalEmpresas(portalId?: string): PortalEmpresa[] {
 // Sidebar/tabmenu portals are simple CVM-compliance sites: direct pages only,
 // no rich content sections. Only list (documents) and formulário (contact/
 // mailing) page types make sense there — banner portals allow every type.
-const FLAT_PAGE_TYPES: PageType[] = ['lista', 'lista-agrupada', 'tabela', 'formulario'];
+const FLAT_PAGE_TYPES: PageType[] = ['lista', 'lista-agrupada', 'tabela', 'tabela-resultados', 'formulario'];
 
 // ── Page type definitions ───────────────────────────────────────────────────
 const PAGE_TYPES: Array<{
@@ -106,6 +106,27 @@ const PAGE_TYPES: Array<{
         <rect x="2" y="36" width="52" height="7" rx="1" fill="#eef1f5"/>
         <rect x="56" y="36" width="50" height="7" rx="1" fill="#eef1f5"/>
         <rect x="108" y="36" width="50" height="7" rx="1" fill="#eef1f5"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'tabela-resultados', label: 'Tabela Resultados', icon: 'grid_view',
+    desc: 'Matriz de categoria × trimestre, como uma central de resultados.',
+    flow: 'Usa os mesmos trimestres/arquivos já cadastrados em Central de Resultados — só muda a apresentação para uma matriz.',
+    thumb: (
+      <svg width="100%" height="48" viewBox="0 0 160 48" fill="none">
+        <rect x="2" y="2" width="156" height="10" rx="2" fill="#1f2937"/>
+        <rect x="2" y="16" width="70" height="6" rx="1" fill="#dde3ea"/>
+        <circle cx="90" cy="19" r="3" fill="#c8d2db"/>
+        <circle cx="118" cy="19" r="3" fill="#c8d2db"/>
+        <circle cx="146" cy="19" r="3" fill="#c8d2db"/>
+        <rect x="2" y="27" width="70" height="6" rx="1" fill="#eef1f5"/>
+        <circle cx="90" cy="30" r="3" fill="#c8d2db"/>
+        <circle cx="118" cy="30" r="3" fill="#c8d2db"/>
+        <rect x="2" y="38" width="70" height="6" rx="1" fill="#eef1f5"/>
+        <circle cx="90" cy="41" r="3" fill="#c8d2db"/>
+        <circle cx="118" cy="41" r="3" fill="#c8d2db"/>
+        <circle cx="146" cy="41" r="3" fill="#c8d2db"/>
       </svg>
     ),
   },
