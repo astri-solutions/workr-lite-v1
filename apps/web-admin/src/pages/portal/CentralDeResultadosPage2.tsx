@@ -524,6 +524,8 @@ export default function CentralDeResultadosPage2() {
   const [pendingId, setPendingId] = useState('');
   const [wPortugueseOnly, setWPortugueseOnly] = useState(false);
 
+  const [savingWizard, setSavingWizard] = useState(false);
+
   // ── Quarter full-page editor ───────────────────────────────
   const [editingQuarterId, setEditingQuarterId] = useState<string | null>(null);
   const [saveConfirmId, setSaveConfirmId] = useState<string | null>(null);
@@ -552,6 +554,7 @@ export default function CentralDeResultadosPage2() {
   }
 
   async function wizardSave(openEditor = false) {
+    setSavingWizard(true);
     const isExisting = quarters.some(q => q.id === pendingId);
     if (!isExisting) {
       const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
@@ -566,6 +569,7 @@ export default function CentralDeResultadosPage2() {
     try {
       await updateQuarterDocs(pendingId, wEntries);
     } finally {
+      setSavingWizard(false);
       // Always close — an unexpected error saving one file must not leave
       // the modal stuck open (updateQuarterDocs already surfaces per-file
       // failures via alert(), so this isn't hiding anything from the user).
@@ -992,13 +996,15 @@ export default function CentralDeResultadosPage2() {
               )}
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 {!isExisting && (
-                  <button type="button" className="btn-outline" onClick={() => wizardSave(false)}>
+                  <button type="button" className="btn-outline" onClick={() => wizardSave(false)} disabled={savingWizard}>
                     Criar sem documentos
                   </button>
                 )}
-                <button type="button" className="btn-primary" onClick={() => wizardSave(!isExisting)}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
-                  {isExisting ? 'Salvar' : 'Criar e abrir'}
+                <button type="button" className="btn-primary" onClick={() => wizardSave(!isExisting)} disabled={savingWizard}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                    {savingWizard ? 'progress_activity' : 'check'}
+                  </span>
+                  {savingWizard ? 'Salvando…' : isExisting ? 'Salvar' : 'Criar e abrir'}
                 </button>
               </div>
             </div>
