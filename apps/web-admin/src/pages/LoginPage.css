@@ -34,6 +34,28 @@
   max-width: 440px;
 }
 
+/* ─── Mobile: single column, no fixed 52% squeeze ───────
+   .login-left was a flat 52%-wide flex column with no breakpoint — on a
+   phone that's ~200px, far narrower than the card's own content, so the
+   card overflowed past the column (and the viewport) instead of shrinking.
+──────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .login-root { flex-direction: column; }
+
+  .login-left {
+    flex: none;
+    width: 100%;
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .login-card {
+    max-width: 440px;
+    padding: 36px 24px 28px;
+  }
+
+  .login-right { display: none; }
+}
+
 /* ─── Logo ──────────────────────────────────────────── */
 .login-logo {
   display: flex;

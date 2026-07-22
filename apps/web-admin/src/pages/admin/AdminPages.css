@@ -234,11 +234,13 @@
   font-size: var(--text-sm);
 }
 
-.data-table thead tr {
-  background: var(--color-primary-500);
-}
-
 .data-table thead th {
+  /* Background lives on th, not tr: with border-collapse: separate (used
+     here), a background painted on <tr> doesn't reliably show through
+     behind <th> in every browser — some paint the th's own (unset/white)
+     background instead, which read as the header randomly turning white
+     or gray. */
+  background: var(--color-primary-500);
   padding: 12px var(--space-4);
   text-align: left;
   font-family: var(--font-body);

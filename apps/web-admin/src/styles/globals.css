@@ -122,14 +122,20 @@ input, textarea, select {
 }
 .filter-select:focus { border-color: var(--color-primary-400); }
 
-/* ─── Sortable table headers ─── */
+/* ─── Sortable table headers ───
+   box-shadow instead of background: these headers sit on a dark
+   (--color-primary-500) th background set elsewhere with equal-or-higher
+   specificity — a plain `background` here would lose that cascade fight
+   and silently do nothing, or (worse) win in some contexts and paint the
+   header a flat gray. An inset highlight always layers on top regardless
+   of the underlying background rule. */
 .th-sort {
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: box-shadow 0.15s;
 }
-.th-sort:hover { background: rgba(0,0,0,0.12); }
+.th-sort:hover { box-shadow: inset 0 0 0 999px rgba(255,255,255,0.12); }
 .th-sort-inner {
   display: inline-flex;
   align-items: center;
@@ -140,4 +146,4 @@ input, textarea, select {
   align-items: center;
   flex-shrink: 0;
 }
-.th-sort--active { background: rgba(0,0,0,0.1); }
+.th-sort--active { box-shadow: inset 0 0 0 999px rgba(255,255,255,0.1); }
