@@ -47,7 +47,7 @@ export default function EmpresasPage() {
   // when a portal is active, which matches what cross-file readers use.
   // Without a portal it would be bare `portal_empresas`, while readers expect
   // `portal_empresas_default` — mirror to that key so they keep working.
-  const [empresas, setEmpresasRaw, { hydrated }] = usePortalState<Empresa[]>('portal_empresas', 'empresas', []);
+  const [empresas, setEmpresasRaw, { hydrated, saveError }] = usePortalState<Empresa[]>('portal_empresas', 'empresas', []);
   const setEmpresas = useCallback((next: Empresa[] | ((prev: Empresa[]) => Empresa[])) => {
     setEmpresasRaw(prev => {
       const resolved = typeof next === 'function' ? next(prev) : next;
@@ -172,6 +172,13 @@ export default function EmpresasPage() {
           </button>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="stat-cards">
         <div className="stat-card">
