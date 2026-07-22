@@ -281,6 +281,8 @@ interface CanalEditState {
   applyHeaderToChildren: boolean;
   isLeaf: boolean;
   showInFooter: boolean;
+  laCategories: string[];
+  laCatInput: string;
 }
 
 type CanalType = 'pagina' | 'pai';
@@ -667,17 +669,22 @@ export default function CanaisPage() {
       applyHeaderToChildren: false,
       isLeaf: canal.children.length === 0,
       showInFooter: canal.showInFooter ?? false,
+      laCategories: canal.listaAgrupadaCategories ?? [],
+      laCatInput: '',
     });
   }
   function commitCanalEdit() {
     if (!canalEditModal) return;
-    const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter } = canalEditModal;
+    const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter, laCategories } = canalEditModal;
     setCanais(prev => {
       const next = prev.map(c => {
         if (c.id !== canalId) return c;
         const updated: Canal = {
           ...c, label: label.trim() || c.label,
           pageType: isLeaf ? pageType : c.pageType,
+          listaAgrupadaCategories: isLeaf && pageType === 'lista-agrupada'
+            ? [...new Set(laCategories.map(cat => cat.trim()).filter(Boolean))]
+            : c.listaAgrupadaCategories,
           headerImage: headerImageUrl ?? undefined, showInFooter,
         };
         if (applyHeaderToChildren && headerImageUrl) {
@@ -911,7 +918,20 @@ export default function CanaisPage() {
               {/* Animated canal body — always rendered, height animated */}
               <div className={`ct-canal-body${canalExpanded ? ' ct-canal-body--open' : ''}`}>
                 <div className="ct-canal-body__inner">
-                  {canal.children.length === 0 && (
+                  {canal.children.length === 0 && canal.pageType === 'lista-agrupada' && (
+                    <div className="ct-row ct-row--empty ct-row--groups">
+                      {(canal.listaAgrupadaCategories ?? []).length > 0 ? (
+                        <div className="ct-la-cats">
+                          {(canal.listaAgrupadaCategories ?? []).map(cat => (
+                            <span key={cat} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="ct-empty">Nenhum grupo cadastrado — abra "Editar" para adicionar.</span>
+                      )}
+                    </div>
+                  )}
+                  {canal.children.length === 0 && canal.pageType !== 'lista-agrupada' && (
                     <div className="ct-row ct-row--empty">
                       <span className="ct-empty">Nenhuma página neste canal.</span>
                     </div>
@@ -1588,6 +1608,47 @@ export default function CanaisPage() {
                   onChange={v => setCanalEditModal(m => m ? { ...m, pageType: v } : m)}
                   allowed={isFlatLayout ? FLAT_PAGE_TYPES : undefined}
                 />
+                {canalEditModal.pageType === 'lista-agrupada' && (
+                  <>
+                    <div className="canais-edit-divider" />
+                    <p className="ct-la-sub-title">
+                      <span>Grupos <span className="ct-required">*</span></span>
+                      <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
+                    </p>
+                    <div className="ct-la-cat-input">
+                      <input className="canais-edit-form__input" type="text"
+                        placeholder="Ex: Fatos Relevantes"
+                        value={canalEditModal.laCatInput}
+                        onChange={e => setCanalEditModal(m => m ? { ...m, laCatInput: e.target.value } : m)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && canalEditModal.laCatInput.trim()) {
+                            e.preventDefault();
+                            setCanalEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m);
+                          }
+                        }}
+                      />
+                      <button className="btn-outline" type="button"
+                        disabled={!canalEditModal.laCatInput.trim()}
+                        onClick={() => setCanalEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m)}>
+                        Adicionar
+                      </button>
+                    </div>
+                    {canalEditModal.laCategories.length > 0 ? (
+                      <div className="ct-la-cats">
+                        {canalEditModal.laCategories.map((cat, i) => (
+                          <span key={i} className="ct-la-cat-chip">
+                            {cat}
+                            <button type="button" onClick={() => setCanalEditModal(m => m ? { ...m, laCategories: m.laCategories.filter((_, j) => j !== i) } : m)}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir um grupo.</p>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
