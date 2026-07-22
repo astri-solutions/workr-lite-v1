@@ -593,7 +593,7 @@ export default function DocumentosPage() {
 
           <div className="doc-field">
             <label className="doc-field__label">
-              Título *{PORTAL_CONFIG.languages.length > 1 && !ptOnly ? ` (${docLocale})` : ''}
+              Título *
             </label>
             <input className="doc-field__input" type="text" placeholder="Nome do documento"
               value={form.titulos[docLocale] ?? ''}
