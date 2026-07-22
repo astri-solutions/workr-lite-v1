@@ -47,8 +47,15 @@ interface DocRow {
 const DOCS_BUCKET = 'portal-documents';
 
 // Documents only make sense on "lista"/"lista-agrupada" pages (accordion of
-// files) — pages without pageType set yet (legacy canais) stay selectable.
-const COMPATIBLE_DOC_TYPES = ['lista', 'lista-agrupada', undefined] as (string | undefined)[];
+// files) — pages without pageType set yet (legacy canais) stay selectable,
+// EXCEPT the default canais that are structurally never a document list
+// (contact forms, Central de Resultados which has its own document table,
+// calendar/ratings pages) — those must never be offered even without an
+// explicit pageType.
+const COMPATIBLE_DOC_TYPES = ['lista', 'lista-agrupada'] as (string | undefined)[];
+const NON_LIST_DEFAULT_IDS = new Set([
+  'fale-ri', 'mailing', 'resultados', 'central-resultados', 'calendario-eventos', 'ratings',
+]);
 
 function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
@@ -94,7 +101,10 @@ function emptyDocForm(entityId = ''): DocForm {
 // Convert DB row → DocRow
 function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>): DocRow {
   const titulo = (r.titulo as Record<string, string>) ?? {};
-  const nomePrimary = titulo['PT'] ?? titulo[Object.keys(titulo)[0]] ?? String(r.id);
+  // The table always shows the Portuguese title regardless of which locale
+  // tab was last edited — 'PT' was never a real key (locales are stored as
+  // 'pt-BR'/'en'/'es'), so this previously fell through to an arbitrary key.
+  const nomePrimary = titulo['pt-BR'] ?? titulo[Object.keys(titulo)[0]] ?? String(r.id);
   const paginaIds = (r.pagina_ids as string[]) ?? [];
   const paginaLabel = paginaIds.length === 0
     ? '—'
@@ -316,7 +326,7 @@ export default function DocumentosPage() {
     if (!replaceDoc || !supabase || !portalDbId) return;
     const now = new Date().toISOString();
     const patch: Record<string, unknown> = {
-      titulo: { ...((docs.find(d => d.id === replaceDoc.id) as unknown as { titulo?: Record<string, string> })?.titulo ?? {}), PT: replaceTitle || replaceDoc.nome },
+      titulo: { ...((docs.find(d => d.id === replaceDoc.id) as unknown as { titulo?: Record<string, string> })?.titulo ?? {}), 'pt-BR': replaceTitle || replaceDoc.nome },
       ultimo_editor: user?.name ?? user?.email ?? '',
       updated_at: now,
     };
@@ -663,7 +673,9 @@ export default function DocumentosPage() {
                 {destPages.map(p => {
                   const checked = form.paginaIds.includes(p.id);
                   const subs = form.subGroupIds[p.id] ?? [];
-                  const compatible = COMPATIBLE_DOC_TYPES.includes(p.pageType);
+                  const compatible = p.pageType
+                    ? COMPATIBLE_DOC_TYPES.includes(p.pageType)
+                    : !NON_LIST_DEFAULT_IDS.has(p.id);
                   return (
                     <div key={p.id}>
                       <label className="up-form__check" title={!compatible ? 'Esta página não é do tipo Lista — não aceita documentos' : undefined}>
