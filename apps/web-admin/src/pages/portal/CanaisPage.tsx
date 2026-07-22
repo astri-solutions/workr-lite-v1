@@ -1558,17 +1558,21 @@ export default function CanaisPage() {
               <input className="canais-edit-form__input" type="text" value={canalEditModal.label} autoFocus
                 onChange={e => setCanalEditModal(m => m ? { ...m, label: e.target.value } : m)} />
             </label>
-            <div className="canais-edit-divider" />
-            <p className="canais-edit-section-title">Imagem do header</p>
-            <HeaderImageEditor
-              value={canalEditModal.headerImageUrl}
-              onChange={v => setCanalEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
-            />
-            <label className="canal-apply-default">
-              <input type="checkbox" checked={canalEditModal.applyHeaderToChildren}
-                onChange={e => setCanalEditModal(m => m ? { ...m, applyHeaderToChildren: e.target.checked } : m)} />
-              Aplicar como padrão para todas as páginas filhas
-            </label>
+            {!isFlatLayout && (
+              <>
+                <div className="canais-edit-divider" />
+                <p className="canais-edit-section-title">Imagem do header</p>
+                <HeaderImageEditor
+                  value={canalEditModal.headerImageUrl}
+                  onChange={v => setCanalEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
+                />
+                <label className="canal-apply-default">
+                  <input type="checkbox" checked={canalEditModal.applyHeaderToChildren}
+                    onChange={e => setCanalEditModal(m => m ? { ...m, applyHeaderToChildren: e.target.checked } : m)} />
+                  Aplicar como padrão para todas as páginas filhas
+                </label>
+              </>
+            )}
             <div className="canais-edit-divider" />
             <label className="canal-apply-default">
               <input type="checkbox" checked={canalEditModal.showInFooter}
@@ -1915,11 +1919,13 @@ export default function CanaisPage() {
               </label>
             )}
             <LangTabs active={newCanalForm.locale} onChange={l => setNewCanalForm(f => ({ ...f, locale: l }))} />
-            <div className="canal-header-img-wrap">
-              <p className="canais-edit-section-title">Imagem do header</p>
-              <HeaderImageEditor value={newCanalForm.headerImageUrl}
-                onChange={v => setNewCanalForm(f => ({ ...f, headerImageUrl: v }))} />
-            </div>
+            {!isFlatLayout && (
+              <div className="canal-header-img-wrap">
+                <p className="canais-edit-section-title">Imagem do header</p>
+                <HeaderImageEditor value={newCanalForm.headerImageUrl}
+                  onChange={v => setNewCanalForm(f => ({ ...f, headerImageUrl: v }))} />
+              </div>
+            )}
             <div key={newCanalForm.locale} className="canais-edit-form__label-group">
               <label className="canais-edit-form__label lang-fade">
                 Título
