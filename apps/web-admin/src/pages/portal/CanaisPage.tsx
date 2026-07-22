@@ -19,6 +19,22 @@ function genId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+// Flattens the wizard's group-name inputs (custom flat list, or one list per
+// empresa) into the single de-duped list stored on the canal/sub-canal —
+// documentos.js groups purely by the label found on each tagged document, so
+// only the set of possible names needs to survive, not which mode built them.
+function resolveGroupCategories(form: {
+  laByEmpresa: boolean;
+  laSelectedEmpresas: string[];
+  laCategories: string[];
+  laEmpresaCategories: Record<string, string[]>;
+}): string[] {
+  const raw = form.laByEmpresa
+    ? form.laSelectedEmpresas.flatMap(id => form.laEmpresaCategories[id] ?? [])
+    : form.laCategories;
+  return [...new Set(raw.map(c => c.trim()).filter(Boolean))];
+}
+
 // ── Portal empresas ──────────────────────────────────────────────────────────
 type PortalEmpresa = { id: string; label: string };
 
@@ -604,7 +620,9 @@ export default function CanaisPage() {
         enabled: !newSubForm.draft,
         ...(newSubForm.hasChildren ? {} : { pageType: newSubForm.pageType }),
         ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
-        ...(newSubForm.pageType === 'lista-agrupada' ? { listaAgrupadaStyle: newSubForm.laStyle } : {}),
+        ...(newSubForm.pageType === 'lista-agrupada'
+          ? { listaAgrupadaStyle: newSubForm.laStyle, listaAgrupadaCategories: resolveGroupCategories(newSubForm) }
+          : {}),
       };
       mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
     }
@@ -682,6 +700,8 @@ export default function CanaisPage() {
     const c: Canal = {
       id: newId, label, enabled: !newCanalForm.draft, children: [],
       ...(isLeaf ? { pageType: newCanalForm.pageType, href: `/${newId}.html` } : {}),
+      ...(isLeaf && newCanalForm.pageType === 'lista-agrupada'
+        ? { listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
       ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
     };
     mutate(prev => [...prev, c]);
@@ -721,6 +741,8 @@ export default function CanaisPage() {
       isExternalLink: sub.isExternalLink ?? false, externalUrl: sub.externalUrl ?? '',
       showInFooter: sub.showInFooter ?? false, transferTo: '',
       ..._laDefaults,
+      laByEmpresa: false,
+      laCategories: sub.listaAgrupadaCategories ?? [],
     });
   }
   function openEditSubSub(cid: string, sid: string, ss: SubSubCanal) {
@@ -762,7 +784,9 @@ export default function CanaisPage() {
           const sub = c.children.find(s => s.id === subId);
           if (sub) movingSub = {
             ...sub, label: label.trim() || sub.label, href: href.trim() || sub.href,
-            pageType, listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
+            pageType,
+            listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
+            listaAgrupadaCategories: pageType === 'lista-agrupada' ? resolveGroupCategories(editModal) : undefined,
             isExternalLink, externalUrl: isExternalLink ? externalUrl : undefined, showInFooter,
           };
           return { ...c, children: c.children.filter(s => s.id !== subId) };

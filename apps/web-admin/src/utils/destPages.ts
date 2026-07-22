@@ -5,6 +5,7 @@ export interface DestPage {
   label: string;
   group: string;
   pageType?: PageType;
+  listaAgrupadaCategories?: string[];
 }
 
 /**
@@ -28,11 +29,11 @@ export function buildDestPages(canais: Canal[]): DestPage[] {
     if (c.children.length === 0) {
       // Direct page — the whole canal IS the destination (flat layouts, or
       // a childless canal in a banner layout).
-      result.push({ id: c.id, label: c.label, group: 'Canal raiz', pageType: c.pageType });
+      result.push({ id: c.id, label: c.label, group: 'Canal raiz', pageType: c.pageType, listaAgrupadaCategories: c.listaAgrupadaCategories });
       continue;
     }
     for (const s of c.children) {
-      result.push({ id: s.id, label: s.label, group: c.label, pageType: s.pageType });
+      result.push({ id: s.id, label: s.label, group: c.label, pageType: s.pageType, listaAgrupadaCategories: s.listaAgrupadaCategories });
       for (const ss of s.children ?? []) {
         result.push({ id: ss.id, label: ss.label, group: `${c.label} → ${s.label}`, pageType: ss.pageType });
       }

@@ -23,6 +23,10 @@ export interface SubCanal {
   enabled: boolean;
   pageType?: PageType;
   listaAgrupadaStyle?: ListaAgrupadaStyle;
+  // Group labels offered when tagging a document to this page, used only
+  // when pageType === 'lista-agrupada' — these are NOT sub-pages, just the
+  // set of accordion/section names documents can be assigned to.
+  listaAgrupadaCategories?: string[];
   isExternalLink?: boolean;
   externalUrl?: string;
   showInFooter?: boolean;
@@ -37,6 +41,7 @@ export interface Canal {
   children: SubCanal[];
   headerImage?: string;
   pageType?: PageType;
+  listaAgrupadaCategories?: string[];
   showInFooter?: boolean;
 }
 

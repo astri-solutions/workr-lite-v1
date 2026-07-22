@@ -54,15 +54,16 @@ function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
 
-// Sub-group categories (e.g. "Fatos Relevantes", "AGO/AGE") aren't a
-// registered concept anywhere in the CMS yet — there's no screen where a
-// client defines them for a canal. Fabricating a fixed taxonomy per canal id
-// showed categories the client never created. Until that configuration
-// screen exists, every canal gets a flat document list (no sub-groups).
+// Sub-group categories (e.g. "Fatos Relevantes", "AGO/AGE") come from the
+// canal's own "Grupos" config (Árvore de canais → Tipo de página → Lista
+// agrupada) — only pages of that pageType have any to offer.
 interface DestPage extends BaseDestPage { subGroups: string[]; }
 
 function buildDestPages(canais: Parameters<typeof buildBasePages>[0]): DestPage[] {
-  return buildBasePages(canais).map(p => ({ ...p, subGroups: [] }));
+  return buildBasePages(canais).map(p => ({
+    ...p,
+    subGroups: p.pageType === 'lista-agrupada' ? (p.listaAgrupadaCategories ?? []) : [],
+  }));
 }
 
 interface DocForm {
