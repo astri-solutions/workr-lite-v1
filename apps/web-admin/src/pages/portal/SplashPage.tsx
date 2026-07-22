@@ -106,7 +106,7 @@ function emptyBtn(): SplashBtn {
 }
 
 const DEFAULT_SPLASH: SplashConfig = {
-  enabled: true,
+  enabled: false,
   size: 'md',
   imageUrl: null,
   titulo: '',

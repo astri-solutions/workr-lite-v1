@@ -50,6 +50,7 @@ interface SplashCfg {
   enabled: boolean; size: string;
   titulo: string; texto: string; conteudo: string; legenda: string;
   buttons: SplashBtn[];
+  imageUrl?: string | AssetCfg | null;
 }
 interface CookieBtn { label: string; action: string; variant: string; }
 interface CookieCfg {
@@ -240,6 +241,7 @@ function buildSiteConfig(opts: {
   errorPages?: ErrorPageCfg[] | null;
   banner?: BannerSlideCfg[] | null;
   logoExt?: string;
+  logoNegativeExt?: string;
   faviconExt?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
@@ -302,8 +304,8 @@ export const siteConfig = {
     nameShort:   ${JSON.stringify(opts.nome)},
     description: 'Relações com Investidores — ${opts.nome}.',
     logoOriginal: '/assets/logotipo/logotipo-original.${opts.logoExt ?? 'svg'}',
-    logoNegative: '/assets/logotipo/logotipo-negative.${opts.logoExt ?? 'svg'}',
-    logoContrast: '/assets/logotipo/logotipo-negative.${opts.logoExt ?? 'svg'}',
+    logoNegative: '/assets/logotipo/logotipo-negative.${opts.logoNegativeExt ?? opts.logoExt ?? 'svg'}',
+    logoContrast: '/assets/logotipo/logotipo-negative.${opts.logoNegativeExt ?? opts.logoExt ?? 'svg'}',
     favicon:      '/favicon.${opts.faviconExt ?? 'svg'}',
   },
 
@@ -415,7 +417,7 @@ Deno.serve(async (req) => {
 
     const {
       repoName: repoNameRaw, portalId, portalNome, layout, colors, fonts, footer, ticker,
-      canais, empresas, splash, cookies, errorPages, banner, logo, favicon, topbar, languages,
+      canais, empresas, splash, cookies, errorPages, banner, logo, favicon, logoNegativo, topbar, languages,
     } = await req.json() as {
       repoName?: string;
       portalId?: string;
@@ -433,6 +435,7 @@ Deno.serve(async (req) => {
       banner?: BannerSlideCfg[] | null;
       logo?: AssetCfg | null;
       favicon?: AssetCfg | null;
+      logoNegativo?: AssetCfg | null;
       topbar?: TopbarCfg | null;
       languages?: string[];
     };
@@ -451,6 +454,7 @@ Deno.serve(async (req) => {
     let resolvedPortalUuid: string | undefined;
     let savedLogoExt: string | undefined;
     let savedFaviconExt: string | undefined;
+    let savedLogoNegativeExt: string | undefined;
     if (!repoName && portalId) {
       const adminClient = createClient(
         supabaseUrl,
@@ -471,13 +475,14 @@ Deno.serve(async (req) => {
       try {
         const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
         const query = resolvedPortalUuid
-          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, idiomas').eq('portal_id', resolvedPortalUuid).maybeSingle()
-          : adminClient.from('portal_config').select('logo_ext, favicon_ext, idiomas, portal_id').eq('portal_id',
+          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas').eq('portal_id', resolvedPortalUuid).maybeSingle()
+          : adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, portal_id').eq('portal_id',
               (await adminClient.from('portals').select('id').eq('portal_key', portalId!).maybeSingle()).data?.id ?? ''
             ).maybeSingle();
         const { data: cfgRow } = await query;
         savedLogoExt = cfgRow?.logo_ext ?? undefined;
         savedFaviconExt = cfgRow?.favicon_ext ?? undefined;
+        savedLogoNegativeExt = cfgRow?.logo_negativo_ext ?? undefined;
         savedLanguages = Array.isArray(cfgRow?.idiomas) && cfgRow.idiomas.length > 0 ? cfgRow.idiomas : undefined;
       } catch { /* non-fatal */ }
     }
@@ -541,6 +546,18 @@ Deno.serve(async (req) => {
       return slide;
     });
 
+    // Same treatment as banner slides — splash.imageUrl arrives either as a
+    // fresh {base64, ext} upload or an already-published path string.
+    let resolvedSplash = splash ?? null;
+    if (resolvedSplash) {
+      const img = resolvedSplash.imageUrl;
+      if (img && typeof img === 'object' && 'base64' in img) {
+        const path = `/assets/splash/header.${img.ext}`;
+        bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
+        resolvedSplash = { ...resolvedSplash, imageUrl: path };
+      }
+    }
+
     const filePath = 'scripts/site.config.js';
     const newContent = buildSiteConfig({
       nome: portalNome,
@@ -551,11 +568,12 @@ Deno.serve(async (req) => {
       ticker: ticker ?? null,
       canais: canais ?? [],
       empresas: empresas ?? [],
-      splash: splash ?? null,
+      splash: resolvedSplash,
       cookies: cookies ?? null,
       errorPages: errorPages ?? null,
       banner: resolvedBanner,
       logoExt: logo?.ext ?? savedLogoExt,
+      logoNegativeExt: logoNegativo?.ext ?? savedLogoNegativeExt,
       faviconExt: favicon?.ext ?? savedFaviconExt,
       supabaseUrl: Deno.env.get('SUPABASE_URL'),
       supabaseAnonKey: Deno.env.get('SUPABASE_ANON_KEY'),
@@ -676,7 +694,14 @@ Deno.serve(async (req) => {
     // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.base64) {
       queueWrite(`public/assets/logotipo/logotipo-original.${logo.ext}`, logo.base64);
-      queueWrite(`public/assets/logotipo/logotipo-negative.${logo.ext}`, logo.base64);
+      // Only duplicate the original as a placeholder "negative" when no real
+      // negative/light variant has ever been uploaded for this portal.
+      if (!logoNegativo?.base64 && !savedLogoNegativeExt) {
+        queueWrite(`public/assets/logotipo/logotipo-negative.${logo.ext}`, logo.base64);
+      }
+    }
+    if (logoNegativo?.base64) {
+      queueWrite(`public/assets/logotipo/logotipo-negative.${logoNegativo.ext}`, logoNegativo.base64);
     }
     if (favicon?.base64) {
       queueWrite(`public/favicon.${favicon.ext}`, favicon.base64);
@@ -820,13 +845,14 @@ Deno.serve(async (req) => {
             // portal_config.empresas is EmpresasPage's own canonical shape
             // ({id, nome, tipo, cnpj, cvmCodigo, autoCvm, ...}) — writing the
             // former here silently clobbers the latter on every Publicar click.
-            splash: splash ?? null,
+            splash: resolvedSplash,
             cookies: cookies ?? null,
             banner_slides: resolvedBanner.length ? resolvedBanner : null,
             updated_at: new Date().toISOString(),
           };
           if (logo?.ext) configPatch.logo_ext = logo.ext;
           if (favicon?.ext) configPatch.favicon_ext = favicon.ext;
+          if (logoNegativo?.ext) configPatch.logo_negativo_ext = logoNegativo.ext;
           if (topbar) configPatch.topbar = topbar;
           await adminClient.from('portal_config').upsert(configPatch, { onConflict: 'portal_id' });
         }

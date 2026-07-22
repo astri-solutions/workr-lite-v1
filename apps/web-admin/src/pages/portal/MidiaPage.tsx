@@ -260,7 +260,11 @@ export default function MidiaPage() {
       const { error: uploadError } = await supabase.storage
         .from(MEDIA_BUCKET)
         .upload(filePath, uploadFile, { upsert: false });
-      if (uploadError) { console.error('media upload failed', uploadError); return; }
+      if (uploadError) {
+        console.error('media upload failed', uploadError);
+        alert(`Não foi possível enviar o arquivo: ${uploadError.message}`);
+        return;
+      }
 
       const { error } = await supabase.from('portal_media').insert({
         id: newId,
@@ -275,6 +279,7 @@ export default function MidiaPage() {
       if (error) {
         console.error('media insert failed', error);
         await supabase.storage.from(MEDIA_BUCKET).remove([filePath]);
+        alert(`Não foi possível salvar o arquivo: ${error.message}`);
         return;
       }
       await loadFiles();
@@ -301,18 +306,21 @@ export default function MidiaPage() {
         uploaded_by: userName,
         ...meta,
       });
-      if (!error) {
-        await loadFiles();
-        setSelectedId(newId);
-        logActivity({
-          portalId: portalDbId,
-          userName,
-          userEmail: user?.email ?? '',
-          action: 'adicionou',
-          category: 'midia',
-          entity: name,
-        });
+      if (error) {
+        console.error('media insert (url) failed', error);
+        alert(`Não foi possível salvar o arquivo: ${error.message}`);
+        return;
       }
+      await loadFiles();
+      setSelectedId(newId);
+      logActivity({
+        portalId: portalDbId,
+        userName,
+        userEmail: user?.email ?? '',
+        action: 'adicionou',
+        category: 'midia',
+        entity: name,
+      });
     }
     setPendingFile(null);
     setPendingUrl('');

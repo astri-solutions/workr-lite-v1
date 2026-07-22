@@ -18,6 +18,7 @@ const CROPPABLE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image
 
 export const LOGO_KEY = 'portal_logotipo';
 export const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
+export const LOGO_NEGATIVE_KEY = 'portal_logotipo_negativo';
 
 export default function LogotipoPage() {
   const portalName = usePortalName();
@@ -25,23 +26,29 @@ export default function LogotipoPage() {
 
   const logoKey = pKey(LOGO_KEY, portalId);
   const logoCompactKey = pKey(LOGO_COMPACT_KEY, portalId);
+  const logoNegativeKey = pKey(LOGO_NEGATIVE_KEY, portalId);
 
   // State holds data URLs (base64) which survive page reloads and are usable in <img src>
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [baseLogo, setBaseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
   const [baseCollapsed, setBaseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
+  const [baseNegative, setBaseNegative] = useState<string | null>(() => localStorage.getItem(logoNegativeKey));
   const [logo, setLogo] = useState<string | null>(baseLogo);
   const [logoCollapsed, setLogoCollapsed] = useState<string | null>(baseCollapsed);
+  const [logoNegative, setLogoNegative] = useState<string | null>(baseNegative);
   const [isDraft, setIsDraft] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputCollRef = useRef<HTMLInputElement>(null);
+  const inputNegRef = useRef<HTMLInputElement>(null);
   const pendingLogoDataUrl = useRef<string | null>(null);
   const pendingLogoCollDataUrl = useRef<string | null>(null);
+  const pendingLogoNegDataUrl = useRef<string | null>(null);
   const logoBlobUrlRef = useRef<string | null>(null);
   const logoCollBlobUrlRef = useRef<string | null>(null);
+  const logoNegBlobUrlRef = useRef<string | null>(null);
 
-  const isDirty = logo !== baseLogo || logoCollapsed !== baseCollapsed;
+  const isDirty = logo !== baseLogo || logoCollapsed !== baseCollapsed || logoNegative !== baseNegative;
   const blocker = useUnsavedChanges(isDirty);
 
   async function handleFile(
@@ -62,7 +69,18 @@ export default function LogotipoPage() {
     if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     blobUrlRef.current = result.objectUrl;
     pendingRef.current = result.dataUrl;
-    setter(result.dataUrl); // use data URL so preview also works after reload
+    setter(result.dataUrl);
+  }
+
+  async function handleNegativeFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const result = await processImageToDataUrl(file, 'logo');
+    if (logoNegBlobUrlRef.current) URL.revokeObjectURL(logoNegBlobUrlRef.current);
+    logoNegBlobUrlRef.current = result.objectUrl;
+    pendingLogoNegDataUrl.current = result.dataUrl;
+    setLogoNegative(result.dataUrl);
   }
 
   function handleCompactCropConfirm(dataUrl: string) {
@@ -76,8 +94,11 @@ export default function LogotipoPage() {
     else localStorage.removeItem(logoKey);
     if (logoCollapsed) localStorage.setItem(logoCompactKey, logoCollapsed);
     else localStorage.removeItem(logoCompactKey);
+    if (logoNegative) localStorage.setItem(logoNegativeKey, logoNegative);
+    else localStorage.removeItem(logoNegativeKey);
     pendingLogoDataUrl.current = null;
     pendingLogoCollDataUrl.current = null;
+    pendingLogoNegDataUrl.current = null;
     // Persist logo extension to Supabase so publish-config uses the correct file extension
     if (portalId && logo) {
       const m = logo.match(/^data:([^;]+);base64,/);
@@ -91,6 +112,7 @@ export default function LogotipoPage() {
     }
     setBaseLogo(logo);
     setBaseCollapsed(logoCollapsed);
+    setBaseNegative(logoNegative);
     setIsDraft(true);
     notifyDraft();
   }
@@ -138,6 +160,17 @@ export default function LogotipoPage() {
           onClear={() => { setLogoCollapsed(null); }}
           inputEl={<input ref={inputCollRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={e => handleFile(e, setLogoCollapsed, pendingLogoCollDataUrl, logoCollBlobUrlRef, 'logo-compact')} />}
+        />
+        <UploadArea
+          title="Logotipo negativo (fundo escuro)"
+          desc="Versão clara/branca usada sobre fundos escuros — topbar, footer e modo alto contraste. Recomendado: mesmo formato do logotipo principal."
+          value={logoNegative}
+          onChange={v => { setLogoNegative(v); }}
+          inputRef={inputNegRef}
+          onPickFile={() => inputNegRef.current?.click()}
+          onClear={() => { setLogoNegative(null); }}
+          inputEl={<input ref={inputNegRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
+            onChange={handleNegativeFile} />}
         />
       </div>
 

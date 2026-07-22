@@ -103,8 +103,9 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
         };
         return { base64: m[2], ext: extMap[m[1]] ?? 'png' };
       }
-      const logo    = extractAsset(localStorage.getItem(pKey('portal_logotipo', pid)));
-      const favicon = extractAsset(localStorage.getItem(pKey('portal_favicon', pid)));
+      const logo         = extractAsset(localStorage.getItem(pKey('portal_logotipo', pid)));
+      const favicon      = extractAsset(localStorage.getItem(pKey('portal_favicon', pid)));
+      const logoNegativo = extractAsset(localStorage.getItem(pKey('portal_logotipo_negativo', pid)));
 
       // Each banner slide's imagem is a data URL — split into {base64, ext}
       // per slide (same treatment as logo/favicon) so publish-config can
@@ -117,6 +118,15 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
             return { ...s, imagem: asset ?? (s.imagem ?? null) };
           })
         : null;
+
+      // Same treatment for the splash header image.
+      const splashResolved = splash && typeof splash === 'object'
+        ? (() => {
+            const s = splash as Record<string, unknown>;
+            const asset = extractAsset(typeof s.imageUrl === 'string' ? s.imageUrl : null);
+            return { ...s, imageUrl: asset ?? (s.imageUrl ?? null) };
+          })()
+        : splash;
 
       const portaisRaw = localStorage.getItem('workr_portais');
       const portaisArr = portaisRaw ? JSON.parse(portaisRaw) : [];
@@ -153,12 +163,13 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
             ticker: ticker ?? null,
             canais: canais ?? [],
             empresas,
-            splash:     splash ?? null,
+            splash:     splashResolved ?? null,
             cookies:    cookies ?? null,
             errorPages: errorPages ?? null,
             banner:     banner ?? null,
             logo:       logo ?? null,
             favicon:    favicon ?? null,
+            logoNegativo: logoNegativo ?? null,
             topbar:     topbar ?? null,
             languages:  idiomas,
           }),
