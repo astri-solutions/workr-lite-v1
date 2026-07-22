@@ -92,10 +92,6 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
         .filter(e => e.ativo)
         .map(e => ({ id: e.id, label: e.nome, short: e.nome.split(' ').filter((w: string) => w.length > 2).map((w: string) => w[0]).join('').toUpperCase() || e.nome.slice(0, 3).toUpperCase() }));
 
-      const banner = Array.isArray(bannerRaw)
-        ? bannerRaw.map((s: Record<string, unknown>) => ({ ...s, imagem: null }))
-        : null;
-
       function extractAsset(dataUrl: string | null): { base64: string; ext: string } | null {
         if (!dataUrl?.startsWith('data:')) return null;
         const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -109,6 +105,18 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       }
       const logo    = extractAsset(localStorage.getItem(pKey('portal_logotipo', pid)));
       const favicon = extractAsset(localStorage.getItem(pKey('portal_favicon', pid)));
+
+      // Each banner slide's imagem is a data URL — split into {base64, ext}
+      // per slide (same treatment as logo/favicon) so publish-config can
+      // write it as a public asset file instead of embedding it raw in
+      // site.config.js. A slide already published before (imagem is already
+      // a path, not a data: URL) is left untouched — no re-upload needed.
+      const banner = Array.isArray(bannerRaw)
+        ? bannerRaw.map((s: Record<string, unknown>) => {
+            const asset = extractAsset(typeof s.imagem === 'string' ? s.imagem : null);
+            return { ...s, imagem: asset ?? (s.imagem ?? null) };
+          })
+        : null;
 
       const portaisRaw = localStorage.getItem('workr_portais');
       const portaisArr = portaisRaw ? JSON.parse(portaisRaw) : [];

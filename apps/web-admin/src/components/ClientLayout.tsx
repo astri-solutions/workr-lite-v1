@@ -327,7 +327,7 @@ function ClientLayoutInner() {
   const portalSections: NavSection[] = SECTIONS.map(section => ({
     ...section,
     items: section.items.filter(item => {
-      if (item.to === '/portal/banner') return portalLayout === 'banner';
+      if (item.to === '/portal/banner') return portalLayout !== 'sidebar';
       return true;
     }),
   }));

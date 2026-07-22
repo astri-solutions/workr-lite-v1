@@ -63,8 +63,8 @@ interface CookieCfg {
 interface ErrorPageTexts { title: string; description: string; cta: string; }
 interface ErrorPageCfg { code: number; texts: ErrorPageTexts | null; }
 interface BannerSlideContent { titulo: string; subtitulo: string; cta: string; }
-interface BannerSlideCfg { id: string; content: Record<string, BannerSlideContent>; }
 interface AssetCfg { base64: string; ext: string; }
+interface BannerSlideCfg { id: string; content: Record<string, BannerSlideContent>; imagem?: string | AssetCfg | null; }
 interface TopbarLink { label: string; url: string; }
 interface TopbarCfg { institucional?: TopbarLink; ri?: TopbarLink; showTicker?: boolean; }
 
@@ -526,6 +526,21 @@ Deno.serve(async (req) => {
       } catch { /* non-fatal */ }
     }
 
+    // Each slide's imagem arrives either as {base64, ext} (a fresh upload —
+    // queued as a public asset file once `queueWrite` exists below, and
+    // replaced here with its eventual path) or already a path string from a
+    // previous publish (left untouched, no re-upload).
+    const bannerAssetWrites: { path: string; base64: string }[] = [];
+    const resolvedBanner = (banner ?? []).map(slide => {
+      const img = slide.imagem;
+      if (img && typeof img === 'object' && 'base64' in img) {
+        const path = `/assets/banner/${slide.id}.${img.ext}`;
+        bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
+        return { ...slide, imagem: path };
+      }
+      return slide;
+    });
+
     const filePath = 'scripts/site.config.js';
     const newContent = buildSiteConfig({
       nome: portalNome,
@@ -539,7 +554,7 @@ Deno.serve(async (req) => {
       splash: splash ?? null,
       cookies: cookies ?? null,
       errorPages: errorPages ?? null,
-      banner: banner ?? null,
+      banner: resolvedBanner,
       logoExt: logo?.ext ?? savedLogoExt,
       faviconExt: favicon?.ext ?? savedFaviconExt,
       supabaseUrl: Deno.env.get('SUPABASE_URL'),
@@ -608,6 +623,7 @@ Deno.serve(async (req) => {
 
     // scripts/site.config.js — the CMS-generated portal config
     queueWrite(filePath, encoded);
+    bannerAssetWrites.forEach(w => queueWrite(w.path, w.base64));
 
     // Self-healing shared runtime/styles/build-config files — every file
     // under scripts/ and styles/ (plus vite.config.js) is pulled fresh from
@@ -806,7 +822,7 @@ Deno.serve(async (req) => {
             // former here silently clobbers the latter on every Publicar click.
             splash: splash ?? null,
             cookies: cookies ?? null,
-            banner_slides: banner ?? null,
+            banner_slides: resolvedBanner.length ? resolvedBanner : null,
             updated_at: new Date().toISOString(),
           };
           if (logo?.ext) configPatch.logo_ext = logo.ext;
