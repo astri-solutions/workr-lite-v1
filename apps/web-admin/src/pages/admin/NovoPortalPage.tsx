@@ -639,9 +639,9 @@ function StepCores({
           </div>
         </div>
         <div className="np-cores-grid">
-          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="CTAs, botões e destaques — 10%" required />
-          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Títulos, backgrounds e seções — 30%" />
-          <ColorField label="Cor de Destaque" value={terciaria} onChange={onTerciaria} hint="Complemento para casos específicos" />
+          <ColorField label="Cor Primária" value={primaria} onChange={onPrimaria} hint="Botões, links principais e destaques — 10%" required />
+          <ColorField label="Cor Secundária" value={secundaria} onChange={onSecundaria} hint="Subtítulos, botões secundários e fundo de seções — 30%" />
+          <ColorField label="Cor Terciária" value={terciaria} onChange={onTerciaria} hint="Badges e textos pequenos" />
         </div>
       </div>
     </div>
