@@ -102,8 +102,14 @@ function guessType(fileName: string): string {
   return '';
 }
 
-let _uid = 200;
-function uid() { return `f${_uid++}`; }
+// Must be globally unique across page reloads and portals — this is the
+// Supabase primary key for portal_resultado_arquivos. A sequential counter
+// restarting at 200 on every reload could collide with an id already saved
+// in an earlier session, and supabase-js doesn't throw on insert errors, so
+// the collision silently dropped the row while the UI still showed it.
+function uid() {
+  return `f${crypto.randomUUID()}`;
+}
 
 function makeEntries(files: File[]): FileEntry[] {
   return files.map(f => ({
@@ -168,11 +174,21 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
 
   function saveEdit() {
     if (!editingId) return;
-    const patch: Partial<FileEntry> = { nome: editNome, locale: editLocale };
+    const original = entries.find(e => e.id === editingId);
     const f = editFileRef.current?.files?.[0];
+    // Each file row belongs to a single idioma — it isn't a per-language
+    // content container like Documentos. Switching the idioma tab here
+    // without picking a new file would just relabel the existing PT file
+    // as EN/ES with no translated content, which the user could easily
+    // publish without noticing. Require an actual file for the new idioma.
+    if (!f && editLocale !== (original?.locale ?? 'pt-BR')) {
+      alert('Selecione um arquivo para este idioma antes de salvar — trocar apenas a aba não traduz o conteúdo do arquivo atual.');
+      return;
+    }
+    const patch: Partial<FileEntry> = { nome: editNome, locale: editLocale };
     if (f) {
       patch.fileName = f.name;
-      patch.tipo = guessType(f.name) || (entries.find(e => e.id === editingId)?.tipo ?? '');
+      patch.tipo = guessType(f.name) || (original?.tipo ?? '');
       patch.file = f;
     }
     update(editingId, patch);
@@ -362,8 +378,8 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
           )}
 
           <label className="cdr-modal-form__label">
-            Substituir arquivo
-            {editingEntry?.fileName && (
+            {editLocale === (editingEntry?.locale ?? 'pt-BR') ? 'Substituir arquivo' : 'Adicionar arquivo'}
+            {editingEntry?.fileName && editLocale === (editingEntry?.locale ?? 'pt-BR') && (
               <span className="cdr2-edit-current-file">
                 <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>attach_file</span>
                 {editingEntry.fileName}
@@ -608,34 +624,48 @@ export default function CentralDeResultadosPage2() {
       if (old.filePath) await supabase.storage.from(RESULTADOS_BUCKET).remove([old.filePath]);
     }
 
+    const failed: string[] = [];
+
     for (const [idx, entry] of entries.entries()) {
       const prevMatch = prevById.get(entry.id);
       let filePath = entry.filePath;
       if (entry.file) {
         const ext = fileExt(entry.fileName);
         filePath = `${portalDbId}/resultados/${entry.id}.${ext}`;
-        await supabase.storage.from(RESULTADOS_BUCKET).upload(filePath, entry.file, { upsert: true });
+        const { error: uploadError } = await supabase.storage.from(RESULTADOS_BUCKET).upload(filePath, entry.file, { upsert: true });
+        if (uploadError) { failed.push(entry.nome); continue; }
       }
       const status = entry.status === 'published' ? 'Publicado' : 'Rascunho';
       if (!prevMatch) {
-        await supabase.from('portal_resultado_arquivos').insert({
+        // upsert, not insert: if a previous call already wrote this id (e.g.
+        // the user toggled publish before the initial drop's insert had
+        // resolved, so this diff still saw no prevMatch), an insert would
+        // hit the id's unique constraint and be silently lost. upsert lands
+        // the latest fields either way.
+        const { error } = await supabase.from('portal_resultado_arquivos').upsert({
           id: entry.id, portal_id: portalDbId, periodo_id: quarterId,
           nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
           external_link: entry.externalLink ?? null, locale: entry.locale,
           status, ordem: idx, updated_at: new Date().toISOString(),
-        });
+        }, { onConflict: 'id' });
+        if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
         continue;
       }
       const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
         || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath;
       if (changed) {
-        await supabase.from('portal_resultado_arquivos').update({
+        const { error } = await supabase.from('portal_resultado_arquivos').update({
           nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
           locale: entry.locale, status, ordem: idx, updated_at: new Date().toISOString(),
         }).eq('id', entry.id);
+        if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(entry.nome); }
       } else {
         await supabase.from('portal_resultado_arquivos').update({ ordem: idx }).eq('id', entry.id);
       }
+    }
+
+    if (failed.length > 0) {
+      alert(`Não foi possível salvar: ${failed.join(', ')}. Tente novamente.`);
     }
   }
 
