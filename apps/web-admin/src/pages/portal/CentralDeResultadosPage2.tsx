@@ -563,9 +563,15 @@ export default function CentralDeResultadosPage2() {
         });
       }
     }
-    await updateQuarterDocs(pendingId, wEntries);
-    setWizardOpen(null);
-    if (openEditor) setEditingQuarterId(pendingId);
+    try {
+      await updateQuarterDocs(pendingId, wEntries);
+    } finally {
+      // Always close — an unexpected error saving one file must not leave
+      // the modal stuck open (updateQuarterDocs already surfaces per-file
+      // failures via alert(), so this isn't hiding anything from the user).
+      setWizardOpen(null);
+      if (openEditor) setEditingQuarterId(pendingId);
+    }
   }
 
   function wizardCancel() {
@@ -630,40 +636,51 @@ export default function CentralDeResultadosPage2() {
     const failed: string[] = [];
 
     for (const [idx, entry] of entries.entries()) {
-      const prevMatch = prevById.get(entry.id);
-      let filePath = entry.filePath;
-      if (entry.file) {
-        const ext = fileExt(entry.fileName);
-        filePath = `${portalDbId}/resultados/${entry.id}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from(RESULTADOS_BUCKET).upload(filePath, entry.file, { upsert: true });
-        if (uploadError) { failed.push(entry.nome); continue; }
-      }
-      const status = entry.status === 'published' ? 'Publicado' : 'Rascunho';
-      if (!prevMatch) {
-        // upsert, not insert: if a previous call already wrote this id (e.g.
-        // the user toggled publish before the initial drop's insert had
-        // resolved, so this diff still saw no prevMatch), an insert would
-        // hit the id's unique constraint and be silently lost. upsert lands
-        // the latest fields either way.
-        const { error } = await supabase.from('portal_resultado_arquivos').upsert({
-          id: entry.id, portal_id: portalDbId, periodo_id: quarterId,
-          nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
-          external_link: entry.externalLink ?? null, locale: entry.locale,
-          status, ordem: idx, updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
-        if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
-        continue;
-      }
-      const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
-        || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath;
-      if (changed) {
-        const { error } = await supabase.from('portal_resultado_arquivos').update({
-          nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
-          locale: entry.locale, status, ordem: idx, updated_at: new Date().toISOString(),
-        }).eq('id', entry.id);
-        if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(entry.nome); }
-      } else {
-        await supabase.from('portal_resultado_arquivos').update({ ordem: idx }).eq('id', entry.id);
+      try {
+        const prevMatch = prevById.get(entry.id);
+        let filePath = entry.filePath;
+        if (entry.file) {
+          const ext = fileExt(entry.fileName);
+          filePath = `${portalDbId}/resultados/${entry.id}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from(RESULTADOS_BUCKET).upload(filePath, entry.file, { upsert: true });
+          if (uploadError) {
+            console.error('portal_resultado_arquivos upload failed', uploadError);
+            failed.push(entry.nome);
+            continue;
+          }
+        }
+        const status = entry.status === 'published' ? 'Publicado' : 'Rascunho';
+        if (!prevMatch) {
+          // upsert, not insert: if a previous call already wrote this id (e.g.
+          // the user toggled publish before the initial drop's insert had
+          // resolved, so this diff still saw no prevMatch), an insert would
+          // hit the id's unique constraint and be silently lost. upsert lands
+          // the latest fields either way.
+          const { error } = await supabase.from('portal_resultado_arquivos').upsert({
+            id: entry.id, portal_id: portalDbId, periodo_id: quarterId,
+            nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
+            external_link: entry.externalLink ?? null, locale: entry.locale,
+            status, ordem: idx, updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' });
+          if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
+          continue;
+        }
+        const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
+          || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath;
+        if (changed) {
+          const { error } = await supabase.from('portal_resultado_arquivos').update({
+            nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
+            locale: entry.locale, status, ordem: idx, updated_at: new Date().toISOString(),
+          }).eq('id', entry.id);
+          if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(entry.nome); }
+        } else {
+          await supabase.from('portal_resultado_arquivos').update({ ordem: idx }).eq('id', entry.id);
+        }
+      } catch (e) {
+        // A single entry throwing (network blip, unexpected shape) must not
+        // abort the rest of the batch — each file is independent.
+        console.error('portal_resultado_arquivos entry failed', e);
+        failed.push(entry.nome);
       }
     }
 
