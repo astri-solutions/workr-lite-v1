@@ -611,7 +611,14 @@ Deno.serve(async (req) => {
         headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: repoName,
-          framework: null,
+          // Explicit, not left to auto-detection — a portal provisioned with
+          // framework: null could get auto-detected as "Other" instead of
+          // Vite, which silently falls back to no build step / wrong output
+          // directory on the next rebuild that doesn't reuse the cached
+          // deployment config (manual redeploy, settings change, etc.).
+          framework: 'vite',
+          buildCommand: 'npm run build',
+          outputDirectory: 'dist',
           gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
         }),
       });
