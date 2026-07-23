@@ -11,9 +11,10 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  // 'side' docks the panel to the right edge, full height, and slides in
-  // from the right instead of scaling in centered — same header/body/footer
-  // structure and the same onClose/footer contract, purely a different shell.
+  // 'side' (default) docks the panel to the right edge, full height, and
+  // slides in from the right; 'center' scales in centered instead — same
+  // header/body/footer structure and the same onClose/footer contract either
+  // way, purely a different shell.
   variant?: 'center' | 'side';
 }
 
@@ -25,7 +26,7 @@ export default function Modal({
   children,
   footer,
   size = 'md',
-  variant = 'center',
+  variant = 'side',
 }: ModalProps) {
   // Keeps the modal mounted for EXIT_DURATION_MS after `open` goes false, so
   // the slide/fade-out actually plays instead of the element just vanishing.
