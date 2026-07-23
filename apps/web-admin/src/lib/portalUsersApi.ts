@@ -78,7 +78,29 @@ export async function updatePortalUserRole(
   await supabase.from('portal_users').update(patch).eq('id', recordId);
 }
 
+const FN_BASE = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : '';
+
+// Removes the user's access to this portal. If the account has no access to
+// any other portal, the account itself is deleted from auth — otherwise only
+// the portal_users row (this portal's access) is removed.
 export async function deletePortalUser(recordId: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
-  await supabase.from('portal_users').delete().eq('id', recordId);
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Sessão não encontrada');
+  const res = await fetch(`${FN_BASE}/remove-portal-user`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+    },
+    body: JSON.stringify({ recordId }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(body.error ?? 'Erro ao remover usuário');
+  }
 }
