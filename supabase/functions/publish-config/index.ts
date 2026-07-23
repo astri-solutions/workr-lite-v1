@@ -39,9 +39,12 @@ interface TickerItem { symbol: string; price: string; change: string; direction:
 interface TickerCfg { type: string; iframeUrl?: string; items?: TickerItem[]; }
 interface SocialCfg { platform: string; url: string; }
 interface LegalLinkCfg { id: string; label: string; enabled: boolean; pageId?: string; }
+interface FooterTexts {
+  address: string; phone: string; hours: string; copyright: string; disclaimer: string;
+}
 interface FooterCfg {
-  address?: string; email?: string; phone?: string; hours?: string;
-  copyright?: string; disclaimer?: string;
+  email?: string;
+  content?: Record<string, FooterTexts>;
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
@@ -284,12 +287,19 @@ function buildSiteConfig(opts: {
     : `      { symbol: 'WRLT3', price: 'R$ 00,00', change: '0,00%', direction: 'up' }`;
 
   const f = opts.footer;
-  const address   = JSON.stringify(f?.address ?? '');
-  const email     = JSON.stringify(f?.email ?? '');
-  const phone     = JSON.stringify(f?.phone ?? '');
-  const hours     = JSON.stringify(f?.hours ?? '');
-  const copyright = JSON.stringify(f?.copyright ?? `©Copyright ${opts.nome} ${year}`);
-  const legalText = JSON.stringify(f?.disclaimer ?? 'As informações contidas neste site são de caráter meramente informativo e não constituem oferta de valores mobiliários.');
+  const email = JSON.stringify(f?.email ?? '');
+  // Address/phone/hours/copyright/disclaimer are per-locale (footer.js picks
+  // the current site language, falling back to the primary one) — default
+  // seeds only the primary locale for portals that have never configured a
+  // footer yet.
+  const footerPrimaryLang = opts.languages?.[0] ?? 'pt-BR';
+  const footerContent = f?.content ?? {
+    [footerPrimaryLang]: {
+      address: '', phone: '', hours: '',
+      copyright: `©Copyright ${opts.nome} ${year}`,
+      disclaimer: 'As informações contidas neste site são de caráter meramente informativo e não constituem oferta de valores mobiliários.',
+    },
+  };
 
   const legalLinksArr = (f?.legalLinks ?? [
     { id: 'termos', label: 'Termos e Condições', enabled: true },
@@ -372,16 +382,12 @@ ${buildEmpresasSection(opts.empresas, opts.nome)}
 
   footer: {
     variant: 'simple',
-    address:   ${address},
-    email:     ${email},
-    phone:     ${phone},
-    hours:     ${hours},
-    copyright: ${copyright},
+    email: ${email},
+    content: ${JSON.stringify(footerContent)},
     social: { linkedin: ${linkedin}, instagram: ${instagram}, facebook: ${facebook} },
     legalLinks: [
 ${legalLinks}
     ],
-    legalText: ${legalText},
   },
 
   splash: ${buildSplashSection(opts.splash)},

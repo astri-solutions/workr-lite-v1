@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useBlocker } from 'react-router-dom';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
-import PORTAL_CONFIG from '../../portalConfig';
+import LangTabs from '../../components/LangTabs';
+import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
 import { savePortalConfig } from '../../lib/portalConfigApi';
@@ -20,18 +21,34 @@ interface SocialLink { platform: string; url: string; icon: React.ReactNode }
 /** pageId, when set, points this link at a real canal instead of the fixed legal page. */
 interface LegalLink  { id: string; label: string; enabled: boolean; pageId?: string }
 
-interface FooterConfig {
-  model: FooterModel;
-  // Bottom bar
-  copyright: string;
-  poweredBy: boolean;
-  disclaimer: string;
-  legalLinks: LegalLink[];
-  // Completo only
+// Free text shown to visitors — one independent set per site language
+// (address/hours/copyright/disclaimer read differently per market), same
+// pattern as document titles and the cookie banner text.
+interface FooterTexts {
   address: string;
-  email: string;
   phone: string;
   hours: string;
+  copyright: string;
+  disclaimer: string;
+}
+
+const primaryLang = PORTAL_CONFIG.languages[0];
+
+function emptyFooterTexts(): FooterTexts {
+  return { address: '', phone: '', hours: '', copyright: '', disclaimer: '' };
+}
+
+function textsOf(cfg: FooterConfig, lang: string): FooterTexts {
+  return cfg.content[lang] ?? cfg.content[primaryLang] ?? emptyFooterTexts();
+}
+
+interface FooterConfig {
+  model: FooterModel;
+  poweredBy: boolean;
+  legalLinks: LegalLink[];
+  content: Partial<Record<string, FooterTexts>>;
+  // Completo only — email isn't translatable content, stays shared
+  email: string;
   socials: SocialLink[];
 }
 
@@ -84,18 +101,22 @@ const SOCIAL_PLATFORMS: { platform: string; icon: React.ReactNode }[] = [
 
 const DEFAULT: FooterConfig = {
   model: 'completo',
-  copyright: `©Copyright Workr Lite - ${PORTAL_CONFIG.name} ${new Date().getFullYear()}`,
   poweredBy: true,
-  disclaimer: 'As informações contidas neste site são de caráter meramente informativo e não constituem oferta de valores mobiliários.',
   legalLinks: [
     { id: 'termos', label: 'Termos e Condições', enabled: true },
     { id: 'privacidade', label: 'Política de Privacidade', enabled: true },
     { id: 'cookies', label: 'Definições de Cookies', enabled: true },
   ],
-  address: 'Av. Brigadeiro Faria Lima, 2.277, 17º andar — São Paulo/SP, CEP 01452-000',
+  content: {
+    [primaryLang]: {
+      address: 'Av. Brigadeiro Faria Lima, 2.277, 17º andar — São Paulo/SP, CEP 01452-000',
+      phone: '(11) 1234-5678',
+      hours: 'Segunda a sexta, das 08h às 18h, exceto feriados.',
+      copyright: `©Copyright Workr Lite - ${PORTAL_CONFIG.name} ${new Date().getFullYear()}`,
+      disclaimer: 'As informações contidas neste site são de caráter meramente informativo e não constituem oferta de valores mobiliários.',
+    },
+  },
   email: 'workrlite@astri.com',
-  phone: '(11) 1234-5678',
-  hours: 'Segunda a sexta, das 08h às 18h, exceto feriados.',
   socials: SOCIAL_PLATFORMS.map(s => ({ platform: s.platform, url: '', icon: s.icon })),
 };
 
@@ -222,6 +243,8 @@ export default function FooterPage() {
   const effectiveModel = isBannerModel ? config.model : 'reduzido';
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [activeLang, setActiveLang] = useState<LocaleCode>(primaryLang);
+  const texts = textsOf(config, activeLang);
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
     dirty && currentLocation.pathname !== nextLocation.pathname
@@ -243,6 +266,14 @@ export default function FooterPage() {
 
   function set<K extends keyof FooterConfig>(key: K, val: FooterConfig[K]) {
     setConfig(prev => ({ ...prev, [key]: val }));
+    markDirty();
+  }
+
+  function setText<K extends keyof FooterTexts>(key: K, val: string) {
+    setConfig(prev => {
+      const current = textsOf(prev, activeLang);
+      return { ...prev, content: { ...prev.content, [activeLang]: { ...current, [key]: val } } };
+    });
     markDirty();
   }
 
@@ -298,6 +329,14 @@ export default function FooterPage() {
         }
       />
 
+      {PORTAL_CONFIG.languages.length > 1 && (
+        <div className="pers-section">
+          <h2 className="pers-section__title">Textos</h2>
+          <p className="pers-section__desc">Endereço, telefone, horário, copyright e aviso legal são independentes por idioma.</p>
+          <LangTabs active={activeLang} onChange={setActiveLang} />
+        </div>
+      )}
+
       {/* Model selector — only for banner template */}
       {isBannerModel && (
         <div className="pers-section">
@@ -345,8 +384,8 @@ export default function FooterPage() {
                 <input
                   className="footer-field__input"
                   type="text"
-                  value={config.address}
-                  onChange={e => set('address', e.target.value)}
+                  value={texts.address}
+                  onChange={e => setText('address', e.target.value)}
                 />
               </label>
               <div className="footer-fields-row">
@@ -364,8 +403,8 @@ export default function FooterPage() {
                   <input
                     className="footer-field__input"
                     type="text"
-                    value={config.phone}
-                    onChange={e => set('phone', e.target.value)}
+                    value={texts.phone}
+                    onChange={e => setText('phone', e.target.value)}
                   />
                 </label>
               </div>
@@ -374,8 +413,8 @@ export default function FooterPage() {
                 <input
                   className="footer-field__input"
                   type="text"
-                  value={config.hours}
-                  onChange={e => set('hours', e.target.value)}
+                  value={texts.hours}
+                  onChange={e => setText('hours', e.target.value)}
                 />
               </label>
             </div>
@@ -456,8 +495,8 @@ export default function FooterPage() {
             <input
               className="footer-field__input"
               type="text"
-              value={config.copyright}
-              onChange={e => set('copyright', e.target.value)}
+              value={texts.copyright}
+              onChange={e => setText('copyright', e.target.value)}
             />
           </label>
           <label className="footer-field">
@@ -465,8 +504,8 @@ export default function FooterPage() {
             <textarea
               className="footer-field__input footer-field__textarea"
               rows={3}
-              value={config.disclaimer}
-              onChange={e => set('disclaimer', e.target.value)}
+              value={texts.disclaimer}
+              onChange={e => setText('disclaimer', e.target.value)}
             />
           </label>
           <label className="footer-toggle-row">
@@ -510,18 +549,18 @@ export default function FooterPage() {
               </div>
               <div className="fp__divider"/>
               <div className="fp__contact">
-                {config.address && (
+                {texts.address && (
                   <div className="fp__contact-group">
                     <div className="fp__contact-title">ENDEREÇO</div>
-                    <div className="fp__contact-text">{config.address}</div>
+                    <div className="fp__contact-text">{texts.address}</div>
                   </div>
                 )}
-                {(config.email || config.phone || config.hours) && (
+                {(config.email || texts.phone || texts.hours) && (
                   <div className="fp__contact-group">
                     <div className="fp__contact-title">ENTRE EM CONTATO</div>
                     {config.email && <div className="fp__contact-text">{config.email}</div>}
-                    {config.phone && <div className="fp__contact-text">{config.phone}</div>}
-                    {config.hours && <div className="fp__contact-text">{config.hours}</div>}
+                    {texts.phone && <div className="fp__contact-text">{texts.phone}</div>}
+                    {texts.hours && <div className="fp__contact-text">{texts.hours}</div>}
                   </div>
                 )}
                 {config.socials.some(s => s.url) && (
@@ -547,7 +586,7 @@ export default function FooterPage() {
                   ))}
                 </div>
                 <div className="fp__bottom-right">
-                  <span>{config.copyright}</span>
+                  <span>{texts.copyright}</span>
                   {config.poweredBy && (
                     <span className="fp__powered">
                       Powered by <svg width="36" height="10" viewBox="0 0 72 20" fill="none"><rect width="12" height="12" rx="1" fill="rgba(255,255,255,0.6)"/><rect x="16" y="3" width="40" height="5" rx="1" fill="rgba(255,255,255,0.6)"/></svg>
@@ -555,7 +594,7 @@ export default function FooterPage() {
                   )}
                 </div>
               </div>
-              {config.disclaimer && <div className="fp__disclaimer">{config.disclaimer}</div>}
+              {texts.disclaimer && <div className="fp__disclaimer">{texts.disclaimer}</div>}
             </div>
           ) : effectiveModel === 'compacto' ? (
             /* Compacto: sem mapa do site, com contato/sociais + barra inferior */
@@ -569,18 +608,18 @@ export default function FooterPage() {
               </div>
               <div className="fp__divider"/>
               <div className="fp__contact">
-                {config.address && (
+                {texts.address && (
                   <div className="fp__contact-group">
                     <div className="fp__contact-title">ENDEREÇO</div>
-                    <div className="fp__contact-text">{config.address}</div>
+                    <div className="fp__contact-text">{texts.address}</div>
                   </div>
                 )}
-                {(config.email || config.phone || config.hours) && (
+                {(config.email || texts.phone || texts.hours) && (
                   <div className="fp__contact-group">
                     <div className="fp__contact-title">ENTRE EM CONTATO</div>
                     {config.email && <div className="fp__contact-text">{config.email}</div>}
-                    {config.phone && <div className="fp__contact-text">{config.phone}</div>}
-                    {config.hours && <div className="fp__contact-text">{config.hours}</div>}
+                    {texts.phone && <div className="fp__contact-text">{texts.phone}</div>}
+                    {texts.hours && <div className="fp__contact-text">{texts.hours}</div>}
                   </div>
                 )}
                 {config.socials.some(s => s.url) && (
@@ -606,7 +645,7 @@ export default function FooterPage() {
                   ))}
                 </div>
                 <div className="fp__bottom-right">
-                  <span>{config.copyright}</span>
+                  <span>{texts.copyright}</span>
                   {config.poweredBy && (
                     <span className="fp__powered">
                       Powered by <svg width="36" height="10" viewBox="0 0 72 20" fill="none"><rect width="12" height="12" rx="1" fill="rgba(255,255,255,0.6)"/><rect x="16" y="3" width="40" height="5" rx="1" fill="rgba(255,255,255,0.6)"/></svg>
@@ -614,7 +653,7 @@ export default function FooterPage() {
                   )}
                 </div>
               </div>
-              {config.disclaimer && <div className="fp__disclaimer">{config.disclaimer}</div>}
+              {texts.disclaimer && <div className="fp__disclaimer">{texts.disclaimer}</div>}
             </div>
           ) : (
             /* Reduzido: só barra inferior */
@@ -629,7 +668,7 @@ export default function FooterPage() {
                   ))}
                 </div>
                 <div className="fp__bottom-right">
-                  <span>{config.copyright}</span>
+                  <span>{texts.copyright}</span>
                   {config.poweredBy && (
                     <span className="fp__powered">
                       Powered by <svg width="36" height="10" viewBox="0 0 72 20" fill="none"><rect width="12" height="12" rx="1" fill="rgba(255,255,255,0.6)"/><rect x="16" y="3" width="40" height="5" rx="1" fill="rgba(255,255,255,0.6)"/></svg>
