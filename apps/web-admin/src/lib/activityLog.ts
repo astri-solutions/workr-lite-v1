@@ -12,6 +12,7 @@ export type LogCategory =
 
 export type LogAction =
   | 'publicou'
+  | 'agendou'
   | 'editou'
   | 'removeu'
   | 'adicionou'

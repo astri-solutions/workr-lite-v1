@@ -24,7 +24,7 @@ interface Entity {
   tipo: 'EMPRESA' | 'FUNDO';
 }
 
-type DocStatus = 'Publicado' | 'Rascunho';
+type DocStatus = 'Publicado' | 'Rascunho' | 'Agendado';
 
 interface DocRow {
   id: string;
@@ -42,9 +42,16 @@ interface DocRow {
   fromCvm?: boolean;
   externalLink?: string;
   filePath?: string;
+  scheduleAt?: string;
 }
 
 const DOCS_BUCKET = 'portal-documents';
+
+function statusBadgeClass(status: DocStatus): string {
+  if (status === 'Publicado') return 'badge--success';
+  if (status === 'Agendado') return 'badge--info';
+  return 'badge--warning';
+}
 
 // Documents only make sense on "lista"/"lista-agrupada" pages (accordion of
 // files) — pages without pageType set yet (legacy canais) stay selectable,
@@ -111,13 +118,17 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
     : paginaIds.map(id => pageLabelById.get(id) ?? id).join(', ');
   const createdAt = r.created_at ? new Date(r.created_at as string).toLocaleDateString('pt-BR') : '—';
   const updatedAt = r.updated_at ? new Date(r.updated_at as string).toLocaleDateString('pt-BR') : '—';
+  const scheduleAt = r.schedule_at as string | undefined;
+  const scheduleLabel = scheduleAt
+    ? new Date(scheduleAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
   return {
     id: r.id as string,
     entityId: r.entity_id as string,
     nome: nomePrimary,
     tipo: r.tipo as string ?? 'Documento',
     status: (r.status as DocStatus) ?? 'Rascunho',
-    dataPub: r.status === 'Publicado' ? createdAt : '—',
+    dataPub: r.status === 'Publicado' ? createdAt : r.status === 'Agendado' ? scheduleLabel : '—',
     pagina: paginaLabel,
     idiomas: (r.idiomas as string[]) ?? ['PT'],
     tags: [],
@@ -127,6 +138,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
     fromCvm: r.from_cvm as boolean ?? false,
     externalLink: r.external_link as string | undefined,
     filePath: r.file_path as string | undefined,
+    scheduleAt,
   };
 }
 
@@ -244,13 +256,26 @@ export default function DocumentosPage() {
       }
     }
 
+    // A future schedule only applies when actually publishing — saving as
+    // draft always takes priority over any pending schedule.
+    let scheduleAtIso: string | null = null;
+    let status: DocStatus = asDraft ? 'Rascunho' : 'Publicado';
+    if (!asDraft && form.scheduleEnabled && form.scheduleDate && form.scheduleTime) {
+      const scheduled = new Date(`${form.scheduleDate}T${form.scheduleTime}`);
+      if (!Number.isNaN(scheduled.getTime()) && scheduled.getTime() > Date.now()) {
+        scheduleAtIso = scheduled.toISOString();
+        status = 'Agendado';
+      }
+    }
+
     const { error } = await supabase.from('portal_documents').insert({
       id: newId,
       portal_id: portalDbId,
       entity_id: form.entityId || activeEntity,
       titulo: titulos,
       tipo: 'Documento',
-      status: asDraft ? 'Rascunho' : 'Publicado',
+      status,
+      schedule_at: scheduleAtIso,
       pagina_ids: form.paginaIds,
       sub_group_ids: form.subGroupIds,
       idiomas: ptOnly ? ['PT'] : form.idiomas,
@@ -269,11 +294,11 @@ export default function DocumentosPage() {
         portalId: portalDbId,
         userName,
         userEmail: user?.email ?? '',
-        action: asDraft ? 'adicionou' : 'publicou',
+        action: status === 'Agendado' ? 'agendou' : asDraft ? 'adicionou' : 'publicou',
         category: 'documento',
         entity: primaryTitle,
       });
-      if (!asDraft) setPublishSuccess(true);
+      if (status === 'Publicado') setPublishSuccess(true);
     } else if (filePath) {
       // Row insert failed after the file made it to storage — clean up the orphan.
       await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
@@ -382,7 +407,7 @@ export default function DocumentosPage() {
   const DOC_FILTERS = [
     { key: 'tipo', label: 'Tipo', options: [{ value: '', label: 'Todos os tipos', shortLabel: 'Todos' }, ...tipoOptions.map(t => ({ value: t, label: t }))] },
     { key: 'ano', label: 'Ano', options: [{ value: '', label: 'Todos os anos', shortLabel: 'Todos' }, { value: '2026', label: '2026' }, { value: '2025', label: '2025' }, { value: '2024', label: '2024' }] },
-    { key: 'status', label: 'Status', options: [{ value: '', label: 'Todos os status', shortLabel: 'Todos' }, { value: 'Publicado', label: 'Publicado' }, { value: 'Rascunho', label: 'Rascunho' }] },
+    { key: 'status', label: 'Status', options: [{ value: '', label: 'Todos os status', shortLabel: 'Todos' }, { value: 'Publicado', label: 'Publicado' }, { value: 'Agendado', label: 'Agendado' }, { value: 'Rascunho', label: 'Rascunho' }] },
   ];
 
   const primaryLocale = PORTAL_CONFIG.languages[0];
@@ -469,7 +494,7 @@ export default function DocumentosPage() {
               filtered.map(doc => (
                 <tr key={doc.id} className={selected.has(doc.id) ? 'docs-row--selected' : ''}>
                   <td><input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} /></td>
-                  <td><span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>{doc.status}</span></td>
+                  <td><span className={`badge ${statusBadgeClass(doc.status)}`}>{doc.status}</span></td>
                   <td className="docs-cell-nome">
                     <span className="docs-nome-title">{doc.nome}</span>
                     <div className="docs-nome-badges">
@@ -520,7 +545,7 @@ export default function DocumentosPage() {
               <div className="rcard__body">
                 <div className="docs-rcard__check">
                   <input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} />
-                  <span className={`badge ${doc.status === 'Publicado' ? 'badge--success' : 'badge--warning'}`}>{doc.status}</span>
+                  <span className={`badge ${statusBadgeClass(doc.status)}`}>{doc.status}</span>
                 </div>
                 <span className="rcard__title" style={{ padding: '0 var(--space-4)' }}>{doc.nome}</span>
               </div>
@@ -568,7 +593,9 @@ export default function DocumentosPage() {
                 Salvar rascunho
               </button>
               <button type="button" className="btn-primary" onClick={() => handleSave(false)} disabled={!canSave || saving}>
-                {saving ? 'Publicando…' : 'Publicar'}
+                {saving
+                  ? (form.scheduleEnabled ? 'Agendando…' : 'Publicando…')
+                  : (form.scheduleEnabled && form.scheduleDate && form.scheduleTime ? 'Agendar publicação' : 'Publicar')}
               </button>
             </div>
           </div>

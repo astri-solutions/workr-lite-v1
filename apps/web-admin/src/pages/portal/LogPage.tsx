@@ -44,6 +44,7 @@ const CATEGORY_LABEL: Record<LogCategory, string> = {
 // Verbs used as action display names
 const ACTION_LABEL: Record<string, string> = {
   publicou: 'Publicado',
+  agendou: 'Agendado',
   editou: 'Editado',
   removeu: 'Removido',
   adicionou: 'Adicionado',
@@ -88,7 +89,7 @@ function categoryClass(cat: LogCategory) {
 function actionClass(action: string) {
   if (['removeu'].includes(action)) return 'log-action--danger';
   if (['publicou', 'adicionou', 'ativou', 'importou'].includes(action)) return 'log-action--success';
-  if (['pausou'].includes(action)) return 'log-action--warn';
+  if (['pausou', 'agendou'].includes(action)) return 'log-action--warn';
   return 'log-action--default';
 }
 
