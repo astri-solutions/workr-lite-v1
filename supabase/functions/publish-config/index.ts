@@ -6,6 +6,24 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4173',
 ];
 
+// Short, deterministic, non-cryptographic hash of a base64 string — used to
+// give each distinct image its own asset filename. Reusing the same path
+// (keyed only by slide id) for every replacement image meant a browser or
+// CDN that had already cached that URL kept serving the old bytes even
+// though the repo/deploy had the new ones — this makes a changed image
+// always resolve to a new URL, sidestepping the cache entirely.
+function contentHash(s: string): string {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0').slice(0, 4);
+}
+
 function corsHeaders(origin: string | null) {
   const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
@@ -536,11 +554,15 @@ Deno.serve(async (req) => {
     // replaced here with its eventual path) or already a path string from a
     // previous publish (left untouched, no re-upload).
     const bannerAssetWrites: { path: string; base64: string }[] = [];
+    // Slide ids whose image changed this publish — old assets under the same
+    // id (any extension/hash) get deleted below once the tree is fetched.
+    const bannerSlidesWithFreshImage = new Set<string>();
     const resolvedBanner = (banner ?? []).map(slide => {
       const img = slide.imagem;
       if (img && typeof img === 'object' && 'base64' in img) {
-        const path = `/assets/banner/${slide.id}.${img.ext}`;
+        const path = `/assets/banner/${slide.id}-${contentHash(img.base64)}.${img.ext}`;
         bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
+        bannerSlidesWithFreshImage.add(slide.id);
         return { ...slide, imagem: path };
       }
       return slide;
@@ -549,12 +571,14 @@ Deno.serve(async (req) => {
     // Same treatment as banner slides — splash.imageUrl arrives either as a
     // fresh {base64, ext} upload or an already-published path string.
     let resolvedSplash = splash ?? null;
+    let splashHasFreshImage = false;
     if (resolvedSplash) {
       const img = resolvedSplash.imageUrl;
       if (img && typeof img === 'object' && 'base64' in img) {
-        const path = `/assets/splash/header.${img.ext}`;
+        const path = `/assets/splash/header-${contentHash(img.base64)}.${img.ext}`;
         bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
         resolvedSplash = { ...resolvedSplash, imageUrl: path };
+        splashHasFreshImage = true;
       }
     }
 
@@ -642,6 +666,21 @@ Deno.serve(async (req) => {
     // scripts/site.config.js — the CMS-generated portal config
     queueWrite(filePath, encoded);
     bannerAssetWrites.forEach(w => queueWrite(w.path, w.base64));
+
+    // Old banner/splash asset files (previous hash, or pre-hash naming) left
+    // behind by a slide's replaced image are now orphans at a different
+    // path — remove them so the repo doesn't accumulate stale copies.
+    const newBannerPaths = new Set(bannerAssetWrites.map(w => w.path));
+    for (const path of existingPaths) {
+      for (const slideId of bannerSlidesWithFreshImage) {
+        if (path.startsWith(`public/assets/banner/${slideId}.`) || path.startsWith(`public/assets/banner/${slideId}-`)) {
+          if (!newBannerPaths.has(path)) deletes.add(path);
+        }
+      }
+      if (splashHasFreshImage && path.startsWith('public/assets/splash/header') && !newBannerPaths.has(path)) {
+        deletes.add(path);
+      }
+    }
 
     // Self-healing shared runtime/styles/build-config files — every file
     // under scripts/ and styles/ (plus vite.config.js) is pulled fresh from
