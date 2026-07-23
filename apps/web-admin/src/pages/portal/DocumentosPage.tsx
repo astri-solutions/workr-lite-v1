@@ -558,7 +558,7 @@ export default function DocumentosPage() {
       </Modal>
 
       {/* ── New document modal ── */}
-      <Modal open={drawerOpen} onClose={closeDrawer} title="Novo documento" size="md"
+      <Modal open={drawerOpen} onClose={closeDrawer} title="Novo documento" size="md" variant="side"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={closeDrawer}>Cancelar</button>

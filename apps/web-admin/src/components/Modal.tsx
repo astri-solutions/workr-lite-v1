@@ -9,6 +9,10 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  // 'side' docks the panel to the right edge, full height, and slides in
+  // from the right instead of scaling in centered — same header/body/footer
+  // structure and the same onClose/footer contract, purely a different shell.
+  variant?: 'center' | 'side';
 }
 
 export default function Modal({
@@ -19,6 +23,7 @@ export default function Modal({
   children,
   footer,
   size = 'md',
+  variant = 'center',
 }: ModalProps) {
   // Lock body scroll and close on Escape
   useEffect(() => {
@@ -37,9 +42,9 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" onMouseDown={onClose}>
+    <div className={`modal-overlay${variant === 'side' ? ' modal-overlay--side' : ''}`} onMouseDown={onClose}>
       <div
-        className={`modal modal--${size}`}
+        className={`modal modal--${size}${variant === 'side' ? ' modal--side' : ''}`}
         onMouseDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
