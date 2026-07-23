@@ -29,6 +29,17 @@ function emptyContent(): SlideContent {
   return { titulo: 'Novo banner', subtitulo: '', cta: 'Saiba mais' };
 }
 
+// A locale the user hasn't touched yet must start genuinely blank — not a
+// copy of the primary locale's text. Falling back to primaryLang here (as
+// this used to) meant editing just the título for a new locale silently
+// carried the primary locale's subtítulo/CTA into that locale's own saved
+// content, permanently freezing them in the untranslated language even
+// though nothing about them looked unedited. The site (carousel.js) is what
+// falls back per-field to the primary locale for anything left blank.
+function blankContent(): SlideContent {
+  return { titulo: '', subtitulo: '', cta: '' };
+}
+
 const primaryLang = PORTAL_CONFIG.languages[0];
 
 export const BANNER_KEY = 'portal_banner';
@@ -79,16 +90,17 @@ export default function BannerPage() {
   }, [publishSuccess]);
 
   const active = slides.find(s => s.id === activeId) ?? slides[0];
-  const activeContent: SlideContent = active.content[locale] ?? active.content[primaryLang] ?? emptyContent();
+  const activeContent: SlideContent = active.content[locale] ?? blankContent();
+  const primaryContent: SlideContent = active.content[primaryLang] ?? blankContent();
 
   function updateContent(field: keyof SlideContent, value: string) {
     setSlides(prev => prev.map(s => {
       if (s.id !== activeId) return s;
-      const existing = s.content[locale] ?? s.content[primaryLang] ?? emptyContent();
+      const existing = s.content[locale] ?? blankContent();
       return { ...s, content: { ...s.content, [locale]: { ...existing, [field]: value } } };
     }));
     setDirty(true);
-    
+
   }
 
   function updateImage(value: string | null) {
@@ -220,22 +232,29 @@ export default function BannerPage() {
             </button>
           )}
 
+          {locale !== primaryLang && (
+            <p className="banner-field__hint" style={{ margin: '0 0 4px' }}>
+              Campos deixados em branco exibem o texto do idioma padrão ({primaryLang}) no site.
+            </p>
+          )}
           <div className="banner-fields">
             <label className="banner-field">
               <span>Título</span>
               <input className="banner-input" type="text" value={activeContent.titulo}
-                onChange={e => updateContent('titulo', e.target.value)} placeholder="Ex: Relações com Investidores" />
+                onChange={e => updateContent('titulo', e.target.value)}
+                placeholder={locale === primaryLang ? 'Ex: Relações com Investidores' : primaryContent.titulo} />
             </label>
             <label className="banner-field">
               <span>Subtítulo</span>
               <textarea className="banner-input banner-textarea" value={activeContent.subtitulo}
                 onChange={e => updateContent('subtitulo', e.target.value)}
-                placeholder="Texto descritivo exibido abaixo do título..." rows={3} />
+                placeholder={locale === primaryLang ? 'Texto descritivo exibido abaixo do título...' : primaryContent.subtitulo} rows={3} />
             </label>
             <label className="banner-field">
               <span>Texto do botão (CTA)</span>
               <input className="banner-input" type="text" value={activeContent.cta}
-                onChange={e => updateContent('cta', e.target.value)} placeholder="Ex: Saiba mais" />
+                onChange={e => updateContent('cta', e.target.value)}
+                placeholder={locale === primaryLang ? 'Ex: Saiba mais' : primaryContent.cta} />
             </label>
           </div>
         </div>

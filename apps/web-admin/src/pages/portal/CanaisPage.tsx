@@ -1994,12 +1994,14 @@ export default function CanaisPage() {
                   value={newCanalForm.titles[newCanalForm.locale] ?? ''}
                   onChange={e => setNewCanalForm(f => ({ ...f, titles: { ...f.titles, [f.locale]: e.target.value } }))} />
               </label>
-              <label className="canais-edit-form__label lang-fade" style={{ marginTop: '12px' }}>
-                Subtítulo <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(opcional)</span>
-                <input className="canais-edit-form__input" type="text" placeholder="Breve descrição do canal"
-                  value={newCanalForm.subtitles[newCanalForm.locale] ?? ''}
-                  onChange={e => setNewCanalForm(f => ({ ...f, subtitles: { ...f.subtitles, [f.locale]: e.target.value } }))} />
-              </label>
+              {!isFlatLayout && (
+                <label className="canais-edit-form__label lang-fade" style={{ marginTop: '12px' }}>
+                  Subtítulo <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(opcional)</span>
+                  <input className="canais-edit-form__input" type="text" placeholder="Breve descrição do canal"
+                    value={newCanalForm.subtitles[newCanalForm.locale] ?? ''}
+                    onChange={e => setNewCanalForm(f => ({ ...f, subtitles: { ...f.subtitles, [f.locale]: e.target.value } }))} />
+                </label>
+              )}
             </div>
             {isFlatLayout && (
               <p className="ct-wizard-hint">

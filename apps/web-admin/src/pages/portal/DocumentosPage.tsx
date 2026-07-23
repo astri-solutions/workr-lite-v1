@@ -236,6 +236,13 @@ export default function DocumentosPage() {
 
   useEffect(() => { loadDocs(); }, [loadDocs]);
 
+  // Auto-close the success modal after 3s, same pattern used by Splash/Banner.
+  useEffect(() => {
+    if (!publishSuccess) return;
+    const t = setTimeout(() => setPublishSuccess(false), 3000);
+    return () => clearTimeout(t);
+  }, [publishSuccess]);
+
   function patchForm<K extends keyof DocForm>(key: K, val: DocForm[K]) {
     setForm(f => ({ ...f, [key]: val }));
   }
