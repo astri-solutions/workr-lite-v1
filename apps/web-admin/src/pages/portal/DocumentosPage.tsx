@@ -55,6 +55,11 @@ function statusBadgeClass(status: DocStatus): string {
   return 'badge--warning';
 }
 
+const LOCALE_SHORT_LABEL: Record<string, string> = { 'pt-BR': 'PT', en: 'EN', es: 'ES' };
+function localeShortLabel(lang: string): string {
+  return LOCALE_SHORT_LABEL[lang] ?? lang.toUpperCase();
+}
+
 // Documents only make sense on "lista"/"lista-agrupada" pages (accordion of
 // files) — pages without pageType set yet (legacy canais) stay selectable,
 // EXCEPT the default canais that are structurally never a document list
@@ -517,12 +522,17 @@ export default function DocumentosPage() {
     });
   }
 
-  async function handleDownload(doc: DocRow) {
-    if (doc.externalLink) { window.open(doc.externalLink, '_blank', 'noopener'); return; }
-    if (!doc.filePath || !supabase) return;
-    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(doc.filePath, 60);
+  async function openStoragePath(path: string) {
+    if (!supabase) return;
+    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(path, 60);
     if (error || !data) { console.error('signed url failed', error); return; }
     window.open(data.signedUrl, '_blank', 'noopener');
+  }
+
+  async function handleDownload(doc: DocRow) {
+    if (doc.externalLink) { window.open(doc.externalLink, '_blank', 'noopener'); return; }
+    if (!doc.filePath) return;
+    await openStoragePath(doc.filePath);
   }
 
   const _filtered = docs.filter(d => {
@@ -648,7 +658,7 @@ export default function DocumentosPage() {
                   <td className="docs-cell-nome">
                     <span className="docs-nome-title">{doc.nome}</span>
                     <div className="docs-nome-badges">
-                      {doc.idiomas.map(lang => <span key={lang} className="docs-badge docs-badge--lang">{lang}</span>)}
+                      {doc.idiomas.map(lang => <span key={lang} className="docs-badge docs-badge--lang">{localeShortLabel(lang)}</span>)}
                     </div>
                   </td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
@@ -824,6 +834,10 @@ export default function DocumentosPage() {
                   <span className="doc-upload__file-name">{activeLocaleFile.existingPath.split('/').pop()}</span>
                   <span className="doc-upload__file-size">Arquivo já enviado</span>
                 </div>
+                <button type="button" className="doc-upload__file-open"
+                  onClick={e => { e.stopPropagation(); openStoragePath(activeLocaleFile.existingPath!); }}>
+                  Abrir
+                </button>
                 <button type="button" className="doc-upload__file-remove"
                   onClick={() => { queueStorageDelete(activeLocaleFile.existingPath); patchLocaleFile(ptOnly ? primaryLocale : docLocale, { existingPath: undefined }); }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
