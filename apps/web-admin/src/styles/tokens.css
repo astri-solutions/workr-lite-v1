@@ -146,6 +146,56 @@
 }
 
 /*
+  ── Dark mode ──────────────────────────────────────────────
+  Every component reads colors through the tokens above (text from
+  --color-gray-900, surfaces from --color-gray-50/100/--color-white),
+  so re-pointing those same names at an inverted scale re-themes the
+  whole admin without touching component CSS. Brand/secondary/semantic
+  hues stay put — only the neutral scale and shadows flip.
+*/
+:root[data-theme="dark"] {
+  --color-white:    #1C1C1C;
+  --color-gray-50:  #202020;
+  --color-gray-100: #262626;
+  --color-gray-200: #333333;
+  --color-gray-300: #454545;
+  --color-gray-400: #5C5C5C;
+  --color-gray-500: #8A8A8A;
+  --color-gray-600: #A8A8A8;
+  --color-gray-700: #C6C6C6;
+  --color-gray-800: #E2E2E2;
+  --color-gray-900: #F4F4F4;
+
+  --color-primary-tint:   #163338;
+  --color-primary-tint-2: #10262A;
+  --color-error-tint: #2A1414;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -1px rgba(0,0,0,0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.45), 0 4px 6px -2px rgba(0,0,0,0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --color-white:    #1C1C1C;
+    --color-gray-50:  #202020;
+    --color-gray-100: #262626;
+    --color-gray-200: #333333;
+    --color-gray-300: #454545;
+    --color-gray-400: #5C5C5C;
+    --color-gray-500: #8A8A8A;
+    --color-gray-600: #A8A8A8;
+    --color-gray-700: #C6C6C6;
+    --color-gray-800: #E2E2E2;
+    --color-gray-900: #F4F4F4;
+    --color-primary-tint:   #163338;
+    --color-primary-tint-2: #10262A;
+    --color-error-tint: #2A1414;
+  }
+}
+
+/*
   ── Responsive breakpoints ─────────────────────────────────
   Use these values consistently across ALL media queries.
   CSS custom properties cannot be used inside @media rules,

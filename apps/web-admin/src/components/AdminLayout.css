@@ -142,6 +142,54 @@
   flex-shrink: 0;
 }
 
+.admin-topbar__theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  padding: 0 5px;
+  background-color: var(--color-gray-200);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.admin-topbar__theme-toggle[aria-checked="true"] {
+  background-color: var(--color-primary-500);
+}
+
+.admin-topbar__theme-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--color-white);
+  z-index: 1;
+}
+
+.admin-topbar__theme-icon--sun { color: var(--color-warning-500); }
+.admin-topbar__theme-icon--moon { color: var(--color-gray-50); margin-left: auto; }
+
+.admin-topbar__theme-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: var(--color-white);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s;
+}
+
+.admin-topbar__theme-toggle[aria-checked="true"] .admin-topbar__theme-knob {
+  transform: translateX(20px);
+}
+
 .admin-topbar__alert-btn {
   display: flex;
   align-items: center;
