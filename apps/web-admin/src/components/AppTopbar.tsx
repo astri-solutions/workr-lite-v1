@@ -83,7 +83,7 @@ export default function AppTopbar({ onMobileMenuOpen, portalName, onBack }: AppT
           <span>Alertas</span>
         </button>
         <div className="admin-topbar__separator" />
-        <UserMenu />
+        <UserMenu theme={theme} onToggleTheme={toggleTheme} />
       </div>
     </header>
   );

@@ -53,7 +53,7 @@
     padding: 36px 24px 28px;
   }
 
-  .login-right { display: none; }
+  .login-right { display: none !important; }
 }
 
 /* ─── Logo ──────────────────────────────────────────── */

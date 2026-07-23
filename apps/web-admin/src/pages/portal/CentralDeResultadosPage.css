@@ -47,6 +47,25 @@
   .cdr-entity-mobile .filter-select { width: 100%; }
 }
 
+/* Accordion row was a single unwrapped flex line (folder icon, período,
+   badge, contagem de arquivos, ícones de tipo de documento, botões Home/
+   Abrir) — on narrow screens it just overflowed past the viewport instead
+   of reflowing, cutting off the trailing buttons. */
+@media (max-width: 720px) {
+  .cdr-accordion__row {
+    flex-wrap: wrap;
+  }
+  .cdr-accordion__meta {
+    flex: 1 1 100%;
+    order: 1;
+  }
+  .cdr2-icon-row {
+    flex: 1 1 100%;
+    order: 2;
+    flex-wrap: wrap;
+  }
+}
+
 .cdr-entity-card {
   display: flex;
   flex-direction: column;

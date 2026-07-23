@@ -2,6 +2,19 @@
   position: relative;
 }
 
+/* ─── Mobile-only dropdown items ───────────────────────
+   Alertas + tema vivem no topbar em telas largas; em telas
+   estreitas o topbar os oculta e eles reaparecem aqui, dentro
+   do dropdown da conta, como único ponto de acesso. */
+.um-mobile-only {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .um-mobile-only { display: flex; }
+  .user-menu__divider.um-mobile-only { display: block; }
+}
+
 /* ─── Trigger button ─────────────────────────────────── */
 .user-menu__trigger {
   display: flex;

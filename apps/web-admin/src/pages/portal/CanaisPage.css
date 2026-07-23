@@ -1043,8 +1043,44 @@ select.canais-edit-form__input,
   .canais-page-types { grid-template-columns: 1fr 1fr; }
   .ct-pt-grid { grid-template-columns: repeat(2, 1fr); }
   .canais-new-type-row { flex-direction: column; }
-  .ct-row__acts { gap: 4px; }
+
+  /* The row was a single flex line with several fixed-width columns
+     (type badge, status dot, action buttons) that never shrink — on
+     narrow screens their combined width exceeded the viewport and
+     squeezed the name/title column down to 0px, so nothing was
+     readable. Wrapping the row onto two lines gives the title its
+     own full-width line and moves everything else below it. Actions
+     are also hover-only (`.ct-row__acts` opacity:0 except `:hover`),
+     which touch screens never trigger — always show them here. */
+  .ct-row {
+    flex-wrap: wrap;
+    padding-bottom: var(--space-2);
+  }
+  .ct-row__title {
+    flex: 1 1 100%;
+    order: 1;
+  }
+  .ct-row__type-col {
+    order: 2;
+    width: auto;
+    justify-content: flex-start;
+    margin-right: var(--space-2);
+  }
+  .ct-row__status-col {
+    order: 3;
+    width: auto;
+    margin-right: var(--space-2);
+  }
+  .ct-row__acts {
+    order: 4;
+    opacity: 1;
+    pointer-events: auto;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-left: 0;
+  }
   .ct-row__acts .btn-action { padding-left: var(--space-2); padding-right: var(--space-2); font-size: 0.72rem; }
+  .ct-expand--l1 { order: 0; }
 }
 
 /* ── Matérias link picker ────────────────────────── */

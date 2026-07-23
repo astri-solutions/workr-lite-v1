@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './Modal';
+import type { Theme } from '../hooks/useTheme';
 import './UserMenu.css';
+
+interface UserMenuProps {
+  theme?: Theme;
+  onToggleTheme?: () => void;
+}
 
 function getInitials(name: string): string {
   return name
@@ -13,7 +19,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export default function UserMenu() {
+export default function UserMenu({ theme, onToggleTheme }: UserMenuProps) {
   const { user, logout, switchPortal, portalRole } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -118,6 +124,23 @@ export default function UserMenu() {
             </div>
 
             <div className="user-menu__divider" />
+
+            {onToggleTheme && (
+              <button className="user-menu__item um-mobile-only" type="button" role="menuitemcheckbox"
+                aria-checked={theme === 'dark'} onClick={onToggleTheme}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  {theme === 'dark' ? 'dark_mode' : 'light_mode'}
+                </span>
+                {theme === 'dark' ? 'Tema escuro' : 'Tema claro'}
+              </button>
+            )}
+
+            <button className="user-menu__item um-mobile-only" type="button" role="menuitem">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>notifications</span>
+              Alertas
+            </button>
+
+            {onToggleTheme && <div className="user-menu__divider um-mobile-only" />}
 
             <button className="user-menu__item" type="button" role="menuitem"
               onClick={() => { setOpen(false); navigate(infoRoute); }}>

@@ -209,6 +209,16 @@
   background-color: var(--color-gray-200);
 }
 
+/* On narrow screens, Alertas + tema movem para o dropdown da conta
+   (ver .um-mobile-only em UserMenu.css) — aqui somem do topbar. */
+@media (max-width: 720px) {
+  .admin-topbar__alert-btn,
+  .admin-topbar__theme-toggle,
+  .admin-topbar__right > .admin-topbar__separator {
+    display: none;
+  }
+}
+
 .admin-topbar__user {
   display: flex;
   align-items: center;

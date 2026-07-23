@@ -315,6 +315,12 @@
   .ca-grid { grid-template-columns: 1fr; }
 }
 
+@media (max-width: 720px) {
+  .cores-inputs { grid-template-columns: 1fr; }
+  .cores-preview-wrap { grid-template-columns: 1fr; }
+  .cores-presets { gap: var(--space-2); }
+}
+
 .ca-card {
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
