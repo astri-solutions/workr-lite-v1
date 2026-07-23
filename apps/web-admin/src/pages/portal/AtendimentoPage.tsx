@@ -1,8 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { usePortalState } from '../../hooks/usePortalState';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './AtendimentoPage.css';
+
+const FN_BASE = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : '';
 
 interface InteracaoEntry {
   id: string;
@@ -44,17 +50,33 @@ type Prioridade = keyof typeof PRIORIDADE_LABEL;
 type Status = 'idle' | 'sending' | 'sent' | 'error';
 
 export default function AtendimentoPage() {
+  const { user } = useAuth();
   const [assunto, setAssunto] = useState<Assunto>('');
   const [prioridade, setPrioridade] = useState<Prioridade>('media');
   const [titulo, setTitulo] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [status, setStatus] = useState<Status>('idle');
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [suporteEmail, setSuporteEmail] = useState<string | null>(null);
   const [, setInteracoes] = usePortalState<InteracaoEntry[]>('portal_interacoes', 'interacoes', []);
 
-  function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase || !user?.activePortalId) return;
+    supabase
+      .from('portals')
+      .select('suporte_email')
+      .eq('portal_key', user.activePortalId)
+      .single()
+      .then(({ data }) => {
+        if (data?.suporte_email) setSuporteEmail(data.suporte_email as string);
+      });
+  }, [user?.activePortalId]);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!assunto || !titulo.trim() || !mensagem.trim()) return;
     setStatus('sending');
+    setSendError(null);
 
     const now = new Date();
     const dataStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -62,20 +84,42 @@ export default function AtendimentoPage() {
       id: `at-${Date.now()}`,
       tipo: 'fale-ri' as const,
       nome: `[Atendimento] ${ASSUNTO_LABEL[assunto]}`,
-      email: 'interno@astri.solutions',
+      email: user?.email ?? '',
       mensagem: `**${titulo.trim()}**\n\nPrioridade: ${PRIORIDADE_LABEL[prioridade]}\n\n${mensagem.trim()}`,
       status: 'novo' as const,
       data: dataStr,
     };
     setInteracoes(prev => [entry, ...prev]);
 
-    setTimeout(() => {
+    try {
+      if (!isSupabaseConfigured || !supabase) throw new Error('Supabase não configurado');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada — faça login novamente');
+      const res = await fetch(`${FN_BASE}/submit-atendimento`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({ portalId: user?.activePortalId, assunto, prioridade, titulo: titulo.trim(), mensagem: mensagem.trim() }),
+      });
+      const body = await res.json().catch(() => ({})) as { ok?: boolean; error?: string };
+      if (!res.ok || !body.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+
       setStatus('sent');
       setAssunto('');
       setPrioridade('media');
       setTitulo('');
       setMensagem('');
-    }, 800);
+    } catch (e) {
+      // The interação was already recorded locally above — only the e-mail
+      // notification failed, so let the user know it may not have reached
+      // the support team even though it's visible in Interações.
+      setSendError(String((e as Error)?.message ?? e));
+      setStatus('error');
+    }
   }
 
   const canSubmit = assunto !== '' && titulo.trim().length > 0 && mensagem.trim().length > 0;
@@ -166,6 +210,12 @@ export default function AtendimentoPage() {
                 />
               </div>
 
+              {sendError && (
+                <p className="atend-form__hint" style={{ color: 'var(--color-error-600)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>error</span>
+                  {' '}Sua mensagem foi registrada, mas não conseguimos notificar o suporte agora: {sendError}. Tente enviar novamente.
+                </p>
+              )}
               <div className="atend-form__footer">
                 <p className="atend-form__hint">
                   <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>schedule</span>
@@ -202,7 +252,7 @@ export default function AtendimentoPage() {
                 <span className="material-symbols-outlined atend-contact-item__icon">mail</span>
                 <div>
                   <p className="atend-contact-item__label">E-mail</p>
-                  <p className="atend-contact-item__value">suporte@astri.solutions</p>
+                  <p className="atend-contact-item__value">{suporteEmail ?? 'suporte@astri.solutions'}</p>
                 </div>
               </li>
               <li className="atend-contact-item">

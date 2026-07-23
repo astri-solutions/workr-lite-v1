@@ -265,6 +265,7 @@ export async function fetchPortalSite(siteId: string): Promise<{
   siteId: string; portalId: string; portalKey: string; cliente: string; link: string;
   ip: string; status: 'Ativo' | 'Suspenso'; criadoEm: string;
   githubRepo?: string; vercelUrl?: string; vercelCreated?: boolean; subdomain?: string;
+  suporteNome?: string; suporteEmail?: string; suporteUserId?: string;
 } | undefined> {
   if (!isSupabaseConfigured || !supabase) {
     return fromLocalStorage(siteId);
@@ -299,6 +300,9 @@ export async function fetchPortalSite(siteId: string): Promise<{
     vercelUrl: (portal['vercel_url'] as string) ?? undefined,
     vercelCreated: (portal['vercel_created'] as boolean) ?? false,
     subdomain: (portal['subdomain'] as string) ?? undefined,
+    suporteNome: (portal['suporte_nome'] as string) ?? undefined,
+    suporteEmail: (portal['suporte_email'] as string) ?? undefined,
+    suporteUserId: (portal['suporte_user_id'] as string) ?? undefined,
   };
 }
 

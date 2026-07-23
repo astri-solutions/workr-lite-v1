@@ -86,15 +86,19 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] ?? 'bem-vindo';
   const { url: localUrl, sites: portalSites } = getPortalInfo(user?.activePortalId);
   const [portalUrl, setPortalUrl] = useState<string | undefined>(localUrl);
+  const [suporte, setSuporte] = useState<{ nome: string; email: string } | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !user?.activePortalId) return;
     supabase
       .from('portals')
-      .select('vercel_url')
+      .select('vercel_url, suporte_nome, suporte_email')
       .eq('portal_key', user.activePortalId)
       .single()
       .then(({ data }) => {
+        if (data?.suporte_nome && data?.suporte_email) {
+          setSuporte({ nome: data.suporte_nome as string, email: data.suporte_email as string });
+        }
         if (data?.vercel_url) {
           setPortalUrl(data.vercel_url as string);
           // Sync back to localStorage so other pages get the correct URL too
@@ -192,7 +196,36 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Account manager — hidden until feature is ready */}
+        {/* Support contact */}
+        <div className="dash-block dash-account-block">
+          <h2 className="dash-block__title">Seu atendimento</h2>
+          <div className="dash-account">
+            {suporte ? (
+              <>
+                <div className="dash-account__header">
+                  <div className="dash-account__avatar">
+                    {suporte.nome.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="dash-account__name">{suporte.nome}</p>
+                    <p className="dash-account__role">Responsável pelo seu portal</p>
+                  </div>
+                </div>
+                <ul className="dash-account__contacts">
+                  <li className="dash-account__contact-item">
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>mail</span>
+                    <a href={`mailto:${suporte.email}`}>{suporte.email}</a>
+                  </li>
+                </ul>
+              </>
+            ) : (
+              <p className="dash-activity-empty">Nenhum atendimento designado ainda.</p>
+            )}
+            <Link to="/portal/atendimento" className="btn-outline dash-account__btn">
+              Entrar em contato
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Site info */}

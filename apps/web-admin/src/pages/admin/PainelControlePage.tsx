@@ -29,7 +29,20 @@ interface SiteData {
   vercelUrl?: string;
   vercelCreated?: boolean;
   subdomain?: string;
+  suporteNome?: string;
+  suporteEmail?: string;
+  suporteUserId?: string;
 }
+
+interface SuporteOption {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+const FN_BASE = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : '';
 
 
 function StatBar({ value, max }: { value: number; max: number }) {
@@ -69,6 +82,57 @@ export default function PainelControlePage() {
   const [inviteResult, setInviteResult] = useState<'ok' | 'err' | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // Atendimento (support rep) assignment state
+  const [suporteOptions, setSuporteOptions] = useState<SuporteOption[]>([]);
+  const [suporteSelected, setSuporteSelected] = useState('');
+  const [savingSuporte, setSavingSuporte] = useState(false);
+  const [suporteSaved, setSuporteSaved] = useState(false);
+  const [suporteError, setSuporteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    (async () => {
+      const { data: { session } } = await supabase!.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch(`${FN_BASE}/list-users`, { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json() as { users?: Array<{ id: string; nome: string; email: string; role: string }>; error?: string };
+        if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+        setSuporteOptions((json.users ?? []).filter(u => u.role === 'super_admin').map(u => ({ id: u.id, nome: u.nome, email: u.email })));
+      } catch { /* non-fatal — picker just stays empty */ }
+    })();
+  }, []);
+
+  useEffect(() => {
+    setSuporteSelected(site?.suporteUserId ?? '');
+  }, [site?.suporteUserId]);
+
+  async function handleSalvarSuporte() {
+    if (!site?.portalId || !isSupabaseConfigured || !supabase) return;
+    setSavingSuporte(true);
+    setSuporteError(null);
+    try {
+      const chosen = suporteOptions.find(o => o.id === suporteSelected);
+      const { error } = await supabase
+        .from('portals')
+        .update({
+          suporte_user_id: chosen?.id ?? null,
+          suporte_nome: chosen?.nome ?? null,
+          suporte_email: chosen?.email ?? null,
+        })
+        .eq('id', site.portalId);
+      if (error) throw error;
+      setSite(s => s ? { ...s, suporteUserId: chosen?.id, suporteNome: chosen?.nome, suporteEmail: chosen?.email } : s);
+      setSuporteSaved(true);
+      setTimeout(() => setSuporteSaved(false), 2500);
+    } catch (e) {
+      setSuporteError(String(e));
+    } finally {
+      setSavingSuporte(false);
+    }
+  }
+
   useEffect(() => {
     if (authLoading) return;
     if (!siteId) { setSite(null); return; }
@@ -94,6 +158,9 @@ export default function PainelControlePage() {
         vercelUrl: info.vercelUrl,
         vercelCreated: info.vercelCreated,
         subdomain: info.subdomain,
+        suporteNome: info.suporteNome,
+        suporteEmail: info.suporteEmail,
+        suporteUserId: info.suporteUserId,
       });
     });
   }, [siteId, authLoading]);
@@ -553,6 +620,39 @@ export default function PainelControlePage() {
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="painel-card painel-suporte">
+            <div className="painel-card__header-row">
+              <div className="painel-card__title">Atendimento</div>
+            </div>
+            <p className="painel-recursos__hint" style={{ marginBottom: 'var(--space-3)' }}>
+              Astri responsável pelo suporte deste portal — aparece no Dashboard do cliente com um link para a página Atendimento.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select
+                className="filter-select"
+                style={{ flex: '1 1 220px' }}
+                value={suporteSelected}
+                onChange={e => setSuporteSelected(e.target.value)}
+              >
+                <option value="">Nenhum responsável definido</option>
+                {suporteOptions.map(o => (
+                  <option key={o.id} value={o.id}>{o.nome} — {o.email}</option>
+                ))}
+              </select>
+              <button
+                className="btn-primary"
+                type="button"
+                disabled={savingSuporte || suporteSelected === (site.suporteUserId ?? '')}
+                onClick={handleSalvarSuporte}
+                style={{ fontSize: '13px' }}
+              >
+                {savingSuporte ? 'Salvando…' : 'Salvar'}
+              </button>
+            </div>
+            {suporteSaved && <p style={{ color: 'var(--color-success-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>✓ Atendimento atualizado</p>}
+            {suporteError && <p style={{ color: 'var(--color-error-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>{suporteError}</p>}
           </div>
 
           <div className="painel-card painel-recursos">

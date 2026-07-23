@@ -13,6 +13,9 @@ export interface PortalSiteInfo {
   vercelUrl?: string;
   vercelCreated?: boolean;
   subdomain?: string;
+  suporteNome?: string;
+  suporteEmail?: string;
+  suporteUserId?: string;
 }
 
 // Sync fallback — reads from localStorage only (used by pages that can't await)
