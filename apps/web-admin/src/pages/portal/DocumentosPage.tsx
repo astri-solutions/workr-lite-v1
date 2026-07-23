@@ -835,7 +835,16 @@ export default function DocumentosPage() {
               onClick={() => !activeLocaleFile.file && fileInputRef.current?.click()}>
               <input ref={fileInputRef} type="file" style={{ display: 'none' }}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(ptOnly ? primaryLocale : docLocale, f); }} />
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  // Reset so the native input never holds on to the previous
+                  // locale's file — without this, some browsers' file dialog
+                  // re-opens pre-highlighting the last pick, and confirming it
+                  // without changing anything can silently reuse the SAME file
+                  // for the next locale instead of prompting a fresh choice.
+                  e.target.value = '';
+                  if (f) handleFile(ptOnly ? primaryLocale : docLocale, f);
+                }} />
               {activeLocaleFile.file ? (
                 <div className="doc-upload__file">
                   <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
