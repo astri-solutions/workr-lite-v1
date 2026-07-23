@@ -154,3 +154,35 @@
 .modal--side .modal__footer {
   border-top: 1px solid var(--color-gray-100);
 }
+
+/* ─── Exit animations ───────────────────────────────────
+   .modal-overlay--closing / .modal--closing are applied by Modal.tsx for
+   EXIT_DURATION_MS after `open` goes false, so the panel actually slides/
+   fades out instead of just disappearing.
+──────────────────────────────────────────────────────── */
+.modal-overlay--closing {
+  animation: overlay-out 0.2s ease forwards;
+}
+
+@keyframes overlay-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.modal--closing {
+  animation: modal-out 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes modal-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.97) translateY(6px); }
+}
+
+.modal--side.modal--closing {
+  animation: modal-side-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes modal-side-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(32px); }
+}
