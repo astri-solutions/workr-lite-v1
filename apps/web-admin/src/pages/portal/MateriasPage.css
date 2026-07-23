@@ -8,7 +8,7 @@
   gap: 8px;
   min-width: 200px;
   width: 240px;
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   padding: 9px var(--space-4);
@@ -35,7 +35,7 @@
   color: var(--color-gray-800); background: var(--color-gray-50);
   outline: none; transition: border-color 0.15s;
 }
-.mat-form__input:focus { border-color: var(--color-primary-400); background: #fff; }
+.mat-form__input:focus { border-color: var(--color-primary-400); background: var(--color-white); }
 .mat-form__select {
   appearance: none;
   -webkit-appearance: none;
@@ -66,7 +66,7 @@
   padding: var(--space-4);
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
@@ -108,7 +108,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-white);
   flex-shrink: 0;
 }
 
@@ -145,7 +145,7 @@
   }
 
   .data-table tr {
-    background: #fff;
+    background: var(--color-white);
     border: 1px solid var(--color-gray-200);
     border-radius: var(--radius-lg);
     margin-bottom: var(--space-3);

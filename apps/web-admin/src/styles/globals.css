@@ -111,7 +111,7 @@ input, textarea, select {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-700);
-  background-color: #ffffff;
+  background-color: var(--color-white);
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;

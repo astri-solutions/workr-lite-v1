@@ -40,6 +40,12 @@
   --color-tertiary-800: hsl(207, 24%, 26%);
   --color-tertiary-900: hsl(207, 24%, 18%);
 
+  /* ── Base ─────────────────────────────────────────────────── */
+  --color-white: #FFFFFF;
+  --color-primary-tint:   #E8F5F7;
+  --color-primary-tint-2: #F0FAFB;
+  --color-primary-700-alt: #0A4E5A;
+
   /* ── Grayscale ────────────────────────────────────────────── */
   --color-gray-50:  #FAFAFA;
   --color-gray-100: #F4F4F4;
@@ -63,6 +69,7 @@
   --color-error-700: #9b1c1c;
   --color-error-800: #7f1d1d;
   --color-error-900: #450a0a;
+  --color-error-tint: #fef2f2;
 
   --color-warning-50:  #fffbeb;
   --color-warning-100: #fef3c7;

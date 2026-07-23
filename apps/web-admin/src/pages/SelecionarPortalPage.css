@@ -11,7 +11,7 @@
 }
 
 .sp-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
@@ -74,7 +74,7 @@
   height: 40px;
   border-radius: var(--radius-lg);
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   font-family: var(--font-heading);
   font-size: var(--text-sm);
   font-weight: var(--font-bold);

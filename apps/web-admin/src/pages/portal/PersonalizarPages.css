@@ -19,7 +19,7 @@
 
 /* ─── Shared personalization layout ─────────────────── */
 .pers-section {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -65,7 +65,7 @@
   padding: var(--space-4);
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
@@ -125,7 +125,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-white);
 }
 
 /* ─── Cores ──────────────────────────────────────────── */
@@ -144,7 +144,7 @@
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -281,7 +281,7 @@
   padding: 10px var(--space-3);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s;
@@ -436,7 +436,7 @@
 }
 .logo-btn--replace:hover { background: var(--color-gray-200); }
 .logo-btn--remove {
-  background: var(--color-error-50, #fef2f2);
+  background: var(--color-error-50, var(--color-error-tint));
   border: none;
   color: var(--color-error-500);
 }
@@ -453,7 +453,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
+  background: var(--color-white);
   border-radius: 6px 6px 0 0;
   padding: 5px 10px;
   font-size: var(--text-xs);
@@ -521,7 +521,7 @@
   padding: 9px var(--space-3);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s;
@@ -544,7 +544,7 @@
 }
 .banner-slide-item--active .banner-slide-item__num {
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 .banner-slide-item__title { flex: 1; font-size: var(--text-sm); color: var(--color-gray-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .banner-slide-item__remove {
@@ -553,14 +553,14 @@
   border-radius: var(--radius-sm);
   display: flex; align-items: center;
 }
-.banner-slide-item__remove:hover { color: var(--color-error-500); background: var(--color-error-50, #fef2f2); }
+.banner-slide-item__remove:hover { color: var(--color-error-500); background: var(--color-error-50, var(--color-error-tint)); }
 
 .banner-img-preview { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-5); }
 .banner-img-preview__img { width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--radius-lg); }
 .banner-img-preview__remove {
   align-self: flex-start;
   padding: 6px var(--space-3);
-  background: var(--color-error-50, #fef2f2);
+  background: var(--color-error-50, var(--color-error-tint));
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -596,7 +596,7 @@
   color: var(--color-gray-800); background: var(--color-gray-50);
   outline: none; transition: border-color 0.15s; resize: vertical;
 }
-.banner-input:focus { border-color: var(--color-primary-400); background: #fff; }
+.banner-input:focus { border-color: var(--color-primary-400); background: var(--color-white); }
 .banner-textarea { resize: vertical; }
 
 /* ── Banner publish success modal ──────────────────── */

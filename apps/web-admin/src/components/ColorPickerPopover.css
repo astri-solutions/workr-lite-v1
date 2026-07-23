@@ -20,7 +20,7 @@
 
 .cp-popover {
   z-index: 9999;
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -45,7 +45,7 @@
 .cp-sv__white {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, #fff, transparent);
+  background: linear-gradient(to right, var(--color-white), transparent);
 }
 
 .cp-sv__black {
@@ -59,7 +59,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-white);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -96,7 +96,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-white);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -125,10 +125,10 @@
   border-radius: 5px;
   padding: 4px 8px;
   outline: none;
-  color: #141414;
-  background: #fafafa;
+  color: var(--color-gray-900);
+  background: var(--color-gray-50);
 }
 
 .cp-hex-input:focus {
-  border-color: #0B5B68;
+  border-color: var(--color-primary-500);
 }

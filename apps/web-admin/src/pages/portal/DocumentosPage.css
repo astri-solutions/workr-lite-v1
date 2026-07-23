@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background: #ffffff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-md);
   padding: 8px var(--space-3);
@@ -108,7 +108,7 @@
 
 .docs-tag--dark {
   background: var(--color-gray-800);
-  color: #ffffff;
+  color: var(--color-white);
 }
 
 .docs-tag--lang {
@@ -133,7 +133,7 @@
   height: 28px;
   border-radius: var(--radius-full);
   background: var(--color-primary-500);
-  color: #ffffff;
+  color: var(--color-white);
   font-size: 10px;
   font-weight: var(--font-bold);
   font-family: var(--font-heading);
@@ -177,7 +177,7 @@
   align-items: center;
   padding: 10px var(--space-5);
   background: var(--color-error-500);
-  color: #ffffff;
+  color: var(--color-white);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -213,7 +213,7 @@
   bottom: 0;
   width: 420px;
   max-width: 100vw;
-  background: #fff;
+  background: var(--color-white);
   box-shadow: -4px 0 24px rgba(0,0,0,0.12);
   z-index: 201;
   display: flex;
@@ -398,7 +398,7 @@
   flex-shrink: 0;
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-gray-300);
-  background: #fff;
+  background: var(--color-white);
   border-radius: var(--radius-md);
   color: var(--color-gray-700);
   font-size: var(--text-xs);
@@ -441,7 +441,7 @@
   width: 100%;
   box-sizing: border-box;
 }
-.doc-field__input:focus { border-color: var(--color-primary-400); background: #fff; }
+.doc-field__input:focus { border-color: var(--color-primary-400); background: var(--color-white); }
 
 .doc-select-wrap {
   position: relative;
@@ -461,7 +461,7 @@
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.doc-field__select:focus { border-color: var(--color-primary-400); background: #fff; }
+.doc-field__select:focus { border-color: var(--color-primary-400); background: var(--color-white); }
 
 .doc-select-wrap__icon {
   position: absolute;
@@ -486,7 +486,7 @@
   padding: 6px 14px;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-full);
-  background: #fff;
+  background: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -498,7 +498,7 @@
 .doc-idioma-chip--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 
 /* ─── Schedule ──────────────────────────────────────── */
@@ -615,7 +615,7 @@
 }
 
 .doc-subgroup__check input[type="checkbox"] {
-  accent-color: var(--color-primary-600, #0b5b68);
+  accent-color: var(--color-primary-600, var(--color-primary-500));
   width: 15px;
   height: 15px;
   flex-shrink: 0;
@@ -629,7 +629,7 @@
 }
 
 .doc-field__error {
-  color: var(--color-error-600, #dc2626);
+  color: var(--color-error-600, var(--color-error-600));
   font-size: var(--text-xs);
   margin: var(--space-2) 0 0;
 }
@@ -766,7 +766,7 @@
 
 .docs-badge--cvm {
   background: #E8F5FF;
-  color: #0B5B68;
+  color: var(--color-primary-500);
 }
 
 /* ─── Mobile card rows (inside rcard) ───────────────────── */
@@ -867,8 +867,8 @@
 }
 
 .doc-source-toggle__btn--active {
-  background: #fff;
-  color: var(--color-primary-600, #0b5b68);
+  background: var(--color-white);
+  color: var(--color-primary-600, var(--color-primary-500));
   font-weight: var(--font-semibold);
 }
 

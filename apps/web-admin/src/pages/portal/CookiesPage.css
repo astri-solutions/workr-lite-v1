@@ -25,7 +25,7 @@
   padding: var(--space-3) var(--space-4);
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
@@ -42,8 +42,8 @@
   border: 1.5px solid var(--color-gray-200);
 }
 
-.ck-theme-card__swatch--light { background: #ffffff; }
-.ck-theme-card__swatch--dark  { background: #141414; border-color: #444; }
+.ck-theme-card__swatch--light { background: var(--color-white); }
+.ck-theme-card__swatch--dark  { background: var(--color-gray-900); border-color: #444; }
 
 .ck-theme-card__label {
   display: block;

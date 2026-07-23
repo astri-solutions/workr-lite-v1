@@ -75,7 +75,7 @@
 .bk-content { display: flex; flex-direction: column; gap: var(--space-4); }
 
 .bk-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-6);
@@ -196,13 +196,13 @@
   align-items: center;
   gap: var(--space-2);
   padding: 9px var(--space-5);
-  background: var(--color-primary-500, #0B5B68);
+  background: var(--color-primary-500, var(--color-primary-500));
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: #fff;
+  color: var(--color-white);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
@@ -214,7 +214,7 @@
   display: inline-flex;
   align-items: center;
   padding: 8px var(--space-4);
-  background: #fff;
+  background: var(--color-white);
   border: 1.5px solid var(--color-gray-300);
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -264,7 +264,7 @@
   grid-template-columns: 1fr 100px 110px 200px;
   align-items: center;
   padding: var(--space-3) var(--space-5);
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-top: none;
   font-size: var(--text-sm);
@@ -280,7 +280,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-16);
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   color: var(--color-gray-400);

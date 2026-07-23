@@ -17,7 +17,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 24px);
-  background: #fff;
+  background: var(--color-white);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   font-family: var(--font-body);
@@ -46,7 +46,7 @@
 
 /* ─── Portal card ─────────────────────────────────────── */
 .portal-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
@@ -153,7 +153,7 @@
 }
 
 .portais-btn--add {
-  background: #fff;
+  background: var(--color-white);
   border-color: var(--color-gray-300);
   color: var(--color-gray-700);
 }
@@ -165,7 +165,7 @@
 
 .portais-btn--panel {
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   border-color: transparent;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .portais-btn--admin-site {
-  background: #fff;
+  background: var(--color-white);
   border-color: var(--color-primary-300);
   color: var(--color-primary-600);
 }
@@ -224,7 +224,7 @@
 }
 
 .portais-btn--tools {
-  background: #fff;
+  background: var(--color-white);
   border-color: var(--color-gray-300);
   color: var(--color-gray-700);
 }
@@ -244,7 +244,7 @@
   top: calc(100% + 6px);
   right: 0;
   min-width: 200px;
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,0.10));
@@ -284,7 +284,7 @@
   height: 32px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-gray-200);
-  background: #fff;
+  background: var(--color-white);
   color: var(--color-gray-500);
   cursor: pointer;
   transition: all 0.15s;
@@ -301,7 +301,7 @@
   top: calc(100% + 6px);
   right: 0;
   min-width: 180px;
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,0.10));
@@ -333,7 +333,7 @@
 }
 
 .portais-kebab__item--danger:hover {
-  background: var(--color-error-50, #fef2f2);
+  background: var(--color-error-50, var(--color-error-tint));
 }
 
 /* ─── Detalhes do site modal ──────────────────────────── */
@@ -349,7 +349,7 @@
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  background: #fff;
+  background: var(--color-white);
 }
 
 .portais-detalhes__row {
@@ -391,7 +391,7 @@
 }
 
 .portais-btn--outline-sm {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-300);
   color: var(--color-gray-700);
   font-size: var(--text-xs);
@@ -410,8 +410,8 @@
 }
 
 .portais-btn--danger-sm {
-  background: #fff;
-  border: 1px solid var(--color-error-300, #fca5a5);
+  background: var(--color-white);
+  border: 1px solid var(--color-error-300, var(--color-error-200));
   color: var(--color-error-500, #ef4444);
   font-size: var(--text-xs);
   padding: 6px 14px;
@@ -427,7 +427,7 @@
 }
 
 .portais-btn--danger-sm:hover {
-  background: var(--color-error-50, #fef2f2);
+  background: var(--color-error-50, var(--color-error-tint));
   border-color: var(--color-error-500, #ef4444);
 }
 
@@ -483,7 +483,7 @@
 
 .portais-modal-btn-confirm--active {
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   cursor: pointer;
 }
 
@@ -557,7 +557,7 @@
   justify-content: space-between;
   width: 100%;
   padding: var(--space-3) var(--space-4);
-  background: #fff;
+  background: var(--color-white);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -589,7 +589,7 @@
 .portais-tipo-option__check--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 
 @media (max-width: 720px) {
@@ -624,7 +624,7 @@
 .excluir-infra-check input[type="checkbox"] {
   margin-top: 2px;
   flex-shrink: 0;
-  accent-color: var(--color-danger, #dc2626);
+  accent-color: var(--color-danger, var(--color-error-600));
   width: 14px;
   height: 14px;
 }

@@ -9,7 +9,7 @@
 .atend-card {
   flex: 1;
   min-width: 0;
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
@@ -54,7 +54,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-800);
-  background: #fff;
+  background: var(--color-white);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
@@ -77,7 +77,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-800);
-  background: #fff;
+  background: var(--color-white);
   outline: none;
   resize: vertical;
   min-height: 180px;
@@ -106,7 +106,7 @@
   flex: 1;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
@@ -193,7 +193,7 @@
 }
 
 .atend-info-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   padding: var(--space-6);

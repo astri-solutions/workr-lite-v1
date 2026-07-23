@@ -11,7 +11,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-6);
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
@@ -138,7 +138,7 @@
   padding: 6px var(--space-4);
   border-radius: var(--radius-full);
   border: 1px solid var(--color-gray-200);
-  background: #fff;
+  background: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -156,13 +156,13 @@
 .analytics-period-pill--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .analytics-period-pill--active:hover {
   background: var(--color-primary-600);
   border-color: var(--color-primary-600);
-  color: #fff;
+  color: var(--color-white);
 }
 
 /* ─── Page tab bar ───────────────────────────────────────── */
@@ -220,7 +220,7 @@
 }
 
 .analytics-section {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -294,7 +294,7 @@
 
 /* ─── Sidebar ────────────────────────────────────────────── */
 .analytics-sidebar {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
@@ -345,7 +345,7 @@
 
 .analytics-sidebar__tab--active {
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   border-color: var(--color-primary-500);
 }
 
@@ -436,7 +436,7 @@
   justify-content: center;
   gap: var(--space-4);
   padding: var(--space-12);
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   color: var(--color-gray-400);

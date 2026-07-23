@@ -113,7 +113,7 @@
 }
 
 .mailing-btn-toggle:hover { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
-.mailing-btn-remove:hover  { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.mailing-btn-remove:hover  { background: var(--color-error-tint); color: var(--color-error-600); border-color: #fecaca; }
 
 /* Add form */
 .mailing-add-form {
@@ -133,7 +133,7 @@
   color: var(--color-gray-700);
 }
 
-.mailing-add-required { color: #dc2626; }
+.mailing-add-required { color: var(--color-error-600); }
 
 .mailing-add-input {
   padding: 8px var(--space-3);
@@ -142,17 +142,17 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-800);
-  background: var(--color-bg-lighter, #fafafa);
+  background: var(--color-bg-lighter, var(--color-gray-50));
   transition: border-color 0.15s;
 }
 
-.mailing-add-input:focus { outline: none; border-color: var(--color-primary-500, #0b5b68); }
-.mailing-add-input--error { border-color: #dc2626; }
+.mailing-add-input:focus { outline: none; border-color: var(--color-primary-500, var(--color-primary-500)); }
+.mailing-add-input--error { border-color: var(--color-error-600); }
 
 .mailing-add-error {
   font-family: var(--font-body);
   font-size: var(--text-xs);
-  color: #dc2626;
+  color: var(--color-error-600);
 }
 
 /* Remove confirm */

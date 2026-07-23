@@ -42,7 +42,7 @@
   align-items: flex-start;
   margin-bottom: var(--space-6);
   padding: var(--space-3) var(--space-4);
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
@@ -73,7 +73,7 @@
   font-size: 10px;
   font-weight: var(--font-bold);
   color: var(--color-gray-400);
-  background: #fff;
+  background: var(--color-white);
   position: relative;
   z-index: 1;
   transition: all 0.2s;
@@ -126,7 +126,7 @@
 
 /* ─── Card wrapper ───────────────────────────────────────── */
 .np-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
@@ -194,7 +194,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-900);
-  background: var(--color-gray-50, #fafafa);
+  background: var(--color-gray-50, var(--color-gray-50));
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
   padding: 10px 14px;
@@ -207,7 +207,7 @@
 .np-input:focus {
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px var(--color-primary-100, #c7e8ed);
-  background: #fff;
+  background: var(--color-white);
 }
 
 .np-input--lg {
@@ -252,9 +252,9 @@
 }
 
 .np-input__hint--warn { color: var(--color-warning-600, #d97706); }
-.np-input__hint--error { color: var(--color-error-600, #dc2626); }
+.np-input__hint--error { color: var(--color-error-600, var(--color-error-600)); }
 .np-input__hint--domain { color: var(--color-gray-500, #6F6F6F); margin-top: 4px; }
-.np-input__hint--domain strong { font-weight: 600; color: var(--color-primary-600, #0B5B68); }
+.np-input__hint--domain strong { font-weight: 600; color: var(--color-primary-600, var(--color-primary-500)); }
 
 /* ─── Domain readonly display ────────────────────────────── */
 .np-domain-readonly {
@@ -276,7 +276,7 @@
 .np-domain-readonly__value {
   font-family: 'Courier New', Courier, monospace;
   font-size: var(--text-sm);
-  color: var(--color-primary-700, #0B5B68);
+  color: var(--color-primary-700, var(--color-primary-500));
   font-weight: 500;
 }
 
@@ -295,7 +295,7 @@
   align-items: center;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
-  background: var(--color-gray-50, #fafafa);
+  background: var(--color-gray-50, var(--color-gray-50));
   overflow: hidden;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -303,7 +303,7 @@
 .np-url-wrap:focus-within {
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px var(--color-primary-100, #c7e8ed);
-  background: #fff;
+  background: var(--color-white);
 }
 
 .np-url-prefix {
@@ -355,7 +355,7 @@
   display: flex;
   flex-direction: column;
   padding: 0;
-  background: #fff;
+  background: var(--color-white);
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   cursor: pointer;
@@ -430,7 +430,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,7 +533,7 @@
 }
 
 .np-font-custom__remove:hover {
-  color: var(--color-error-600, #dc2626);
+  color: var(--color-error-600, var(--color-error-600));
 }
 
 /* ─── Font picker ────────────────────────────────────────── */
@@ -598,7 +598,7 @@
   gap: var(--space-4);
   padding: 12px var(--space-4);
   border: none;
-  background: #fff;
+  background: var(--color-white);
   border-bottom: 1px solid var(--color-gray-100);
   cursor: pointer;
   text-align: left;
@@ -671,7 +671,7 @@
   font-family: var(--font-heading);
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .np-cores-preview__mock-nav-links {
@@ -740,7 +740,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: #fff;
+  color: var(--color-white);
   align-self: flex-start;
 }
 
@@ -823,7 +823,7 @@
   gap: 8px;
   margin-top: 10px;
   padding: 12px;
-  background: var(--color-surface, #fff);
+  background: var(--color-surface, var(--color-white));
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   box-shadow: 0 4px 16px rgba(0,0,0,0.10);
@@ -844,7 +844,7 @@
 .np-cpicker__sv-white {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, #fff, transparent);
+  background: linear-gradient(to right, var(--color-white), transparent);
 }
 
 .np-cpicker__sv-black {
@@ -857,7 +857,7 @@
   position: absolute;
   width: 12px;
   height: 12px;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-white);
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
   transform: translate(-50%, -50%);
@@ -883,7 +883,7 @@
   top: 50%;
   width: 16px;
   height: 16px;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-white);
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
   transform: translate(-50%, -50%);
@@ -959,7 +959,7 @@
   object-fit: contain;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-white);
   padding: 4px;
 }
 
@@ -981,7 +981,7 @@
 
 .np-logo-preview__remove:hover {
   border-color: var(--color-error-400, #f87171);
-  color: var(--color-error-600, #dc2626);
+  color: var(--color-error-600, var(--color-error-600));
 }
 
 /* ─── Idioma ─────────────────────────────────────────────── */
@@ -996,7 +996,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-4);
-  background: #fff;
+  background: var(--color-white);
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   cursor: pointer;
@@ -1057,7 +1057,7 @@
 .np-idioma-card__check--active {
   border-color: var(--color-primary-500);
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 
 /* ─── Idioma add ─────────────────────────────────────────── */
@@ -1103,7 +1103,7 @@
   justify-content: space-between;
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--color-gray-100);
-  background: var(--color-gray-50, #fafafa);
+  background: var(--color-gray-50, var(--color-gray-50));
 }
 
 .np-btn {
@@ -1122,7 +1122,7 @@
 
 .np-btn--primary {
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .np-btn--primary:hover:not(:disabled) {
@@ -1173,7 +1173,7 @@
   padding: var(--space-3) var(--space-4);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
@@ -1210,12 +1210,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
+  color: var(--color-white);
   transition: background 0.15s, border-color 0.15s;
 }
 .np-empresa-card__check--active {
-  background: var(--color-primary-600, #0B5B68);
-  border-color: var(--color-primary-600, #0B5B68);
+  background: var(--color-primary-600, var(--color-primary-500));
+  border-color: var(--color-primary-600, var(--color-primary-500));
 }
 
 /* Nova empresa inline form */
@@ -1263,7 +1263,7 @@
   padding: var(--space-4);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-white);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s, background 0.15s;
@@ -1285,7 +1285,7 @@
 .np-autocvm-card__check--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
 }
 
 .np-autocvm-card__body {
@@ -1419,7 +1419,7 @@
 }
 
 .np-creating-card {
-  background: #fff;
+  background: var(--color-white);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
   width: 360px;
@@ -1517,7 +1517,7 @@
 
 .np-cs-item--done .np-cs-item__indicator {
   background: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   animation: np-step-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 
@@ -1532,7 +1532,7 @@
 }
 
 .np-cs-item--pending .np-cs-item__indicator {
-  background: #fff;
+  background: var(--color-white);
   border: 1.5px solid var(--color-gray-200);
 }
 

@@ -84,7 +84,7 @@
   height: 32px;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-600);
@@ -95,7 +95,7 @@
 .trn-pg-num--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: #fff;
+  color: var(--color-white);
   font-weight: var(--font-semibold);
 }
 
@@ -149,7 +149,7 @@
 
 /* ─── Detail form card ───────────────────────────────── */
 .trn-form-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   padding: var(--space-8);
@@ -221,7 +221,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-gray-900);
-  background: #fff;
+  background: var(--color-white);
   transition: border-color 0.15s;
   width: 100%;
   box-sizing: border-box;

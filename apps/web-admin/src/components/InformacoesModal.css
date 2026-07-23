@@ -38,7 +38,7 @@
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  background-color: #ffffff;
+  background-color: var(--color-white);
 }
 
 .info-row {
@@ -95,7 +95,7 @@
 }
 
 .info-input-wrap {
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -153,7 +153,7 @@
 .info-btn-save {
   background-color: var(--color-primary-500);
   border: none;
-  color: #ffffff;
+  color: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -172,7 +172,7 @@
   align-items: center;
   gap: var(--space-1);
   background-color: var(--color-success-500);
-  color: #ffffff;
+  color: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
@@ -206,7 +206,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: var(--color-white);
   transition: transform 0.15s;
 }
 

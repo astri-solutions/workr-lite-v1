@@ -12,7 +12,7 @@
 }
 
 .info-edit-input-wrap {
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -63,7 +63,7 @@
 .info-edit-btn-save {
   background-color: var(--color-primary-500);
   border: none;
-  color: #ffffff;
+  color: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -91,7 +91,7 @@
 
 .info-edit-select-wrap {
   position: relative;
-  background-color: #ffffff;
+  background-color: var(--color-white);
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   transition: border-color 0.15s, box-shadow 0.15s;

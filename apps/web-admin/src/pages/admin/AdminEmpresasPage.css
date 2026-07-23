@@ -10,7 +10,7 @@
 }
 
 .ae-card__header--accordion:hover {
-  background: var(--color-gray-50, #fafafa);
+  background: var(--color-gray-50, var(--color-gray-50));
 }
 
 .ae-accordion-chevron {
@@ -20,7 +20,7 @@
 
 /* Card */
 .ae-card {
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
@@ -37,7 +37,7 @@
   padding: 7px var(--space-4);
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
-  background: #fff;
+  background: var(--color-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -48,8 +48,8 @@
 }
 .ae-toggle-btn:hover {
   border-color: var(--color-error-400, #f87171);
-  color: var(--color-error-600, #dc2626);
-  background: var(--color-error-50, #fef2f2);
+  color: var(--color-error-600, var(--color-error-600));
+  background: var(--color-error-50, var(--color-error-tint));
 }
 .ae-toggle-btn--sm {
   padding: 4px var(--space-3);
@@ -84,7 +84,7 @@
   position: absolute;
   right: 0;
   top: calc(100% + 4px);
-  background: #fff;
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -107,7 +107,7 @@
 }
 .ae-kebab__item:hover { background: var(--color-gray-50); }
 .ae-kebab__item--danger { color: var(--color-error-500); }
-.ae-kebab__item--danger:hover { background: var(--color-error-50, #fef2f2); }
+.ae-kebab__item--danger:hover { background: var(--color-error-50, var(--color-error-tint)); }
 
 /* All rows share the same 4-column grid so badge + action align perfectly */
 .ae-portal-row {

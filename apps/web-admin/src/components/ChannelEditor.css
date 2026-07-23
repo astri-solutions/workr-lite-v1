@@ -13,7 +13,7 @@
 .ce-canal {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #fff;
+  background: var(--color-white);
   overflow: hidden;
   transition: opacity 0.15s;
 }
@@ -35,13 +35,13 @@
   flex: 1;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #141414;
+  color: var(--color-gray-900);
   cursor: default;
   user-select: none;
 }
 
 .ce-canal__label:hover {
-  color: #0B5B68;
+  color: var(--color-primary-500);
 }
 
 .ce-canal__actions {
@@ -70,7 +70,7 @@
 }
 
 .ce-toggle__track--on {
-  background: #00D865;
+  background: var(--color-secondary-500);
 }
 
 .ce-toggle__thumb {
@@ -134,7 +134,7 @@
 }
 
 .ce-sub__label:hover {
-  color: #0B5B68;
+  color: var(--color-primary-500);
 }
 
 .ce-sub__actions {
@@ -145,12 +145,12 @@
 
 .ce-inline-input {
   flex: 1;
-  border: 1px solid #0B5B68;
+  border: 1px solid var(--color-primary-500);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 0.875rem;
   font-family: inherit;
-  color: #141414;
+  color: var(--color-gray-900);
   background: white;
   outline: none;
 }
@@ -181,7 +181,7 @@
 
 .ce-action--danger:hover:not(:disabled) {
   background: #fee2e2;
-  color: #dc2626;
+  color: var(--color-error-600);
 }
 
 .ce-add-sub {
@@ -202,7 +202,7 @@
 }
 
 .ce-add-sub:hover {
-  color: #0B5B68;
+  color: var(--color-primary-500);
 }
 
 .ce-add-canal {
@@ -223,7 +223,7 @@
 }
 
 .ce-add-canal:hover {
-  border-color: #00D865;
-  color: #0B5B68;
+  border-color: var(--color-secondary-500);
+  color: var(--color-primary-500);
   background: #f9fafb;
 }
