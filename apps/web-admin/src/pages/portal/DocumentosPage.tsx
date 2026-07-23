@@ -171,6 +171,7 @@ export default function DocumentosPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
+  const [publishSuccessSchedule, setPublishSuccessSchedule] = useState<string | null>(null);
   const [rawDocs, setRawDocs] = useState<Record<string, unknown>[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -183,6 +184,7 @@ export default function DocumentosPage() {
   const [replaceTitle, setReplaceTitle] = useState('');
   const [ptOnly, setPtOnly] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const destPages = useMemo(() => buildDestPages(loadPortalCanais(user?.activePortalId)), [user?.activePortalId]);
   const pageLabelById = useMemo(() => new Map(destPages.map(p => [p.id, p.label])), [destPages]);
@@ -218,9 +220,10 @@ export default function DocumentosPage() {
     setForm(emptyDocForm(activeEntity));
     setDocLocale(PORTAL_CONFIG.languages[0]);
     setPtOnly(false);
+    setSaveError('');
     setDrawerOpen(true);
   }
-  function closeDrawer() { setDrawerOpen(false); }
+  function closeDrawer() { setDrawerOpen(false); setSaveError(''); }
 
   async function handleSave(asDraft: boolean) {
     const primaryLocale = PORTAL_CONFIG.languages[0];
@@ -228,11 +231,19 @@ export default function DocumentosPage() {
     if (!primaryTitle) return;
     if (!portalDbId || !supabase) return;
     if (!form.isExternalLink && !form.file) return; // need either a file or an external link
+    setSaveError('');
     // A schedule that has already passed (or landed exactly on "now") must
     // never fall through to an immediate publish — block instead of guessing.
+    // Checked here with a fresh Date.now() (not the render-time value used
+    // for the disabled/warning state) so a schedule that goes stale in the
+    // seconds between rendering and clicking still gets caught, with clear
+    // feedback instead of the click silently doing nothing.
     if (!asDraft && form.scheduleEnabled && form.scheduleDate && form.scheduleTime) {
       const scheduled = new Date(`${form.scheduleDate}T${form.scheduleTime}`);
-      if (Number.isNaN(scheduled.getTime()) || scheduled.getTime() <= Date.now()) return;
+      if (Number.isNaN(scheduled.getTime()) || scheduled.getTime() <= Date.now()) {
+        setSaveError('A data e hora de agendamento já passaram. Ajuste o horário e tente novamente.');
+        return;
+      }
     }
     setSaving(true);
 
@@ -257,6 +268,7 @@ export default function DocumentosPage() {
         .upload(filePath, form.file, { upsert: false });
       if (uploadError) {
         console.error('upload failed', uploadError);
+        setSaveError('Falha ao enviar o arquivo. Tente novamente.');
         setSaving(false);
         return;
       }
@@ -304,10 +316,20 @@ export default function DocumentosPage() {
         category: 'documento',
         entity: primaryTitle,
       });
-      if (status === 'Publicado') setPublishSuccess(true);
-    } else if (filePath) {
-      // Row insert failed after the file made it to storage — clean up the orphan.
-      await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
+      if (status === 'Publicado') {
+        setPublishSuccessSchedule(null);
+        setPublishSuccess(true);
+      } else if (status === 'Agendado' && scheduleAtIso) {
+        setPublishSuccessSchedule(new Date(scheduleAtIso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+        setPublishSuccess(true);
+      }
+    } else {
+      console.error('insert failed', error);
+      setSaveError('Falha ao salvar o documento. Tente novamente.');
+      if (filePath) {
+        // Row insert failed after the file made it to storage — clean up the orphan.
+        await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
+      }
     }
     setSaving(false);
   }
@@ -427,8 +449,7 @@ export default function DocumentosPage() {
   const scheduleInPast = form.scheduleEnabled && !!form.scheduleDate && !!form.scheduleTime
     && new Date(`${form.scheduleDate}T${form.scheduleTime}`).getTime() <= Date.now();
   const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
-    && (form.isExternalLink ? !!form.externalUrl.trim() : !!form.file)
-    && !scheduleInPast;
+    && (form.isExternalLink ? !!form.externalUrl.trim() : !!form.file);
 
   return (
     <div className="page docs-page">
@@ -616,6 +637,7 @@ export default function DocumentosPage() {
           </div>
         }>
         <div className="doc-modal-body">
+          {saveError && <p className="doc-field__error">{saveError}</p>}
           {entities.length > 1 ? (
             <label className="doc-entity-badge doc-entity-badge--select">
               <span className="doc-entity-badge__label">Empresa</span>
@@ -813,7 +835,8 @@ export default function DocumentosPage() {
       <PublishSuccessModal
         open={publishSuccess}
         onClose={() => setPublishSuccess(false)}
-        title="Documento publicado!"
+        title={publishSuccessSchedule ? 'Documento agendado!' : 'Documento publicado!'}
+        desc={publishSuccessSchedule ? `Será publicado automaticamente em ${publishSuccessSchedule}.` : undefined}
       />
     </div>
   );
