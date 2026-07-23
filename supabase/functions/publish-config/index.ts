@@ -70,13 +70,16 @@ interface SplashCfg {
   buttons: SplashBtn[];
   imageUrl?: string | AssetCfg | null;
 }
-interface CookieBtn { label: string; action: string; variant: string; }
+interface CookieTexts {
+  title: string; description: string; linkText: string;
+  acceptLabel: string; rejectLabel: string; customizeLabel: string;
+}
+interface CookieBtn { url: string; variant: string; labels: Record<string, string>; }
 interface CookieCfg {
   enabled: boolean; layout: string; theme: string;
-  title: string; description: string;
-  linkText: string; linkUrl: string;
-  acceptLabel: string; rejectLabel: string;
-  showReject: boolean; showCustomize: boolean; customizeLabel: string;
+  linkUrl: string;
+  showReject: boolean; showCustomize: boolean;
+  content: Record<string, CookieTexts>;
   buttons: CookieBtn[];
 }
 interface ErrorPageTexts { title: string; description: string; cta: string; }

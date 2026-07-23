@@ -133,7 +133,12 @@ export default function SplashPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
-  const isDirty = !saved && JSON.stringify(config) !== JSON.stringify(persisted);
+  // Compared against the SAME { ...DEFAULT_SPLASH, ...persisted } shape
+  // config was seeded with — comparing straight to `persisted` falsely
+  // flagged the page as dirty on load whenever the raw saved record's key
+  // order/shape didn't exactly match DEFAULT_SPLASH's, since JSON.stringify
+  // is key-order-sensitive.
+  const isDirty = !saved && JSON.stringify(config) !== JSON.stringify({ ...DEFAULT_SPLASH, ...persisted });
   const blocker = useUnsavedChanges(isDirty);
 
   function patch<K extends keyof SplashConfig>(key: K, val: SplashConfig[K]) {

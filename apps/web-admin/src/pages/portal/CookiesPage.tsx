@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
+import LangTabs from '../../components/LangTabs';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
 import { savePortalConfig } from '../../lib/portalConfigApi';
@@ -19,43 +21,63 @@ type CkLayout  = 'left' | 'right' | 'center' | 'full';
 type CkTheme   = 'light' | 'dark';
 type BtnVariant = 'primary' | 'outline';
 
+// Text shown to the visitor — one independent set per site language, same
+// pattern as document titles: nothing here is ever shared across locales.
+interface CookieTexts {
+  title: string;
+  description: string;
+  linkText: string;
+  acceptLabel: string;
+  rejectLabel: string;
+  customizeLabel: string;
+}
+
 interface CkBtn {
-  label: string;
   url: string;
   variant: BtnVariant;
+  labels: Partial<Record<string, string>>;
 }
 
 interface CookieConfig {
   enabled: boolean;
   layout: CkLayout;
   theme: CkTheme;
-  title: string;
-  description: string;
-  linkText: string;
   linkUrl: string;
-  acceptLabel: string;
-  rejectLabel: string;
   showReject: boolean;
   showCustomize: boolean;
-  customizeLabel: string;
+  content: Partial<Record<string, CookieTexts>>;
   buttons: CkBtn[];
+}
+
+const primaryLocale = PORTAL_CONFIG.languages[0];
+
+const DEFAULT_TEXTS: CookieTexts = {
+  title: 'Utilizamos cookies',
+  description: 'Usamos cookies para melhorar sua experiência, personalizar conteúdos e analisar o tráfego do nosso site.',
+  linkText: 'Política de Privacidade',
+  acceptLabel: 'Aceitar todos',
+  rejectLabel: 'Rejeitar',
+  customizeLabel: 'Personalizar',
+};
+
+function emptyTexts(): CookieTexts {
+  return { title: '', description: '', linkText: '', acceptLabel: '', rejectLabel: '', customizeLabel: '' };
 }
 
 const DEFAULT: CookieConfig = {
   enabled: true,
   layout: 'full',
   theme: 'light',
-  title: 'Utilizamos cookies',
-  description: 'Usamos cookies para melhorar sua experiência, personalizar conteúdos e analisar o tráfego do nosso site.',
-  linkText: 'Política de Privacidade',
   linkUrl: '/politica-de-privacidade',
-  acceptLabel: 'Aceitar todos',
-  rejectLabel: 'Rejeitar',
   showReject: true,
   showCustomize: true,
-  customizeLabel: 'Personalizar',
+  content: { [primaryLocale]: DEFAULT_TEXTS },
   buttons: [],
 };
+
+function textsOf(cfg: CookieConfig, lang: string): CookieTexts {
+  return cfg.content[lang] ?? cfg.content[primaryLocale] ?? emptyTexts();
+}
 
 /* ─── Layout options ─────────────────────────────────── */
 const LAYOUTS: { id: CkLayout; label: string; desc: string; thumb: React.ReactNode }[] = [
@@ -125,7 +147,8 @@ const LAYOUTS: { id: CkLayout; label: string; desc: string; thumb: React.ReactNo
 ];
 
 /* ─── Mini preview ───────────────────────────────────── */
-function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
+function CookieMiniPreview({ cfg, lang }: { cfg: CookieConfig; lang: string }) {
+  const texts = textsOf(cfg, lang);
   const isDark = cfg.theme === 'dark';
   const bg = isDark ? '#141414' : '#ffffff';
   const text = isDark ? '#ffffff' : '#374151';
@@ -152,28 +175,28 @@ function CookieMiniPreview({ cfg }: { cfg: CookieConfig }) {
     <div style={bannerStyle}>
       {/* For full-width: wrap title+desc together so buttons stay on the opposite side */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: isCompact ? undefined : 1, minWidth: 0 }}>
-        {cfg.title && (
+        {texts.title && (
           <strong style={{ fontSize: 8, display: 'block', lineHeight: 1.3, color: isDark ? '#fff' : '#111' }}>
-            {cfg.title}
+            {texts.title}
           </strong>
         )}
         <span style={{ fontSize: 7, lineHeight: 1.4, opacity: 0.75 }}>
-          {cfg.description.slice(0, isCompact ? 60 : 100)}…
+          {texts.description.slice(0, isCompact ? 60 : 100)}…
         </span>
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
         {cfg.showCustomize && (
           <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: rejectBg, color: rejectText }}>
-            {cfg.customizeLabel}
+            {texts.customizeLabel}
           </span>
         )}
         {cfg.showReject && (
           <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: rejectBg, color: rejectText }}>
-            {cfg.rejectLabel}
+            {texts.rejectLabel}
           </span>
         )}
         <span style={{ fontSize: 7, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: acceptBg, color: '#fff' }}>
-          {cfg.acceptLabel}
+          {texts.acceptLabel}
         </span>
       </div>
     </div>
@@ -206,6 +229,7 @@ export default function CookiesPage() {
   const [persisted, setPersisted, { hydrated }] = usePortalState<CookieConfig>(COOKIES_KEY, 'cookies', DEFAULT);
   const [cfg, setCfg] = useState<CookieConfig>(persisted);
   const [saved, setSaved] = useState(false);
+  const [activeLang, setActiveLang] = useState<LocaleCode>(primaryLocale);
 
   // Sync draft once the authoritative Supabase value arrives
   useEffect(() => {
@@ -213,7 +237,12 @@ export default function CookiesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
-  const isDirty = !saved && JSON.stringify(cfg) !== JSON.stringify(persisted);
+  // Compared against the SAME { ...DEFAULT, ...persisted } shape cfg was
+  // seeded with — comparing straight to `persisted` falsely flagged the page
+  // as dirty on load whenever the raw saved record's key order/shape didn't
+  // exactly match (e.g. fields added to DEFAULT after the config was first
+  // saved), since JSON.stringify is key-order-sensitive.
+  const isDirty = !saved && JSON.stringify(cfg) !== JSON.stringify({ ...DEFAULT, ...persisted });
   const blocker = useUnsavedChanges(isDirty);
 
   function set<K extends keyof CookieConfig>(key: K, value: CookieConfig[K]) {
@@ -221,17 +250,29 @@ export default function CookiesPage() {
     setSaved(false);
   }
 
+  function setText<K extends keyof CookieTexts>(key: K, value: string) {
+    setCfg(prev => {
+      const current = textsOf(prev, activeLang);
+      return { ...prev, content: { ...prev.content, [activeLang]: { ...current, [key]: value } } };
+    });
+    setSaved(false);
+  }
+
   function addBtn() {
     if (cfg.buttons.length >= 2) return;
-    set('buttons', [...cfg.buttons, { label: '', url: '', variant: 'primary' }]);
+    set('buttons', [...cfg.buttons, { url: '', variant: 'primary', labels: {} }]);
   }
 
   function removeBtn(i: number) {
     set('buttons', cfg.buttons.filter((_, idx) => idx !== i));
   }
 
-  function patchBtn(i: number, field: keyof CkBtn, val: string) {
+  function patchBtn(i: number, field: 'url' | 'variant', val: string) {
     set('buttons', cfg.buttons.map((b, idx) => idx === i ? { ...b, [field]: val } : b));
+  }
+
+  function patchBtnLabel(i: number, val: string) {
+    set('buttons', cfg.buttons.map((b, idx) => idx === i ? { ...b, labels: { ...b.labels, [activeLang]: val } } : b));
   }
 
   function handleSave() {
@@ -249,6 +290,8 @@ export default function CookiesPage() {
     }
     await publish();
   }
+
+  const texts = textsOf(cfg, activeLang);
 
   return (
     <div className="page">
@@ -340,28 +383,31 @@ export default function CookiesPage() {
 
           </div>
 
-          {/* Textos */}
+          {/* Textos — um conjunto independente por idioma do site */}
           <div className="splash-card">
-            <p className="splash-section-label">Textos</p>
+            <div className="splash-btns-head" style={{ marginBottom: 0 }}>
+              <p className="splash-section-label" style={{ margin: 0 }}>Textos</p>
+            </div>
+            <LangTabs active={activeLang} onChange={setActiveLang} />
 
             <div className="splash-field">
               <label className="splash-field__label">Título</label>
               <input className="splash-field__input" type="text"
                 placeholder="Ex: Utilizamos cookies"
-                value={cfg.title} onChange={e => set('title', e.target.value)} />
+                value={texts.title} onChange={e => setText('title', e.target.value)} />
             </div>
 
             <div className="splash-field">
               <label className="splash-field__label">Descrição</label>
               <textarea className="splash-field__input splash-field__textarea" rows={3}
-                value={cfg.description} onChange={e => set('description', e.target.value)} />
+                value={texts.description} onChange={e => setText('description', e.target.value)} />
             </div>
 
             <div className="ck-two-col">
               <div className="splash-field">
                 <label className="splash-field__label">Texto do link de política</label>
                 <input className="splash-field__input" type="text"
-                  value={cfg.linkText} onChange={e => set('linkText', e.target.value)} />
+                  value={texts.linkText} onChange={e => setText('linkText', e.target.value)} />
               </div>
               <div className="splash-field">
                 <label className="splash-field__label">URL da política</label>
@@ -379,7 +425,7 @@ export default function CookiesPage() {
             <div className="splash-field">
               <label className="splash-field__label">Rótulo do botão Aceitar</label>
               <input className="splash-field__input" type="text"
-                value={cfg.acceptLabel} onChange={e => set('acceptLabel', e.target.value)} />
+                value={texts.acceptLabel} onChange={e => setText('acceptLabel', e.target.value)} />
             </div>
 
             <div className="ck-consent-btn-row">
@@ -396,7 +442,7 @@ export default function CookiesPage() {
                 <div className="splash-field">
                   <label className="splash-field__label">Rótulo do botão Rejeitar</label>
                   <input className="splash-field__input" type="text"
-                    value={cfg.rejectLabel} onChange={e => set('rejectLabel', e.target.value)} />
+                    value={texts.rejectLabel} onChange={e => setText('rejectLabel', e.target.value)} />
                 </div>
               )}
             </div>
@@ -415,7 +461,7 @@ export default function CookiesPage() {
                 <div className="splash-field">
                   <label className="splash-field__label">Rótulo do botão Personalizar</label>
                   <input className="splash-field__input" type="text"
-                    value={cfg.customizeLabel} onChange={e => set('customizeLabel', e.target.value)} />
+                    value={texts.customizeLabel} onChange={e => setText('customizeLabel', e.target.value)} />
                 </div>
               )}
             </div>
@@ -426,7 +472,7 @@ export default function CookiesPage() {
             <div className="splash-btns-head">
               <div>
                 <p className="splash-section-label" style={{ margin: 0 }}>Botões de ação</p>
-                <p className="splash-card__desc" style={{ marginTop: 4 }}>Adicione até 2 botões para direcionar o visitante.</p>
+                <p className="splash-card__desc" style={{ marginTop: 4 }}>Adicione até 2 botões para direcionar o visitante. Texto do botão específico por idioma — <strong>{activeLang}</strong>.</p>
               </div>
               {cfg.buttons.length < 2 && (
                 <button type="button" className="btn-action btn-action--enter" onClick={addBtn}>
@@ -451,9 +497,9 @@ export default function CookiesPage() {
                 </div>
                 <div className="splash-btn-editor__fields">
                   <div className="splash-field">
-                    <label className="splash-field__label">Texto do botão</label>
+                    <label className="splash-field__label">Texto do botão ({activeLang})</label>
                     <input className="splash-field__input" type="text" placeholder="Ex: Saiba mais"
-                      value={btn.label} onChange={e => patchBtn(i, 'label', e.target.value)} />
+                      value={btn.labels[activeLang] ?? ''} onChange={e => patchBtnLabel(i, e.target.value)} />
                   </div>
                   <div className="splash-field">
                     <label className="splash-field__label">URL de destino</label>
@@ -482,7 +528,7 @@ export default function CookiesPage() {
         {/* ── Preview sidebar ── */}
         <aside className="splash-preview-aside">
           <p className="splash-section-label">Pré-visualização</p>
-          <CookieMiniPreview cfg={cfg} />
+          <CookieMiniPreview cfg={cfg} lang={activeLang} />
         </aside>
       </div>
       <UnsavedModal open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
