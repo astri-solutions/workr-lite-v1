@@ -35,27 +35,6 @@ function loadCores(key: string): Palette {
 }
 
 
-function hexToHsl(hex: string): [number, number, number] | null {
-  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const d = max - min, l = (max + min) / 2;
-  if (d === 0) return [0, 0, Math.round(l * 100)];
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h: number;
-  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-  else if (max === g) h = ((b - r) / d + 2) / 6;
-  else h = ((r - g) / d + 4) / 6;
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
-}
-
-function isLight(hex: string): boolean {
-  const hsl = hexToHsl(hex);
-  return hsl ? hsl[2] > 55 : true;
-}
-
 function scaleVar(name: string, step: number) {
   return `var(--prev-${name}-${step})`;
 }
@@ -76,7 +55,7 @@ function ColorPreview({ palette }: PreviewProps) {
     });
   });
 
-  const primaryText = isLight(palette.primary) ? '#141414' : '#ffffff';
+  const primaryText = bestTextColor(palette.primary);
 
   return (
     <div className="cores-preview-wrap" style={cssVars as React.CSSProperties}>
