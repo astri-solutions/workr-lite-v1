@@ -275,6 +275,8 @@ interface EditState {
 
 interface CanalEditState {
   canalId: string;
+  locale: LocaleCode;
+  labels: Record<string, string>;
   label: string;
   pageType: PageType;
   headerImageUrl: string | null;
@@ -610,7 +612,7 @@ export default function CanaisPage() {
 
     if (newSubForm.parentSubId) {
       // L3: add as sub-sub-page
-      const ss: SubSubCanal = { id: newId, label, href, enabled: !newSubForm.draft };
+      const ss: SubSubCanal = { id: newId, label, labels: newSubForm.labels, href, enabled: !newSubForm.draft };
       mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : {
         ...c, children: c.children.map(s => s.id !== newSubForm.parentSubId ? s : {
           ...s, children: [...(s.children ?? []), ss],
@@ -618,7 +620,7 @@ export default function CanaisPage() {
       }));
     } else {
       const s: SubCanal = {
-        id: newId, label, href,
+        id: newId, label, labels: newSubForm.labels, href,
         enabled: !newSubForm.draft,
         ...(newSubForm.hasChildren ? {} : { pageType: newSubForm.pageType }),
         ...(newSubForm.isExternalLink ? { isExternalLink: true, externalUrl: newSubForm.externalUrl } : {}),
@@ -662,8 +664,12 @@ export default function CanaisPage() {
 
   // ── Canal edit ─────────────────────────────────────────────────────────
   function openCanalEdit(canal: Canal) {
+    const primaryLang = PORTAL_CONFIG.languages[0];
     setCanalEditModal({
-      canalId: canal.id, label: canal.label,
+      canalId: canal.id,
+      locale: primaryLang,
+      labels: (canal.labels as Record<string, string> | undefined) ?? { [primaryLang]: canal.label },
+      label: canal.label,
       pageType: canal.pageType ?? 'show',
       headerImageUrl: canal.headerImage ?? null,
       applyHeaderToChildren: false,
@@ -675,12 +681,14 @@ export default function CanaisPage() {
   }
   function commitCanalEdit() {
     if (!canalEditModal) return;
-    const { canalId, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter, laCategories } = canalEditModal;
+    const primaryLang = PORTAL_CONFIG.languages[0];
+    const { canalId, labels, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter, laCategories } = canalEditModal;
+    const resolvedLabel = labels[primaryLang]?.trim() || label;
     setCanais(prev => {
       const next = prev.map(c => {
         if (c.id !== canalId) return c;
         const updated: Canal = {
-          ...c, label: label.trim() || c.label,
+          ...c, label: resolvedLabel.trim() || c.label, labels,
           pageType: isLeaf ? pageType : c.pageType,
           listaAgrupadaCategories: isLeaf && pageType === 'lista-agrupada'
             ? [...new Set(laCategories.map(cat => cat.trim()).filter(Boolean))]
@@ -705,7 +713,7 @@ export default function CanaisPage() {
     const isLeaf = newCanalForm.tipo === 'pagina';
     const newId = genId();
     const c: Canal = {
-      id: newId, label, enabled: !newCanalForm.draft, children: [],
+      id: newId, label, labels: newCanalForm.titles, enabled: !newCanalForm.draft, children: [],
       ...(isLeaf ? { pageType: newCanalForm.pageType, href: `/${newId}.html` } : {}),
       ...(isLeaf && newCanalForm.pageType === 'lista-agrupada'
         ? { listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
@@ -742,7 +750,7 @@ export default function CanaisPage() {
     setEditModal({
       canalId: cid, parentSubId, subId: sub.id,
       locale: primaryLang,
-      labels: { [primaryLang]: sub.label },
+      labels: (sub.labels as Record<string, string> | undefined) ?? { [primaryLang]: sub.label },
       label: sub.label, href: sub.href, targetCanalId: cid,
       pageType: sub.pageType ?? 'show', listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
       isExternalLink: sub.isExternalLink ?? false, externalUrl: sub.externalUrl ?? '',
@@ -757,7 +765,7 @@ export default function CanaisPage() {
     setEditModal({
       canalId: cid, parentSubId: sid, subId: ss.id,
       locale: primaryLang,
-      labels: { [primaryLang]: ss.label },
+      labels: (ss.labels as Record<string, string> | undefined) ?? { [primaryLang]: ss.label },
       label: ss.label, href: ss.href, targetCanalId: cid,
       pageType: ss.pageType ?? 'show', listaAgrupadaStyle: 'accordion',
       isExternalLink: ss.isExternalLink ?? false, externalUrl: ss.externalUrl ?? '',
@@ -776,7 +784,7 @@ export default function CanaisPage() {
         const next = prev.map(c => c.id !== canalId ? c : {
           ...c, children: c.children.map(s => s.id !== parentSubId ? s : {
             ...s, children: (s.children ?? []).map(ss => ss.id !== subId ? ss : {
-              ...ss, label: label.trim() || ss.label, href: href.trim() || ss.href,
+              ...ss, label: label.trim() || ss.label, labels: editModal.labels, href: href.trim() || ss.href,
               pageType, isExternalLink, externalUrl: isExternalLink ? externalUrl : undefined,
             }),
           }),
@@ -790,7 +798,7 @@ export default function CanaisPage() {
           if (c.id !== canalId) return c;
           const sub = c.children.find(s => s.id === subId);
           if (sub) movingSub = {
-            ...sub, label: label.trim() || sub.label, href: href.trim() || sub.href,
+            ...sub, label: label.trim() || sub.label, labels: editModal.labels, href: href.trim() || sub.href,
             pageType,
             listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
             listaAgrupadaCategories: pageType === 'lista-agrupada' ? resolveGroupCategories(editModal) : undefined,
@@ -1573,10 +1581,14 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
-            <label className="canais-edit-form__label">
+            {PORTAL_CONFIG.languages.length > 1 && (
+              <LangTabs active={canalEditModal.locale} onChange={l => setCanalEditModal(m => m ? { ...m, locale: l } : m)} />
+            )}
+            <label className="canais-edit-form__label lang-fade" key={canalEditModal.locale}>
               Nome do canal
-              <input className="canais-edit-form__input" type="text" value={canalEditModal.label} autoFocus
-                onChange={e => setCanalEditModal(m => m ? { ...m, label: e.target.value } : m)} />
+              <input className="canais-edit-form__input" type="text"
+                value={canalEditModal.labels[canalEditModal.locale] ?? ''} autoFocus
+                onChange={e => setCanalEditModal(m => m ? { ...m, labels: { ...m.labels, [m.locale]: e.target.value } } : m)} />
             </label>
             {!isFlatLayout && (
               <>

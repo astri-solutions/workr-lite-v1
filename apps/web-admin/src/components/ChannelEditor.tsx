@@ -9,6 +9,11 @@ export type ListaAgrupadaStyle = 'accordion' | 'secao';
 export interface SubSubCanal {
   id: string;
   label: string;
+  // Per-locale nav label — `label` above stays the primary locale's value
+  // for every place that still expects a plain string (breadcrumbs, delete
+  // confirmations, etc.); `labels` is the source of truth the site's nav
+  // reads to actually translate the menu.
+  labels?: Partial<Record<string, string>>;
   href: string;
   enabled: boolean;
   pageType?: PageType;
@@ -19,6 +24,7 @@ export interface SubSubCanal {
 export interface SubCanal {
   id: string;
   label: string;
+  labels?: Partial<Record<string, string>>;
   href: string;
   enabled: boolean;
   pageType?: PageType;
@@ -36,6 +42,7 @@ export interface SubCanal {
 export interface Canal {
   id: string;
   label: string;
+  labels?: Partial<Record<string, string>>;
   href?: string;
   enabled: boolean;
   children: SubCanal[];

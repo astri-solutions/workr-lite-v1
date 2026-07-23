@@ -45,8 +45,8 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
-interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; children?: SubCanalCfg[]; }
-interface CanalCfg { id?: string; label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; }
+interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; children?: SubCanalCfg[]; }
+interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; }
 
 /** Resolves a legal link's custom pageId to the matching canal's real href. */
 function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | undefined {
@@ -195,6 +195,7 @@ function buildNavSection(canais: CanalCfg[]): string {
       const fields = [
         `id: ${JSON.stringify(c.id ?? '')}`,
         `label: ${JSON.stringify(c.label)}`,
+        ...(c.labels ? [`labels: ${JSON.stringify(c.labels)}`] : []),
         `href: ${JSON.stringify(c.href ?? '/')}`,
         ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
         `children: []`,
@@ -205,6 +206,7 @@ function buildNavSection(canais: CanalCfg[]): string {
       const f = [
         `id: ${JSON.stringify(sc.id ?? '')}`,
         `label: ${JSON.stringify(sc.label)}`,
+        ...(sc.labels ? [`labels: ${JSON.stringify(sc.labels)}`] : []),
         `href: ${JSON.stringify(sc.href)}`,
         ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
       ];
@@ -213,6 +215,7 @@ function buildNavSection(canais: CanalCfg[]): string {
     const parentFields = [
       `id: ${JSON.stringify(c.id ?? '')}`,
       `label: ${JSON.stringify(c.label)}`,
+      ...(c.labels ? [`labels: ${JSON.stringify(c.labels)}`] : []),
       ...(c.href ? [`href: ${JSON.stringify(c.href)}`] : []),
       ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
     ];
