@@ -614,6 +614,12 @@
   margin-top: var(--space-2);
 }
 
+.doc-field__error {
+  color: var(--color-error-600, #dc2626);
+  font-size: var(--text-xs);
+  margin: var(--space-2) 0 0;
+}
+
 /* ── Replace file modal ──────────────────────────── */
 .docs-replace-name {
   font-size: var(--text-sm);

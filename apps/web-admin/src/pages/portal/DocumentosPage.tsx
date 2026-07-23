@@ -228,6 +228,12 @@ export default function DocumentosPage() {
     if (!primaryTitle) return;
     if (!portalDbId || !supabase) return;
     if (!form.isExternalLink && !form.file) return; // need either a file or an external link
+    // A schedule that has already passed (or landed exactly on "now") must
+    // never fall through to an immediate publish — block instead of guessing.
+    if (!asDraft && form.scheduleEnabled && form.scheduleDate && form.scheduleTime) {
+      const scheduled = new Date(`${form.scheduleDate}T${form.scheduleTime}`);
+      if (Number.isNaN(scheduled.getTime()) || scheduled.getTime() <= Date.now()) return;
+    }
     setSaving(true);
 
     const titulos: Record<string, string> = {};
@@ -412,8 +418,17 @@ export default function DocumentosPage() {
 
   const primaryLocale = PORTAL_CONFIG.languages[0];
   const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
+  // Recomputed on every render (not memoized) so the "now" comparison below
+  // stays accurate as the user sits on the form — a stale value would let a
+  // date picked as "today" silently drift into the past.
+  const nowForSchedule = new Date();
+  const todayStr = nowForSchedule.toISOString().slice(0, 10);
+  const nowTimeStr = nowForSchedule.toTimeString().slice(0, 5);
+  const scheduleInPast = form.scheduleEnabled && !!form.scheduleDate && !!form.scheduleTime
+    && new Date(`${form.scheduleDate}T${form.scheduleTime}`).getTime() <= Date.now();
   const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
-    && (form.isExternalLink ? !!form.externalUrl.trim() : !!form.file);
+    && (form.isExternalLink ? !!form.externalUrl.trim() : !!form.file)
+    && !scheduleInPast;
 
   return (
     <div className="page docs-page">
@@ -759,12 +774,25 @@ export default function DocumentosPage() {
               <span>Publicar em data e hora específica</span>
             </label>
             {form.scheduleEnabled && (
-              <div className="doc-schedule-row">
-                <input className="doc-field__input" type="date"
-                  value={form.scheduleDate} onChange={e => patchForm('scheduleDate', e.target.value)} />
-                <input className="doc-field__input" type="time"
-                  value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
-              </div>
+              <>
+                <div className="doc-schedule-row">
+                  <input className="doc-field__input" type="date" min={todayStr}
+                    value={form.scheduleDate}
+                    onChange={e => {
+                      const date = e.target.value;
+                      // Moving off today drops a stale "must be after now" time
+                      // that's no longer relevant to the min for the new date.
+                      const time = date === todayStr && form.scheduleTime < nowTimeStr ? '' : form.scheduleTime;
+                      setForm(f => ({ ...f, scheduleDate: date, scheduleTime: time }));
+                    }} />
+                  <input className="doc-field__input" type="time"
+                    min={form.scheduleDate === todayStr ? nowTimeStr : undefined}
+                    value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
+                </div>
+                {scheduleInPast && (
+                  <p className="doc-field__error">A data e hora de agendamento devem ser posteriores ao momento atual.</p>
+                )}
+              </>
             )}
           </div>
         </div>
