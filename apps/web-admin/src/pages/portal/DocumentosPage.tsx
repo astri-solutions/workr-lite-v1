@@ -5,7 +5,6 @@ import Modal from '../../components/Modal';
 import PublishSuccessModal from '../../components/PublishSuccessModal';
 import LangTabs from '../../components/LangTabs';
 import StickyPageHeader from '../../components/StickyPageHeader';
-import FileDropzone from '../../components/FileDropzone';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
@@ -26,6 +25,8 @@ interface Entity {
 
 type DocStatus = 'Publicado' | 'Rascunho' | 'Agendado';
 
+interface DocFileEntry { filePath?: string; externalLink?: string; }
+
 interface DocRow {
   id: string;
   entityId: string;
@@ -43,6 +44,7 @@ interface DocRow {
   externalLink?: string;
   filePath?: string;
   scheduleAt?: string;
+  arquivos: Record<string, DocFileEntry>;
 }
 
 const DOCS_BUCKET = 'portal-documents';
@@ -80,28 +82,49 @@ function buildDestPages(canais: Parameters<typeof buildBasePages>[0]): DestPage[
   }));
 }
 
+// One file/link slot per locale — independent of every other locale's slot,
+// so replacing or removing the EN attachment never touches the PT one (they
+// used to share a single file_path/external_link column on the row).
+interface LocaleFileState {
+  file: File | null;
+  isExternalLink: boolean;
+  externalUrl: string;
+  existingPath?: string;
+}
+
+function emptyLocaleFile(): LocaleFileState {
+  return { file: null, isExternalLink: false, externalUrl: '' };
+}
+
+function localeFileHasContent(entry: LocaleFileState): boolean {
+  return entry.isExternalLink ? !!entry.externalUrl.trim() : (!!entry.file || !!entry.existingPath);
+}
+
 interface DocForm {
+  editingId: string | null;
   entityId: string;
   titulos: Record<string, string>;
   allPages: boolean;
   paginaIds: string[];
   subGroupIds: Record<string, string[]>;
-  idiomas: string[];
   scheduleEnabled: boolean;
   scheduleDate: string;
   scheduleTime: string;
-  file: File | null;
-  isExternalLink: boolean;
-  externalUrl: string;
+  filesByLocale: Partial<Record<string, LocaleFileState>>;
+  // Storage paths orphaned by a remove/replace/switch-to-link action this
+  // session — deleted from the bucket only after the DB write succeeds.
+  pendingStorageDeletes: string[];
 }
 
 function emptyDocForm(entityId = ''): DocForm {
   return {
+    editingId: null,
     entityId,
     titulos: {},
     allPages: false, paginaIds: [], subGroupIds: {},
-    idiomas: ['PT'], scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
-    file: null, isExternalLink: false, externalUrl: '',
+    scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
+    filesByLocale: {},
+    pendingStorageDeletes: [],
   };
 }
 
@@ -122,6 +145,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
   const scheduleLabel = scheduleAt
     ? new Date(scheduleAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : '—';
+  const arquivos = (r.arquivos as Record<string, DocFileEntry>) ?? {};
   return {
     id: r.id as string,
     entityId: r.entity_id as string,
@@ -139,6 +163,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
     externalLink: r.external_link as string | undefined,
     filePath: r.file_path as string | undefined,
     scheduleAt,
+    arquivos,
   };
 }
 
@@ -179,15 +204,17 @@ export default function DocumentosPage() {
   const [dragActive, setDragActive] = useState(false);
   const [docLocale, setDocLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [replaceDoc, setReplaceDoc] = useState<DocRow | null>(null);
-  const [replaceFile, setReplaceFile] = useState<File | null>(null);
-  const [replaceTitle, setReplaceTitle] = useState('');
   const [ptOnly, setPtOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  const primaryLocale = PORTAL_CONFIG.languages[0];
+
   const destPages = useMemo(() => buildDestPages(loadPortalCanais(user?.activePortalId)), [user?.activePortalId]);
   const pageLabelById = useMemo(() => new Map(destPages.map(p => [p.id, p.label])), [destPages]);
+  const compatiblePageIds = useMemo(() => destPages
+    .filter(p => p.pageType ? COMPATIBLE_DOC_TYPES.includes(p.pageType) : !NON_LIST_DEFAULT_IDS.has(p.id))
+    .map(p => p.id), [destPages]);
   const docs = useMemo(() => rawDocs.map(r => dbToRow(r, pageLabelById)), [rawDocs, pageLabelById]);
 
   const loadDocs = useCallback(async () => {
@@ -208,29 +235,98 @@ export default function DocumentosPage() {
     setForm(f => ({ ...f, [key]: val }));
   }
 
-  function handleFile(file: File) { patchForm('file', file); }
+  function getLocaleFile(f: DocForm, locale: string): LocaleFileState {
+    return f.filesByLocale[locale] ?? emptyLocaleFile();
+  }
+
+  function patchLocaleFile(locale: string, patch: Partial<LocaleFileState>) {
+    setForm(f => ({
+      ...f,
+      filesByLocale: { ...f.filesByLocale, [locale]: { ...getLocaleFile(f, locale), ...patch } },
+    }));
+  }
+
+  // Every path that stops being "the" current file for its locale (removed,
+  // replaced by a new upload, or the locale switched to an external link)
+  // gets queued here and only actually deleted from storage once the save
+  // succeeds — never touching any other locale's own file.
+  function queueStorageDelete(path?: string) {
+    if (!path) return;
+    setForm(f => f.pendingStorageDeletes.includes(path) ? f : { ...f, pendingStorageDeletes: [...f.pendingStorageDeletes, path] });
+  }
+
+  function handleFile(locale: string, file: File) {
+    const existing = getLocaleFile(form, locale);
+    if (existing.existingPath) queueStorageDelete(existing.existingPath);
+    patchLocaleFile(locale, { file, existingPath: undefined });
+  }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault(); setDragActive(false);
     const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+    if (f) handleFile(ptOnly ? primaryLocale : docLocale, f);
   }
 
   function openDrawer() {
     setForm(emptyDocForm(activeEntity));
-    setDocLocale(PORTAL_CONFIG.languages[0]);
+    setDocLocale(primaryLocale);
     setPtOnly(false);
     setSaveError('');
     setDrawerOpen(true);
   }
+
+  function openEdit(doc: DocRow) {
+    const raw = rawDocs.find(r => r.id === doc.id);
+    if (!raw) return;
+    const titulos = (raw.titulo as Record<string, string>) ?? {};
+    const paginaIds = (raw.pagina_ids as string[]) ?? [];
+    const subGroupIds = (raw.sub_group_ids as Record<string, string[]>) ?? {};
+    const arquivos = (raw.arquivos as Record<string, DocFileEntry>) ?? {};
+    const filesByLocale: Partial<Record<string, LocaleFileState>> = {};
+    PORTAL_CONFIG.languages.forEach(l => {
+      const entry = arquivos[l];
+      filesByLocale[l] = {
+        file: null,
+        isExternalLink: !!entry?.externalLink,
+        externalUrl: entry?.externalLink ?? '',
+        existingPath: entry?.filePath,
+      };
+    });
+    const isAgendado = raw.status === 'Agendado' && !!raw.schedule_at;
+    const scheduleDt = isAgendado ? new Date(raw.schedule_at as string) : null;
+    setForm({
+      editingId: doc.id,
+      entityId: (raw.entity_id as string) ?? '',
+      titulos,
+      // "Todas as páginas" was previously stored as an EMPTY pagina_ids array
+      // (a bug in its own right — the site's contains-filter query can never
+      // match an empty array, so those documents never rendered anywhere).
+      // Reconstructing "all pages" from a non-empty set that covers every
+      // compatible page keeps this edit form consistent with what save now
+      // writes for "Todas as páginas" going forward.
+      allPages: compatiblePageIds.length > 0 && compatiblePageIds.every(id => paginaIds.includes(id)),
+      paginaIds,
+      subGroupIds,
+      scheduleEnabled: isAgendado,
+      scheduleDate: scheduleDt ? scheduleDt.toISOString().slice(0, 10) : '',
+      scheduleTime: scheduleDt ? scheduleDt.toTimeString().slice(0, 5) : '',
+      filesByLocale,
+      pendingStorageDeletes: [],
+    });
+    setPtOnly(!!raw.pt_only);
+    setDocLocale(primaryLocale);
+    setSaveError('');
+    setDrawerOpen(true);
+  }
+
   function closeDrawer() { setDrawerOpen(false); setSaveError(''); }
 
   async function handleSave(asDraft: boolean) {
-    const primaryLocale = PORTAL_CONFIG.languages[0];
     const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
     if (!primaryTitle) return;
     if (!portalDbId || !supabase) return;
-    if (!form.isExternalLink && !form.file) return; // need either a file or an external link
+    const primaryEntryForCheck = ptOnly ? getLocaleFile(form, primaryLocale) : getLocaleFile(form, primaryLocale);
+    if (!localeFileHasContent(primaryEntryForCheck)) return; // need either a file or an external link
     setSaveError('');
     // A schedule that has already passed (or landed exactly on "now") must
     // never fall through to an immediate publish — block instead of guessing.
@@ -251,21 +347,34 @@ export default function DocumentosPage() {
     PORTAL_CONFIG.languages.forEach(l => {
       titulos[l] = ptOnly ? primaryTitle : (form.titulos[l] ?? '');
     });
-    if (ptOnly) {
-      PORTAL_CONFIG.languages.forEach(l => { titulos[l] = primaryTitle; });
-    }
 
     const now = new Date().toISOString();
     const userName = user?.name ?? user?.email ?? '';
+    const docId = form.editingId ?? crypto.randomUUID();
 
-    // Generate the id up front so the storage path can reference it.
-    const newId = crypto.randomUUID();
-    let filePath: string | null = null;
-    if (!form.isExternalLink && form.file) {
-      filePath = `${portalDbId}/${newId}.${fileExt(form.file.name)}`;
+    // Resolve each language's final file/link independently — this is the
+    // per-locale fix: no shared path, so replacing/removing one language's
+    // attachment can never affect another language's.
+    const arquivosPatch: Record<string, DocFileEntry> = {};
+    const uploads: { locale: string; file: File; path: string }[] = [];
+    for (const locale of PORTAL_CONFIG.languages) {
+      const entry = ptOnly ? getLocaleFile(form, primaryLocale) : getLocaleFile(form, locale);
+      if (entry.isExternalLink) {
+        const link = entry.externalUrl.trim();
+        if (link) arquivosPatch[locale] = { externalLink: link };
+      } else if (entry.file) {
+        const path = `${portalDbId}/${docId}-${locale}.${fileExt(entry.file.name)}`;
+        uploads.push({ locale, file: entry.file, path });
+        arquivosPatch[locale] = { filePath: path };
+      } else if (entry.existingPath) {
+        arquivosPatch[locale] = { filePath: entry.existingPath };
+      }
+    }
+
+    for (const u of uploads) {
       const { error: uploadError } = await supabase.storage
         .from(DOCS_BUCKET)
-        .upload(filePath, form.file, { upsert: false });
+        .upload(u.path, u.file, { upsert: true });
       if (uploadError) {
         console.error('upload failed', uploadError);
         setSaveError('Falha ao enviar o arquivo. Tente novamente.');
@@ -275,7 +384,12 @@ export default function DocumentosPage() {
     }
 
     // A future schedule only applies when actually publishing — saving as
-    // draft always takes priority over any pending schedule.
+    // draft always takes priority over any pending schedule. Editing an
+    // already-published document with a future schedule set is exactly
+    // "unpublish now, publish again at the scheduled time": status flips to
+    // 'Agendado' immediately (so it stops showing on the site right away)
+    // and the pg_cron job (auto-publish-scheduled-documents) flips it back
+    // to 'Publicado' once schedule_at arrives.
     let scheduleAtIso: string | null = null;
     let status: DocStatus = asDraft ? 'Rascunho' : 'Publicado';
     if (!asDraft && form.scheduleEnabled && form.scheduleDate && form.scheduleTime) {
@@ -286,33 +400,50 @@ export default function DocumentosPage() {
       }
     }
 
-    const { error } = await supabase.from('portal_documents').insert({
-      id: newId,
-      portal_id: portalDbId,
+    const primaryEntry = arquivosPatch[primaryLocale];
+    const idiomasWithContent = Object.keys(arquivosPatch);
+    // "Todas as páginas" is stored as every compatible page id, not an empty
+    // array — an empty array can never match the site's contains-filter
+    // query, so the document would never actually render anywhere.
+    const paginaIdsToSave = form.allPages ? compatiblePageIds : form.paginaIds;
+
+    const patch: Record<string, unknown> = {
       entity_id: form.entityId || activeEntity,
       titulo: titulos,
-      tipo: 'Documento',
       status,
       schedule_at: scheduleAtIso,
-      pagina_ids: form.paginaIds,
+      pagina_ids: paginaIdsToSave,
       sub_group_ids: form.subGroupIds,
-      idiomas: ptOnly ? ['PT'] : form.idiomas,
+      idiomas: idiomasWithContent.length ? idiomasWithContent : [primaryLocale],
       pt_only: ptOnly,
-      external_link: form.isExternalLink ? form.externalUrl : null,
-      file_path: filePath,
-      publicado_por: userName,
+      arquivos: arquivosPatch,
+      external_link: primaryEntry?.externalLink ?? null,
+      file_path: primaryEntry?.filePath ?? null,
       ultimo_editor: userName,
       updated_at: now,
-    });
+    };
+
+    const { error } = form.editingId
+      ? await supabase.from('portal_documents').update(patch).eq('id', form.editingId)
+      : await supabase.from('portal_documents').insert({
+          id: docId,
+          portal_id: portalDbId,
+          tipo: 'Documento',
+          publicado_por: userName,
+          ...patch,
+        });
 
     if (!error) {
+      if (form.pendingStorageDeletes.length > 0) {
+        await supabase.storage.from(DOCS_BUCKET).remove(form.pendingStorageDeletes);
+      }
       closeDrawer();
       await loadDocs();
       logActivity({
         portalId: portalDbId,
         userName,
         userEmail: user?.email ?? '',
-        action: status === 'Agendado' ? 'agendou' : asDraft ? 'adicionou' : 'publicou',
+        action: status === 'Agendado' ? 'agendou' : form.editingId ? 'editou' : asDraft ? 'adicionou' : 'publicou',
         category: 'documento',
         entity: primaryTitle,
       });
@@ -324,12 +455,12 @@ export default function DocumentosPage() {
         setPublishSuccess(true);
       }
     } else {
-      console.error('insert failed', error);
+      console.error('save failed', error);
       setSaveError('Falha ao salvar o documento. Tente novamente.');
-      if (filePath) {
-        // Row insert failed after the file made it to storage — clean up the orphan.
-        await supabase.storage.from(DOCS_BUCKET).remove([filePath]);
-      }
+      // New uploads for this attempt are now orphaned — clean them up so a
+      // failed save doesn't leave stray objects in storage.
+      const orphanPaths = uploads.map(u => u.path);
+      if (orphanPaths.length > 0) await supabase.storage.from(DOCS_BUCKET).remove(orphanPaths);
     }
     setSaving(false);
   }
@@ -358,8 +489,15 @@ export default function DocumentosPage() {
   async function handleDelete() {
     if (!supabase || selected.size === 0 || !portalDbId) return;
     const ids = Array.from(selected);
-    const names = docs.filter(d => ids.includes(d.id)).map(d => d.nome).join(', ');
-    const paths = docs.filter(d => ids.includes(d.id) && d.filePath).map(d => d.filePath!);
+    const targets = docs.filter(d => ids.includes(d.id));
+    const names = targets.map(d => d.nome).join(', ');
+    // Every language's own file gets removed, not just the primary one —
+    // otherwise a deleted document leaves every non-primary locale's file
+    // as an orphan in storage forever.
+    const paths = targets.flatMap(d => {
+      const fromArquivos = Object.values(d.arquivos ?? {}).map(a => a.filePath).filter((p): p is string => !!p);
+      return fromArquivos.length > 0 ? fromArquivos : (d.filePath ? [d.filePath] : []);
+    });
     await supabase.from('portal_documents').delete().in('id', ids);
     if (paths.length > 0) await supabase.storage.from(DOCS_BUCKET).remove(paths);
     setSelected(new Set());
@@ -373,34 +511,6 @@ export default function DocumentosPage() {
       category: 'documento',
       entity: names,
     });
-  }
-
-  async function handleReplaceDoc() {
-    if (!replaceDoc || !supabase || !portalDbId) return;
-    const now = new Date().toISOString();
-    const patch: Record<string, unknown> = {
-      titulo: { ...((docs.find(d => d.id === replaceDoc.id) as unknown as { titulo?: Record<string, string> })?.titulo ?? {}), 'pt-BR': replaceTitle || replaceDoc.nome },
-      ultimo_editor: user?.name ?? user?.email ?? '',
-      updated_at: now,
-    };
-
-    if (replaceFile) {
-      const newPath = `${portalDbId}/${replaceDoc.id}.${fileExt(replaceFile.name)}`;
-      // Extension may have changed (e.g. .pdf → .docx) — the old object would
-      // be left orphaned under the previous filename, so remove it first.
-      if (replaceDoc.filePath && replaceDoc.filePath !== newPath) {
-        await supabase.storage.from(DOCS_BUCKET).remove([replaceDoc.filePath]);
-      }
-      const { error: uploadError } = await supabase.storage
-        .from(DOCS_BUCKET)
-        .upload(newPath, replaceFile, { upsert: true });
-      if (uploadError) { console.error('replace upload failed', uploadError); return; }
-      patch.file_path = newPath;
-    }
-
-    await supabase.from('portal_documents').update(patch).eq('id', replaceDoc.id);
-    setReplaceDoc(null);
-    await loadDocs();
   }
 
   async function handleDownload(doc: DocRow) {
@@ -438,7 +548,6 @@ export default function DocumentosPage() {
     { key: 'status', label: 'Status', options: [{ value: '', label: 'Todos os status', shortLabel: 'Todos' }, { value: 'Publicado', label: 'Publicado' }, { value: 'Agendado', label: 'Agendado' }, { value: 'Rascunho', label: 'Rascunho' }] },
   ];
 
-  const primaryLocale = PORTAL_CONFIG.languages[0];
   const primaryTitle = (form.titulos[primaryLocale] ?? '').trim();
   // Recomputed on every render (not memoized) so the "now" comparison below
   // stays accurate as the user sits on the form — a stale value would let a
@@ -448,8 +557,9 @@ export default function DocumentosPage() {
   const nowTimeStr = nowForSchedule.toTimeString().slice(0, 5);
   const scheduleInPast = form.scheduleEnabled && !!form.scheduleDate && !!form.scheduleTime
     && new Date(`${form.scheduleDate}T${form.scheduleTime}`).getTime() <= Date.now();
+  const activeLocaleFile = getLocaleFile(form, ptOnly ? primaryLocale : docLocale);
   const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
-    && (form.isExternalLink ? !!form.externalUrl.trim() : !!form.file);
+    && localeFileHasContent(getLocaleFile(form, primaryLocale));
 
   return (
     <div className="page docs-page">
@@ -562,7 +672,7 @@ export default function DocumentosPage() {
                         <button type="button" className="btn-action btn-action--secondary" onClick={() => handleDownload(doc)}>Abrir</button>
                       )}
                       <button type="button" className="btn-action btn-action--enter"
-                        onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
+                        onClick={() => openEdit(doc)}>Editar</button>
                     </div>
                   </td>
                 </tr>
@@ -594,32 +704,16 @@ export default function DocumentosPage() {
                   <button type="button" className="btn-action btn-action--secondary" onClick={() => handleDownload(doc)}>Abrir</button>
                 )}
                 <button type="button" className="btn-action btn-action--enter"
-                  onClick={() => { setReplaceDoc(doc); setReplaceFile(null); setReplaceTitle(doc.nome); }}>Editar</button>
+                  onClick={() => openEdit(doc)}>Editar</button>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── Edit modal ── */}
-      <Modal open={!!replaceDoc} onClose={() => setReplaceDoc(null)} title="Editar documento" size="sm"
-        footer={
-          <div className="modal-footer">
-            <button type="button" className="btn-outline" onClick={() => setReplaceDoc(null)}>Cancelar</button>
-            <button type="button" className="btn-primary" onClick={handleReplaceDoc}>Salvar alterações</button>
-          </div>
-        }>
-        <div className="doc-field" style={{ marginBottom: 'var(--space-4)' }}>
-          <label className="doc-field__label">Título</label>
-          <input className="doc-field__input" type="text" value={replaceTitle}
-            onChange={e => setReplaceTitle(e.target.value)} autoFocus />
-        </div>
-        <FileDropzone file={replaceFile} onChange={setReplaceFile}
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hint="PDF, Word, Excel, PowerPoint" />
-      </Modal>
-
-      {/* ── New document modal ── */}
-      <Modal open={drawerOpen} onClose={closeDrawer} title="Novo documento" size="md" variant="side"
+      {/* ── New / Edit document drawer — same form either way, only the
+          entity id changes what gets written (insert vs update) ── */}
+      <Modal open={drawerOpen} onClose={closeDrawer} title={form.editingId ? 'Editar documento' : 'Novo documento'} size="md" variant="side"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={closeDrawer}>Cancelar</button>
@@ -631,7 +725,7 @@ export default function DocumentosPage() {
               <button type="button" className="btn-primary" onClick={() => handleSave(false)} disabled={!canSave || saving}>
                 {saving
                   ? (form.scheduleEnabled ? 'Agendando…' : 'Publicando…')
-                  : (form.scheduleEnabled && form.scheduleDate && form.scheduleTime ? 'Agendar publicação' : 'Publicar')}
+                  : (form.scheduleEnabled && form.scheduleDate && form.scheduleTime ? 'Agendar publicação' : form.editingId ? 'Salvar e publicar' : 'Publicar')}
               </button>
             </div>
           </div>
@@ -663,7 +757,7 @@ export default function DocumentosPage() {
             <LangTabs active={docLocale} onChange={setDocLocale} />
           )}
 
-          {PORTAL_CONFIG.languages.length > 1 && (docLocale === PORTAL_CONFIG.languages[0] || ptOnly) && (
+          {PORTAL_CONFIG.languages.length > 1 && (docLocale === primaryLocale || ptOnly) && (
             <label className="doc-pt-only-row">
               <span className="doc-pt-only-label">
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>translate</span>
@@ -671,7 +765,7 @@ export default function DocumentosPage() {
                 <span className="doc-pt-only-hint">O mesmo arquivo será exibido em todos os idiomas</span>
               </span>
               <button type="button" className={`cdr2-toggle${ptOnly ? ' cdr2-toggle--on' : ''}`}
-                onClick={() => { setPtOnly(v => !v); setDocLocale(PORTAL_CONFIG.languages[0]); }} aria-pressed={ptOnly}>
+                onClick={() => { setPtOnly(v => !v); setDocLocale(primaryLocale); }} aria-pressed={ptOnly}>
                 <span className="cdr2-toggle__knob" />
               </button>
             </label>
@@ -688,41 +782,65 @@ export default function DocumentosPage() {
           </div>
 
           <div className="doc-source-toggle">
-            <button type="button" className={`doc-source-toggle__btn${!form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
-              onClick={() => patchForm('isExternalLink', false)}>
+            <button type="button" className={`doc-source-toggle__btn${!activeLocaleFile.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchLocaleFile(ptOnly ? primaryLocale : docLocale, { isExternalLink: false })}>
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>upload_file</span>Arquivo
             </button>
-            <button type="button" className={`doc-source-toggle__btn${form.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
-              onClick={() => patchForm('isExternalLink', true)}>
+            <button type="button" className={`doc-source-toggle__btn${activeLocaleFile.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => {
+                if (activeLocaleFile.existingPath) queueStorageDelete(activeLocaleFile.existingPath);
+                patchLocaleFile(ptOnly ? primaryLocale : docLocale, { isExternalLink: true, file: null, existingPath: undefined });
+              }}>
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>Link externo
             </button>
           </div>
 
-          {form.isExternalLink ? (
+          {!ptOnly && PORTAL_CONFIG.languages.length > 1 && (
+            <p className="doc-field__hint" style={{ marginTop: '-8px' }}>
+              Arquivo/link específico para o idioma <strong>{docLocale}</strong> — deixe vazio se este documento não estiver disponível neste idioma.
+            </p>
+          )}
+
+          {activeLocaleFile.isExternalLink ? (
             <div className="doc-field">
-              <label className="doc-field__label">URL do documento *</label>
+              <label className="doc-field__label">URL do documento{docLocale === primaryLocale || ptOnly ? ' *' : ''}</label>
               <input className="doc-field__input" type="url" placeholder="https://..."
-                value={form.externalUrl} onChange={e => patchForm('externalUrl', e.target.value)} />
+                value={activeLocaleFile.externalUrl}
+                onChange={e => patchLocaleFile(ptOnly ? primaryLocale : docLocale, { externalUrl: e.target.value })} />
               <span className="doc-field__hint">O documento abrirá em nova aba ao ser acessado no portal.</span>
             </div>
+          ) : activeLocaleFile.existingPath && !activeLocaleFile.file ? (
+            <div className="doc-upload doc-upload--filled">
+              <div className="doc-upload__file">
+                <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
+                <div className="doc-upload__file-info">
+                  <span className="doc-upload__file-name">{activeLocaleFile.existingPath.split('/').pop()}</span>
+                  <span className="doc-upload__file-size">Arquivo já enviado</span>
+                </div>
+                <button type="button" className="doc-upload__file-remove"
+                  onClick={() => { queueStorageDelete(activeLocaleFile.existingPath); patchLocaleFile(ptOnly ? primaryLocale : docLocale, { existingPath: undefined }); }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                </button>
+              </div>
+            </div>
           ) : (
-            <div className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${form.file ? ' doc-upload--filled' : ''}`}
+            <div className={`doc-upload${dragActive ? ' doc-upload--active' : ''}${activeLocaleFile.file ? ' doc-upload--filled' : ''}`}
               onDragOver={e => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
-              onClick={() => !form.file && fileInputRef.current?.click()}>
+              onClick={() => !activeLocaleFile.file && fileInputRef.current?.click()}>
               <input ref={fileInputRef} type="file" style={{ display: 'none' }}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-              {form.file ? (
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(ptOnly ? primaryLocale : docLocale, f); }} />
+              {activeLocaleFile.file ? (
                 <div className="doc-upload__file">
                   <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
                   <div className="doc-upload__file-info">
-                    <span className="doc-upload__file-name">{form.file.name}</span>
-                    <span className="doc-upload__file-size">{(form.file.size / 1024).toFixed(0)} KB</span>
+                    <span className="doc-upload__file-name">{activeLocaleFile.file.name}</span>
+                    <span className="doc-upload__file-size">{(activeLocaleFile.file.size / 1024).toFixed(0)} KB</span>
                   </div>
                   <button type="button" className="doc-upload__file-remove"
-                    onClick={e => { e.stopPropagation(); patchForm('file', null); }}>
+                    onClick={e => { e.stopPropagation(); patchLocaleFile(ptOnly ? primaryLocale : docLocale, { file: null }); }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
                   </button>
                 </div>
@@ -795,6 +913,11 @@ export default function DocumentosPage() {
                 onChange={e => patchForm('scheduleEnabled', e.target.checked)} />
               <span>Publicar em data e hora específica</span>
             </label>
+            {form.editingId && (
+              <p className="doc-field__hint">
+                Marcar aqui despublica o documento agora e o publica automaticamente no horário definido.
+              </p>
+            )}
             {form.scheduleEnabled && (
               <>
                 <div className="doc-schedule-row">
