@@ -372,12 +372,16 @@ export default function DocumentosPage() {
     }
 
     for (const u of uploads) {
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from(DOCS_BUCKET)
         .upload(u.path, u.file, { upsert: true });
-      if (uploadError) {
-        console.error('upload failed', uploadError);
-        setSaveError('Falha ao enviar o arquivo. Tente novamente.');
+      // The upload call can resolve with no error yet no confirmed path in
+      // some edge cases (e.g. a row-level-security policy that silently
+      // rejects the write) — this reference would otherwise get written to
+      // the document row while nothing actually exists in the bucket.
+      if (uploadError || !uploadData?.path) {
+        console.error('upload failed', u.locale, uploadError, uploadData);
+        setSaveError(`Falha ao enviar o arquivo do idioma "${u.locale}". Tente novamente.`);
         setSaving(false);
         return;
       }
