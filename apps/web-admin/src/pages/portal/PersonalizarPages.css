@@ -49,6 +49,15 @@
   gap: var(--space-3);
 }
 
+/* 2 columns still crams these cards' longer descriptions into a lot of
+   wrapped lines — stack straight to one column instead of trying an
+   intermediate 2-up step. */
+@media (max-width: 900px) {
+  .pers-tipos {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pers-tipo-card {
   display: flex;
   flex-direction: column;
