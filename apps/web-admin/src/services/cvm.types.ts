@@ -40,7 +40,8 @@ export interface CvmEntityView {
 }
 
 export interface CvmPortal {
-  id: string;
+  id: string;       // portals.id (uuid) — used for all Supabase writes
+  portalKey: string; // portals.portal_key — matches user.activePortalId
   nome: string;
   entidades: CvmEntityView[];
 }

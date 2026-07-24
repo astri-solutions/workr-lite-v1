@@ -380,7 +380,7 @@ export default function AutoCvmPage() {
         // Non-super_admin sees only the active portal's CVM data.
         const filtered = isSuperAdmin
           ? data
-          : data.filter(p => p.id === user?.activePortalId);
+          : data.filter(p => p.portalKey === user?.activePortalId);
         setPortais(filtered);
         setLoading(false);
       })

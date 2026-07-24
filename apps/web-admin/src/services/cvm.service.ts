@@ -78,7 +78,7 @@ function collectRoutablePages(canais: CanalNode[]): RoutablePage[] {
 async function _fetchAll(): Promise<CvmPortal[]> {
   if (!isSupabaseConfigured || !supabase) return [];
 
-  const { data: portals } = await supabase.from('portals').select('id, cliente');
+  const { data: portals } = await supabase.from('portals').select('id, cliente, portal_key');
   if (!portals || portals.length === 0) return [];
   const portalIds = portals.map(p => p.id as string);
 
@@ -120,7 +120,7 @@ async function _fetchAll(): Promise<CvmPortal[]> {
           lastSyncResult: sync?.last_sync_result ?? null,
         };
       });
-    return { id: p.id as string, nome: p.cliente as string, entidades };
+    return { id: p.id as string, portalKey: p.portal_key as string, nome: p.cliente as string, entidades };
   });
 }
 
