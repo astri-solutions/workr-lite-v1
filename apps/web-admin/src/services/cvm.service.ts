@@ -207,6 +207,16 @@ export const cvmService = {
     const canais = (data?.canais ?? []) as CanalNode[];
     return collectRoutablePages(canais);
   },
+
+  /** TEMPORARY (Phase 2 step 1): read-only probe against the real CVM open-data
+   *  pipeline for one entity, to validate connectivity/parsing before the real
+   *  importer exists. Remove this once the scheduled import is wired up. */
+  async testFetch(cnpj: string, cvmCode: string): Promise<unknown> {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase não configurado.');
+    const { data, error } = await supabase.functions.invoke('cvm-test-fetch', { body: { cnpj, cvmCode } });
+    if (error) throw new Error(`Falha ao consultar CVM: ${error.message}`);
+    return data;
+  },
 } as const;
 
 /** All canal-tree target ids that have at least one CVM category routed to

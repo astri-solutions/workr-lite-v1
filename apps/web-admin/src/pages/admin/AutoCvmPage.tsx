@@ -205,6 +205,9 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState(entity.ultimaSync);
   const [importResult, setImportResult] = useState<{ queued: number; minutes: number } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<unknown>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const isAtivo = status === 'ativo';
   const isErro = status === 'erro';
@@ -249,6 +252,22 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
       await cvmService.updateImportDate(entity.portalId, entity.id, { importarDesde: importDate || null });
     } catch {
       // silent — field remains editable
+    }
+  }
+
+  // TEMPORARY (Phase 2 step 1): proves the real dados.cvm.gov.br pipeline
+  // works for this entity's CNPJ/código CVM before the real importer exists.
+  async function handleTestFetch() {
+    setTesting(true);
+    setTestError(null);
+    setTestResult(null);
+    try {
+      const res = await cvmService.testFetch(entity.cnpj, entity.cvmCode);
+      setTestResult(res);
+    } catch (e) {
+      setTestError(e instanceof Error ? e.message : 'Falha ao testar busca CVM.');
+    } finally {
+      setTesting(false);
     }
   }
 
@@ -358,8 +377,27 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
               : 'Importar histórico'
             }
           </button>
+          <button
+            className="btn-outline-sm"
+            type="button"
+            onClick={handleTestFetch}
+            disabled={testing || !entity.cnpj}
+            title="TEMPORÁRIO: testar busca real na base aberta da CVM (dados.cvm.gov.br)"
+          >
+            {testing ? <><span className="cvm-spin" />Testando…</> : 'Testar busca CVM'}
+          </button>
         </div>
       </div>
+
+      {testError && <p className="cvm-error-msg">{testError}</p>}
+      {testResult !== null && (
+        <pre style={{
+          marginTop: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--color-bg-light, #f4f4f4)',
+          borderRadius: 'var(--radius-md)', fontSize: 'var(--text-xs)', overflowX: 'auto', maxHeight: 320,
+        }}>
+          {JSON.stringify(testResult, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }
