@@ -3,14 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { PORTAL_LAYOUT_KEY } from '../../components/ClientLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import { pKey } from '../../utils/portalStorage';
 import '../admin/AdminPages.css';
 import './DashboardPage.css';
 
-
-function readCount(key: string): number {
-  try { return (JSON.parse(localStorage.getItem(key) ?? '[]') as unknown[]).length; } catch { return 0; }
-}
 
 function readFilteredCount(key: string, pred: (item: Record<string, unknown>) => boolean): number {
   try {
@@ -117,18 +114,40 @@ export default function DashboardPage() {
       });
   }, [user?.activePortalId]);
 
+  // Documentos and Matérias were migrated to Supabase-backed pages a while
+  // ago and no longer mirror to the localStorage keys these counters read —
+  // so they always showed 0 regardless of real usage. Interações still
+  // caches to localStorage via usePortalState, so it's left as-is.
+  const [dbCounts, setDbCounts] = useState({ docCount: 0, materiaCount: 0 });
+
+  useEffect(() => {
+    const portalKey = user?.activePortalId;
+    if (!portalKey || !isSupabaseConfigured || !supabase) return;
+    let cancelled = false;
+    resolvePortalId(portalKey).then(async portalDbId => {
+      if (cancelled || !portalDbId || !supabase) return;
+      const [docsRes, materiasRes] = await Promise.all([
+        supabase.from('portal_documents').select('id', { count: 'exact', head: true })
+          .eq('portal_id', portalDbId).eq('status', 'Publicado'),
+        supabase.from('portal_materias').select('id', { count: 'exact', head: true })
+          .eq('portal_id', portalDbId).eq('status', 'publicado'),
+      ]);
+      if (cancelled) return;
+      setDbCounts({ docCount: docsRes.count ?? 0, materiaCount: materiasRes.count ?? 0 });
+    });
+    return () => { cancelled = true; };
+  }, [user?.activePortalId]);
+
   const stats = useMemo(() => {
     const pid = user?.activePortalId;
-    const docCount = readCount(pKey('portal_documentos', pid));
-    const materiaCount = readFilteredCount(pKey('portal_materias', pid), i => i.status === 'publicado');
     const interCount = readFilteredCount(pKey('portal_interacoes', pid), i => i.status === 'novo');
     return [
       { label: 'Visitantes (30d)', value: '—', delta: 'Em breve', up: false },
-      { label: 'Documentos publicados', value: String(docCount), delta: '', up: false },
-      { label: 'Matérias ativas', value: String(materiaCount), delta: '', up: false },
+      { label: 'Documentos publicados', value: String(dbCounts.docCount), delta: '', up: false },
+      { label: 'Matérias ativas', value: String(dbCounts.materiaCount), delta: '', up: false },
       { label: 'Interações pendentes', value: String(interCount), delta: interCount > 0 ? 'Aguardando resposta' : '', up: false },
     ];
-  }, [user?.activePortalId]);
+  }, [user?.activePortalId, dbCounts]);
 
   return (
     <div className="page dash-page">
