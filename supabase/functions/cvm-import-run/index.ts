@@ -57,6 +57,15 @@ function onlyDigits(s: string): string {
   return s.replace(/\D/g, '');
 }
 
+// CVM's own CSV pads Codigo_CVM with leading zeros (e.g. "024910"); the
+// admin panel stores whatever the user typed, usually without them
+// ("24910") — compare numerically so that difference never causes a
+// false non-match.
+function normalizeCvmCode(s: string): string {
+  const digits = onlyDigits(s);
+  return digits.replace(/^0+/, '') || '0';
+}
+
 function parseCsvLine(line: string): string[] {
   return line.split(';').map(f => f.trim().replace(/^"|"$/g, ''));
 }
@@ -250,7 +259,7 @@ Deno.serve(async (req) => {
     const routingByCategory = new Map(routing.map(r => [r.cvmCategoryId, r]));
 
     const cnpjDigits = empresa.cnpj ? onlyDigits(empresa.cnpj) : null;
-    const cvmCode = empresa.cvmCodigo?.trim() || null;
+    const cvmCode = empresa.cvmCodigo?.trim() ? normalizeCvmCode(empresa.cvmCodigo) : null;
 
     const now = new Date();
     // Always include at least the previous year as a fallback — the current
@@ -268,7 +277,7 @@ Deno.serve(async (req) => {
       if (notPublishedYet) continue; // CVM hasn't started this year's file yet — not an error
       if (error) { fetchErrors.push(error); continue; }
       matches.push(...rows.filter(r => {
-        const isEntity = (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) || (cvmCode && r.codigoCvm.trim() === cvmCode);
+        const isEntity = (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) || (cvmCode && normalizeCvmCode(r.codigoCvm) === cvmCode);
         if (!isEntity) return false;
         if (!desdeDate) return true;
         const filedAt = parseCvmDate(r.dataEntrega) ?? parseCvmDate(r.dataReferencia);

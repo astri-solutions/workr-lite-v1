@@ -47,6 +47,13 @@ function onlyDigits(s: string): string {
   return s.replace(/\D/g, '');
 }
 
+// CVM's own CSV pads Codigo_CVM with leading zeros (e.g. "024910"); the
+// admin panel stores whatever the user typed, usually without them.
+function normalizeCvmCode(s: string): string {
+  const digits = onlyDigits(s);
+  return digits.replace(/^0+/, '') || '0';
+}
+
 /** Minimal CSV line splitter for this dataset — no embedded semicolons or
  *  quoted multi-line fields in practice, so a plain split is sufficient. */
 function parseCsvLine(line: string): string[] {
@@ -148,6 +155,7 @@ Deno.serve(async (req) => {
       });
     }
     const cnpjDigits = cnpj ? onlyDigits(cnpj) : null;
+    const cvmCodeNorm = cvmCode?.trim() ? normalizeCvmCode(cvmCode) : null;
 
     // The current year's file is what CVM updates weekly with fresh filings;
     // fall back to last year too since a brand-new company or a slow start
@@ -163,7 +171,7 @@ Deno.serve(async (req) => {
       if (error) { perYear[year] = { count: 0, error }; continue; }
       const found = rows.filter(r =>
         (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) ||
-        (cvmCode && r.codigoCvm.trim() === cvmCode.trim())
+        (cvmCodeNorm && normalizeCvmCode(r.codigoCvm) === cvmCodeNorm)
       );
       perYear[year] = { count: found.length };
       matches.push(...found);
