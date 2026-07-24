@@ -8,6 +8,7 @@
 // Encoding is ISO-8859-1 (Latin-1), delimiter is ';'.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { unzipSync } from 'https://esm.sh/fflate@0.8.2';
 
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
@@ -61,7 +62,8 @@ function parseCsvLine(line: string): string[] {
 }
 
 async function fetchIpeYear(year: number): Promise<{ rows: IpeRow[]; error?: string }> {
-  const url = `${IPE_BASE_URL}/ipe_cia_aberta_${year}.csv`;
+  // CVM publishes these as a ZIP, not a bare CSV.
+  const url = `${IPE_BASE_URL}/ipe_cia_aberta_${year}.zip`;
   let res: Response;
   try {
     res = await fetch(url);
@@ -71,8 +73,18 @@ async function fetchIpeYear(year: number): Promise<{ rows: IpeRow[]; error?: str
   if (!res.ok) {
     return { rows: [], error: `CVM retornou HTTP ${res.status} para ${url}` };
   }
-  const buf = await res.arrayBuffer();
-  const text = new TextDecoder('iso-8859-1').decode(buf);
+  const zipBuf = new Uint8Array(await res.arrayBuffer());
+  let unzipped: Record<string, Uint8Array>;
+  try {
+    unzipped = unzipSync(zipBuf);
+  } catch (e) {
+    return { rows: [], error: `Falha ao extrair ${url}: ${String(e)}` };
+  }
+  const csvName = Object.keys(unzipped).find(n => n.toLowerCase() === `ipe_cia_aberta_${year}.csv`)
+    ?? Object.keys(unzipped).find(n => n.toLowerCase().endsWith('.csv'));
+  if (!csvName) return { rows: [], error: `Nenhum CSV encontrado dentro de ${url}` };
+
+  const text = new TextDecoder('iso-8859-1').decode(unzipped[csvName]);
   const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
   if (lines.length === 0) return { rows: [], error: `Arquivo ${url} veio vazio` };
 
