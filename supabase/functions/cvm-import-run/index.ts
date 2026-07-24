@@ -197,6 +197,38 @@ function mapToCategoryId(row: IpeRow): { id: string; label: string } | null {
   return null;
 }
 
+const FILE_EXT_BY_CONTENT_TYPE: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/zip': 'zip',
+};
+
+// CVM's Link_Download sometimes points straight at a real file, but for many
+// filing types it's actually an HTML viewer page (RAD/ENET) that would need
+// further scraping to reach the real document — in that case we keep the
+// external link instead of storing an HTML page as if it were the file.
+async function downloadCvmFile(url: string): Promise<{ bytes: Uint8Array; ext: string; contentType: string } | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    if (!contentType || contentType.startsWith('text/html')) return null;
+    const ext = FILE_EXT_BY_CONTENT_TYPE[contentType] ?? (url.match(/\.([a-z0-9]{2,4})(?:\?.*)?$/i)?.[1]?.toLowerCase());
+    if (!ext) return null;
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.length === 0) return null;
+    return { bytes, ext, contentType };
+  } catch {
+    return null;
+  }
+}
+
 // dd/mm/yyyy (or yyyy-mm-dd, just in case) → ISO timestamp. Never falls back
 // to "now" — an unparseable date is left null rather than lying about when
 // the document was actually published.
@@ -357,6 +389,22 @@ Deno.serve(async (req) => {
       const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, mapped.label);
       if (changed) { canais = nextCanais; canaisChanged = true; }
 
+      // Prefer storing the real file (same as a manual upload in Documentos)
+      // over just linking out to the CVM — download it into our own storage
+      // whenever Link_Download actually points at a file rather than a
+      // viewer page, so it behaves identically to a document uploaded by
+      // hand: signed URLs, consistent icons, no dependency on CVM's uptime.
+      const downloaded = await downloadCvmFile(row.linkDownload);
+      let filePath: string | null = null;
+      let externalLink: string | null = row.linkDownload || null;
+      if (downloaded) {
+        const storagePath = `${portalId}/cvm-${empresaId}-${dedupeKey.replace(/[^a-zA-Z0-9._-]/g, '_')}.${downloaded.ext}`;
+        const { error: uploadError } = await admin.storage
+          .from('portal-documents')
+          .upload(storagePath, downloaded.bytes, { upsert: true, contentType: downloaded.contentType });
+        if (!uploadError) { filePath = storagePath; externalLink = null; }
+      }
+
       const { error: insertError } = await admin.from('portal_documents').insert({
         portal_id: portalId,
         entity_id: empresaId,
@@ -367,7 +415,8 @@ Deno.serve(async (req) => {
         sub_group_ids: { [rule.targetId]: [mapped.label] },
         idiomas: ['pt-BR'],
         pt_only: true,
-        external_link: row.linkDownload || null,
+        file_path: filePath,
+        external_link: externalLink,
         from_cvm: true,
         cvm_protocolo: dedupeKey,
         data_publicacao: dataPublicacao,
