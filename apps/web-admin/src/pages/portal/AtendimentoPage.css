@@ -274,6 +274,7 @@
 @media (max-width: 800px) {
   .atend-layout {
     flex-direction: column;
+    align-items: stretch;
     padding: 0;
     gap: var(--space-4);
   }

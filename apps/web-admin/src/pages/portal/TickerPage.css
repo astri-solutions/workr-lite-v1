@@ -31,7 +31,7 @@
   max-width: 560px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 720px) {
   .ticker-type-cards { grid-template-columns: 1fr; }
 }
 
@@ -61,6 +61,14 @@
   color: var(--color-primary-500);
 }
 
+/* --color-primary-500 is a fixed dark teal (correct on the light tint
+   background used in light mode) — on the dark-mode version of that same
+   tint it's nearly the same lightness as the background, so both the
+   label and icon (inheriting via currentColor) went unreadable. */
+:root[data-theme="dark"] .ticker-type-card--active {
+  color: var(--color-primary-300);
+}
+
 .ticker-type-card__label {
   font-weight: 600;
   font-size: 0.875rem;
@@ -73,8 +81,11 @@
 }
 
 .ticker-type-card--active .ticker-type-card__desc {
-  color: var(--color-teal);
+  color: var(--color-primary-500);
   opacity: 0.75;
+}
+:root[data-theme="dark"] .ticker-type-card--active .ticker-type-card__desc {
+  color: var(--color-primary-300);
 }
 
 /* Iframe URL input */
@@ -97,7 +108,7 @@
 
 .ticker-iframe-input:focus {
   outline: none;
-  border-color: var(--color-teal);
+  border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.1);
 }
 
@@ -185,8 +196,8 @@
   align-items: flex-start;
   margin-top: var(--space-5);
   padding: var(--space-4);
-  background: #EEF6F7;
-  border: 1px solid #C4DFE3;
+  background: var(--color-primary-tint, #EEF6F7);
+  border: 1px solid var(--color-primary-200, #C4DFE3);
   border-radius: var(--radius-sm);
   font-size: 0.8125rem;
   color: var(--color-gray-700);
@@ -195,7 +206,7 @@
 }
 
 .ticker-info-box .material-symbols-outlined {
-  color: var(--color-teal);
+  color: var(--color-primary-500);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -206,7 +217,7 @@
   background: rgba(11,91,104,0.08);
   padding: 1px 4px;
   border-radius: 3px;
-  color: var(--color-teal);
+  color: var(--color-primary-500);
 }
 
 /* Static preview */

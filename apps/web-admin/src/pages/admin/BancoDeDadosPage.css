@@ -91,7 +91,7 @@
   box-sizing: border-box;
 }
 
-.db-search:focus { outline: none; border-color: var(--color-teal); box-shadow: 0 0 0 3px rgba(11,91,104,.1); }
+.db-search:focus { outline: none; border-color: var(--color-primary-500); box-shadow: 0 0 0 3px rgba(11,91,104,.1); }
 
 /* Card / Table */
 .db-card {
@@ -155,7 +155,7 @@
   font-weight: 600;
   border-radius: 4px;
   background: #E6F4F7;
-  color: var(--color-teal);
+  color: var(--color-primary-500);
 }
 
 .db-cell-actions { text-align: right; }
@@ -200,7 +200,7 @@
   cursor: pointer;
   font-size: 0.8125rem;
   font-family: var(--font-body);
-  color: var(--color-teal);
+  color: var(--color-primary-500);
   border-radius: 3px;
 }
 
@@ -220,7 +220,7 @@
   cursor: pointer;
   font-family: 'SF Mono', 'Fira Code', monospace;
   font-size: 0.8125rem;
-  color: var(--color-teal);
+  color: var(--color-primary-500);
   text-align: left;
 }
 

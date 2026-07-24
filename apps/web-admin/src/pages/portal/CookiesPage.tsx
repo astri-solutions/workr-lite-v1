@@ -76,7 +76,7 @@ const DEFAULT: CookieConfig = {
 };
 
 function textsOf(cfg: CookieConfig, lang: string): CookieTexts {
-  return cfg.content[lang] ?? cfg.content[primaryLocale] ?? emptyTexts();
+  return cfg.content?.[lang] ?? cfg.content?.[primaryLocale] ?? emptyTexts();
 }
 
 /* ─── Layout options ─────────────────────────────────── */
@@ -499,7 +499,7 @@ export default function CookiesPage() {
                   <div className="splash-field">
                     <label className="splash-field__label">Texto do botão ({activeLang})</label>
                     <input className="splash-field__input" type="text" placeholder="Ex: Saiba mais"
-                      value={btn.labels[activeLang] ?? ''} onChange={e => patchBtnLabel(i, e.target.value)} />
+                      value={btn.labels?.[activeLang] ?? ''} onChange={e => patchBtnLabel(i, e.target.value)} />
                   </div>
                   <div className="splash-field">
                     <label className="splash-field__label">URL de destino</label>
