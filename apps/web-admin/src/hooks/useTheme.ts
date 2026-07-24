@@ -17,11 +17,25 @@ function applyTheme(theme: Theme) {
   document.documentElement.setAttribute('data-theme', theme);
 }
 
-const initialTheme: Theme = readStoredTheme() ?? (systemPrefersDark() ? 'dark' : 'light');
-applyTheme(initialTheme);
+// Applied once, synchronously, on module load — before React mounts — so
+// there's no flash of the wrong theme on first paint.
+applyTheme(readStoredTheme() ?? (systemPrefersDark() ? 'dark' : 'light'));
+
+function currentTheme(): Theme {
+  // AppTopbar lives inside AdminLayout AND ClientLayout, which unmount/remount
+  // each other on navigation (e.g. admin -> /portal/dashboard) — each fresh
+  // mount used to seed its state from a module-level constant captured once
+  // at page load, so a mid-session toggle got silently reverted the moment
+  // the other layout's topbar mounted. Reading the live <html data-theme>
+  // (already updated by whichever toggle happened most recently) instead of
+  // a frozen initial value keeps every mount in sync with the real state.
+  const attr = document.documentElement.getAttribute('data-theme');
+  if (attr === 'light' || attr === 'dark') return attr;
+  return readStoredTheme() ?? (systemPrefersDark() ? 'dark' : 'light');
+}
 
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [theme, setTheme] = useState<Theme>(currentTheme);
 
   useEffect(() => {
     applyTheme(theme);
