@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import './AdminPages.css';
 import './AutoCvmPage.css';
@@ -66,23 +66,42 @@ function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: str
     setSaved(false);
   }
 
-  function setTargetForCat(cat: { id: string; label: string }, targetId: string) {
-    const page = pages.find(p => p.id === targetId);
+  // One flat option per selectable destination — a plain page is one option,
+  // a grouped page contributes one option PER category (page › grupo) so the
+  // whole thing is a single dropdown instead of a page select + group select.
+  const destinationOptions = useMemo(() => {
+    const opts: { value: string; label: string; targetId: string; targetLabel: string; groupCategory?: string }[] = [];
+    for (const p of pages) {
+      if (p.isGrouped && (p.groupCategories?.length ?? 0) > 0) {
+        for (const g of p.groupCategories!) {
+          opts.push({ value: `${p.id}::${g}`, label: `${p.path} › ${g}`, targetId: p.id, targetLabel: p.path, groupCategory: g });
+        }
+      } else {
+        opts.push({ value: p.id, label: `${p.path}${p.isGrouped ? ' (lista agrupada)' : ''}`, targetId: p.id, targetLabel: p.path });
+      }
+    }
+    return opts;
+  }, [pages]);
+
+  function valueForRule(rule: CvmRoutingRule | undefined): string {
+    if (!rule) return '';
+    return rule.groupCategory ? `${rule.targetId}::${rule.groupCategory}` : rule.targetId;
+  }
+
+  function setDestinationForCat(cat: { id: string; label: string }, value: string) {
     setRules(prev => {
       const without = prev.filter(r => r.cvmCategoryId !== cat.id);
-      if (!targetId) return without;
+      if (!value) return without;
+      const opt = destinationOptions.find(o => o.value === value);
+      if (!opt) return without;
       return [...without, {
         cvmCategoryId: cat.id,
         cvmCategoryLabel: cat.label,
-        targetId,
-        targetLabel: page?.path ?? '',
+        targetId: opt.targetId,
+        targetLabel: opt.targetLabel,
+        groupCategory: opt.groupCategory,
       }];
     });
-    setSaved(false);
-  }
-
-  function setGroupCategoryForCat(catId: string, groupCategory: string) {
-    setRules(prev => prev.map(r => r.cvmCategoryId === catId ? { ...r, groupCategory: groupCategory || undefined } : r));
     setSaved(false);
   }
 
@@ -149,34 +168,19 @@ function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: str
             <div className="cvm-routing__table">
               {CVM_ROUTABLE_CATEGORIES.map(cat => {
                 const rule = getRule(cat.id);
-                const targetPage = rule ? pages.find(p => p.id === rule.targetId) : undefined;
                 return (
                   <div key={cat.id} className="cvm-routing__row">
                     <span className="cvm-routing__cat">{cat.label}</span>
-                    <div className="cvm-routing__select-group">
-                      <select
-                        className="cvm-select cvm-select--sm cvm-routing__select"
-                        value={rule?.targetId ?? ''}
-                        onChange={e => setTargetForCat(cat, e.target.value)}
-                      >
-                        <option value="">— não importar —</option>
-                        {pages.map(p => (
-                          <option key={p.id} value={p.id}>{p.path}{p.isGrouped ? ' (lista agrupada)' : ''}</option>
-                        ))}
-                      </select>
-                      {targetPage?.isGrouped && (targetPage.groupCategories?.length ?? 0) > 0 && (
-                        <select
-                          className="cvm-select cvm-select--sm cvm-routing__select"
-                          value={rule?.groupCategory ?? ''}
-                          onChange={e => setGroupCategoryForCat(cat.id, e.target.value)}
-                        >
-                          <option value="">— selecione o grupo —</option>
-                          {targetPage.groupCategories!.map(g => (
-                            <option key={g} value={g}>{g}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
+                    <select
+                      className="cvm-select cvm-select--sm cvm-routing__select"
+                      value={valueForRule(rule)}
+                      onChange={e => setDestinationForCat(cat, e.target.value)}
+                    >
+                      <option value="">— não importar —</option>
+                      {destinationOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
                 );
               })}
