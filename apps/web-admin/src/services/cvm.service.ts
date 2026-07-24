@@ -132,10 +132,6 @@ async function _upsertSyncState(portalId: string, empresaId: string, patch: Part
   if (error) throw new Error(`Falha ao salvar estado do Auto CVM: ${error.message}`);
 }
 
-function _delay(ms: number): Promise<void> {
-  return new Promise(r => setTimeout(r, ms));
-}
-
 export const cvmService = {
 
   /** Load all portais with their Auto-CVM-enabled empresas + sync state. */
@@ -170,10 +166,13 @@ export const cvmService = {
     return data as SyncResponse;
   },
 
-  /** Queue a historical document import from a given date. Still simulated. */
-  async importHistory(_portalId: string, empresaId: string, req: ImportHistoryRequest): Promise<ImportHistoryResponse> {
-    await _delay(800);
-    return { entityId: empresaId, desde: req.desde, documentsQueued: 0, estimatedMinutes: 0 };
+  /** Import all real CVM documents filed on/after a given date — same
+   *  cvm-import-run function as syncNow, just with a wider year range. */
+  async importHistory(portalId: string, empresaId: string, req: ImportHistoryRequest): Promise<ImportHistoryResponse> {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase não configurado.');
+    const { data, error } = await supabase.functions.invoke('cvm-import-run', { body: { portalId, empresaId, desde: req.desde } });
+    if (error) throw new Error(`Falha ao importar histórico: ${error.message}`);
+    return { ...(data as SyncResponse), desde: req.desde };
   },
 
   /** Get routing rules for one entity. */

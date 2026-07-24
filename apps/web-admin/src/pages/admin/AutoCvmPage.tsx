@@ -210,7 +210,8 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
   const [importDate, setImportDate] = useState(entity.importarDesde ?? '');
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState(entity.ultimaSync);
-  const [importResult, setImportResult] = useState<{ queued: number; minutes: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ found: number; imported: number; errors: string[] } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<unknown>(null);
   const [testError, setTestError] = useState<string | null>(null);
@@ -235,9 +236,13 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
     if (!importDate) return;
     setImporting(true);
     setImportResult(null);
+    setImportError(null);
     try {
       const res = await cvmService.importHistory(entity.portalId, entity.id, { desde: importDate });
-      setImportResult({ queued: res.documentsQueued, minutes: res.estimatedMinutes });
+      setImportResult({ found: res.documentsFound, imported: res.documentsImported, errors: res.errors });
+      setLastSyncedAt(res.syncedAt ?? new Date().toISOString());
+    } catch {
+      setImportError('Falha ao importar histórico. Tente novamente.');
     } finally {
       setImporting(false);
     }
@@ -334,9 +339,12 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
       </div>
 
       {syncError && <p className="cvm-error-msg">{syncError}</p>}
+      {importError && <p className="cvm-error-msg">{importError}</p>}
       {importResult && (
         <p className="cvm-import-result">
-          {importResult.queued} documentos enfileirados · estimativa: ~{importResult.minutes} min
+          {importResult.found} documento{importResult.found !== 1 ? 's' : ''} encontrado{importResult.found !== 1 ? 's' : ''} na CVM ·{' '}
+          {importResult.imported} importado{importResult.imported !== 1 ? 's' : ''}
+          {importResult.errors.length > 0 && <> · {importResult.errors.join(' ')}</>}
         </p>
       )}
 

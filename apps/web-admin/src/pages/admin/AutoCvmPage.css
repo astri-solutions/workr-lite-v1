@@ -858,15 +858,21 @@
   color: #1a7f4a;
 }
 
+/* Matches the .filter-select pill look (e.g. "Todas as empresas") so every
+   dropdown on this page reads as one consistent style. */
 .cvm-select {
   appearance: none;
-  background-color: var(--color-bg-input, var(--color-gray-50));
+  background-color: var(--color-white);
   border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm);
-  color: var(--color-gray-800);
+  border-radius: var(--radius-md);
+  color: var(--color-gray-700);
+  font-weight: var(--font-medium);
   font-size: var(--text-sm);
-  padding: 5px var(--space-3);
+  padding: 7px 34px 7px 12px;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.cvm-select:focus { outline: 2px solid var(--color-primary-300, var(--color-primary-500)); outline-offset: 1px; }
-.cvm-select--sm { padding: 3px var(--space-2); font-size: var(--text-xs); }
+.cvm-select:hover { border-color: var(--color-gray-400); }
+.cvm-select:focus { outline: none; border-color: var(--color-primary-500); box-shadow: 0 0 0 3px var(--color-primary-100); }
+.cvm-select--sm { font-size: var(--text-xs); }

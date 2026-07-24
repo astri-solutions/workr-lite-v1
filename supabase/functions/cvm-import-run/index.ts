@@ -218,10 +218,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
-    const { portalId, empresaId } = await req.json() as { portalId?: string; empresaId?: string };
+    const { portalId, empresaId, desde } = await req.json() as { portalId?: string; empresaId?: string; desde?: string };
     if (!portalId || !empresaId) {
       return new Response(JSON.stringify({ error: 'Informe portalId e empresaId' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
+    // "desde" (Importar histórico) requests everything filed on/after that
+    // date, which may span several years back. Without it (Verificar agora),
+    // only the current + previous year are checked — that's the window CVM
+    // actually keeps up to date week-to-week.
+    const desdeDate = desde ? new Date(`${desde}T00:00:00Z`) : null;
 
     const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -243,17 +248,22 @@ Deno.serve(async (req) => {
     const cvmCode = empresa.cvmCodigo?.trim() || null;
 
     const now = new Date();
-    const years = [now.getFullYear(), now.getFullYear() - 1];
+    const years = desdeDate
+      ? Array.from({ length: now.getFullYear() - desdeDate.getFullYear() + 1 }, (_, i) => desdeDate.getFullYear() + i)
+      : [now.getFullYear(), now.getFullYear() - 1];
     const matches: IpeRow[] = [];
     const fetchErrors: string[] = [];
 
     for (const year of years) {
       const { rows, error } = await fetchIpeYear(year);
       if (error) { fetchErrors.push(error); continue; }
-      matches.push(...rows.filter(r =>
-        (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) ||
-        (cvmCode && r.codigoCvm.trim() === cvmCode)
-      ));
+      matches.push(...rows.filter(r => {
+        const isEntity = (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) || (cvmCode && r.codigoCvm.trim() === cvmCode);
+        if (!isEntity) return false;
+        if (!desdeDate) return true;
+        const filedAt = parseCvmDate(r.dataEntrega) ?? parseCvmDate(r.dataReferencia);
+        return !!filedAt && new Date(filedAt) >= desdeDate;
+      }));
     }
 
     let canais = (cfg?.canais ?? []) as CanalNode[];

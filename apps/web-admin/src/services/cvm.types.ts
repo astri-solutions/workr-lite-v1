@@ -64,9 +64,8 @@ export interface SyncResponse extends SyncResult {
   syncedAt: string;
 }
 
-export interface ImportHistoryResponse {
+export interface ImportHistoryResponse extends SyncResult {
   entityId: string;
   desde: string;
-  documentsQueued: number;
-  estimatedMinutes: number;
+  syncedAt: string;
 }
