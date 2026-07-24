@@ -423,7 +423,7 @@
 /* active / current page */
 .admin-nav-item--active {
   background-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-weight: var(--font-semibold);
 }
 
@@ -433,7 +433,7 @@
 
 .admin-nav-item--active:hover {
   background-color: var(--color-primary-600);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Nav badge ──────────────────────────────────────── */
@@ -455,7 +455,7 @@
 
 .admin-nav-item--active .nav-badge {
   background: rgba(255, 255, 255, 0.25);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Collapse toggle ────────────────────────────────── */
@@ -497,7 +497,7 @@
   border-radius: 8px;
   border: none;
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -570,7 +570,7 @@
   justify-content: center;
   background: var(--color-primary-500);
   border: none;
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
@@ -644,7 +644,7 @@
     height: 44px;
     border-radius: var(--radius-full);
     background: var(--color-primary-500);
-    color: var(--color-white);
+    color: var(--color-fixed-white);
     font-family: var(--font-heading);
     font-size: var(--text-sm);
     font-weight: var(--font-bold);

@@ -42,6 +42,11 @@
 
   /* ── Base ─────────────────────────────────────────────────── */
   --color-white: #FFFFFF;
+  /* Fixed, never inverted by dark mode — for text/icons sitting on a
+     solid brand-colored fill (buttons, badges, active nav items). Using
+     --color-white there instead would flip to near-black in dark mode,
+     since that token doubles as the (correctly inverting) surface color. */
+  --color-fixed-white: #FFFFFF;
   --color-primary-tint:   #E8F5F7;
   --color-primary-tint-2: #F0FAFB;
   --color-primary-700-alt: #0A4E5A;

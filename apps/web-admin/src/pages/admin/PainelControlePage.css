@@ -321,7 +321,7 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--color-error-300, var(--color-error-200));
   background: var(--color-error-500, #ef4444);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -344,7 +344,7 @@
 .painel-suspend-card__btn--reativar {
   background: var(--color-success-600, #16a34a);
   border-color: var(--color-success-500, #22c55e);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 .painel-suspend-card__btn--reativar:hover {
   background: var(--color-success-700, #15803d);
@@ -823,7 +823,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
   align-self: flex-start;

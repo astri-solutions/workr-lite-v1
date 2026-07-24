@@ -334,7 +334,7 @@
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   background: rgba(0, 0, 0, 0.55);
   border: none;
   border-radius: var(--radius-md);
@@ -1087,7 +1087,7 @@
 .nm-type-chip--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ── Block picker overlay (WordPress-style) ─────────── */

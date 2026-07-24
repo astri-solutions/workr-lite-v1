@@ -165,7 +165,7 @@
 
 .portais-btn--panel {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border-color: transparent;
 }
 
@@ -483,7 +483,7 @@
 
 .portais-modal-btn-confirm--active {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   cursor: pointer;
 }
 
@@ -589,7 +589,7 @@
 .portais-tipo-option__check--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 @media (max-width: 720px) {

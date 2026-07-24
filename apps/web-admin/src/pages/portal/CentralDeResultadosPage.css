@@ -105,7 +105,7 @@
 
 .cdr-entity-card--active .cdr-entity-card__name,
 .cdr-entity-card--active .cdr-entity-card__tipo {
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 
@@ -383,7 +383,7 @@
 
 .cdr-period-toggle__btn--active {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-weight: var(--font-semibold);
 }
 

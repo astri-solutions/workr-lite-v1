@@ -149,7 +149,7 @@
 .mf__perfil-check--active {
   border-color: var(--color-primary-500);
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Select ─────────────────────────────────────────────── */
@@ -283,7 +283,7 @@
 
 .modal-btn--primary {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .modal-btn--primary:hover {
@@ -341,7 +341,7 @@
 .invite-step--done .invite-step__dot {
   border-color: var(--color-success-500, #22c55e);
   background: var(--color-success-500, #22c55e);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .invite-step__label {
@@ -521,7 +521,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   transition: background 0.15s, border-color 0.15s;
 }
 

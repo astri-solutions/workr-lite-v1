@@ -153,7 +153,7 @@
 .info-btn-save {
   background-color: var(--color-primary-500);
   border: none;
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -172,7 +172,7 @@
   align-items: center;
   gap: var(--space-1);
   background-color: var(--color-success-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);

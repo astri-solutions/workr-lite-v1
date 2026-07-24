@@ -430,7 +430,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -671,7 +671,7 @@
   font-family: var(--font-heading);
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .np-cores-preview__mock-nav-links {
@@ -740,7 +740,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   align-self: flex-start;
 }
 
@@ -1057,7 +1057,7 @@
 .np-idioma-card__check--active {
   border-color: var(--color-primary-500);
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Idioma add ─────────────────────────────────────────── */
@@ -1122,7 +1122,7 @@
 
 .np-btn--primary {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .np-btn--primary:hover:not(:disabled) {
@@ -1210,7 +1210,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   transition: background 0.15s, border-color 0.15s;
 }
 .np-empresa-card__check--active {
@@ -1285,7 +1285,7 @@
 .np-autocvm-card__check--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .np-autocvm-card__body {
@@ -1517,7 +1517,7 @@
 
 .np-cs-item--done .np-cs-item__indicator {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   animation: np-step-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
 

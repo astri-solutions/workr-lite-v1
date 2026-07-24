@@ -147,7 +147,7 @@
 }
 
 .ticker-preview-topbar__link--active {
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-weight: 500;
 }
 
@@ -226,7 +226,7 @@
   gap: 6px;
 }
 
-.ticker-static-item__symbol { color: var(--color-white); font-weight: 700; }
+.ticker-static-item__symbol { color: var(--color-fixed-white); font-weight: 700; }
 .ticker-static-item__dot    { color: rgba(255,255,255,0.4); }
 .ticker-static-item__price  { color: rgba(255,255,255,0.8); }
 .ticker-static-item__change--up   { color: #6EFFA3; }

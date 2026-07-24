@@ -108,7 +108,7 @@
 
 .docs-tag--dark {
   background: var(--color-gray-800);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .docs-tag--lang {
@@ -133,7 +133,7 @@
   height: 28px;
   border-radius: var(--radius-full);
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-size: 10px;
   font-weight: var(--font-bold);
   font-family: var(--font-heading);
@@ -177,7 +177,7 @@
   align-items: center;
   padding: 10px var(--space-5);
   background: var(--color-error-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -498,7 +498,7 @@
 .doc-idioma-chip--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Schedule ──────────────────────────────────────── */

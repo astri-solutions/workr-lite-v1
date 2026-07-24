@@ -338,7 +338,7 @@
 
 .midia-detail__copy-btn:hover {
   background: var(--color-primary-600, var(--color-primary-500));
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Link-style footer actions ──────────────────────── */
@@ -496,7 +496,7 @@
 
 .midia-pin-preview__change {
   background: rgba(0,0,0,0.55);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border: none;
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-4);

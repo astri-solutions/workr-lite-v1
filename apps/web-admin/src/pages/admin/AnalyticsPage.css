@@ -156,13 +156,13 @@
 .analytics-period-pill--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .analytics-period-pill--active:hover {
   background: var(--color-primary-600);
   border-color: var(--color-primary-600);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Page tab bar ───────────────────────────────────────── */
@@ -345,7 +345,7 @@
 
 .analytics-sidebar__tab--active {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border-color: var(--color-primary-500);
 }
 

@@ -58,7 +58,7 @@
   gap: 6px;
   padding: 8px 16px;
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -180,7 +180,7 @@
   gap: 6px;
   padding: 8px 16px;
   background: var(--color-error-600, var(--color-error-600));
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -390,7 +390,7 @@ td:has(.table-actions) {
   left: 50%;
   transform: translateX(-50%);
   background: var(--color-gray-900);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-family: var(--font-body);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);

@@ -54,7 +54,7 @@
 /* active / current page */
 .admin-nav-item--active {
   background-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 .admin-nav-item--active .admin-nav-item__icon {
@@ -63,13 +63,13 @@
 
 .admin-nav-item--active:hover {
   background-color: var(--color-primary-600);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Nav badge ──────────────────────────────────────── */
 .nav-badge {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   font-size: 11px;
   font-weight: var(--font-bold);
   min-width: 20px;

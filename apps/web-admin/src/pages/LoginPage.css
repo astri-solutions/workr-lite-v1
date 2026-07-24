@@ -148,7 +148,7 @@
   width: 100%;
   padding: 12px var(--space-6);
   background-color: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
@@ -214,7 +214,7 @@
   max-width: 560px;
 }
 
-.login-right__headline--white { color: var(--color-white); }
+.login-right__headline--white { color: var(--color-fixed-white); }
 .login-right__headline--green { color: var(--color-secondary-500); }
 
 .login-right__subtitle {

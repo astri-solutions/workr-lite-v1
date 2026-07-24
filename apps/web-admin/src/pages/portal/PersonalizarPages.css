@@ -125,7 +125,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 
 /* ─── Cores ──────────────────────────────────────────── */
@@ -544,7 +544,7 @@
 }
 .banner-slide-item--active .banner-slide-item__num {
   background: var(--color-primary-500);
-  color: var(--color-white);
+  color: var(--color-fixed-white);
 }
 .banner-slide-item__title { flex: 1; font-size: var(--text-sm); color: var(--color-gray-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .banner-slide-item__remove {
