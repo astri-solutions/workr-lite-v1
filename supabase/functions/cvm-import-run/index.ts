@@ -304,21 +304,32 @@ Deno.serve(async (req) => {
     let imported = 0;
     let skippedDuplicate = 0;
     let skippedUnrouted = 0;
+    let skippedNoMap = 0;
     let skippedNoDate = 0;
     const unroutedCategories = new Set<string>();
+    const unmappedCategories = new Set<string>();
 
     for (const row of matches) {
-      if (!row.protocoloEntrega) continue;
       const mapped = mapToCategoryId(row);
-      const rule = mapped ? routingByCategory.get(mapped.id) : undefined;
-      if (!mapped || !rule) {
-        if (mapped) unroutedCategories.add(mapped.label);
+      if (!mapped) {
+        skippedNoMap++;
+        unmappedCategories.add(`${row.categoria || '—'} / ${row.tipo || '—'} / ${row.especie || '—'}`);
+        continue;
+      }
+      const rule = routingByCategory.get(mapped.id);
+      if (!rule) {
+        unroutedCategories.add(mapped.label);
         skippedUnrouted++;
         continue;
       }
 
       const dataPublicacao = parseCvmDate(row.dataEntrega) ?? parseCvmDate(row.dataReferencia);
       if (!dataPublicacao) { skippedNoDate++; continue; }
+
+      // CVM's own protocol number is the ideal dedupe key, but a small
+      // fraction of rows come without one — fall back to a composite key
+      // instead of silently dropping the document.
+      const dedupeKey = row.protocoloEntrega || `sem-protocolo:${onlyDigits(row.cnpjCompanhia)}:${mapped.id}:${row.dataEntrega}:${row.descricaoAssunto}`.slice(0, 250);
 
       const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, mapped.label);
       if (changed) { canais = nextCanais; canaisChanged = true; }
@@ -335,7 +346,7 @@ Deno.serve(async (req) => {
         pt_only: true,
         external_link: row.linkDownload || null,
         from_cvm: true,
-        cvm_protocolo: row.protocoloEntrega,
+        cvm_protocolo: dedupeKey,
         data_publicacao: dataPublicacao,
         publicado_por: 'Auto CVM',
         ultimo_editor: 'Auto CVM',
@@ -343,7 +354,7 @@ Deno.serve(async (req) => {
 
       if (insertError) {
         if (insertError.code === '23505') skippedDuplicate++;
-        else fetchErrors.push(`Falha ao importar protocolo ${row.protocoloEntrega}: ${insertError.message}`);
+        else fetchErrors.push(`Falha ao importar protocolo ${dedupeKey}: ${insertError.message}`);
       } else {
         imported++;
       }
@@ -359,6 +370,7 @@ Deno.serve(async (req) => {
       documentsImported: imported,
       errors: [
         ...fetchErrors,
+        ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) com categoria da CVM não reconhecida: ${[...unmappedCategories].slice(0, 5).join(' | ')}${unmappedCategories.size > 5 ? '…' : ''}`] : []),
         ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
         ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
       ],
