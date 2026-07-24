@@ -160,21 +160,14 @@ export const cvmService = {
   },
 
   /** Force an immediate CVM sweep for one entity (Sincronizar agora button).
-   *  Still simulated — the real dados.cvm.gov.br fetch is the next phase —
-   *  but the sync timestamps/result are now persisted for real. */
+   *  Calls the real cvm-import-run edge function — fetches dados.cvm.gov.br,
+   *  matches by CNPJ/código CVM, and writes matched documents straight into
+   *  portal_documents at their routed destination. */
   async syncNow(portalId: string, empresaId: string): Promise<SyncResponse> {
-    await _delay(1200);
-    const now = new Date().toISOString();
-    const result: SyncResult = {
-      documentsFound: 0,
-      documentsImported: 0,
-      errors: ['Importação automática ainda não implementada — apenas o registro de sincronização é real.'],
-    };
-    await _upsertSyncState(portalId, empresaId, {
-      ultima_sync: now,
-      last_sync_result: result,
-    });
-    return { entityId: empresaId, syncedAt: now, ...result };
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase não configurado.');
+    const { data, error } = await supabase.functions.invoke('cvm-import-run', { body: { portalId, empresaId } });
+    if (error) throw new Error(`Falha ao sincronizar: ${error.message}`);
+    return data as SyncResponse;
   },
 
   /** Queue a historical document import from a given date. Still simulated. */

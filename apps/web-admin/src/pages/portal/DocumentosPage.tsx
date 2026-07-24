@@ -144,7 +144,11 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
   const paginaLabel = paginaIds.length === 0
     ? '—'
     : paginaIds.map(id => pageLabelById.get(id) ?? id).join(', ');
-  const createdAt = r.created_at ? new Date(r.created_at as string).toLocaleDateString('pt-BR') : '—';
+  // For CVM-imported documents, data_publicacao holds the REAL date the
+  // filing was published at the CVM — created_at is just row-insert time
+  // and would show "today" for a document filed months/years ago.
+  const publicadoEm = (r.data_publicacao as string | null) ?? (r.created_at as string | null);
+  const createdAt = publicadoEm ? new Date(publicadoEm).toLocaleDateString('pt-BR') : '—';
   const updatedAt = r.updated_at ? new Date(r.updated_at as string).toLocaleDateString('pt-BR') : '—';
   const scheduleAt = r.schedule_at as string | undefined;
   const scheduleLabel = scheduleAt
