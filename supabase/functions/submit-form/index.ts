@@ -1,6 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendFormSubmission } from '../_shared/postmark.ts';
 
+// Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
+// legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
+// verification against auth.admin.* calls with "unrecognized JWT kid <nil>
+// for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
+// holds the new opaque sb_secret_... key that sidesteps this entirely.
+// Falls back to the legacy key if the new one is not configured yet.
+function resolveServiceKey(): string {
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    if (keys?.default) return keys.default;
+  } catch { /* not JSON or unset */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+}
+
 // Public endpoint called directly from client portal static sites — every
 // portal lives on its own domain, so the origin allowlist used by the CMS
 // edge functions doesn't apply here. There is no session/cookie involved,
@@ -57,7 +71,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      resolveServiceKey(),
     );
 
     // Validate portalId+materiaId together — prevents submitting against a

@@ -1,5 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
+// legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
+// verification against auth.admin.* calls with "unrecognized JWT kid <nil>
+// for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
+// holds the new opaque sb_secret_... key that sidesteps this entirely.
+// Falls back to the legacy key if the new one is not configured yet.
+function resolveServiceKey(): string {
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    if (keys?.default) return keys.default;
+  } catch { /* not JSON or unset */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+}
+
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
   'http://localhost:5173',
@@ -488,7 +502,7 @@ Deno.serve(async (req) => {
     if (!repoName && portalId) {
       const adminClient = createClient(
         supabaseUrl,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        resolveServiceKey(),
       );
       const { data: portalRow } = await adminClient
         .from('portals')
@@ -503,7 +517,7 @@ Deno.serve(async (req) => {
     let savedLanguages: string[] | undefined;
     if (resolvedPortalUuid || portalId) {
       try {
-        const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+        const adminClient = createClient(supabaseUrl, resolveServiceKey());
         const query = resolvedPortalUuid
           ? adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas').eq('portal_id', resolvedPortalUuid).maybeSingle()
           : adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, portal_id').eq('portal_id',
@@ -528,7 +542,7 @@ Deno.serve(async (req) => {
     if (role === 'client_user') {
       const adminClient = createClient(
         supabaseUrl,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        resolveServiceKey(),
       );
       const { data: portalRow } = await adminClient
         .from('portals')
@@ -554,7 +568,7 @@ Deno.serve(async (req) => {
     } else if (!resolvedPortalUuid && repoName) {
       // super_admin path: look up UUID by repo name if not already resolved
       try {
-        const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+        const adminClient = createClient(supabaseUrl, resolveServiceKey());
         const { data: portalRow } = await adminClient
           .from('portals').select('id').eq('github_repo', repoName).single();
         resolvedPortalUuid = portalRow?.id ?? undefined;
@@ -869,7 +883,7 @@ Deno.serve(async (req) => {
     // Persist portal→repo mapping and sync portal_config to Supabase
     if (portalId) {
       try {
-        const adminClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+        const adminClient = createClient(supabaseUrl, resolveServiceKey());
 
         // Self-healing: ensure portals row exists with repo link
         const { data: portalRow } = await adminClient

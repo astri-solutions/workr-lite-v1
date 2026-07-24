@@ -1,5 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
+// legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
+// verification against auth.admin.* calls with "unrecognized JWT kid <nil>
+// for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
+// holds the new opaque sb_secret_... key that sidesteps this entirely.
+// Falls back to the legacy key if the new one is not configured yet.
+function resolveServiceKey(): string {
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    if (keys?.default) return keys.default;
+  } catch { /* not JSON or unset */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+}
+
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
   'http://localhost:5173',
@@ -445,7 +459,7 @@ Deno.serve(async (req) => {
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        resolveServiceKey(),
       );
       const { data: earlyRow, error: earlyErr } = await adminClient.from('portals').upsert({
         portal_key: _portalId,
@@ -656,7 +670,7 @@ Deno.serve(async (req) => {
     try {
       const adminClient = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        resolveServiceKey(),
       );
 
       // Update vercel_url now that we know the final Vercel project URL

@@ -23,6 +23,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { unzipSync } from 'https://esm.sh/fflate@0.8.2';
 
+// Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
+// legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
+// verification against auth.admin.* calls with "unrecognized JWT kid <nil>
+// for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
+// holds the new opaque sb_secret_... key that sidesteps this entirely.
+// Falls back to the legacy key if the new one is not configured yet.
+function resolveServiceKey(): string {
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    if (keys?.default) return keys.default;
+  } catch { /* not JSON or unset */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+}
+
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
   'http://localhost:5173',
@@ -306,7 +320,7 @@ Deno.serve(async (req) => {
     // actually keeps up to date week-to-week.
     const desdeDate = desde ? new Date(`${desde}T00:00:00Z`) : null;
 
-    const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const admin = createClient(supabaseUrl, resolveServiceKey());
 
     const { data: cfg } = await admin.from('portal_config').select('empresas, canais').eq('portal_id', portalId).maybeSingle();
     const empresas = (cfg?.empresas ?? []) as EmpresaRow[];

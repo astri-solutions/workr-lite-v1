@@ -1,6 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendUserInvite } from '../_shared/postmark.ts';
 
+// Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
+// legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
+// verification against auth.admin.* calls with "unrecognized JWT kid <nil>
+// for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
+// holds the new opaque sb_secret_... key that sidesteps this entirely.
+// Falls back to the legacy key if the new one is not configured yet.
+function resolveServiceKey(): string {
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    if (keys?.default) return keys.default;
+  } catch { /* not JSON or unset */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -57,7 +71,7 @@ Deno.serve(async (req) => {
     // Use service_role client to invite the user
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      resolveServiceKey(),
     );
 
     // Always resolve to an absolute URL — a bare "/definir-senha" (when SITE_URL
