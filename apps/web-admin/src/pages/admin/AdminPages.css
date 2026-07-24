@@ -245,6 +245,23 @@
   min-width: 36px;
 }
 
+/* On tablet/mobile, a 100px column min-width is narrow enough that
+   most cells still wrap onto 2-3 lines, making every table read as a
+   ragged wall of broken text instead of scrolling sideways cleanly.
+   Widening the floor here means content scrolls horizontally (the
+   table-wrapper already has overflow-x: auto) instead of wrapping. */
+@media (max-width: 1024px) {
+  .data-table th,
+  .data-table td {
+    min-width: 160px;
+  }
+
+  .data-table th:first-child,
+  .data-table td:first-child {
+    min-width: 44px;
+  }
+}
+
 .data-table {
   width: 100%;
   border-collapse: separate;

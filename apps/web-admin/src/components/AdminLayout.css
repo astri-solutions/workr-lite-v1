@@ -590,6 +590,13 @@
 }
 
 @media (max-width: 1024px) {
+  /* On tablet/mobile the sidebar is a full-width overlay drawer, not a
+     column that can shrink beside the content — collapsing it there
+     serves no purpose, so the toggle disappears. */
+  .admin-sidebar__toggle {
+    display: none;
+  }
+
   .admin-sidebar {
     position: fixed;
     top: 0;
