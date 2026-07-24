@@ -1200,3 +1200,16 @@ select.canais-edit-form__input,
   font-size: var(--text-sm);
   line-height: 1.5;
 }
+
+/* ── Dark mode: active-state text color fixes ─────────
+   Several "selected option" chips/cards pair a fixed dark-teal text color
+   (--color-primary-600/700, correct on the light tint used in light mode)
+   with a background tint that now correctly darkens in dark mode — leaving
+   the text unreadably dim against its own dark background. */
+:root[data-theme="dark"] .ct-pt-card--active .ct-pt-card__icon,
+:root[data-theme="dark"] .ct-pt-card--active .ct-pt-card__label,
+:root[data-theme="dark"] .ptc-opt--active,
+:root[data-theme="dark"] .canais-agrupada-opt--active,
+:root[data-theme="dark"] .canais-new-type-btn--active .canais-new-type-btn__icon {
+  color: var(--color-fixed-white);
+}

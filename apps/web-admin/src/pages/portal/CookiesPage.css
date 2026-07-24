@@ -179,3 +179,8 @@
   left: 50%;
   transform: translateX(-50%);
 }
+
+/* Dark mode: same fixed-dark-teal-text-on-dark-tint pattern as elsewhere. */
+:root[data-theme="dark"] .ck-theme-card--active .ck-theme-card__label {
+  color: var(--color-fixed-white);
+}

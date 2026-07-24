@@ -574,3 +574,11 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Dark mode: fixed dark-teal text on the active tipo-btn state is
+   unreadable against the now-dark background tint — see CanaisPage.css
+   for the same pattern. */
+:root[data-theme="dark"] .cdr-tipo-btn--active .cdr-tipo-btn__icon,
+:root[data-theme="dark"] .cdr-tipo-btn--active .cdr-tipo-btn__label {
+  color: var(--color-fixed-white);
+}

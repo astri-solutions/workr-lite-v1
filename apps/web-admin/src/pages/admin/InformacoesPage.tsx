@@ -145,9 +145,6 @@ export default function InformacoesPage() {
             onClick={openAddr} />
           <SettingsRow label="Número de telefone" value={values.telefone}
             onClick={() => openEdit('telefone', 'Atualize seu telefone', 'Número de telefone', 'tel')} />
-          <SettingsRow label="Empresa" value={values.empresa}
-            onClick={() => openEdit('empresa', 'Atualize sua empresa', 'Empresa')} />
-          <SettingsRow label="Moeda da conta" value="BRL" readOnly />
         </div>
       </div>
 

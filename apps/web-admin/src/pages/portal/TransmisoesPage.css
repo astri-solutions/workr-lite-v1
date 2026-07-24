@@ -310,3 +310,8 @@
 
 /* ─── Spectators section ─────────────────────────────── */
 .trn-spec-section { }
+
+/* Dark mode: active tab text was a fixed dark teal, unreadable on dark bg. */
+:root[data-theme="dark"] .trn-tab--active {
+  color: var(--color-fixed-white);
+}

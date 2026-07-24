@@ -243,6 +243,11 @@
   color: var(--color-primary-700);
   font-weight: var(--font-semibold);
 }
+/* --color-primary-700 is a fixed dark teal — correct on the light tint
+   background used in light mode, unreadable on the dark tint in dark mode. */
+:root[data-theme="dark"] .um-portal-item--active {
+  color: var(--color-fixed-white);
+}
 
 .um-portal-item__icon {
   display: flex;
@@ -260,6 +265,9 @@
 .um-portal-item--active .um-portal-item__icon {
   background: var(--color-primary-100);
   color: var(--color-primary-600);
+}
+:root[data-theme="dark"] .um-portal-item--active .um-portal-item__icon {
+  color: var(--color-fixed-white);
 }
 
 .um-portal-item__name {
