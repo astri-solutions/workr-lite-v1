@@ -667,7 +667,7 @@ export default function DocumentosPage() {
                   <td><input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} /></td>
                   <td><span className={`badge ${statusBadgeClass(doc.status)}`}>{doc.status}</span></td>
                   <td className="docs-cell-nome">
-                    <span className="docs-nome-title">{doc.nome}</span>
+                    <span className="docs-nome-title" title={doc.nome}>{doc.nome}</span>
                     <div className="docs-nome-badges">
                       {doc.idiomas.map(lang => <span key={lang} className="docs-badge docs-badge--lang">{localeShortLabel(lang)}</span>)}
                     </div>
@@ -718,7 +718,7 @@ export default function DocumentosPage() {
                   <input type="checkbox" checked={selected.has(doc.id)} onChange={() => toggleSelect(doc.id)} />
                   <span className={`badge ${statusBadgeClass(doc.status)}`}>{doc.status}</span>
                 </div>
-                <span className="rcard__title" style={{ padding: '0 var(--space-4)' }}>{doc.nome}</span>
+                <span className="rcard__title" style={{ padding: '0 var(--space-4)' }} title={doc.nome}>{doc.nome}</span>
               </div>
               <div className="docs-rcard__rows">
                 <div className="docs-rcard__row"><span className="docs-rcard__label">Publicação</span><span className="docs-rcard__value">{doc.dataPub}</span></div>

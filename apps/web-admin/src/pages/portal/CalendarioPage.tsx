@@ -218,7 +218,7 @@ export default function CalendarioPage() {
             <div className="rcard__stripe" style={{ background: STATUS_STRIPE[e.status] }} />
             <div className="rcard__inner">
               <div className="rcard__body">
-                <span className="rcard__title">{e.titulo}</span>
+                <span className="rcard__title" title={e.titulo}>{e.titulo}</span>
                 <span className="rcard__meta">{formatDate(e.data)} · {e.hora} · {e.tipo}</span>
                 <div className="rcard__chips">
                   <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
@@ -296,7 +296,7 @@ export default function CalendarioPage() {
                 <div className="rcard__stripe" style={{ background: STATUS_STRIPE[e.status] }} />
                 <div className="rcard__inner">
                   <div className="rcard__body">
-                    <span className="rcard__title">{e.titulo}</span>
+                    <span className="rcard__title" title={e.titulo}>{e.titulo}</span>
                     <span className="rcard__meta">{formatDate(e.data)} · {e.hora} · {e.tipo}</span>
                     <div className="rcard__chips">
                       <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
