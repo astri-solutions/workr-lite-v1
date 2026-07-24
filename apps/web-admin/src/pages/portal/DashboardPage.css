@@ -322,6 +322,11 @@
 .dash-info-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.dash-info-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
 }
 
 /* ── Info table ───────────────────────────────────── */
@@ -358,7 +363,7 @@
 
 @media (max-width: 1024px) {
   .dash-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .dash-account-block {

@@ -45,6 +45,7 @@
   .login-left {
     flex: none;
     width: 100%;
+    min-height: 100vh;
     padding: var(--space-6) var(--space-4);
   }
 
