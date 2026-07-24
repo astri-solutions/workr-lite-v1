@@ -330,7 +330,7 @@ export default function EmpresasPage() {
           </label>
 
           <label className="emp-form__label">
-            CNPJ{form.autoCvm && <span className="emp-form__required">*</span>}
+            <span className="emp-form__label-text">CNPJ{form.autoCvm && <span className="emp-form__required">*</span>}</span>
             <input
               className={`emp-form__input${editing?.cnpj ? ' emp-form__input--readonly' : ''}${form.autoCvm && !form.cnpj.trim() ? ' emp-form__input--error' : ''}`}
               type="text"
@@ -388,7 +388,7 @@ export default function EmpresasPage() {
               </label>
 
               <label className="emp-form__label">
-                Código CVM<span className="emp-form__required">*</span>
+                <span className="emp-form__label-text">Código CVM<span className="emp-form__required">*</span></span>
                 <input
                   className={`emp-form__input${!form.cvmCodigo.trim() ? ' emp-form__input--error' : ''}`}
                   type="text"
