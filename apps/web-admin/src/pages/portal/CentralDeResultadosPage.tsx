@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
+import DatePicker from '../../components/DatePicker';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import SearchInput from '../../components/SearchInput';
@@ -753,16 +754,10 @@ export default function CentralDeResultadosPage() {
                   </label>
                 )}
 
-                <label className="cdr-modal-form__label">
+                <div className="cdr-modal-form__label">
                   Data de divulgação
-                  <input
-                    className="cdr-modal-form__input"
-                    type="date"
-                    value={newDate}
-                    onChange={e => setNewDate(e.target.value)}
-                    disabled={locked}
-                  />
-                </label>
+                  <DatePicker value={newDate} onChange={setNewDate} disabled={locked} />
+                </div>
 
                 <div className="cdr-modal-form__label">
                   Período
@@ -847,10 +842,10 @@ export default function CentralDeResultadosPage() {
                   </div>
                   {scheduleEnabled && (
                     <div className="cdr-modal-schedule__fields">
-                      <label className="cdr-modal-form__label">
+                      <div className="cdr-modal-form__label">
                         Data
-                        <input className="cdr-modal-form__input" type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} disabled={locked} />
-                      </label>
+                        <DatePicker value={scheduleDate} onChange={setScheduleDate} disabled={locked} />
+                      </div>
                       <label className="cdr-modal-form__label">
                         Horário
                         <input className="cdr-modal-form__input" type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} disabled={locked} />

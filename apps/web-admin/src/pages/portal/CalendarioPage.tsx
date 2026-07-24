@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import DatePicker from '../../components/DatePicker';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import { useSort } from '../../hooks/useSort';
@@ -332,10 +333,10 @@ export default function CalendarioPage() {
             <input className="mat-form__input" type="text" placeholder="Ex: Conference Call do 2T26" value={form.titulo} onChange={e => patch('titulo', e.target.value)} />
           </label>
           <div className="cal-form-row">
-            <label className="mat-form__label">
+            <div className="mat-form__label">
               Data *
-              <input className="mat-form__input" type="date" value={form.data} onChange={e => patch('data', e.target.value)} />
-            </label>
+              <DatePicker value={form.data} onChange={date => patch('data', date)} />
+            </div>
             <label className="mat-form__label">
               Hora
               <input className="mat-form__input" type="time" value={form.hora} onChange={e => patch('hora', e.target.value)} />

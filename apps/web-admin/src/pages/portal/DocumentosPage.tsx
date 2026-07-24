@@ -3,6 +3,7 @@ import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
 import PublishSuccessModal from '../../components/PublishSuccessModal';
+import DatePicker from '../../components/DatePicker';
 import LangTabs from '../../components/LangTabs';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
@@ -962,10 +963,9 @@ export default function DocumentosPage() {
             {form.scheduleEnabled && (
               <>
                 <div className="doc-schedule-row">
-                  <input className="doc-field__input" type="date" min={todayStr}
+                  <DatePicker min={todayStr}
                     value={form.scheduleDate}
-                    onChange={e => {
-                      const date = e.target.value;
+                    onChange={date => {
                       // Moving off today drops a stale "must be after now" time
                       // that's no longer relevant to the min for the new date.
                       const time = date === todayStr && form.scheduleTime < nowTimeStr ? '' : form.scheduleTime;

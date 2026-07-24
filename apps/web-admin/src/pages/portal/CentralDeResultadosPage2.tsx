@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Modal from '../../components/Modal';
 import PublishSuccessModal from '../../components/PublishSuccessModal';
+import DatePicker from '../../components/DatePicker';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
 import LangTabs from '../../components/LangTabs';
@@ -1082,13 +1083,11 @@ export default function CentralDeResultadosPage2() {
                 Agendamento de publicação
               </span>
               <div className="cdr2-schedule-wrap" style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1 }}>
-                <input
-                  type="date"
-                  className="cdr2-schedule-input"
+                <DatePicker
                   value={wScheduleDate}
                   min={new Date().toISOString().slice(0, 10)}
                   disabled={wLocale !== PORTAL_CONFIG.languages[0]}
-                  onChange={e => setWScheduleDate(e.target.value)}
+                  onChange={setWScheduleDate}
                 />
                 <div className="cdr2-schedule-time-wrap">
                   <span className="cdr2-schedule-time-label">Horário</span>

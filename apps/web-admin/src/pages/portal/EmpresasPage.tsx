@@ -3,6 +3,7 @@ import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import DatePicker from '../../components/DatePicker';
 import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
@@ -377,15 +378,13 @@ export default function EmpresasPage() {
 
           {form.autoCvm && (
             <>
-              <label className="emp-form__label">
+              <div className="emp-form__label">
                 Importar desde (retroativo)
-                <input
-                  className="emp-form__input"
-                  type="date"
+                <DatePicker
                   value={form.importarDesde}
-                  onChange={e => setForm(f => ({ ...f, importarDesde: e.target.value }))}
+                  onChange={date => setForm(f => ({ ...f, importarDesde: date }))}
                 />
-              </label>
+              </div>
 
               <label className="emp-form__label">
                 <span className="emp-form__label-text">Código CVM<span className="emp-form__required">*</span></span>

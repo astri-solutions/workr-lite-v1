@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { processImage } from '../../utils/imageProcessor';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
+import DatePicker from '../../components/DatePicker';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import { persistMateria, syncMateriaToSupabase, type MateriaPageType } from '../../hooks/useMateriasStore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -551,8 +552,8 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
               <textarea className="nm-field--sm nm-textarea" rows={2} placeholder="Descrição" value={card.descricao}
                 onChange={e => update(card.id, { descricao: e.target.value })} />
               <div className="galeria-card-editor__row2">
-                <input className="nm-field--sm" type="date" placeholder="Data" value={card.data}
-                  onChange={e => update(card.id, { data: e.target.value })} />
+                <DatePicker placeholder="Data" value={card.data}
+                  onChange={date => update(card.id, { data: date })} />
                 <input className="nm-field--sm" type="text" placeholder="Link (ex: /pagina ou https://...)" value={card.link}
                   onChange={e => update(card.id, { link: e.target.value })} />
               </div>

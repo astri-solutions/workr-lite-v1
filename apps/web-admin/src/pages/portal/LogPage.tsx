@@ -4,6 +4,7 @@ import SearchInput from '../../components/SearchInput';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
 import Modal from '../../components/Modal';
+import DatePicker from '../../components/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
@@ -186,20 +187,16 @@ export default function LogPage() {
           </div>
 
           <div className="log-date-range">
-            <input
-              className="log-date-input"
-              type="date"
+            <DatePicker
               value={filterDateFrom}
-              onChange={e => setFilterDateFrom(e.target.value)}
-              title="Data inicial"
+              onChange={setFilterDateFrom}
+              placeholder="Data inicial"
             />
             <span className="log-date-sep">—</span>
-            <input
-              className="log-date-input"
-              type="date"
+            <DatePicker
               value={filterDateTo}
-              onChange={e => setFilterDateTo(e.target.value)}
-              title="Data final"
+              onChange={setFilterDateTo}
+              placeholder="Data final"
             />
           </div>
         </div>

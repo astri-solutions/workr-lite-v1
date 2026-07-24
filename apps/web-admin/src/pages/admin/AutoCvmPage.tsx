@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import './AdminPages.css';
 import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
+import DatePicker from '../../components/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { cvmService } from '../../services/cvm.service';
 import type { CvmPortal, CvmEntityView, EntityStatus, CvmRoutingRule, RoutablePage, DiscoveredCategory } from '../../services/cvm.types';
@@ -274,9 +275,9 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
     }
   }
 
-  async function handleImportDateBlur() {
+  async function persistImportDate(date: string) {
     try {
-      await cvmService.updateImportDate(entity.portalId, entity.id, { importarDesde: importDate || null });
+      await cvmService.updateImportDate(entity.portalId, entity.id, { importarDesde: date || null });
     } catch {
       // silent — field remains editable
     }
@@ -343,12 +344,9 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
         </div>
         <div className="cvm-field">
           <label className="cvm-field__label">Importar histórico desde</label>
-          <input
-            className="cvm-field__input cvm-field__input--date"
-            type="date"
+          <DatePicker
             value={importDate}
-            onChange={(e) => setImportDate(e.target.value)}
-            onBlur={handleImportDateBlur}
+            onChange={(date) => { setImportDate(date); persistImportDate(date); }}
             disabled={!isAtivo}
           />
         </div>
