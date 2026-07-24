@@ -21,15 +21,14 @@ export interface InviteFormData {
   perfil: 'super_admin' | 'client_user';
   portaisIds: string[];
   empresasIds: string[];
-  portalRoles: Record<string, 'admin' | 'editor' | 'viewer'>;
+  portalRoles: Record<string, 'admin' | 'editor'>;
 }
 
-type PortalRole = 'admin' | 'editor' | 'viewer';
+type PortalRole = 'admin' | 'editor';
 
 const PORTAL_ROLES: { value: PortalRole; label: string; desc: string }[] = [
   { value: 'admin', label: 'Admin', desc: 'Acesso total ao portal.' },
   { value: 'editor', label: 'Editor', desc: 'Cria e edita conteúdo.' },
-  { value: 'viewer', label: 'Visualizador', desc: 'Apenas leitura.' },
 ];
 
 const PERFIS = [
@@ -102,10 +101,10 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
 
   function handleSubmit() {
     if (!validateStep2()) return;
-    // Pre-fill any portal without a role with 'viewer'
+    // Pre-fill any portal without a role with 'editor'
     const roles: Record<string, PortalRole> = { ...form.portalRoles };
     for (const id of form.portaisIds) {
-      if (!roles[id]) roles[id] = 'viewer';
+      if (!roles[id]) roles[id] = 'editor';
     }
     setForm(f => ({ ...f, portalRoles: roles }));
     setStep(3);
@@ -364,7 +363,7 @@ export default function InviteUserModal({ open, onClose, portais, onSubmit }: In
         {/* Per-portal role selector */}
         <div className="invite-roles-list">
           {selectedPortais.map(portal => {
-            const currentRole: PortalRole = form.portalRoles[portal.id] ?? 'viewer';
+            const currentRole: PortalRole = form.portalRoles[portal.id] ?? 'editor';
             return (
               <div key={portal.id} className="invite-role-item">
                 <div className="invite-role-item__portal">{portal.nome}</div>

@@ -155,7 +155,7 @@ export default function UsuariosPage() {
         const portalEmpresaIds = (portal?.empresas ?? []).map(e => e.id);
         return {
           portalId,
-          role: data.portalRoles[portalId] ?? 'viewer',
+          role: data.portalRoles[portalId] ?? 'editor',
           empresas: data.empresasIds.filter(id => portalEmpresaIds.includes(id)),
         };
       });
