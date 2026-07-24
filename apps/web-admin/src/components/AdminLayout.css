@@ -142,6 +142,10 @@
   flex-shrink: 0;
 }
 
+/* Fixed, non-inverting colors on purpose: this is a physical switch, not
+   a themed surface. Using the neutral --color-gray/--color-white tokens
+   here would have the track and knob invert together in dark mode and
+   collapse to near-identical near-black values, failing contrast. */
 .admin-topbar__theme-toggle {
   position: relative;
   display: inline-flex;
@@ -149,7 +153,7 @@
   width: 44px;
   height: 24px;
   padding: 0 5px;
-  background-color: var(--color-gray-200);
+  background-color: #6B6B6B;
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -167,12 +171,12 @@
   justify-content: center;
   width: 14px;
   height: 14px;
-  color: var(--color-white);
+  color: #FFFFFF;
   z-index: 1;
 }
 
-.admin-topbar__theme-icon--sun { color: var(--color-warning-500); }
-.admin-topbar__theme-icon--moon { color: var(--color-gray-50); margin-left: auto; }
+.admin-topbar__theme-icon--sun { color: var(--color-warning-400); }
+.admin-topbar__theme-icon--moon { color: #FFFFFF; margin-left: auto; }
 
 .admin-topbar__theme-knob {
   position: absolute;
@@ -180,9 +184,9 @@
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: var(--color-white);
+  background-color: #FFFFFF;
   border-radius: 50%;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
   transition: transform 0.2s;
 }
 
