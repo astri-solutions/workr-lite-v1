@@ -122,6 +122,21 @@ input, textarea, select {
 }
 .filter-select:focus { border-color: var(--color-primary-400); }
 
+/* The dropdown popup itself is OS-rendered chrome — border-radius/padding
+   on the popup box aren't controllable cross-browser — but the option rows
+   inside it can be recolored so at least the palette (not the default
+   browser blue) and some breathing room match the closed filter's style. */
+.filter-select option {
+  padding: 8px 12px;
+  background-color: var(--color-white);
+  color: var(--color-gray-700);
+}
+.filter-select option:checked,
+.filter-select option:hover {
+  background-color: var(--color-primary-500);
+  color: var(--color-fixed-white);
+}
+
 /* ─── Sortable table headers ───
    box-shadow instead of background: these headers sit on a dark
    (--color-primary-500) th background set elsewhere with equal-or-higher

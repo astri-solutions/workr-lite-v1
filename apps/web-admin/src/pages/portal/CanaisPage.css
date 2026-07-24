@@ -52,11 +52,21 @@
   background: var(--color-gray-50);
   padding-left: var(--space-3);
 }
-.ct-row--l1:hover { background: #eef2f5; }
+.ct-row--l1:hover { background: var(--color-primary-tint, #eef2f5); }
 .ct-row--l1 .ct-row__name {
   font-family: var(--font-heading);
   font-weight: var(--font-semibold);
   font-size: var(--text-sm);
+}
+
+/* Dark mode: give top-level canal rows a primary-tinted background
+   instead of a flat gray, so the tree reads with more hierarchy/emphasis. */
+:root[data-theme="dark"] .ct-row--l1 {
+  background: var(--color-primary-tint-2);
+  border-left: 2px solid var(--color-primary-500);
+}
+:root[data-theme="dark"] .ct-row--l1:hover {
+  background: var(--color-primary-tint);
 }
 
 /* ── L2 sub row ─────────────────────────────────── */
@@ -64,7 +74,7 @@
 .ct-row--l2 .ct-row__title { padding-left: 48px; }
 
 /* ── L3 sub-sub row ─────────────────────────────── */
-.ct-row--l3 { background: #fafbfc; }
+.ct-row--l3 { background: var(--color-gray-50); }
 .ct-row--l3 .ct-row__title { padding-left: 68px; }
 
 /* ── Off state ──────────────────────────────────── */

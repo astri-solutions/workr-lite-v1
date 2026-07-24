@@ -315,6 +315,15 @@
   .ca-grid { grid-template-columns: 1fr; }
 }
 
+/* The 3-color input grid + 2-col light/dark preview stayed at full
+   column count all the way down to 720px, cramming three color-scale
+   cards (each with a 10-step swatch row) into a tablet-width column
+   before finally stacking — collapse a step earlier so tablet gets a
+   readable 2-column layout instead of jumping straight to 1. */
+@media (max-width: 1024px) {
+  .cores-inputs { grid-template-columns: 1fr 1fr; }
+}
+
 @media (max-width: 720px) {
   .cores-inputs { grid-template-columns: 1fr; }
   .cores-preview-wrap { grid-template-columns: 1fr; }

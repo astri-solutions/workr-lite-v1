@@ -74,7 +74,10 @@
 
 .pers-tipo-card:hover:not(:disabled) { border-color: var(--color-primary-300); }
 .pers-tipo-card--active { border-color: var(--color-primary-500); background: var(--color-primary-50, #e8f5f7); }
-.pers-tipo-card--locked { opacity: 0.6; cursor: default; }
+/* Dim only the unavailable options — the currently-selected (fixed) model
+   should stay fully legible, not read as "disabled" alongside the rest. */
+.pers-tipo-card--locked { cursor: default; }
+.pers-tipo-card--locked:not(.pers-tipo-card--active) { opacity: 0.6; }
 
 .pers-section__locked-notice {
   margin: var(--space-3) 0 0;

@@ -44,7 +44,7 @@ export default function TopbarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
-  const isDirty = !saved && JSON.stringify(draft) !== JSON.stringify(persisted);
+  const isDirty = !saved && JSON.stringify(draft) !== JSON.stringify({ ...DEFAULT, ...persisted });
   const blocker = useUnsavedChanges(isDirty);
 
   function handleSave() {

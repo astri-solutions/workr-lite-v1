@@ -91,6 +91,10 @@
   align-items: start;
 }
 
+.nm-meta-card__row--single {
+  grid-template-columns: 1fr;
+}
+
 /* ─── Form label + input ─────────────────────────── */
 .nm-meta-label {
   display: flex;

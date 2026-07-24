@@ -51,14 +51,14 @@
 }
 
 .ticker-type-card:hover {
-  border-color: var(--color-teal);
+  border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.08);
 }
 
 .ticker-type-card--active {
-  border-color: var(--color-teal);
-  background: #f0f8f9;
-  color: var(--color-teal);
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-tint, #f0f8f9);
+  color: var(--color-primary-500);
 }
 
 .ticker-type-card__label {
