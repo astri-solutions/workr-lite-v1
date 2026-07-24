@@ -360,7 +360,11 @@ export default function CanaisPage() {
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
-  const cvmPageIds = loadCvmRoutedPageIds();
+  const [cvmPageIds, setCvmPageIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!activePortalId) return;
+    loadCvmRoutedPageIds(activePortalId).then(setCvmPageIds).catch(() => {});
+  }, [activePortalId]);
   const portalEmpresas = loadPortalEmpresas(activePortalId);
   const hasMultipleEmpresas = portalEmpresas.length > 1;
   const portalLayout = (localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';

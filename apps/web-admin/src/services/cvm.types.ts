@@ -1,80 +1,66 @@
 // ─── CVM Domain Types ────────────────────────────────────────────────────────
-// These types mirror the backend DB schema and API responses exactly.
-// When the Go backend is implemented, these should match the JSON tags on the
-// Go structs without modification.
+// Company identity (nome, cnpj, cvmCodigo, autoCvm, importarDesde) lives in
+// portal_config.empresas — the same "Empresas" data EmpresasPage.tsx manages.
+// These types only cover the CVM-sync-specific data layered on top of that,
+// stored in the `cvm_sync_state` table (one row per portal_id+empresa_id).
 
 export type EntityStatus = 'ativo' | 'pausado' | 'erro';
 export type EntityTipo = 'empresa' | 'fundo';
 
-/** Maps one CVM document category to a portal page (pageId from the canal tree). */
+/** Maps one CVM document category to a real node in the portal's canal tree. */
 export interface CvmRoutingRule {
-  cvmCategoryId: string;   // e.g. 'fato-relevante'
+  cvmCategoryId: string;    // e.g. 'fato-relevante'
   cvmCategoryLabel: string; // e.g. 'Fato Relevante'
-  pageId: string;          // SubCanal.id
-  pageLabel: string;       // human-readable page name
+  targetId: string;         // id of a Canal | SubCanal | SubSubCanal (pageType 'lista' or 'lista-agrupada')
+  targetLabel: string;      // breadcrumb path, e.g. "Governança › Atas › Atas de AGO"
+  groupCategory?: string;   // when the target page is 'lista-agrupada', which category/group to file under
 }
 
-/** Storage key for entity routing config in localStorage */
-export const CVM_ROUTING_KEY = 'cvm_routing';
-
-/** Matches `cvm_entities` table row */
-export interface CvmEntity {
-  id: string;
-  portalId: string;
-  nome: string;
-  tipo: EntityTipo;
-  cnpj: string;          // primary lookup key against CVM base
-  cvmCode: string;       // código CVM (secondary identifier, used for history import)
-  status: EntityStatus;
-  importarDesde: string | null; // ISO date "YYYY-MM-DD", null = incremental only
-  ultimaSync: string | null;    // ISO datetime of last successful sync
-  proximaSync: string | null;   // ISO datetime of next scheduled sync
-  routing: CvmRoutingRule[];    // category → portal page mapping (persisted server-side)
-  createdAt: string;
-  updatedAt: string;
-}
-
-/** Matches `portais` table row (summary for CVM page) */
-export interface CvmPortal {
-  id: string;
-  nome: string;
-  entidades: CvmEntity[];
-}
-
-// ─── API Request / Response shapes ──────────────────────────────────────────
-
-/** POST /api/cvm/entities */
-export interface CreateEntityRequest {
-  portalId: string;
-  nome: string;
-  tipo: EntityTipo;
-  cnpj: string;
-  cvmCode: string;
-  importarDesde?: string | null; // ISO date, optional
-}
-
-/** PATCH /api/cvm/entities/:id/status */
-export interface UpdateEntityStatusRequest {
-  status: EntityStatus;
-}
-
-/** PATCH /api/cvm/entities/:id/import-date */
-export interface UpdateImportDateRequest {
-  importarDesde: string | null;
-}
-
-/** POST /api/cvm/entities/:id/sync — force immediate sweep */
-export interface SyncResponse {
-  entityId: string;
-  syncedAt: string;        // ISO datetime
+export interface SyncResult {
   documentsFound: number;
   documentsImported: number;
   errors: string[];
 }
 
-/** POST /api/cvm/entities/:id/import-history */
-export interface ImportHistoryRequest {
-  desde: string; // ISO date "YYYY-MM-DD"
+/** A company ("empresa") as it lives in portal_config.empresas, merged with
+ *  its cvm_sync_state row for display in the Auto CVM admin page. */
+export interface CvmEntityView {
+  id: string;             // empresa id (portal_config.empresas[].id)
+  portalId: string;       // portals.id (uuid)
+  nome: string;
+  tipo: EntityTipo;
+  cnpj: string;
+  cvmCode: string;
+  importarDesde: string | null;
+  status: EntityStatus;
+  routing: CvmRoutingRule[];
+  ultimaSync: string | null;
+  proximaSync: string | null;
+  lastSyncResult: SyncResult | null;
+}
+
+export interface CvmPortal {
+  id: string;
+  nome: string;
+  entidades: CvmEntityView[];
+}
+
+/** A routable destination in the canal tree (pageType 'lista' or 'lista-agrupada'). */
+export interface RoutablePage {
+  id: string;
+  label: string;
+  path: string; // breadcrumb, e.g. "Governança › Atas"
+  isGrouped: boolean;
+  groupCategories?: string[];
+}
+
+export interface UpdateEntityStatusRequest { status: EntityStatus; }
+export interface UpdateImportDateRequest { importarDesde: string | null; }
+export interface ImportHistoryRequest { desde: string; }
+
+export interface SyncResponse extends SyncResult {
+  entityId: string;
+  syncedAt: string;
 }
 
 export interface ImportHistoryResponse {
@@ -82,13 +68,4 @@ export interface ImportHistoryResponse {
   desde: string;
   documentsQueued: number;
   estimatedMinutes: number;
-}
-
-/** GET /api/cvm/portais */
-export type GetPortaisResponse = CvmPortal[];
-
-/** Generic API error */
-export interface ApiError {
-  code: string;
-  message: string;
 }

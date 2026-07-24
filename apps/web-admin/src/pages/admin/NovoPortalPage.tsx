@@ -5,7 +5,6 @@ import ChannelEditor, { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT } from '../..
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { savePortal } from '../../lib/portalsApi';
 import { savePortalConfig } from '../../lib/portalConfigApi';
-import { cvmService } from '../../services/cvm.service';
 import { useAuth } from '../../contexts/AuthContext';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
 import './AdminPages.css';
@@ -1384,11 +1383,6 @@ export default function NovoPortalPage() {
             }
           }
 
-          // Registra entidade CVM no store (mock → real backend quando Go estiver pronto)
-          if (form.autoCvm && form.cnpj) {
-            cvmService.onPortalCreated(newPortal.id, form.cnpj, form.cvmCode || '', form.nome)
-              .catch(console.error);
-          }
 
           const warnings: string[] = [];
           let provisionedUuid: string | undefined;
