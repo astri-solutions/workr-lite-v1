@@ -114,6 +114,7 @@ export default function EmpresasPage() {
 
   function handleSave() {
     if (!form.nome.trim()) return;
+    if (form.autoCvm && (!form.cnpj.trim() || !form.cvmCodigo.trim())) return;
     if (editing) {
       setEmpresas(prev => prev.map(e => e.id === editing.id ? { ...e, ...form } : e));
     } else {
@@ -288,7 +289,12 @@ export default function EmpresasPage() {
         footer={
           <div className="modal-footer">
             <button className="btn-outline" type="button" onClick={closeModal}>Cancelar</button>
-            <button className="btn-primary" type="button" onClick={handleSave} disabled={!form.nome.trim()}>
+            <button
+              className="btn-primary"
+              type="button"
+              onClick={handleSave}
+              disabled={!form.nome.trim() || (form.autoCvm && (!form.cnpj.trim() || !form.cvmCodigo.trim()))}
+            >
               {editing ? 'Salvar' : 'Adicionar'}
             </button>
           </div>
@@ -324,9 +330,9 @@ export default function EmpresasPage() {
           </label>
 
           <label className="emp-form__label">
-            CNPJ
+            CNPJ{form.autoCvm && <span className="emp-form__required">*</span>}
             <input
-              className={`emp-form__input${editing ? ' emp-form__input--readonly' : ''}`}
+              className={`emp-form__input${editing ? ' emp-form__input--readonly' : ''}${form.autoCvm && !form.cnpj.trim() ? ' emp-form__input--error' : ''}`}
               type="text"
               placeholder="00.000.000/0001-00"
               value={form.cnpj}
@@ -335,6 +341,9 @@ export default function EmpresasPage() {
             />
             {editing && (
               <span className="emp-form__hint">O CNPJ não pode ser alterado após o cadastro.</span>
+            )}
+            {form.autoCvm && !form.cnpj.trim() && (
+              <span className="emp-form__error-hint">Obrigatório quando o Auto CVM está ativado.</span>
             )}
           </label>
 
@@ -379,14 +388,17 @@ export default function EmpresasPage() {
               </label>
 
               <label className="emp-form__label">
-                Código CVM
+                Código CVM<span className="emp-form__required">*</span>
                 <input
-                  className="emp-form__input"
+                  className={`emp-form__input${!form.cvmCodigo.trim() ? ' emp-form__input--error' : ''}`}
                   type="text"
                   placeholder="Ex: 23574"
                   value={form.cvmCodigo}
                   onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
                 />
+                {!form.cvmCodigo.trim() && (
+                  <span className="emp-form__error-hint">Obrigatório quando o Auto CVM está ativado.</span>
+                )}
               </label>
             </>
           )}

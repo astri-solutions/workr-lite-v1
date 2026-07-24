@@ -154,6 +154,14 @@
   transition: border-color 0.15s;
 }
 .emp-form__input:focus { border-color: var(--color-primary-400); background: var(--color-white); }
+.emp-form__input--error { border-color: var(--color-error-400); }
+.emp-form__required { color: var(--color-error-500); margin-left: 2px; font-weight: var(--font-regular); }
+.emp-form__error-hint {
+  font-size: var(--text-xs);
+  color: var(--color-error-500);
+  font-weight: var(--font-regular);
+  margin-top: 2px;
+}
 .emp-form__input--readonly {
   color: var(--color-gray-400);
   background: var(--color-gray-100);
