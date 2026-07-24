@@ -441,6 +441,11 @@ td:has(.table-actions) {
   border-color: var(--color-primary-500);
   color: var(--color-primary-500);
 }
+/* --color-primary-500 is a fixed dark teal — correct on the light card
+   background used in light mode, but unreadable on a dark card. */
+:root[data-theme="dark"] .btn-action--enter:hover {
+  color: var(--color-fixed-white);
+}
 
 .btn-action--danger {
   background: var(--color-error-50, var(--color-error-tint));
