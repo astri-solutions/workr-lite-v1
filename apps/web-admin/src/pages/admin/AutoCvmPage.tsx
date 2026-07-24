@@ -48,8 +48,22 @@ function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: str
       .finally(() => setLoadingPages(false));
   }, [open, portalId, pages.length]);
 
+  // A saved rule's targetId may no longer exist — the canal/subcanal it
+  // pointed to could have been renamed's id changed, reordered into a
+  // different parent, or deleted entirely in Árvore de canais since the
+  // routing was last saved. Importing against a stale id would silently
+  // route nowhere, so flag it instead of trusting the saved reference.
+  const orphanedRules = pages.length > 0
+    ? rules.filter(r => !pages.some(p => p.id === r.targetId))
+    : [];
+
   function getRule(catId: string): CvmRoutingRule | undefined {
     return rules.find(r => r.cvmCategoryId === catId);
+  }
+
+  function clearOrphan(catId: string) {
+    setRules(prev => prev.filter(r => r.cvmCategoryId !== catId));
+    setSaved(false);
   }
 
   function setTargetForCat(cat: { id: string; label: string }, targetId: string) {
@@ -106,6 +120,25 @@ function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: str
             Defina para qual página do portal cada categoria de documento CVM deve ser importada.
             Categorias sem destino serão ignoradas na importação automática.
           </p>
+          {orphanedRules.length > 0 && (
+            <div className="cvm-routing__orphan-banner">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><circle cx="12" cy="16" r=".5" fill="currentColor" />
+              </svg>
+              <div>
+                <strong>{orphanedRules.length} destino{orphanedRules.length !== 1 ? 's' : ''} inválido{orphanedRules.length !== 1 ? 's' : ''}</strong> — a página que
+                {orphanedRules.length !== 1 ? ' essas categorias apontavam' : ' essa categoria apontava'} não existe mais em Árvore de canais
+                ({orphanedRules.map(r => r.cvmCategoryLabel).join(', ')}). Escolha um novo destino ou remova o mapeamento.
+                <div className="cvm-routing__orphan-actions">
+                  {orphanedRules.map(r => (
+                    <button key={r.cvmCategoryId} type="button" className="cvm-routing__orphan-clear" onClick={() => clearOrphan(r.cvmCategoryId)}>
+                      Remover "{r.cvmCategoryLabel}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {loadingPages ? (
             <p className="cvm-routing__no-pages">Carregando páginas do portal…</p>
           ) : pages.length === 0 ? (
