@@ -61,7 +61,7 @@ function parseCsvLine(line: string): string[] {
   return line.split(';').map(f => f.trim().replace(/^"|"$/g, ''));
 }
 
-async function fetchIpeYear(year: number): Promise<{ rows: IpeRow[]; error?: string }> {
+async function fetchIpeYear(year: number): Promise<{ rows: IpeRow[]; error?: string; notPublishedYet?: boolean }> {
   const url = `${IPE_BASE_URL}/ipe_cia_aberta_${year}.csv`;
   let res: Response;
   try {
@@ -69,6 +69,11 @@ async function fetchIpeYear(year: number): Promise<{ rows: IpeRow[]; error?: str
   } catch (e) {
     return { rows: [], error: `Falha de rede ao buscar ${url}: ${String(e)}` };
   }
+  // A 404 on the most recent year is expected, not a failure — CVM only
+  // starts publishing that year's file once the first filing of the year
+  // comes in. Older years 404ing would be genuinely wrong, but callers only
+  // ever hit this for the current/near-current year.
+  if (res.status === 404) return { rows: [], notPublishedYet: true };
   if (!res.ok) return { rows: [], error: `CVM retornou HTTP ${res.status} para ${url}` };
 
   const buf = await res.arrayBuffer();
@@ -248,14 +253,19 @@ Deno.serve(async (req) => {
     const cvmCode = empresa.cvmCodigo?.trim() || null;
 
     const now = new Date();
-    const years = desdeDate
-      ? Array.from({ length: now.getFullYear() - desdeDate.getFullYear() + 1 }, (_, i) => desdeDate.getFullYear() + i)
-      : [now.getFullYear(), now.getFullYear() - 1];
+    // Always include at least the previous year as a fallback — the current
+    // year's CVM file may not exist yet (they only publish it once the
+    // year's first filing lands), and the per-row date filter below already
+    // excludes anything before `desde`, so widening the range never leaks in
+    // documents outside the requested window.
+    const earliestYear = desdeDate ? Math.min(desdeDate.getFullYear(), now.getFullYear() - 1) : now.getFullYear() - 1;
+    const years = Array.from({ length: now.getFullYear() - earliestYear + 1 }, (_, i) => earliestYear + i);
     const matches: IpeRow[] = [];
     const fetchErrors: string[] = [];
 
     for (const year of years) {
-      const { rows, error } = await fetchIpeYear(year);
+      const { rows, error, notPublishedYet } = await fetchIpeYear(year);
+      if (notPublishedYet) continue; // CVM hasn't started this year's file yet — not an error
       if (error) { fetchErrors.push(error); continue; }
       matches.push(...rows.filter(r => {
         const isEntity = (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) || (cvmCode && r.codigoCvm.trim() === cvmCode);
