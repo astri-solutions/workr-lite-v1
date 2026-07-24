@@ -171,6 +171,13 @@
   white-space: nowrap;
 }
 
+.up-resend-msg {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-600);
+}
+
 /* Kebab */
 .up-kebab { position: relative; display: inline-flex; }
 .up-kebab__trigger {

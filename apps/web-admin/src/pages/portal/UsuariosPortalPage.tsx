@@ -71,8 +71,8 @@ function initials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
-function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage, isSuperAdmin }: {
-  onEdit: () => void; onToggle: () => void; onDelete: () => void; ativo: boolean; isAdmin: boolean; canManage: boolean; isSuperAdmin: boolean;
+function KebabMenu({ onEdit, onToggle, onDelete, onResend, resending, ativo, isAdmin, canManage, isSuperAdmin }: {
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; onResend: () => void; resending: boolean; ativo: boolean; isAdmin: boolean; canManage: boolean; isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -93,6 +93,11 @@ function KebabMenu({ onEdit, onToggle, onDelete, ativo, isAdmin, canManage, isSu
       {open && (
         <div className="up-kebab__menu">
           {canManage && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onEdit(); }}>Editar acesso</button>}
+          {canManage && (
+            <button className="up-kebab__item" type="button" disabled={resending} onClick={() => { setOpen(false); onResend(); }}>
+              {resending ? 'Reenviando…' : 'Reenviar convite'}
+            </button>
+          )}
           {canManage && !isAdmin && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>}
           {canManage && (!isAdmin || isSuperAdmin) && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
           {!canManage && <span className="up-kebab__item up-kebab__item--disabled">Sem permissão</span>}
@@ -113,9 +118,12 @@ interface UserCardProps {
   onEdit: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onResend: () => void;
+  resending: boolean;
+  resendMsg?: string;
 }
 
-function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, onDelete }: UserCardProps) {
+function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, onDelete, onResend, resending, resendMsg }: UserCardProps) {
   const empresaNomes = user.empresaIds.length === 0
     ? null
     : user.empresaIds.map(id => empresas.find(e => e.id === id)?.nome ?? id);
@@ -137,7 +145,7 @@ function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, o
           </span>
           {user.criadoEm && <span className="up-user-card__date">{user.criadoEm}</span>}
         </div>
-        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} isSuperAdmin={isSuperAdmin} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} />
+        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} isSuperAdmin={isSuperAdmin} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} onResend={onResend} resending={resending} />
       </div>
       <div className="up-user-card__footer">
         <span className="up-user-card__footer-label">
@@ -154,6 +162,7 @@ function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, o
           </div>
         )}
       </div>
+      {resendMsg && <p className="up-resend-msg">{resendMsg}</p>}
     </div>
   );
 }
@@ -202,6 +211,8 @@ export default function UsuariosPortalPage() {
   const [invited, setInvited] = useState(false);
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendMsgs, setResendMsgs] = useState<Record<string, string>>({});
 
   const filtered = users.filter(u => {
     const matchSearch = !search || u.nome.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
@@ -291,6 +302,43 @@ export default function UsuariosPortalPage() {
       setInviteError(e instanceof Error ? e.message : 'Erro ao enviar convite');
     } finally {
       setInviting(false);
+    }
+  }
+
+  // Re-sends the invite/access email for a user who hasn't confirmed yet
+  // (or simply never saw the original one — Gmail spam filtering is common).
+  // Uses the same invite-portal-user function with resend:true, which
+  // re-sends via a fresh link instead of creating a duplicate account.
+  async function handleResend(u: PortalUser) {
+    setResendingId(u.id);
+    setResendMsgs(prev => ({ ...prev, [u.id]: '' }));
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Sessão não encontrada');
+      const res = await fetch(`${FN_BASE}/invite-portal-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({
+          email: u.email,
+          nome: u.nome,
+          portalId: user?.activePortalId,
+          resend: true,
+          redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+        }),
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string; emailError?: string };
+      if (!res.ok || body.error) throw new Error(body.error ?? 'Erro ao reenviar convite');
+      if (body.emailError) throw new Error(`Conta atualizada, mas o e-mail falhou: ${body.emailError}`);
+      setResendMsgs(prev => ({ ...prev, [u.id]: 'Convite reenviado.' }));
+    } catch (e) {
+      setResendMsgs(prev => ({ ...prev, [u.id]: e instanceof Error ? e.message : 'Erro ao reenviar convite.' }));
+    } finally {
+      setResendingId(null);
+      setTimeout(() => setResendMsgs(prev => ({ ...prev, [u.id]: '' })), 5000);
     }
   }
 
@@ -391,6 +439,9 @@ export default function UsuariosPortalPage() {
                 updatePortalUserStatus(u.id, nextStatus).catch(console.error);
               }}
               onDelete={() => setDeleteTarget(u)}
+              onResend={() => handleResend(u)}
+              resending={resendingId === u.id}
+              resendMsg={resendMsgs[u.id]}
             />
           ))}
         </div>
