@@ -296,39 +296,6 @@ function StepIdentificacao({
           </div>
         </div>
 
-        <div className="np-id-row">
-          <div className="np-field">
-            <label className="np-label">CNPJ da empresa</label>
-            <input
-              className="np-input"
-              type="text"
-              placeholder="00.000.000/0001-00"
-              value={cnpj}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
-                let masked = digits;
-                if (digits.length > 12) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
-                else if (digits.length > 8) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8)}`;
-                else if (digits.length > 5) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5)}`;
-                else if (digits.length > 2) masked = `${digits.slice(0,2)}.${digits.slice(2)}`;
-                onCnpj(masked);
-              }}
-              maxLength={18}
-            />
-          </div>
-          <div className="np-field">
-            <label className="np-label">Código CVM</label>
-            <input
-              className="np-input"
-              type="text"
-              placeholder="Ex: 23574"
-              value={cvmCode}
-              onChange={(e) => onCvmCode(e.target.value)}
-              maxLength={10}
-            />
-          </div>
-        </div>
-
         <div className="np-field">
           <label className="np-label">Auto CVM</label>
           <p className="np-field__hint">Ativar a importação automática de documentos da CVM pelo CNPJ.</p>
@@ -359,6 +326,41 @@ function StepIdentificacao({
                 <span className="np-autocvm-card__desc">O Auto CVM pode ser configurado posteriormente nas configurações do portal.</span>
               </div>
             </button>
+          </div>
+        </div>
+
+        <div className="np-id-row">
+          <div className="np-field">
+            <label className="np-label">CNPJ da empresa{autoCvm && <span className="np-required">*</span>}</label>
+            <input
+              className={`np-input${autoCvm && !cnpj.trim() ? ' np-input--error' : ''}`}
+              type="text"
+              placeholder="00.000.000/0001-00"
+              value={cnpj}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
+                let masked = digits;
+                if (digits.length > 12) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
+                else if (digits.length > 8) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8)}`;
+                else if (digits.length > 5) masked = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5)}`;
+                else if (digits.length > 2) masked = `${digits.slice(0,2)}.${digits.slice(2)}`;
+                onCnpj(masked);
+              }}
+              maxLength={18}
+            />
+            {autoCvm && !cnpj.trim() && <span className="np-input__error-hint">Obrigatório quando o Auto CVM está ativado.</span>}
+          </div>
+          <div className="np-field">
+            <label className="np-label">Código CVM{autoCvm && <span className="np-required">*</span>}</label>
+            <input
+              className={`np-input${autoCvm && !cvmCode.trim() ? ' np-input--error' : ''}`}
+              type="text"
+              placeholder="Ex: 23574"
+              value={cvmCode}
+              onChange={(e) => onCvmCode(e.target.value)}
+              maxLength={10}
+            />
+            {autoCvm && !cvmCode.trim() && <span className="np-input__error-hint">Obrigatório quando o Auto CVM está ativado.</span>}
           </div>
         </div>
 
@@ -1201,7 +1203,11 @@ export default function NovoPortalPage() {
   }, []);
 
   const canProceed = () => {
-    if (currentLabel === 'Identificação') return form.nome.trim().length > 0;
+    if (currentLabel === 'Identificação') {
+      if (form.nome.trim().length === 0) return false;
+      if (form.autoCvm && (!form.cnpj.trim() || !form.cvmCode.trim())) return false;
+      return true;
+    }
     if (currentLabel === 'Tipo') return form.tipo !== '';
     if (currentLabel === 'Idioma') return form.idiomas.length > 0;
     if (currentLabel === 'Email') {
@@ -1411,6 +1417,7 @@ export default function NovoPortalPage() {
                       nomeFantasia: form.nomeFantasia || form.nome,
                       cnpj: form.cnpj,
                       cvmCode: form.cvmCode,
+                      autoCvm: form.autoCvm,
                       tipoSite: form.tipoSite,
                       subdomain,
                       layout: form.tipo,

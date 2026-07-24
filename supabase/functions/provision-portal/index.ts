@@ -373,11 +373,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, nomeFantasia, cnpj, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite } = await req.json() as {
+    const { portalId: _portalId, nome, nomeFantasia, cnpj, cvmCode, autoCvm, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite } = await req.json() as {
       portalId: string;
       nome: string;
       nomeFantasia?: string;
       cnpj?: string;
+      cvmCode?: string;
+      autoCvm?: boolean;
       subdomain: string;
       layout?: string;
       colors?: Colors;
@@ -696,8 +698,8 @@ Deno.serve(async (req) => {
             nome: nomeFantasia ?? nome,
             tipo: 'EMPRESA',
             cnpj: cnpj ?? '',
-            cvmCodigo: '',
-            autoCvm: false,
+            cvmCodigo: cvmCode ?? '',
+            autoCvm: autoCvm ?? false,
             importarDesde: '',
             ativo: true,
           }],

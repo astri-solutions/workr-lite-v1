@@ -256,6 +256,19 @@
 .np-input__hint--domain { color: var(--color-gray-500, #6F6F6F); margin-top: 4px; }
 .np-input__hint--domain strong { font-weight: 600; color: var(--color-primary-600, var(--color-primary-500)); }
 
+.np-required {
+  color: var(--color-error-500);
+  margin-left: 2px;
+}
+
+.np-input__error-hint {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-error-500);
+}
+
 /* ─── Domain readonly display ────────────────────────────── */
 .np-domain-readonly {
   display: inline-flex;
