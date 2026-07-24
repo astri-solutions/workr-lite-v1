@@ -30,6 +30,8 @@ const CVM_ROUTABLE_CATEGORIES = [
   { id: 'informe-trimestral',       label: 'Informe Trimestral' },
   { id: 'formulario-referencia',    label: 'Formulário de Referência' },
   { id: 'prospecto',                label: 'Prospecto' },
+  { id: 'calendario-eventos',       label: 'Calendário de Eventos Corporativos' },
+  { id: 'dados-economico-financeiros', label: 'Dados Econômico-Financeiros' },
 ];
 
 function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: string; empresaId: string; initialRouting: CvmRoutingRule[] }) {

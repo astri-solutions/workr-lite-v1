@@ -176,6 +176,10 @@ function mapToCategoryId(row: IpeRow): { id: string; label: string } | null {
   if (all.includes('societari') || all.includes('estatuto') || all.includes('acionista')) {
     return { id: 'documentos-societarios', label: 'Documentos Societários' };
   }
+  if (all.includes('calendario de eventos')) return { id: 'calendario-eventos', label: 'Calendário de Eventos Corporativos' };
+  if (all.includes('economico-financeiro') || all.includes('economico financeiro')) {
+    return { id: 'dados-economico-financeiros', label: 'Dados Econômico-Financeiros' };
+  }
   return null;
 }
 
@@ -370,6 +374,9 @@ Deno.serve(async (req) => {
       documentsImported: imported,
       errors: [
         ...fetchErrors,
+        // Not a problem — expected on every re-run, but silently absorbing
+        // it into "0 importados" reads as if the whole run failed.
+        ...(skippedDuplicate > 0 ? [`${skippedDuplicate} documento(s) já haviam sido importados anteriormente.`] : []),
         ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) com categoria da CVM não reconhecida: ${[...unmappedCategories].slice(0, 5).join(' | ')}${unmappedCategories.size > 5 ? '…' : ''}`] : []),
         ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
         ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
