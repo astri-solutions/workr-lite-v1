@@ -806,6 +806,12 @@ select.canais-edit-form__input,
   font-weight: var(--font-medium);
   color: var(--color-primary-700);
 }
+/* --color-primary-700 is a fixed dark teal — correct on the light tint
+   background used in light mode, unreadable on the dark tint used here
+   in dark mode. */
+:root[data-theme="dark"] .ct-la-cat-chip {
+  color: var(--color-fixed-white);
+}
 .ct-la-cat-chip button {
   background: none;
   border: none;
