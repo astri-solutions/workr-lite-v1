@@ -39,6 +39,12 @@
   color: var(--color-primary-600);
   border-bottom-color: var(--color-primary-500);
 }
+/* --color-primary-600 is a fixed dark teal — barely stands out against the
+   dark-mode bar background. A lighter, still-primary-hued shade keeps the
+   "this tab is active" emphasis readable. */
+:root[data-theme="dark"] .lang-tab--active {
+  color: var(--color-primary-300);
+}
 
 .lang-tab__flag { font-size: 15px; line-height: 1; }
 
