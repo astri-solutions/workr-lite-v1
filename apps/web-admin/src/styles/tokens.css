@@ -178,6 +178,17 @@
   --color-primary-tint-2: #10262A;
   --color-error-tint: #2A1414;
 
+  /* Same story as the semantic tints below: --color-primary-50/100 and
+     --color-secondary-50/100 are used as light background tints (selected
+     table rows, hover states) with a dark grayscale/900 text color painted
+     on top. Un-overridden in dark mode, the near-white tint stayed while
+     the text correctly inverted to near-white too — invisible text on an
+     invisible-ish background. */
+  --color-primary-50:  #10262A;
+  --color-primary-100: #163338;
+  --color-secondary-50:  #12301f;
+  --color-secondary-100: #163d28;
+
   /* Semantic 50/100 tints are used as badge/banner BACKGROUNDS with the
      700 shade as text — in light mode that's a near-white pill with dark
      text. Left un-overridden, dark mode would keep painting those same
@@ -221,6 +232,10 @@
     --color-primary-tint:   #163338;
     --color-primary-tint-2: #10262A;
     --color-error-tint: #2A1414;
+    --color-primary-50:  #10262A;
+    --color-primary-100: #163338;
+    --color-secondary-50:  #12301f;
+    --color-secondary-100: #163d28;
     --color-error-50:   #3a1414;
     --color-error-100:  #4a1a1a;
     --color-error-700:  #ffb4b4;

@@ -511,6 +511,36 @@ td:has(.table-actions) {
 .btn-toolbar--danger:hover:not(:disabled) { background: var(--color-error-50); }
 .btn-toolbar--danger:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Dark mode: outline-on-dark reads as faint/washed out — filled gives
+   these bulk actions the same weight they have in light mode. */
+:root[data-theme="dark"] .btn-toolbar {
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+:root[data-theme="dark"] .btn-toolbar:hover {
+  background: var(--color-gray-300);
+  border-color: var(--color-gray-300);
+}
+:root[data-theme="dark"] .btn-toolbar--success {
+  background: var(--color-success-600);
+  border-color: var(--color-success-600);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-toolbar--success:hover {
+  background: var(--color-success-500);
+  border-color: var(--color-success-500);
+}
+:root[data-theme="dark"] .btn-toolbar--danger {
+  background: var(--color-error-600);
+  border-color: var(--color-error-600);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-toolbar--danger:hover:not(:disabled) {
+  background: var(--color-error-500);
+  border-color: var(--color-error-500);
+}
+
 /* ─── Table empty state ──────────────────────────────────── */
 .table-empty {
   text-align: center;

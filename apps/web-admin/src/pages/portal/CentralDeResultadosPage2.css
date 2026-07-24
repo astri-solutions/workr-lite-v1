@@ -365,6 +365,14 @@
   font-size: 18px;
 }
 
+/* Icon color is set inline (published = primary teal, draft = gray-300),
+   both tuned for a light page. On a dark page the teal reads as too dim
+   to tell documents apart at a glance — flatten to a single legible white
+   for both states. Needs !important to beat the inline style. */
+:root[data-theme="dark"] .cdr2-icon-row__icon {
+  color: var(--color-fixed-white) !important;
+}
+
 /* ─── Wizard step label ──────────────────────────── */
 .cdr2-wizard-step {
   font-size: var(--text-xs);
