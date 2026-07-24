@@ -271,7 +271,11 @@
 }
 
 /* ── Mobile responsive ── */
-@media (max-width: 800px) {
+/* The admin sidebar eats ~230-280px of the real viewport width, so a
+   breakpoint tuned to the content column's own width needs to sit well
+   above that column's width to actually fire on real tablet/laptop
+   windows. */
+@media (max-width: 1024px) {
   .atend-layout {
     flex-direction: column;
     align-items: stretch;

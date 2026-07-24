@@ -160,9 +160,14 @@ export default function AppSidebar({
         </button>
       </div>
 
-      {/* Desktop logo */}
+      {/* Desktop logo — dark mode swaps to a negative logo (light-colored
+          text), except when collapsed since that uses the plain favicon
+          icon, which already reads fine on a dark surface. */}
       <NavLink to="/portal/dashboard" className="admin-sidebar__logo">
-        <img src={currentLogo} alt={logoAlt} className="admin-sidebar__logo-img" />
+        <img src={currentLogo} alt={logoAlt} className="admin-sidebar__logo-img admin-sidebar__logo-img--light" />
+        {!collapsed && (
+          <img src={currentLogo.replace(/\.png$/, '-negative.png')} alt={logoAlt} className="admin-sidebar__logo-img admin-sidebar__logo-img--dark" />
+        )}
       </NavLink>
 
       <div className="admin-sidebar__scroll">

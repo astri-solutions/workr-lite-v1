@@ -1,12 +1,13 @@
-/* ─── Layout cards grid (override SplashPage column layout) ── */
+/* ─── Layout cards grid (override SplashPage column layout) ──
+   Each card pairs an 80px thumbnail with a two/three-line label+desc in
+   a flex row — a 2-up grid only gives that row ~230px in the shared
+   editor column, which wraps "Bloco à direita" down to one word per
+   line regardless of viewport width. One column per row gives the text
+   the room it actually needs. */
 .ck-layouts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3);
-}
-
-@media (max-width: 900px) {
-  .ck-layouts-grid { grid-template-columns: 1fr; }
 }
 
 .ck-layouts-grid .splash-size-card { width: auto; }

@@ -329,6 +329,10 @@
   transition: all 0.18s;
 }
 
+.admin-sidebar__logo-img--dark { display: none; }
+:root[data-theme="dark"] .admin-sidebar__logo-img--light { display: none; }
+:root[data-theme="dark"] .admin-sidebar__logo-img--dark { display: block; }
+
 .admin-sidebar--collapsed .admin-sidebar__logo-img {
   height: 40px;
 }
