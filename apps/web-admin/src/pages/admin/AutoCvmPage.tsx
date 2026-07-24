@@ -153,28 +153,30 @@ function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: str
                 return (
                   <div key={cat.id} className="cvm-routing__row">
                     <span className="cvm-routing__cat">{cat.label}</span>
-                    <select
-                      className="cvm-select cvm-select--sm cvm-routing__select"
-                      value={rule?.targetId ?? ''}
-                      onChange={e => setTargetForCat(cat, e.target.value)}
-                    >
-                      <option value="">— não importar —</option>
-                      {pages.map(p => (
-                        <option key={p.id} value={p.id}>{p.path}{p.isGrouped ? ' (lista agrupada)' : ''}</option>
-                      ))}
-                    </select>
-                    {targetPage?.isGrouped && (targetPage.groupCategories?.length ?? 0) > 0 && (
+                    <div className="cvm-routing__select-group">
                       <select
                         className="cvm-select cvm-select--sm cvm-routing__select"
-                        value={rule?.groupCategory ?? ''}
-                        onChange={e => setGroupCategoryForCat(cat.id, e.target.value)}
+                        value={rule?.targetId ?? ''}
+                        onChange={e => setTargetForCat(cat, e.target.value)}
                       >
-                        <option value="">— selecione o grupo —</option>
-                        {targetPage.groupCategories!.map(g => (
-                          <option key={g} value={g}>{g}</option>
+                        <option value="">— não importar —</option>
+                        {pages.map(p => (
+                          <option key={p.id} value={p.id}>{p.path}{p.isGrouped ? ' (lista agrupada)' : ''}</option>
                         ))}
                       </select>
-                    )}
+                      {targetPage?.isGrouped && (targetPage.groupCategories?.length ?? 0) > 0 && (
+                        <select
+                          className="cvm-select cvm-select--sm cvm-routing__select"
+                          value={rule?.groupCategory ?? ''}
+                          onChange={e => setGroupCategoryForCat(cat.id, e.target.value)}
+                        >
+                          <option value="">— selecione o grupo —</option>
+                          {targetPage.groupCategories!.map(g => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   </div>
                 );
               })}
