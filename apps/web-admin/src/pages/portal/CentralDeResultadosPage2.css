@@ -950,3 +950,12 @@
   color: var(--color-gray-500);
   font-weight: var(--font-semibold);
 }
+
+/* Dark mode: filled instead of outline. */
+:root[data-theme="dark"] .cdr2-edit-pt-only-switch {
+  background: var(--color-primary-500);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .cdr2-edit-pt-only-switch:hover {
+  background: var(--color-primary-600);
+}

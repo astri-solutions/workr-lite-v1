@@ -940,3 +940,14 @@
   color: var(--color-error-600);
   margin-top: 2px;
 }
+
+/* Dark mode: filled instead of outline. */
+:root[data-theme="dark"] .painel-danger-btn-outline {
+  background: var(--color-error-600);
+  border-color: var(--color-error-600);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .painel-danger-btn-outline:hover {
+  background: var(--color-error-500);
+  border-color: var(--color-error-500);
+}

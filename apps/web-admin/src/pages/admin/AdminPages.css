@@ -174,6 +174,30 @@
 }
 .btn-outline--danger:hover { background: var(--color-error-50); border-color: var(--color-error-500); color: var(--color-error-600); }
 
+/* Dark mode: outline buttons go filled instead — an outline reads as
+   washed-out/low-emphasis against a dark page, so give them a solid fill
+   with fixed white text instead of just inverting the border/text colors. */
+:root[data-theme="dark"] .btn-outline {
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+:root[data-theme="dark"] .btn-outline:hover {
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-outline--danger {
+  background: var(--color-error-600);
+  border-color: var(--color-error-600);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-outline--danger:hover {
+  background: var(--color-error-500);
+  border-color: var(--color-error-500);
+  color: var(--color-fixed-white);
+}
+
 .btn-danger {
   display: inline-flex;
   align-items: center;
@@ -481,6 +505,31 @@ td:has(.table-actions) {
   font-weight: var(--font-semibold);
 }
 .btn-action--publish:hover { background: var(--color-primary-50, #e8f5f7); }
+
+/* Dark mode: same filled treatment as .btn-outline above. */
+:root[data-theme="dark"] .btn-action--activate {
+  background: var(--color-success-600);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-action--activate:hover {
+  background: var(--color-success-500);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-action--secondary {
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+:root[data-theme="dark"] .btn-action--secondary:hover {
+  background: var(--color-gray-300);
+}
+:root[data-theme="dark"] .btn-action--publish {
+  background: var(--color-primary-500);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .btn-action--publish:hover {
+  background: var(--color-primary-600);
+}
 
 /* ─── Toolbar outline buttons (Despublicar / Publicar / Excluir em massa) ── */
 .btn-toolbar {

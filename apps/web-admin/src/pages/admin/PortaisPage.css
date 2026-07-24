@@ -628,3 +628,32 @@
   width: 14px;
   height: 14px;
 }
+
+/* Dark mode: outline buttons go filled (same convention as AdminPages.css). */
+:root[data-theme="dark"] .portais-btn--admin-site {
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .portais-btn--admin-site:hover {
+  background: var(--color-primary-600);
+}
+:root[data-theme="dark"] .portais-btn--outline-sm {
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+:root[data-theme="dark"] .portais-btn--outline-sm:hover {
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .portais-btn--danger-sm {
+  background: var(--color-error-600);
+  border-color: var(--color-error-600);
+  color: var(--color-fixed-white);
+}
+:root[data-theme="dark"] .portais-btn--danger-sm:hover {
+  background: var(--color-error-500);
+  border-color: var(--color-error-500);
+}
