@@ -180,6 +180,20 @@ function mapToCategoryId(row: IpeRow): { id: string; label: string } | null {
   if (all.includes('economico-financeiro') || all.includes('economico financeiro')) {
     return { id: 'dados-economico-financeiros', label: 'Dados Econômico-Financeiros' };
   }
+  if (all.includes('plano de remuneracao')) return { id: 'plano-remuneracao', label: 'Plano de Remuneração Baseado em Ações' };
+  if (all.includes('relatorio de sustentabilidade')) return { id: 'relatorio-sustentabilidade', label: 'Relatório de Sustentabilidade' };
+  if (all.includes('relatorio proventos') || all.includes('relatorio de proventos')) return { id: 'relatorio-proventos', label: 'Relatório de Proventos' };
+  if (all.includes('valores mobiliarios negociados')) return { id: 'valores-mobiliarios-negociados', label: 'Valores Mobiliários Negociados e Detidos' };
+
+  // CVM's real taxonomy is much larger than this hand-picked list, and it
+  // keeps surfacing categories we haven't hardcoded — instead of dropping
+  // those documents silently, derive a stable id from the real Categoria
+  // text so ANY category becomes routable (see discovered_categories),
+  // without needing a code change for every new one CVM has.
+  if (row.categoria.trim()) {
+    const slug = normalize(row.categoria).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (slug) return { id: `cvm-${slug}`, label: row.categoria.trim() };
+  }
   return null;
 }
 
@@ -272,9 +286,12 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Auto CVM não está ativado para esta empresa.' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
-    const { data: syncRow } = await admin.from('cvm_sync_state').select('routing').eq('portal_id', portalId).eq('empresa_id', empresaId).maybeSingle();
+    const { data: syncRow } = await admin.from('cvm_sync_state').select('routing, discovered_categories').eq('portal_id', portalId).eq('empresa_id', empresaId).maybeSingle();
     const routing = (syncRow?.routing ?? []) as CvmRoutingRule[];
     const routingByCategory = new Map(routing.map(r => [r.cvmCategoryId, r]));
+    const discoveredById = new Map<string, string>(
+      ((syncRow?.discovered_categories ?? []) as { id: string; label: string }[]).map(c => [c.id, c.label])
+    );
 
     const cnpjDigits = empresa.cnpj ? onlyDigits(empresa.cnpj) : null;
     const cvmCode = empresa.cvmCodigo?.trim() ? normalizeCvmCode(empresa.cvmCodigo) : null;
@@ -311,15 +328,17 @@ Deno.serve(async (req) => {
     let skippedNoMap = 0;
     let skippedNoDate = 0;
     const unroutedCategories = new Set<string>();
-    const unmappedCategories = new Set<string>();
+    let discoveredChanged = false;
 
     for (const row of matches) {
       const mapped = mapToCategoryId(row);
       if (!mapped) {
+        // Only genuinely empty Categoria text falls through the slug
+        // fallback above — nothing meaningful to route.
         skippedNoMap++;
-        unmappedCategories.add(`${row.categoria || '—'} / ${row.tipo || '—'} / ${row.especie || '—'}`);
         continue;
       }
+      if (!discoveredById.has(mapped.id)) { discoveredById.set(mapped.id, mapped.label); discoveredChanged = true; }
       const rule = routingByCategory.get(mapped.id);
       if (!rule) {
         unroutedCategories.add(mapped.label);
@@ -377,15 +396,18 @@ Deno.serve(async (req) => {
         // Not a problem — expected on every re-run, but silently absorbing
         // it into "0 importados" reads as if the whole run failed.
         ...(skippedDuplicate > 0 ? [`${skippedDuplicate} documento(s) já haviam sido importados anteriormente.`] : []),
-        ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) com categoria da CVM não reconhecida: ${[...unmappedCategories].slice(0, 5).join(' | ')}${unmappedCategories.size > 5 ? '…' : ''}`] : []),
+        ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) sem categoria informada pela CVM.`] : []),
         ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
         ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
       ],
     };
 
+    const discoveredCategories = [...discoveredById].map(([id, label]) => ({ id, label }));
+
     await admin.from('cvm_sync_state').upsert({
       portal_id: portalId,
       empresa_id: empresaId,
+      ...(discoveredChanged ? { discovered_categories: discoveredCategories } : {}),
       ultima_sync: resultNow,
       last_sync_result: result,
     }, { onConflict: 'portal_id,empresa_id' });

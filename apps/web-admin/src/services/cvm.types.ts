@@ -24,6 +24,8 @@ export interface SyncResult {
 
 /** A company ("empresa") as it lives in portal_config.empresas, merged with
  *  its cvm_sync_state row for display in the Auto CVM admin page. */
+export interface DiscoveredCategory { id: string; label: string; }
+
 export interface CvmEntityView {
   id: string;             // empresa id (portal_config.empresas[].id)
   portalId: string;       // portals.id (uuid)
@@ -37,6 +39,10 @@ export interface CvmEntityView {
   ultimaSync: string | null;
   proximaSync: string | null;
   lastSyncResult: SyncResult | null;
+  // Every distinct CVM category actually seen for this entity's real
+  // filings — a superset of the hand-picked CVM_ROUTABLE_CATEGORIES list,
+  // since CVM's real taxonomy is much larger and keeps adding new ones.
+  discoveredCategories: DiscoveredCategory[];
 }
 
 export interface CvmPortal {

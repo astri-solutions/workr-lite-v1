@@ -5,7 +5,7 @@ import './AutoCvmPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { cvmService } from '../../services/cvm.service';
-import type { CvmPortal, CvmEntityView, EntityStatus, CvmRoutingRule, RoutablePage } from '../../services/cvm.types';
+import type { CvmPortal, CvmEntityView, EntityStatus, CvmRoutingRule, RoutablePage, DiscoveredCategory } from '../../services/cvm.types';
 
 const ChevronIcon = ({ open }: { open: boolean }) => (
   <svg
@@ -32,15 +32,29 @@ const CVM_ROUTABLE_CATEGORIES = [
   { id: 'prospecto',                label: 'Prospecto' },
   { id: 'calendario-eventos',       label: 'Calendário de Eventos Corporativos' },
   { id: 'dados-economico-financeiros', label: 'Dados Econômico-Financeiros' },
+  { id: 'plano-remuneracao',        label: 'Plano de Remuneração Baseado em Ações' },
+  { id: 'relatorio-sustentabilidade', label: 'Relatório de Sustentabilidade' },
+  { id: 'relatorio-proventos',      label: 'Relatório de Proventos' },
+  { id: 'valores-mobiliarios-negociados', label: 'Valores Mobiliários Negociados e Detidos' },
 ];
 
-function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: string; empresaId: string; initialRouting: CvmRoutingRule[] }) {
+function RoutingSection({ portalId, empresaId, initialRouting, discoveredCategories }: { portalId: string; empresaId: string; initialRouting: CvmRoutingRule[]; discoveredCategories: DiscoveredCategory[] }) {
   const [open, setOpen] = useState(false);
   const [pages, setPages] = useState<RoutablePage[]>([]);
   const [loadingPages, setLoadingPages] = useState(false);
   const [rules, setRules] = useState<CvmRoutingRule[]>(initialRouting);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // CVM's real category taxonomy is far larger than the hand-picked list
+  // above — anything cvm-import-run actually saw for this entity but isn't
+  // in the static list gets appended here, so an admin can route it without
+  // waiting on a code change.
+  const categories = useMemo(() => {
+    const staticIds = new Set(CVM_ROUTABLE_CATEGORIES.map(c => c.id));
+    const extra = discoveredCategories.filter(c => !staticIds.has(c.id));
+    return [...CVM_ROUTABLE_CATEGORIES, ...extra];
+  }, [discoveredCategories]);
 
   useEffect(() => {
     if (!open || pages.length > 0) return;
@@ -168,7 +182,7 @@ function RoutingSection({ portalId, empresaId, initialRouting }: { portalId: str
             </p>
           ) : (
             <div className="cvm-routing__table">
-              {CVM_ROUTABLE_CATEGORIES.map(cat => {
+              {categories.map(cat => {
                 const rule = getRule(cat.id);
                 return (
                   <div key={cat.id} className="cvm-routing__row">
@@ -350,7 +364,7 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
         </p>
       )}
 
-      <RoutingSection portalId={entity.portalId} empresaId={entity.id} initialRouting={entity.routing} />
+      <RoutingSection portalId={entity.portalId} empresaId={entity.id} initialRouting={entity.routing} discoveredCategories={entity.discoveredCategories} />
 
       <div className="cvm-entity-card__footer">
         <span className="cvm-entity-card__sync-info">

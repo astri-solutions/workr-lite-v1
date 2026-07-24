@@ -24,6 +24,7 @@ import type {
   ImportHistoryResponse,
   EntityStatus,
   SyncResult,
+  DiscoveredCategory,
 } from './cvm.types';
 
 interface EmpresaRow {
@@ -45,6 +46,7 @@ interface SyncStateRow {
   ultima_sync: string | null;
   proxima_sync: string | null;
   last_sync_result: SyncResult | null;
+  discovered_categories: DiscoveredCategory[] | null;
 }
 
 interface CanalNode {
@@ -118,6 +120,7 @@ async function _fetchAll(): Promise<CvmPortal[]> {
           ultimaSync: sync?.ultima_sync ?? null,
           proximaSync: sync?.proxima_sync ?? null,
           lastSyncResult: sync?.last_sync_result ?? null,
+          discoveredCategories: sync?.discovered_categories ?? [],
         };
       });
     return { id: p.id as string, portalKey: p.portal_key as string, nome: p.cliente as string, entidades };
