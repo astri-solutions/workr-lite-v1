@@ -5,7 +5,7 @@
   gap: var(--space-3);
 }
 
-@media (max-width: 540px) {
+@media (max-width: 900px) {
   .ck-layouts-grid { grid-template-columns: 1fr; }
 }
 
@@ -16,6 +16,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .ck-theme-grid { grid-template-columns: 1fr; }
 }
 
 .ck-theme-card {

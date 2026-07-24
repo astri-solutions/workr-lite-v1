@@ -63,18 +63,27 @@
   gap: 0;
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--color-white);
 }
 
-/* Grid: handle | icon | nome | tipo | idioma | ext | actions */
+/* Grid: handle | icon | nome | tipo | idioma | ext | actions
+   Nome had `minmax(0, 0.65fr)` — free to shrink all the way to 0, so on
+   narrower screens it got squeezed into a sliver and wrapped filenames
+   across 5+ lines instead of the row simply scrolling sideways. Giving
+   it a real floor (and the same for tipo/idioma/ext, sized to their own
+   content) means the row now has a genuine minimum width; the
+   `.cdr2-file-list` scrolls horizontally past that instead of squashing
+   text further. */
 .cdr2-col-header,
 .cdr2-file-item {
   display: grid;
-  grid-template-columns: 24px 26px minmax(0, 0.65fr) 170px 40px 46px 96px;
+  grid-template-columns: 24px 26px minmax(200px, 1fr) 150px 56px 64px 112px;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
+  min-width: 720px;
 }
 
 /* ─── Column header ──────────────────────────────── */
@@ -439,19 +448,6 @@
 
 /* ─── Responsive ────────────────────────────────── */
 
-/* Tablet: hide arquivo column, compress */
-@media (max-width: 780px) {
-  .cdr2-col-header,
-  .cdr2-file-item {
-    grid-template-columns: 24px 26px 1fr 130px 52px;
-  }
-  .cdr2-fname-wrap,
-  .cdr2-lang-badge,
-  .cdr2-ext-badge {
-    display: none;
-  }
-}
-
 /* Mobile: stack into card blocks */
 @media (max-width: 520px) {
   .cdr2-col-header {
@@ -464,6 +460,7 @@
     gap: var(--space-2);
     padding: var(--space-3);
     border-bottom: 1px solid var(--color-gray-100);
+    min-width: 0;
   }
 
   .cdr2-drag-handle {

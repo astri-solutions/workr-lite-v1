@@ -6,6 +6,19 @@
   align-items: start;
 }
 
+/* The fixed 300px preview column never collapsed, so on tablet/mobile it
+   squeezed the entire editor column down to a sliver. Below 900px, drop to
+   a single column — the preview (second grid item) naturally lands at the
+   end, below the editor, instead of pinned beside it. */
+@media (max-width: 900px) {
+  .splash-layout {
+    grid-template-columns: 1fr;
+  }
+  .splash-preview-aside {
+    position: static;
+  }
+}
+
 .splash-editor {
   display: flex;
   flex-direction: column;

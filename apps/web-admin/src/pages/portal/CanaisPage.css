@@ -90,7 +90,7 @@
 .ct-row--empty {
   background: var(--color-white);
   min-height: 36px;
-  padding-left: 48px;
+  padding: var(--space-2) var(--space-4) var(--space-2) 48px;
 }
 
 /* ── Expand toggle ──────────────────────────────── */

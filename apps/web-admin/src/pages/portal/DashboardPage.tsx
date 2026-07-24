@@ -258,12 +258,11 @@ export default function DashboardPage() {
               <th>Layout</th>
               <th>Status</th>
               <th>Última atualização</th>
-              <th>Plano</th>
             </tr>
           </thead>
           <tbody>
             {portalSites.length === 0 ? (
-              <tr><td colSpan={6} className="table-empty">Nenhum site configurado ainda.</td></tr>
+              <tr><td colSpan={5} className="table-empty">Nenhum site configurado ainda.</td></tr>
             ) : portalSites.map((s, i) => (
               <tr key={i}>
                 <td>{s.empresa}</td>
@@ -271,7 +270,6 @@ export default function DashboardPage() {
                 <td>{s.layout}</td>
                 <td><span className="badge badge--success">{s.status}</span></td>
                 <td className="table-cell--muted">{s.ultimaAtualizacao}</td>
-                <td>{s.plano}</td>
               </tr>
             ))}
           </tbody>
