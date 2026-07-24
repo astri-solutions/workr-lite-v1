@@ -3,6 +3,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
 import { useSort } from '../../hooks/useSort';
 import SortIcon from '../../components/SortIcon';
+import Modal from '../../components/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
@@ -116,6 +117,7 @@ export default function LogPage() {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  const [viewingLog, setViewingLog] = useState<LogEntry | null>(null);
 
   useEffect(() => {
     const portalKey = user?.activePortalId;
@@ -273,12 +275,67 @@ export default function LogPage() {
                   </span>
                 </td>
                 <td className="log-entity">{log.entity}</td>
-                <td className="log-detail">{log.detail}</td>
+                <td>
+                  <button type="button" className="btn-action btn-action--enter" onClick={() => setViewingLog(log)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
+                    Ver log
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <Modal
+        open={!!viewingLog}
+        onClose={() => setViewingLog(null)}
+        title="Detalhes do registro"
+        size="sm"
+      >
+        {viewingLog && (
+          <div className="log-detail-panel">
+            <div className="log-detail-panel__row">
+              <span className="log-detail-panel__label">Data/Hora</span>
+              <span className="log-detail-panel__value">{fmtDateTime(viewingLog.timestamp)}</span>
+            </div>
+            <div className="log-detail-panel__row">
+              <span className="log-detail-panel__label">Usuário</span>
+              <div className="log-user">
+                <span className={`log-user__avatar${viewingLog.user === 'Sistema' ? ' log-user__avatar--system' : ''}`}>
+                  {initials(viewingLog.user)}
+                </span>
+                <div className="log-user__info">
+                  <span className="log-user__name">{viewingLog.user}</span>
+                  {viewingLog.user !== 'Sistema' && (
+                    <span className="log-user__email">{viewingLog.email}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="log-detail-panel__row">
+              <span className="log-detail-panel__label">Categoria</span>
+              <span className={`log-cat ${categoryClass(viewingLog.category)}`}>
+                {CATEGORY_LABEL[viewingLog.category]}
+              </span>
+            </div>
+            <div className="log-detail-panel__row">
+              <span className="log-detail-panel__label">Ação</span>
+              <span className={`log-action ${actionClass(viewingLog.action)}`}>
+                {ACTION_LABEL[viewingLog.action] ?? viewingLog.action}
+              </span>
+            </div>
+            <div className="log-detail-panel__row">
+              <span className="log-detail-panel__label">Entidade / Objeto</span>
+              <span className="log-detail-panel__value">{viewingLog.entity || '—'}</span>
+            </div>
+            <div className="log-detail-panel__row log-detail-panel__row--full">
+              <span className="log-detail-panel__label">Detalhe</span>
+              <p className="log-detail-panel__text">{viewingLog.detail || 'Sem detalhes adicionais.'}</p>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
