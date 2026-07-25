@@ -472,7 +472,6 @@ function PortalAccordion({ portal }: { portal: CvmPortal }) {
 
 export default function AutoCvmPage() {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'super_admin';
 
   const [portais, setPortais] = useState<CvmPortal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -481,15 +480,17 @@ export default function AutoCvmPage() {
   useEffect(() => {
     cvmService.listPortais()
       .then(data => {
-        // Non-super_admin sees only the active portal's CVM data.
-        const filtered = isSuperAdmin
-          ? data
-          : data.filter(p => p.portalKey === user?.activePortalId);
+        // Auto CVM is scoped to whichever portal is active in the topbar
+        // switcher — same as every other Gestão/Conteúdo/Relacionamento/
+        // Personalizar page. super_admin can access any portal (via that
+        // switcher) but never sees more than one portal's data at once,
+        // exactly like a client_user would.
+        const filtered = data.filter(p => p.portalKey === user?.activePortalId);
         setPortais(filtered);
         setLoading(false);
       })
       .catch(() => { setError('Falha ao carregar dados da CVM.'); setLoading(false); });
-  }, [isSuperAdmin, user?.activePortalId]);
+  }, [user?.activePortalId]);
 
   return (
     <div className="page cvm-page">
