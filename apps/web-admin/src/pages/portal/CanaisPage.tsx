@@ -732,6 +732,16 @@ export default function CanaisPage() {
       await supabase.from('portal_materias')
         .update({ page_id: null, page_label: null, status: 'rascunho' })
         .eq('portal_id', portalDbId).in('page_id', affectedIds);
+
+      // Mirror the same change into the localStorage cache — this Supabase
+      // update bypasses persistMateria/deleteMateria entirely, so without
+      // this the cache keeps the old pageId with status 'publicado' and
+      // pageHasPublishedMateria() (localStorage-only) keeps reporting the
+      // destination page as occupied forever, even though nothing is
+      // actually linked to it anymore.
+      loadMaterias(activePortalId)
+        .filter(m => affectedIds.includes(m.pageId))
+        .forEach(m => persistMateria({ ...m, pageId: '', pageLabel: '', status: 'rascunho' }, activePortalId));
     }
 
     // Resultados: this page (pageType 'tabela-resultados') is the only

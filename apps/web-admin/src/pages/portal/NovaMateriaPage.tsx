@@ -907,7 +907,31 @@ export default function NovaMateriaPage() {
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [page, setPage] = useState(editing?.pagina ?? '');
   const selectedDestino = destinos.find(d => d.id === page);
-  const pageOccupied = !isGaleria && !isTabela && !isHtml && (selectedDestino?.hasPublishedMateria ?? false);
+
+  // `selectedDestino.hasPublishedMateria` comes from useCanaisDestinos, which
+  // is localStorage-only — it can go stale (e.g. a page's linked matéria was
+  // unlinked via Canais' "excluir canal" flow, which updates Supabase but
+  // not this cache) and keep reporting a page as occupied forever. Supabase
+  // is the actual source of truth once a portal is resolved, so re-check it
+  // directly for the selected page and let that override the local guess.
+  const [remoteOccupied, setRemoteOccupied] = useState<boolean | null>(null);
+  useEffect(() => {
+    setRemoteOccupied(null);
+    if (!page || !portalDbId || !isSupabaseConfigured || !supabase) return;
+    let cancelled = false;
+    supabase.from('portal_materias')
+      .select('id', { count: 'exact', head: true })
+      .eq('portal_id', portalDbId).eq('page_id', page).eq('status', 'publicado')
+      .then(({ count }) => {
+        if (cancelled) return;
+        const occupiedByOther = (count ?? 0) > (editing && editing.pagina === page ? 1 : 0);
+        setRemoteOccupied(occupiedByOther);
+      });
+    return () => { cancelled = true; };
+  }, [page, portalDbId, editing]);
+
+  const localOccupied = selectedDestino?.hasPublishedMateria ?? false;
+  const pageOccupied = !isGaleria && !isTabela && !isHtml && (remoteOccupied ?? localOccupied);
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
@@ -1135,6 +1159,12 @@ export default function NovaMateriaPage() {
                 onChange={(e) => { setSubtitle(e.target.value); markDirty(); }}
                 placeholder="Subtítulo..."
               />
+              {!isGaleria && !isTabela && !isHtml && (
+                <p className="nm-field-hint">
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px', verticalAlign: 'middle', marginRight: 4 }}>info</span>
+                  Título e subtítulo aparecem dentro do conteúdo da página, não substituem o nome dela — o título exibido no topo (banner interno) é sempre o nome da página de destino, definido em <strong>Canais</strong>.
+                </p>
+              )}
             </div>
 
             {isTabela ? (
@@ -1271,22 +1301,26 @@ export default function NovaMateriaPage() {
             )}
           </div>
 
-          {/* Content type */}
-          <div className="nm-meta-block">
-            <p className="nm-meta-block__title">Tipo de conteúdo</p>
-            <div className="nm-type-chips">
-              {['Podcast', 'Vídeo', 'Notícia', 'Blog', 'Apresentação', 'Relatório'].map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  className={`nm-type-chip${contentType === t ? ' nm-type-chip--active' : ''}`}
-                  onClick={() => { setContentType(prev => prev === t ? '' : t); markDirty(); }}
-                >
-                  {t}
-                </button>
-              ))}
+          {/* Content type — only meaningful for galeria: a card grid that can
+              be filtered by this type on the site. 'show'/'tabela'/'html'
+              matérias have no such filter, so the chips had no effect there. */}
+          {isGaleria && (
+            <div className="nm-meta-block">
+              <p className="nm-meta-block__title">Tipo de conteúdo</p>
+              <div className="nm-type-chips">
+                {['Podcast', 'Vídeo', 'Notícia', 'Blog', 'Apresentação', 'Relatório'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`nm-type-chip${contentType === t ? ' nm-type-chip--active' : ''}`}
+                    onClick={() => { setContentType(prev => prev === t ? '' : t); markDirty(); }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* SEO */}
           <div className="nm-meta-block">
