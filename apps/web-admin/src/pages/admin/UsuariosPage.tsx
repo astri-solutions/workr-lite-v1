@@ -29,8 +29,16 @@ const FN_BASE = import.meta.env.VITE_SUPABASE_URL
   ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
   : '';
 
+// Always mints a fresh access token instead of trusting the locally cached
+// one. A cached session can look valid (not locally expired) yet still fail
+// server-side with "unrecognized JWT kid" after the project's Auth signing
+// keys rotate — getSession() has no way to detect that, since it only checks
+// the token's own expiry timestamp. refreshSession() re-signs with whatever
+// key GoTrue currently has active, sidestepping the whole class of error.
 async function getToken(): Promise<string | null> {
   if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.auth.refreshSession();
+  if (!error && data.session?.access_token) return data.session.access_token;
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token ?? null;
 }
