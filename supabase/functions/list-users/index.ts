@@ -41,10 +41,18 @@ async function adminCall<T>(
 ): Promise<{ data: T; error: { message: string } | null }> {
   const candidates = serviceKeyCandidates();
   let last: { data: T; error: { message: string } | null } | null = null;
-  for (const key of candidates) {
-    const result = await run(createClient(supabaseUrl, key));
-    if (!result.error || !isJwtKeyError(result.error)) return result;
-    last = result;
+  // The failure is not always "the wrong key" — GoTrue has been observed
+  // rejecting the SAME candidate key moments before accepting it again, which
+  // points to a transient JWKS-cache hiccup on their side rather than a
+  // deterministic bad key. A short backoff-and-retry across rounds rides
+  // that out instead of giving up after a single pass through the candidates.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    for (const key of candidates) {
+      const result = await run(createClient(supabaseUrl, key));
+      if (!result.error || !isJwtKeyError(result.error)) return result;
+      last = result;
+    }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
   }
   return last!;
 }
