@@ -673,6 +673,12 @@ Deno.serve(async (req) => {
     const baseTreeSha = commitData.tree.sha;
 
     const treeRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/trees/${baseTreeSha}?recursive=1`);
+    if (!treeRes.ok) {
+      const b = await treeRes.json().catch(() => ({}));
+      return new Response(JSON.stringify({ error: `GitHub: could not read tree — ${(b as { message?: string }).message ?? treeRes.statusText}` }), {
+        status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
     const treeData = await treeRes.json() as { tree: { path: string; type: string; sha: string }[] };
     const existingPaths = new Set(treeData.tree.filter(t => t.type === 'blob').map(t => t.path));
     const existingRootHtml = treeData.tree

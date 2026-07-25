@@ -103,6 +103,7 @@ export default function UsuariosPage() {
   const [desativarPortais, setDesativarPortais] = useState<string[]>([]); // selected portal ids to suspend from
   const [removerTarget, setRemoverTarget] = useState<UsuarioItem | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
@@ -159,7 +160,7 @@ export default function UsuariosPage() {
           empresas: data.empresasIds.filter(id => portalEmpresaIds.includes(id)),
         };
       });
-      await fetch(`${FN_BASE}/invite-user`, {
+      const res = await fetch(`${FN_BASE}/invite-user`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,20 +171,34 @@ export default function UsuariosPage() {
           redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
         }),
       });
+      const json = await res.json().catch(() => ({})) as { error?: string; portalLinkErrors?: string[] };
+      // The invite modal already shows its own success state regardless of
+      // this outcome (it doesn't await onSubmit) — this can't undo that, but
+      // it must still surface a real failure instead of pretending the
+      // invite succeeded, since that's exactly the kind of silent failure
+      // that led to a duplicate/ghost user account earlier.
+      if (!res.ok) {
+        setActionError(`Falha ao convidar ${data.email}: ${json.error ?? `HTTP ${res.status}`}`);
+      } else if (json.portalLinkErrors?.length) {
+        setActionError(`${data.email} foi convidado, mas houve falha ao vincular a alguns portais: ${json.portalLinkErrors.join('; ')}`);
+      }
       // Refresh list after a short delay to allow Supabase to process the invite
       setTimeout(() => fetchUsuarios(), 1500);
-    } catch {
-      // Invite modal already shows success state — silently refresh
+    } catch (e) {
+      setActionError(`Falha ao convidar ${data.email}: ${e instanceof Error ? e.message : String(e)}`);
       setTimeout(() => fetchUsuarios(), 1500);
     }
   }
 
   async function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portaisIds: string[]) {
     setActionLoading(id);
+    setActionError(null);
     try {
       await callManageUser({ action: 'update', userId: id, role, portais: portaisIds });
       await fetchUsuarios();
-    } catch { /* ignore — table stays as-is */ }
+    } catch (e) {
+      setActionError(`Não foi possível salvar as alterações: ${e instanceof Error ? e.message : String(e)}`);
+    }
     setActionLoading(null);
   }
 
@@ -191,10 +206,13 @@ export default function UsuariosPage() {
     const u = usuarios.find(u => u.id === id);
     if (!u) return;
     setActionLoading(id);
+    setActionError(null);
     try {
       await callManageUser({ action: u.status === 'Ativo' ? 'ban' : 'unban', userId: id });
       await fetchUsuarios();
-    } catch { /* ignore */ }
+    } catch (e) {
+      setActionError(`Não foi possível alterar o status de ${u.nome}: ${e instanceof Error ? e.message : String(e)}`);
+    }
     setActionLoading(null);
   }
 
@@ -222,19 +240,26 @@ export default function UsuariosPage() {
     const target = removerTarget;
     setRemoverTarget(null);
     setActionLoading(target.id);
+    setActionError(null);
     try {
       await callManageUser({ action: 'delete', userId: target.id });
       await fetchUsuarios();
-    } catch { /* ignore */ }
+    } catch (e) {
+      setActionError(`Não foi possível remover ${target.nome}: ${e instanceof Error ? e.message : String(e)}`);
+    }
     setActionLoading(null);
   }
 
   async function handleDelete(id: string) {
+    const u = usuarios.find(u => u.id === id);
     setActionLoading(id);
+    setActionError(null);
     try {
       await callManageUser({ action: 'delete', userId: id });
       await fetchUsuarios();
-    } catch { /* ignore */ }
+    } catch (e) {
+      setActionError(`Não foi possível remover ${u?.nome ?? id}: ${e instanceof Error ? e.message : String(e)}`);
+    }
     setActionLoading(null);
   }
 
@@ -264,6 +289,17 @@ export default function UsuariosPage() {
           </button>
         }
       />
+
+      {actionError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} aria-label="Fechar"
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+          </button>
+        </div>
+      )}
 
       <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou e-mail…" className="usu-admin-search" />
       <FilterBar groups={filterGroups} value={filters} onChange={handleFilter} />

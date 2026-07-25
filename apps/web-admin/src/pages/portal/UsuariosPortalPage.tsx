@@ -213,6 +213,7 @@ export default function UsuariosPortalPage() {
   const [inviteError, setInviteError] = useState('');
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [resendMsgs, setResendMsgs] = useState<Record<string, string>>({});
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const filtered = users.filter(u => {
     const matchSearch = !search || u.nome.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
@@ -261,7 +262,11 @@ export default function UsuariosPortalPage() {
       const role = form.role as PortalUserRole;
       setUsers(prev => prev.map(u => u.id === editing.id
         ? { ...u, role: form.role, empresaIds: empIds } : u));
-      updatePortalUserRole(editing.id, role, empIds).catch(console.error);
+      setActionError(null);
+      updatePortalUserRole(editing.id, role, empIds).catch(e => {
+        setActionError(`Não foi possível salvar as alterações de ${editing.nome}: ${e instanceof Error ? e.message : String(e)}`);
+        fetchUsers();
+      });
       closeModal();
       return;
     }
@@ -387,6 +392,17 @@ export default function UsuariosPortalPage() {
         </div>
       </div>
 
+      {actionError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>{actionError}</span>
+          <button type="button" onClick={() => setActionError(null)} aria-label="Fechar"
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+          </button>
+        </div>
+      )}
+
       <div className="toolbar">
         <div className="toolbar__filters">
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome ou e-mail…" />
@@ -436,7 +452,11 @@ export default function UsuariosPortalPage() {
               onToggle={() => {
                 const nextStatus = u.ativo ? 'Suspenso' : 'Ativo';
                 setUsers(prev => prev.map(p => p.id === u.id ? { ...p, ativo: !p.ativo } : p));
-                updatePortalUserStatus(u.id, nextStatus).catch(console.error);
+                setActionError(null);
+                updatePortalUserStatus(u.id, nextStatus).catch(e => {
+                  setActionError(`Não foi possível alterar o status de ${u.nome}: ${e instanceof Error ? e.message : String(e)}`);
+                  fetchUsers();
+                });
               }}
               onDelete={() => setDeleteTarget(u)}
               onResend={() => handleResend(u)}
@@ -531,9 +551,20 @@ export default function UsuariosPortalPage() {
               <button className="btn-outline" type="button" onClick={() => setDeleteTarget(null)}>Cancelar</button>
               <button className="btn-outline btn-outline--danger" type="button"
                 onClick={() => {
-                  deletePortalUser(deleteTarget.id).catch(console.error);
-                  setUsers(p => p.filter(u => u.id !== deleteTarget.id));
+                  const target = deleteTarget;
+                  setUsers(p => p.filter(u => u.id !== target.id));
                   setDeleteTarget(null);
+                  setActionError(null);
+                  deletePortalUser(target.id)
+                    .then(({ accountDeleteError }) => {
+                      if (accountDeleteError) {
+                        setActionError(`${target.nome} perdeu o acesso ao portal, mas a conta não pôde ser totalmente excluída: ${accountDeleteError}`);
+                      }
+                    })
+                    .catch(e => {
+                      setActionError(`Erro ao remover ${target.nome}: ${e instanceof Error ? e.message : String(e)}`);
+                      fetchUsers();
+                    });
                 }}>
                 Remover
               </button>

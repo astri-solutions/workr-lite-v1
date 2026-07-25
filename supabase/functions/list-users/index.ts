@@ -57,8 +57,16 @@ Deno.serve(async (req) => {
       resolveServiceKey(),
     );
 
-    const { data, error } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-    if (error) throw error;
+    // Paginated — a hardcoded single page silently hides any account beyond
+    // the first 1000 once the project grows past that.
+    const fetchedUsers: { id: string; email?: string; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown>; banned_until?: string | null }[] = [];
+    for (let page = 1; page <= 20; page++) {
+      const { data: pageData, error } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) throw error;
+      fetchedUsers.push(...pageData.users);
+      if (pageData.users.length < 1000) break;
+    }
+    const data = { users: fetchedUsers };
 
     // Load portals to resolve UUID → portal_key and build display names
     const { data: portalsData } = await adminClient.from('portals').select('id, portal_key, cliente');

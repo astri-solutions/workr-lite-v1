@@ -107,14 +107,22 @@ Deno.serve(async (req) => {
       .eq('user_id', target.user_id)
       .limit(1);
 
+    // Access removal (the portal_users delete above) is the primary action
+    // and has already happened regardless of what follows. This auth-account
+    // cleanup is a separate concern — if it fails, that must be surfaced
+    // distinctly (accountDeleteError + non-200 status) rather than folded
+    // into an unqualified "ok: true", so a real leftover account is never
+    // mistaken for a fully completed removal.
     let accountDeleted = false;
+    let accountDeleteError: string | undefined;
     if (!remaining || remaining.length === 0) {
       const { error: delUserError } = await adminClient.auth.admin.deleteUser(target.user_id as string);
       if (!delUserError) accountDeleted = true;
+      else accountDeleteError = delUserError.message;
     }
 
-    return new Response(JSON.stringify({ ok: true, accountDeleted }), {
-      status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ ok: true, accountDeleted, accountDeleteError }), {
+      status: accountDeleteError ? 207 : 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
   } catch (e) {
     const ch2 = corsHeaders(req.headers.get('Origin'));

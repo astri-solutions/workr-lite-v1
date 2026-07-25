@@ -85,8 +85,8 @@ const FN_BASE = import.meta.env.VITE_SUPABASE_URL
 // Removes the user's access to this portal. If the account has no access to
 // any other portal, the account itself is deleted from auth — otherwise only
 // the portal_users row (this portal's access) is removed.
-export async function deletePortalUser(recordId: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
+export async function deletePortalUser(recordId: string): Promise<{ accountDeleteError?: string }> {
+  if (!isSupabaseConfigured || !supabase) return {};
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   if (!token) throw new Error('Sessão não encontrada');
@@ -99,8 +99,10 @@ export async function deletePortalUser(recordId: string): Promise<void> {
     },
     body: JSON.stringify({ recordId }),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(body.error ?? 'Erro ao remover usuário');
-  }
+  const body = await res.json().catch(() => ({})) as { error?: string; accountDeleteError?: string };
+  // 207 (partial success — access revoked but the leftover auth account
+  // couldn't be cleaned up) is still res.ok, so accountDeleteError must be
+  // surfaced explicitly rather than treated as a silent full success.
+  if (!res.ok) throw new Error(body.error ?? 'Erro ao remover usuário');
+  return { accountDeleteError: body.accountDeleteError };
 }

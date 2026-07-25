@@ -30,6 +30,23 @@ function corsHeaders(origin: string | null) {
   };
 }
 
+// A failed listUsers() must never be treated the same as "no matching user
+// found" — that exact confusion (transient error silently read as "email is
+// new") is what produced a duplicate/ghost account for an already-existing
+// user in a real past incident. Paginated so accounts beyond the first 1000
+// are never invisible to the existing-user check either.
+async function listAllUsers(adminClient: ReturnType<typeof createClient>) {
+  const perPage = 1000;
+  const all: { id: string; email?: string; app_metadata?: Record<string, unknown> }[] = [];
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) return { users: null, error };
+    all.push(...data.users);
+    if (data.users.length < perPage) break;
+  }
+  return { users: all, error: null };
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const ch = corsHeaders(origin);
@@ -126,34 +143,58 @@ Deno.serve(async (req) => {
       // Portal admins can invite editor/viewer AND other admins of their own portal.
     }
 
-    // Helper: upsert portal_users record
+    // Helper: upsert portal_users record. Conflict target is (portal_id,
+    // email) — not (portal_id,user_id) — because email is the durable
+    // identity here: if the existing-user lookup below ever fails open and
+    // a second auth account gets created for an email already present in
+    // this portal, this constraint (and this onConflict target) turns that
+    // into an update instead of a second row.
     async function upsertPortalUser(uid: string) {
-      if (!dbUuid) return;
-      await adminClient.from('portal_users').upsert({
+      if (!dbUuid) return { error: null };
+      const { error } = await adminClient.from('portal_users').upsert({
         portal_id: dbUuid,
         user_id: uid,
         email,
         nome: nome ?? '',
         role: role ?? 'editor',
         empresas: empresas ?? null,
-      }, { onConflict: 'portal_id,user_id' });
+      }, { onConflict: 'portal_id,email' });
+      return { error };
     }
 
     let userId: string | null = null;
 
-    // Check if user already exists before generating invite link
-    const { data: { users: existingUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+    // Check if user already exists before generating invite link. A failed
+    // lookup must abort here — falling through to "treat as new user" is
+    // exactly how a duplicate/ghost account gets created for an email that
+    // already has a real one.
+    const { users: existingUsers, error: listErr } = await listAllUsers(adminClient);
+    if (listErr || !existingUsers) {
+      return new Response(JSON.stringify({ error: `Falha ao verificar usuários existentes: ${listErr?.message ?? 'erro desconhecido'}` }), {
+        status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
     const existingUser = existingUsers.find(u => u.email === email);
 
     if (existingUser) {
       userId = existingUser.id;
-      const existingIds: string[] = existingUser.app_metadata?.portalIds ?? [];
+      const existingIds: string[] = (existingUser.app_metadata?.portalIds as string[] | undefined) ?? [];
       const newId = dbUuid ?? portalId;
       const merged = newId && !existingIds.includes(newId) ? [...existingIds, newId] : existingIds;
-      await adminClient.auth.admin.updateUserById(existingUser.id, {
+      const { error: updErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
         app_metadata: { role: 'client_user', portalIds: merged },
       });
-      await upsertPortalUser(existingUser.id);
+      if (updErr) {
+        return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${updErr.message}` }), {
+          status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      const { error: upsertErr } = await upsertPortalUser(existingUser.id);
+      if (upsertErr) {
+        return new Response(JSON.stringify({ error: `Falha ao vincular usuário ao portal: ${upsertErr.message}` }), {
+          status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
 
       if (resend) {
         // Re-send invite email via a new magic link (recovery link acts as login)
@@ -206,8 +247,18 @@ Deno.serve(async (req) => {
     // Set app_metadata + portal_users
     const appMeta: Record<string, unknown> = { role: 'client_user' };
     if (portalId) appMeta.portalIds = dbUuid ? [dbUuid] : [portalId];
-    await adminClient.auth.admin.updateUserById(userId, { app_metadata: appMeta });
-    await upsertPortalUser(userId);
+    const { error: newUserUpdErr } = await adminClient.auth.admin.updateUserById(userId, { app_metadata: appMeta });
+    if (newUserUpdErr) {
+      return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${newUserUpdErr.message}` }), {
+        status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
+    const { error: newUpsertErr } = await upsertPortalUser(userId);
+    if (newUpsertErr) {
+      return new Response(JSON.stringify({ error: `Falha ao vincular usuário ao portal: ${newUpsertErr.message}` }), {
+        status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Resolve portal name for email
     let portalNome: string | undefined;

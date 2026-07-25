@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
     // a portal_key (localStorage id), but both portal_users.portal_id and the
     // RLS policy on portal_users compare against the UUID in app_metadata.
     const resolvedUuids: string[] = [];
+    const portalLinkErrors: string[] = [];
     if (resolvedRole === 'client_user' && portaisConfig?.length) {
       for (const cfg of portaisConfig) {
         try {
@@ -115,15 +116,19 @@ Deno.serve(async (req) => {
           }
           if (!dbUuid) continue;
           resolvedUuids.push(dbUuid);
-          await adminClient.from('portal_users').upsert({
+          // Conflict target is (portal_id, email), not (portal_id, user_id) —
+          // email is the durable identity; this turns a would-be duplicate
+          // row for an already-invited email into an update instead.
+          const { error: linkErr } = await adminClient.from('portal_users').upsert({
             portal_id: dbUuid,
             user_id: userId,
             email,
             nome: nome ?? '',
             role: cfg.role,
             empresas: cfg.empresas.length > 0 ? cfg.empresas : null,
-          }, { onConflict: 'portal_id,user_id' });
-        } catch { /* non-fatal per-portal */ }
+          }, { onConflict: 'portal_id,email' });
+          if (linkErr) portalLinkErrors.push(`${cfg.portalId}: ${linkErr.message}`);
+        } catch (e) { portalLinkErrors.push(`${cfg.portalId}: ${String(e)}`); }
       }
     }
 
@@ -131,9 +136,14 @@ Deno.serve(async (req) => {
     // UUIDs — the portal_users RLS policy reads auth.jwt() -> app_metadata ->
     // 'portalIds' and matches it against portal_id (UUID). A wrong key name
     // or portal_key values here make the RLS silently return zero rows.
-    await adminClient.auth.admin.updateUserById(userId, {
+    const { error: metaErr } = await adminClient.auth.admin.updateUserById(userId, {
       app_metadata: { role: resolvedRole, portalIds: resolvedUuids },
     });
+    if (metaErr) {
+      return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${metaErr.message}` }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Send the invite e-mail via Postmark (reliable, bypasses Supabase's SMTP
     // rate limit); fall back to Supabase's native invite e-mail only if
@@ -154,7 +164,7 @@ Deno.serve(async (req) => {
       }).catch(() => { /* non-fatal */ });
     }
 
-    return new Response(JSON.stringify({ id: userId }), {
+    return new Response(JSON.stringify({ id: userId, portalLinkErrors: portalLinkErrors.length ? portalLinkErrors : undefined }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
