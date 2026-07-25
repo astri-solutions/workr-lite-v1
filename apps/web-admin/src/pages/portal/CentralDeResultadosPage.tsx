@@ -217,6 +217,32 @@ export default function CentralDeResultadosPage() {
     resolvePortalId(key).then(id => setPortalDbId(id));
   }, [user?.activePortalId]);
 
+  // Resultados published here (portal_quarters/portal_results) are a
+  // separate data source from the nav tree in Canais — they only become
+  // reachable on the live site if some canal node was created with
+  // pageType 'tabela-resultados'. Without one, everything saved here is
+  // silently orphaned (no broken error, just invisible), so warn the admin
+  // instead of letting that pass silently.
+  const [hasResultadosPage, setHasResultadosPage] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    let cancelled = false;
+    Promise.resolve(
+      supabase.from('portal_config').select('canais').eq('portal_id', portalDbId).maybeSingle()
+    )
+      .then(({ data }) => {
+        if (cancelled) return;
+        interface CanalNode { pageType?: string; children?: CanalNode[] }
+        function hasPage(nodes: CanalNode[]): boolean {
+          return nodes.some(n => n.pageType === 'tabela-resultados' || (n.children && hasPage(n.children)));
+        }
+        const canais = (data?.canais ?? []) as CanalNode[];
+        setHasResultadosPage(hasPage(canais));
+      })
+      .catch(() => { if (!cancelled) setHasResultadosPage(null); });
+    return () => { cancelled = true; };
+  }, [portalDbId]);
+
   // Load quarters for active entity
   const loadQuarters = useCallback(async (entityId: string) => {
     if (!portalDbId || !isSupabaseConfigured || !supabase || !entityId) return;
@@ -517,6 +543,17 @@ export default function CentralDeResultadosPage() {
           </button>
         }
       />
+
+      {hasResultadosPage === false && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
+          <span>
+            Nenhuma página do tipo "Tabela Resultados" foi criada em <strong>Canais</strong> para este portal.
+            Os resultados publicados aqui ficam salvos, mas não aparecem no site até que essa página exista —
+            crie uma em Canais (tipo "Tabela Resultados") e vincule-a ao menu.
+          </span>
+        </div>
+      )}
 
       {ENTITIES.length === 0 && (
         <div className="page-placeholder">
