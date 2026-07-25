@@ -5,7 +5,7 @@ import { pKey } from '../utils/portalStorage';
 export const MATERIAS_KEY = 'portal_materias';
 
 export type MateriaStatus = 'publicado' | 'rascunho' | 'agendado';
-export type MateriaPageType = 'show' | 'galeria' | 'formulario';
+export type MateriaPageType = 'show' | 'galeria' | 'tabela' | 'html' | 'formulario';
 
 export interface StoredMateria {
   id: string;

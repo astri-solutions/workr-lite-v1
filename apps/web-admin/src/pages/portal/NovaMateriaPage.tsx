@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import DatePicker from '../../components/DatePicker';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
-import { persistMateria, syncMateriaToSupabase, activatePageInSupabase, type MateriaPageType } from '../../hooks/useMateriasStore';
+import { persistMateria, syncMateriaToSupabase, activatePageInSupabase, type MateriaPageType, type StoredMateria } from '../../hooks/useMateriasStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
@@ -853,9 +853,9 @@ export default function NovaMateriaPage() {
   const location = useLocation();
   const { user } = useAuth();
   const { publish } = usePublish();
-  const routeState = location.state as { editing?: { id: string; titulo: string; pagina: string; status: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' } | null;
+  const routeState = location.state as { editing?: StoredMateria & { pagina: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' } | null;
   const editing = routeState?.editing ?? null;
-  const pageType = editing ? (editing as { pageType?: 'show' | 'galeria' | 'tabela' | 'html' }).pageType ?? 'show' : (routeState?.pageType ?? 'show');
+  const pageType = editing ? (editing.pageType as 'show' | 'galeria' | 'tabela' | 'html' | undefined) ?? 'show' : (routeState?.pageType ?? 'show');
   const isGaleria = pageType === 'galeria';
   const isTabela = pageType === 'tabela';
   const isHtml = pageType === 'html';
@@ -884,28 +884,46 @@ export default function NovaMateriaPage() {
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
-  const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
+  const [subtitle, setSubtitle] = useState(editing?.subtitulo ?? (isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : ''));
   // The header image itself now lives on the page/canal node (Canais →
   // editar canal/página), not on the matéria — this screen only displays
   // the effective (own or inherited) image read-only, via `selectedDestino`
   // below.
-  const [sections, setSections] = useState<ContentSection[]>(
-    isGaleria || isTabela || isHtml ? [] : [{ id: 'init', type: 'text' }]
+  const editingContent = editing?.content as unknown;
+  const [sections, setSections] = useState<ContentSection[]>(() => {
+    if (!isGaleria && !isTabela && !isHtml) {
+      if (editing && Array.isArray(editingContent)) return editingContent as ContentSection[];
+      return [{ id: 'init', type: 'text' }];
+    }
+    return [];
+  });
+  const [htmlContent, setHtmlContent] = useState(() =>
+    isHtml && editing && typeof editingContent === 'string' ? editingContent : ''
   );
-  const [htmlContent, setHtmlContent] = useState('');
-  const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>(
-    isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()]
+  const [galeriaCards, setGaleriaCards] = useState<GaleriaCard[]>(() => {
+    if (isGaleria && editing && Array.isArray(editingContent) && editingContent.length > 0) {
+      const first = editingContent[0] as { type?: string; cards?: GaleriaCard[] };
+      if (first?.type === 'galeria' && Array.isArray(first.cards)) return first.cards;
+    }
+    return isGaleria && !editing ? SAMPLE_GALERIA_CARDS : [newCard()];
+  });
+  const editingTabela = isTabela && editing && editingContent && typeof editingContent === 'object' && !Array.isArray(editingContent)
+    ? editingContent as { headers?: string[]; rows?: TabelaRow[] }
+    : null;
+  const [tabelaHeaders, setTabelaHeaders] = useState<string[]>(
+    editingTabela?.headers ?? ['Coluna 1', 'Coluna 2', 'Coluna 3']
   );
-  const [tabelaHeaders, setTabelaHeaders] = useState<string[]>(['Coluna 1', 'Coluna 2', 'Coluna 3']);
-  const [tabelaRows, setTabelaRows] = useState<TabelaRow[]>([
-    { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
-    { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
-  ]);
+  const [tabelaRows, setTabelaRows] = useState<TabelaRow[]>(
+    editingTabela?.rows ?? [
+      { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
+      { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
+    ]
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerCat, setPickerCat] = useState<'all' | SectionCategory>('all');
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
-  const [page, setPage] = useState(editing?.pagina ?? '');
+  const [page, setPage] = useState(editing?.pageId ?? '');
   const selectedDestino = destinos.find(d => d.id === page);
 
   // `selectedDestino.hasPublishedMateria` comes from useCanaisDestinos, which
@@ -924,7 +942,7 @@ export default function NovaMateriaPage() {
       .eq('portal_id', portalDbId).eq('page_id', page).eq('status', 'publicado')
       .then(({ count }) => {
         if (cancelled) return;
-        const occupiedByOther = (count ?? 0) > (editing && editing.pagina === page ? 1 : 0);
+        const occupiedByOther = (count ?? 0) > (editing && editing.pageId === page ? 1 : 0);
         setRemoteOccupied(occupiedByOther);
       });
     return () => { cancelled = true; };
@@ -933,7 +951,8 @@ export default function NovaMateriaPage() {
   const localOccupied = selectedDestino?.hasPublishedMateria ?? false;
   const pageOccupied = !isGaleria && !isTabela && !isHtml && (remoteOccupied ?? localOccupied);
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
-  const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
+  const STATUS_FROM_STORED: Record<string, PublishStatus> = { publicado: 'published', rascunho: 'draft', agendado: 'scheduled' };
+  const [status, setStatus] = useState<PublishStatus>(editing ? (STATUS_FROM_STORED[editing.status] ?? 'draft') : 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
   const [saved, setSaved] = useState(false);
   const [contentType, setContentType] = useState(isGaleria && !editing ? 'Notícia' : '');
@@ -992,14 +1011,21 @@ export default function NovaMateriaPage() {
         subtitulo: subtitle,
         pageId: page,
         pageLabel: dest?.label ?? page,
-        pageType: (isGaleria ? 'galeria' : 'show') as MateriaPageType,
+        pageType: (isGaleria ? 'galeria' : isTabela ? 'tabela' : isHtml ? 'html' : 'show') as MateriaPageType,
         pageSlugType: dest?.pageType,
         status: newStatus === 'published' ? 'publicado' as const : newStatus === 'scheduled' ? 'agendado' as const : 'rascunho' as const,
         data: today,
         autor: user?.name ?? user?.email ?? 'Usuário',
         ultimaEdicao: today,
         ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
-        content: sections,
+        // Galeria is saved wrapped as a single 'galeria' block (not the bare
+        // cards array) so the site's existing renderBlock()/renderGaleriaCards()
+        // in materias.js — built for sections inside a 'show' page — can
+        // render it identically without a separate code path.
+        content: isGaleria ? [{ id: 'galeria', type: 'galeria', cards: galeriaCards }]
+          : isTabela ? { headers: tabelaHeaders, rows: tabelaRows }
+          : isHtml ? htmlContent
+          : sections,
       };
       const portalKey = user?.activePortalId ?? undefined;
       persistMateria(m, portalKey);
