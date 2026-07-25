@@ -8,6 +8,11 @@ interface Props {
   onClick?: () => void;
 }
 
+// Preview is in standby for now (feature still being validated) — flip this
+// back to true to re-enable the "Pré-visualizar" button everywhere without
+// touching any of the logic below.
+const PREVIEW_ENABLED = false;
+
 // Best-effort preview URL for the active portal's live site — mirrors the
 // same `workr_portais` lookup PublishContext already uses to resolve
 // repoName, so this stays in sync without a new data source.
@@ -76,7 +81,7 @@ export default function PublishButton({ disabled, onClick }: Props) {
   if (publishStatus === 'ok') {
     return (
       <>
-        <PreviewLink />
+        {PREVIEW_ENABLED && <PreviewLink />}
         <button className="btn-primary btn-primary--ok" type="button" disabled onClick={handleClick}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="20 6 9 17 4 12" />
@@ -90,7 +95,7 @@ export default function PublishButton({ disabled, onClick }: Props) {
   if (publishStatus === 'err') {
     return (
       <>
-        <PreviewLink />
+        {PREVIEW_ENABLED && <PreviewLink />}
         <button className="btn-primary btn-primary--err" type="button" onClick={handleClick}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -103,7 +108,7 @@ export default function PublishButton({ disabled, onClick }: Props) {
 
   return (
     <>
-      <PreviewLink />
+      {PREVIEW_ENABLED && <PreviewLink />}
       <button className="btn-primary" type="button" onClick={handleClick} disabled={publishing || disabled}>
         {publishing ? 'Publicando…' : 'Publicar'}
       </button>
