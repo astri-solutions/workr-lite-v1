@@ -48,6 +48,7 @@ export interface Canal {
   children: SubCanal[];
   headerImage?: string;
   pageType?: PageType;
+  listaAgrupadaStyle?: ListaAgrupadaStyle;
   listaAgrupadaCategories?: string[];
   showInFooter?: boolean;
 }

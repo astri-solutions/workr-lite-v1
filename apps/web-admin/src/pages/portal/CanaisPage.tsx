@@ -279,6 +279,7 @@ interface CanalEditState {
   labels: Record<string, string>;
   label: string;
   pageType: PageType;
+  listaAgrupadaStyle: ListaAgrupadaStyle;
   headerImageUrl: string | null;
   applyHeaderToChildren: boolean;
   isLeaf: boolean;
@@ -675,6 +676,7 @@ export default function CanaisPage() {
       labels: (canal.labels as Record<string, string> | undefined) ?? { [primaryLang]: canal.label },
       label: canal.label,
       pageType: canal.pageType ?? 'show',
+      listaAgrupadaStyle: canal.listaAgrupadaStyle ?? 'accordion',
       headerImageUrl: canal.headerImage ?? null,
       applyHeaderToChildren: false,
       isLeaf: canal.children.length === 0,
@@ -686,7 +688,7 @@ export default function CanaisPage() {
   function commitCanalEdit() {
     if (!canalEditModal) return;
     const primaryLang = PORTAL_CONFIG.languages[0];
-    const { canalId, labels, label, pageType, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter, laCategories } = canalEditModal;
+    const { canalId, labels, label, pageType, listaAgrupadaStyle, headerImageUrl, applyHeaderToChildren, isLeaf, showInFooter, laCategories } = canalEditModal;
     const resolvedLabel = labels[primaryLang]?.trim() || label;
     setCanais(prev => {
       const next = prev.map(c => {
@@ -694,6 +696,7 @@ export default function CanaisPage() {
         const updated: Canal = {
           ...c, label: resolvedLabel.trim() || c.label, labels,
           pageType: isLeaf ? pageType : c.pageType,
+          listaAgrupadaStyle: isLeaf && pageType === 'lista-agrupada' ? listaAgrupadaStyle : c.listaAgrupadaStyle,
           listaAgrupadaCategories: isLeaf && pageType === 'lista-agrupada'
             ? [...new Set(laCategories.map(cat => cat.trim()).filter(Boolean))]
             : c.listaAgrupadaCategories,
@@ -720,7 +723,7 @@ export default function CanaisPage() {
       id: newId, label, labels: newCanalForm.titles, enabled: !newCanalForm.draft, children: [],
       ...(isLeaf ? { pageType: newCanalForm.pageType, href: `/${newId}.html` } : {}),
       ...(isLeaf && newCanalForm.pageType === 'lista-agrupada'
-        ? { listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
+        ? { listaAgrupadaStyle: newCanalForm.laStyle, listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
       ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
     };
     mutate(prev => [...prev, c]);
@@ -1626,6 +1629,18 @@ export default function CanaisPage() {
                 />
                 {canalEditModal.pageType === 'lista-agrupada' && (
                   <>
+                    <div className="canais-edit-divider" />
+                    <p className="ct-la-sub-title">Estilo de agrupamento</p>
+                    <div className="canais-agrupada-grid">
+                      {(['accordion', 'secao'] as const).map(s => (
+                        <button key={s} type="button"
+                          className={`canais-agrupada-opt${canalEditModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
+                          onClick={() => setCanalEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
+                        >
+                          <span>{s === 'accordion' ? 'Accordion' : 'Seção'}</span>
+                        </button>
+                      ))}
+                    </div>
                     <div className="canais-edit-divider" />
                     <p className="ct-la-sub-title">
                       <span>Grupos <span className="ct-required">*</span></span>

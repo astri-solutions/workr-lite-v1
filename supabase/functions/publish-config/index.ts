@@ -79,8 +79,8 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
-interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; children?: SubCanalCfg[]; }
-interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; }
+interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; children?: SubCanalCfg[]; }
+interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; }
 
 /** Resolves a legal link's custom pageId to the matching canal's real href. */
 function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | undefined {
@@ -232,6 +232,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         ...(c.labels ? [`labels: ${JSON.stringify(c.labels)}`] : []),
         `href: ${JSON.stringify(c.href ?? '/')}`,
         ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+        ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
         `children: []`,
       ];
       return `    { ${fields.join(', ')} }`;
@@ -243,6 +244,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         ...(sc.labels ? [`labels: ${JSON.stringify(sc.labels)}`] : []),
         `href: ${JSON.stringify(sc.href)}`,
         ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
+        ...(sc.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(sc.listaAgrupadaStyle)}`] : []),
       ];
       return `      { ${f.join(', ')} }`;
     }).join(',\n');
@@ -252,6 +254,7 @@ function buildNavSection(canais: CanalCfg[]): string {
       ...(c.labels ? [`labels: ${JSON.stringify(c.labels)}`] : []),
       ...(c.href ? [`href: ${JSON.stringify(c.href)}`] : []),
       ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+      ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
     ];
     return `    { ${parentFields.join(', ')}, children: [\n${childLines},\n    ] }`;
   }).join(',\n');
