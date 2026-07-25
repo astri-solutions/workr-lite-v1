@@ -395,8 +395,10 @@ export default function EmpresasPage() {
                   value={form.cvmCodigo}
                   onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
                 />
-                {!form.cvmCodigo.trim() && (
+                {!form.cvmCodigo.trim() ? (
                   <span className="emp-form__error-hint">Obrigatório quando o Auto CVM está ativado.</span>
+                ) : (
+                  <span className="emp-form__field-hint">Apenas os números do registro na CVM — sem o dígito verificador do ticker (ex: 23574, não 23574-6).</span>
                 )}
               </label>
             </>
