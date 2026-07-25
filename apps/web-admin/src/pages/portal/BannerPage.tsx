@@ -276,7 +276,7 @@ export default function BannerPage() {
                 <polyline points="21 15 16 10 5 21" />
               </svg>
               <span className="logo-dropzone__text">Enviar imagem do banner</span>
-              <span className="logo-dropzone__hint">JPG, PNG ou WebP — 1920×600px recomendado</span>
+              <span className="logo-dropzone__hint">JPG, PNG ou WebP — 1920×1080px recomendado</span>
             </button>
           )}
 
@@ -373,9 +373,9 @@ export default function BannerPage() {
           title="Recortar imagem do banner"
           hint="Ajuste a área que será usada — o banner ocupa toda a largura da tela, então enquadre o que deve ficar visível também nas bordas."
           frameWidth={480}
-          frameHeight={180}
+          frameHeight={270}
           outputWidth={1920}
-          outputHeight={720}
+          outputHeight={1080}
         />
       )}
 

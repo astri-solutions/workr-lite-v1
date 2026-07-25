@@ -235,25 +235,63 @@ const FILE_EXT_BY_CONTENT_TYPE: Record<string, string> = {
   'application/zip': 'zip',
 };
 
-// CVM's Link_Download sometimes points straight at a real file, but for many
-// filing types it's actually an HTML viewer page (RAD/ENET) that would need
-// further scraping to reach the real document — in that case we keep the
-// external link instead of storing an HTML page as if it were the file.
-async function downloadCvmFile(url: string): Promise<{ bytes: Uint8Array; ext: string; contentType: string } | null> {
-  if (!url) return null;
+// Every CVM filing is, in fact, a real document — nothing is published as a
+// genuine "external link only". Link_Download sometimes points straight at
+// the raw file, but for many categories it's an HTML viewer page (RAD/ENET)
+// that embeds the actual document (iframe/frame src, or a
+// frmDownloadDocumento.aspx-style link) rather than serving it directly —
+// in that case we scrape the page for that real URL and fetch it instead of
+// giving up. Only falls back to storing the CVM link as-is if no such
+// pattern is found or the follow-up fetch also isn't a real file.
+async function downloadCvmFile(url: string, depth = 0): Promise<{ bytes: Uint8Array; ext: string; contentType: string } | null> {
+  if (!url || depth > 2) return null;
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
     const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!contentType || contentType.startsWith('text/html')) return null;
-    const ext = FILE_EXT_BY_CONTENT_TYPE[contentType] ?? (url.match(/\.([a-z0-9]{2,4})(?:\?.*)?$/i)?.[1]?.toLowerCase());
-    if (!ext) return null;
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (bytes.length === 0) return null;
-    return { bytes, ext, contentType };
+    if (contentType && !contentType.startsWith('text/html')) {
+      const ext = FILE_EXT_BY_CONTENT_TYPE[contentType] ?? (url.match(/\.([a-z0-9]{2,4})(?:\?.*)?$/i)?.[1]?.toLowerCase());
+      if (!ext) return null;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.length === 0) return null;
+      return { bytes, ext, contentType };
+    }
+    // HTML viewer page — look for the real document inside it.
+    const html = await res.text();
+    const realUrl = extractRealDocUrl(html, url);
+    if (!realUrl || realUrl === url) return null;
+    return await downloadCvmFile(realUrl, depth + 1);
   } catch {
     return null;
   }
+}
+
+// Best-effort scrape of CVM's RAD/ENET viewer HTML for the actual document
+// URL. These viewer pages consistently embed the document in an
+// <iframe>/<frame src="...">, and the ENET pattern specifically routes the
+// real file through frmDownloadDocumento.aspx (or frmExibicaoDocumento.aspx,
+// which itself frames a frmDownloadDocumento.aspx call) — so both a direct
+// file link and a frame src pointing at either of those are treated as the
+// real target. Falls back to any src ending in a known document extension.
+function extractRealDocUrl(html: string, baseUrl: string): string | null {
+  const candidates: string[] = [];
+
+  const frameMatches = html.matchAll(/<(?:i?frame)[^>]+src=["']([^"']+)["']/gi);
+  for (const m of frameMatches) candidates.push(m[1]);
+
+  const linkMatches = html.matchAll(/href=["']([^"']*frmDownloadDocumento\.aspx[^"']*)["']/gi);
+  for (const m of linkMatches) candidates.push(m[1]);
+
+  const extMatches = html.matchAll(/["'](https?:\/\/[^"']+\.(?:pdf|docx?|xlsx?|pptx?|zip)(?:\?[^"']*)?)["']/gi);
+  for (const m of extMatches) candidates.push(m[1]);
+
+  for (const raw of candidates) {
+    try {
+      const resolved = new URL(raw.replace(/&amp;/g, '&'), baseUrl).toString();
+      if (resolved !== baseUrl) return resolved;
+    } catch { /* malformed URL — skip */ }
+  }
+  return null;
 }
 
 // dd/mm/yyyy (or yyyy-mm-dd, just in case) → ISO timestamp. Never falls back
@@ -471,11 +509,12 @@ Deno.serve(async (req) => {
           uploadFailed++;
         }
       } else if (row.linkDownload) {
-        // CVM's Link_Download pointed at an HTML viewer page (or an
-        // unrecognized/missing content-type) rather than a raw file —
-        // expected for most modern filing categories, not an error, but
-        // worth surfacing distinctly from a genuine upload failure so an
-        // admin isn't left guessing why a document still shows as a link.
+        // downloadCvmFile already tried scraping the viewer page for the
+        // real document and following it — every CVM filing is a real
+        // document, so landing here means the scrape heuristic didn't
+        // recognize this page's layout, not that no file exists. Surfaced
+        // distinctly from a genuine upload failure so an admin isn't left
+        // guessing why a document still shows as a link.
         viewerPageOnly++;
       }
 
@@ -536,7 +575,7 @@ Deno.serve(async (req) => {
         ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) sem categoria informada pela CVM.`] : []),
         ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
         ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
-        ...(viewerPageOnly > 0 ? [`${viewerPageOnly} documento(s) importados como link externo — a CVM só disponibiliza uma página de visualização para essas categorias, não o arquivo bruto.`] : []),
+        ...(viewerPageOnly > 0 ? [`${viewerPageOnly} documento(s) importados como link externo — não foi possível localizar o arquivo real na página de visualização da CVM para essas categorias.`] : []),
         ...(uploadFailed > 0 ? [`${uploadFailed} documento(s) tiveram o arquivo baixado mas falharam ao salvar no armazenamento — importados como link externo.`] : []),
         ...(canaisWriteConflict ? [`A árvore de canais foi editada em paralelo — a promoção automática para lista agrupada não foi aplicada nesta sincronização. Rode novamente.`] : []),
       ],
