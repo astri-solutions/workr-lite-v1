@@ -406,6 +406,10 @@
   border-bottom: 1px solid var(--color-gray-100);
 }
 
+.painel-card__body {
+  padding: var(--space-4) var(--space-5);
+}
+
 /* ─── Essenciais ─────────────────────────────────────── */
 .painel-essenciais > .painel-card__title {
   padding: var(--space-4) var(--space-5);

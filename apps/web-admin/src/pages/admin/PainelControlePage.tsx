@@ -692,33 +692,35 @@ export default function PainelControlePage() {
             <div className="painel-card__header-row">
               <div className="painel-card__title">Atendimento</div>
             </div>
-            <p className="painel-recursos__hint" style={{ marginBottom: 'var(--space-3)' }}>
-              Astri responsável pelo suporte deste portal — aparece no Dashboard do cliente com um link para a página Atendimento.
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
-              <select
-                className="filter-select"
-                style={{ flex: '1 1 220px' }}
-                value={suporteSelected}
-                onChange={e => setSuporteSelected(e.target.value)}
-              >
-                <option value="">Nenhum responsável definido</option>
-                {suporteOptions.map(o => (
-                  <option key={o.id} value={o.id}>{o.nome} — {o.email}</option>
-                ))}
-              </select>
-              <button
-                className="btn-primary"
-                type="button"
-                disabled={savingSuporte || suporteSelected === (site.suporteUserId ?? '')}
-                onClick={handleSalvarSuporte}
-                style={{ fontSize: '13px' }}
-              >
-                {savingSuporte ? 'Salvando…' : 'Salvar'}
-              </button>
+            <div className="painel-card__body">
+              <p className="painel-recursos__hint" style={{ marginBottom: 'var(--space-3)' }}>
+                Astri responsável pelo suporte deste portal — aparece no Dashboard do cliente com um link para a página Atendimento.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+                <select
+                  className="filter-select"
+                  style={{ flex: '1 1 220px' }}
+                  value={suporteSelected}
+                  onChange={e => setSuporteSelected(e.target.value)}
+                >
+                  <option value="">Nenhum responsável definido</option>
+                  {suporteOptions.map(o => (
+                    <option key={o.id} value={o.id}>{o.nome} — {o.email}</option>
+                  ))}
+                </select>
+                <button
+                  className="btn-primary"
+                  type="button"
+                  disabled={savingSuporte || suporteSelected === (site.suporteUserId ?? '')}
+                  onClick={handleSalvarSuporte}
+                  style={{ fontSize: '13px' }}
+                >
+                  {savingSuporte ? 'Salvando…' : 'Salvar'}
+                </button>
+              </div>
+              {suporteSaved && <p style={{ color: 'var(--color-success-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>✓ Atendimento atualizado</p>}
+              {suporteError && <p style={{ color: 'var(--color-error-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>{suporteError}</p>}
             </div>
-            {suporteSaved && <p style={{ color: 'var(--color-success-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>✓ Atendimento atualizado</p>}
-            {suporteError && <p style={{ color: 'var(--color-error-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>{suporteError}</p>}
           </div>
 
         </div>

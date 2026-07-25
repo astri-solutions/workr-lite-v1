@@ -143,62 +143,86 @@
 }
 
 /* Fixed, non-inverting colors on purpose: this is a physical switch, not
-   a themed surface. Using the neutral --color-gray/--color-white tokens
-   here would have the track and knob invert together in dark mode and
-   collapse to near-identical near-black values, failing contrast. */
+   a themed surface — the track itself goes white→black to represent
+   day→night, independent of whatever theme is currently active. The sun
+   and moon glyphs stay in fixed slots (left/right); the blue knob slides
+   underneath and behind whichever one is "on", which is what makes that
+   glyph read as sitting inside the knob while the other stays a plain
+   muted icon in the track. */
 .admin-topbar__theme-toggle {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 44px;
-  height: 24px;
-  padding: 0 5px;
-  background-color: #6B6B6B;
-  border: none;
+  justify-content: space-between;
+  width: 52px;
+  height: 28px;
+  padding: 0 3px;
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-full);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.35s ease, border-color 0.35s ease;
   flex-shrink: 0;
 }
 
 .admin-topbar__theme-toggle[aria-checked="true"] {
-  background-color: var(--color-primary-500);
+  background-color: #18181B;
+  border-color: #2E2E33;
 }
 
 .admin-topbar__theme-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
-  color: #FFFFFF;
-  z-index: 1;
+  width: 22px;
+  height: 22px;
+  z-index: 2;
+  color: var(--color-gray-300);
+  transition: color 0.35s ease, transform 0.35s ease;
 }
 
-.admin-topbar__theme-icon--sun { color: var(--color-warning-400); transition: color 0.2s; }
-.admin-topbar__theme-icon--moon { color: #FFFFFF; margin-left: auto; }
-
-/* Once dark mode is active, the sun represents the inactive side of the
-   switch — dim it to a plain dark tone instead of leaving it a bright,
-   attention-grabbing orange. */
+/* The glyph currently covered by the knob renders white on top of it;
+   the other one sits bare in the track and just needs enough contrast
+   against that track's current color (white track / black track). */
+.admin-topbar__theme-toggle:not([aria-checked="true"]) .admin-topbar__theme-icon--sun {
+  color: #FFFFFF;
+  transform: rotate(0deg);
+}
+.admin-topbar__theme-toggle:not([aria-checked="true"]) .admin-topbar__theme-icon--moon {
+  color: var(--color-gray-300);
+}
 .admin-topbar__theme-toggle[aria-checked="true"] .admin-topbar__theme-icon--sun {
-  color: rgba(0, 0, 0, 0.45);
+  color: #55555C;
+}
+.admin-topbar__theme-toggle[aria-checked="true"] .admin-topbar__theme-icon--moon {
+  color: #FFFFFF;
+  transform: rotate(-14deg);
 }
 
 .admin-topbar__theme-knob {
   position: absolute;
   top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background-color: #FFFFFF;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background-color: var(--color-primary-500);
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-  transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  z-index: 1;
+  transition: transform 0.4s cubic-bezier(0.34, 1.35, 0.64, 1);
 }
 
 .admin-topbar__theme-toggle[aria-checked="true"] .admin-topbar__theme-knob {
-  transform: translateX(20px);
+  transform: translateX(23px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-topbar__theme-toggle,
+  .admin-topbar__theme-icon,
+  .admin-topbar__theme-knob {
+    transition: none;
+  }
 }
 
 .admin-topbar__alert-btn {

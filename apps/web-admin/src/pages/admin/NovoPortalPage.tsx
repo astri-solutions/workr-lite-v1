@@ -1537,7 +1537,13 @@ export default function NovoPortalPage() {
                       portalId: provisionedUuid ?? newPortal.id,
                       portalKey: newPortal.id,
                       role: 'admin',
-                      resend: true,
+                      // resend is intentionally omitted here: if this e-mail
+                      // already has an account, invite-portal-user just merges
+                      // portalIds and grants access silently, keeping the
+                      // user's existing password — sending a "defina sua
+                      // senha" link would be misleading for someone who
+                      // already has one. Only a genuinely new e-mail gets
+                      // the real invite link (that branch always e-mails).
                       empresas: [`principal-${newPortal.id}`],
                       redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
                     }),
