@@ -15,6 +15,41 @@ function resolveServiceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 }
 
+// The GoTrue Admin API (auth.admin.*) has been observed intermittently
+// rejecting whichever of the two candidate service keys resolveServiceKey()
+// picked first, with this same "unrecognized JWT kid" error — while the
+// other candidate works fine for that same call moments later. Rather than
+// surface that raw auth error to the user, adminCall() below tries every
+// candidate key in order and only gives up if all of them fail.
+function serviceKeyCandidates(): string[] {
+  const out: string[] = [];
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    if (keys?.default) out.push(keys.default);
+  } catch { /* not JSON or unset */ }
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy && !out.includes(legacy)) out.push(legacy);
+  return out;
+}
+
+function isJwtKeyError(err: { message?: string } | null): boolean {
+  return !!err?.message && /unrecognized JWT kid|invalid JWT/i.test(err.message);
+}
+
+async function adminCall<T>(
+  supabaseUrl: string,
+  run: (client: ReturnType<typeof createClient>) => Promise<{ data: T; error: { message: string } | null }>
+): Promise<{ data: T; error: { message: string } | null }> {
+  const candidates = serviceKeyCandidates();
+  let last: { data: T; error: { message: string } | null } | null = null;
+  for (const key of candidates) {
+    const result = await run(createClient(supabaseUrl, key));
+    if (!result.error || !isJwtKeyError(result.error)) return result;
+    last = result;
+  }
+  return last!;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -69,8 +104,9 @@ Deno.serve(async (req) => {
     }
 
     // Use service_role client to invite the user
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      supabaseUrl,
       resolveServiceKey(),
     );
 
@@ -83,11 +119,11 @@ Deno.serve(async (req) => {
     // Generate the invite link ourselves so we can send it via Postmark —
     // Supabase's built-in inviteUserByEmail relies on the project's own SMTP
     // config (rate-limited / often unconfigured) and ignores POSTMARK_FROM.
-    const { data, error } = await adminClient.auth.admin.generateLink({
+    const { data, error } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
       type: 'invite',
       email,
       options: { data: { name: nome ?? '' }, redirectTo: resolvedRedirectTo },
-    });
+    }));
 
     if (error || !data?.user) {
       return new Response(JSON.stringify({ error: error?.message ?? 'Failed to generate invite link' }), {
@@ -136,9 +172,9 @@ Deno.serve(async (req) => {
     // UUIDs — the portal_users RLS policy reads auth.jwt() -> app_metadata ->
     // 'portalIds' and matches it against portal_id (UUID). A wrong key name
     // or portal_key values here make the RLS silently return zero rows.
-    const { error: metaErr } = await adminClient.auth.admin.updateUserById(userId, {
+    const { error: metaErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId, {
       app_metadata: { role: resolvedRole, portalIds: resolvedUuids },
-    });
+    }));
     if (metaErr) {
       return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${metaErr.message}` }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -158,10 +194,10 @@ Deno.serve(async (req) => {
         });
       }
     } else {
-      await adminClient.auth.admin.inviteUserByEmail(email, {
+      await adminCall(supabaseUrl, c => c.auth.admin.inviteUserByEmail(email, {
         data: { name: nome ?? '' },
         redirectTo: resolvedRedirectTo,
-      }).catch(() => { /* non-fatal */ });
+      })).catch(() => { /* non-fatal */ });
     }
 
     return new Response(JSON.stringify({ id: userId, portalLinkErrors: portalLinkErrors.length ? portalLinkErrors : undefined }), {

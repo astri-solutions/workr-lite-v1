@@ -6,12 +6,39 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
 // holds the new opaque sb_secret_... key that sidesteps this entirely.
 // Falls back to the legacy key if the new one is not configured yet.
-function resolveServiceKey(): string {
+// The GoTrue Admin API (auth.admin.*) has been observed intermittently
+// rejecting whichever of the two candidate service keys resolveServiceKey()
+// picked first, with this same "unrecognized JWT kid" error — while the
+// other candidate works fine for that same call moments later. Rather than
+// surface that raw auth error to the user, adminCall() below tries every
+// candidate key in order and only gives up if all of them fail.
+function serviceKeyCandidates(): string[] {
+  const out: string[] = [];
   try {
-    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
-    if (keys?.default) return keys.default;
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    if (keys?.default) out.push(keys.default);
   } catch { /* not JSON or unset */ }
-  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy && !out.includes(legacy)) out.push(legacy);
+  return out;
+}
+
+function isJwtKeyError(err: { message?: string } | null): boolean {
+  return !!err?.message && /unrecognized JWT kid|invalid JWT/i.test(err.message);
+}
+
+async function adminCall<T>(
+  supabaseUrl: string,
+  run: (client: ReturnType<typeof createClient>) => Promise<{ data: T; error: { message: string } | null }>
+): Promise<{ data: T; error: { message: string } | null }> {
+  const candidates = serviceKeyCandidates();
+  let last: { data: T; error: { message: string } | null } | null = null;
+  for (const key of candidates) {
+    const result = await run(createClient(supabaseUrl, key));
+    if (!result.error || !isJwtKeyError(result.error)) return result;
+    last = result;
+  }
+  return last!;
 }
 
 const corsHeaders = {
@@ -66,13 +93,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      resolveServiceKey(),
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 
     if (action === 'delete') {
-      const { error } = await adminClient.auth.admin.deleteUser(userId);
+      const { error } = await adminCall(supabaseUrl, c => c.auth.admin.deleteUser(userId));
       if (error) throw error;
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,9 +104,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'ban') {
-      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+      const { error } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId, {
         ban_duration: '876000h',
-      });
+      }));
       if (error) throw error;
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -90,9 +114,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'unban') {
-      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+      const { error } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId, {
         ban_duration: 'none',
-      });
+      }));
       if (error) throw error;
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -103,9 +127,9 @@ Deno.serve(async (req) => {
       const updates: Record<string, unknown> = {};
       if (body.role !== undefined) updates.role = body.role;
       if (body.portais !== undefined) updates.portais = body.portais;
-      const { error } = await adminClient.auth.admin.updateUserById(userId, {
+      const { error } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId, {
         app_metadata: updates,
-      });
+      }));
       if (error) throw error;
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

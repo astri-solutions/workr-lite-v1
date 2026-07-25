@@ -15,6 +15,41 @@ function resolveServiceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 }
 
+// The GoTrue Admin API (auth.admin.*) has been observed intermittently
+// rejecting whichever of the two candidate service keys resolveServiceKey()
+// picked first, with this same "unrecognized JWT kid" error — while the
+// other candidate works fine for that same call moments later. Rather than
+// surface that raw auth error to the user, adminCall() below tries every
+// candidate key in order and only gives up if all of them fail.
+function serviceKeyCandidates(): string[] {
+  const out: string[] = [];
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    if (keys?.default) out.push(keys.default);
+  } catch { /* not JSON or unset */ }
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy && !out.includes(legacy)) out.push(legacy);
+  return out;
+}
+
+function isJwtKeyError(err: { message?: string } | null): boolean {
+  return !!err?.message && /unrecognized JWT kid|invalid JWT/i.test(err.message);
+}
+
+async function adminCall<T>(
+  supabaseUrl: string,
+  run: (client: ReturnType<typeof createClient>) => Promise<{ data: T; error: { message: string } | null }>
+): Promise<{ data: T; error: { message: string } | null }> {
+  const candidates = serviceKeyCandidates();
+  let last: { data: T; error: { message: string } | null } | null = null;
+  for (const key of candidates) {
+    const result = await run(createClient(supabaseUrl, key));
+    if (!result.error || !isJwtKeyError(result.error)) return result;
+    last = result;
+  }
+  return last!;
+}
+
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
   'http://localhost:5173',
@@ -35,11 +70,11 @@ function corsHeaders(origin: string | null) {
 // new") is what produced a duplicate/ghost account for an already-existing
 // user in a real past incident. Paginated so accounts beyond the first 1000
 // are never invisible to the existing-user check either.
-async function listAllUsers(adminClient: ReturnType<typeof createClient>) {
+async function listAllUsers(supabaseUrl: string) {
   const perPage = 1000;
   const all: { id: string; email?: string; app_metadata?: Record<string, unknown> }[] = [];
   for (let page = 1; page <= 20; page++) {
-    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    const { data, error } = await adminCall(supabaseUrl, c => c.auth.admin.listUsers({ page, perPage }));
     if (error) return { users: null, error };
     all.push(...data.users);
     if (data.users.length < perPage) break;
@@ -168,7 +203,7 @@ Deno.serve(async (req) => {
     // lookup must abort here — falling through to "treat as new user" is
     // exactly how a duplicate/ghost account gets created for an email that
     // already has a real one.
-    const { users: existingUsers, error: listErr } = await listAllUsers(adminClient);
+    const { users: existingUsers, error: listErr } = await listAllUsers(supabaseUrl);
     if (listErr || !existingUsers) {
       return new Response(JSON.stringify({ error: `Falha ao verificar usuários existentes: ${listErr?.message ?? 'erro desconhecido'}` }), {
         status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
@@ -181,9 +216,9 @@ Deno.serve(async (req) => {
       const existingIds: string[] = (existingUser.app_metadata?.portalIds as string[] | undefined) ?? [];
       const newId = dbUuid ?? portalId;
       const merged = newId && !existingIds.includes(newId) ? [...existingIds, newId] : existingIds;
-      const { error: updErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+      const { error: updErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(existingUser.id, {
         app_metadata: { role: 'client_user', portalIds: merged },
-      });
+      }));
       if (updErr) {
         return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${updErr.message}` }), {
           status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
@@ -199,11 +234,11 @@ Deno.serve(async (req) => {
       if (resend) {
         // Re-send invite email via a new magic link (recovery link acts as login)
         const inviteRedirectTo2 = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
-        const { data: linkData2, error: linkError2 } = await adminClient.auth.admin.generateLink({
+        const { data: linkData2, error: linkError2 } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
           type: 'recovery',
           email,
           options: { redirectTo: inviteRedirectTo2 },
-        });
+        }));
         if (!linkError2 && linkData2?.properties?.action_link) {
           let portalNome2: string | undefined;
           if (dbUuid) {
@@ -230,11 +265,11 @@ Deno.serve(async (req) => {
 
     // New user — generate invite link (creates auth record, no Supabase email sent)
     const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+    const { data: linkData, error: linkError } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
       type: 'invite',
       email,
       options: { data: { name: nome ?? '' }, redirectTo: inviteRedirectTo },
-    });
+    }));
 
     if (linkError || !linkData?.user) {
       return new Response(JSON.stringify({ error: linkError?.message ?? 'Failed to generate invite link' }), {
@@ -247,7 +282,7 @@ Deno.serve(async (req) => {
     // Set app_metadata + portal_users
     const appMeta: Record<string, unknown> = { role: 'client_user' };
     if (portalId) appMeta.portalIds = dbUuid ? [dbUuid] : [portalId];
-    const { error: newUserUpdErr } = await adminClient.auth.admin.updateUserById(userId, { app_metadata: appMeta });
+    const { error: newUserUpdErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId!, { app_metadata: appMeta }));
     if (newUserUpdErr) {
       return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${newUserUpdErr.message}` }), {
         status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
@@ -285,10 +320,10 @@ Deno.serve(async (req) => {
       }
     } else {
       // No Postmark configured — fall back to Supabase invite email (may hit rate limit)
-      await adminClient.auth.admin.inviteUserByEmail(email, {
+      await adminCall(supabaseUrl, c => c.auth.admin.inviteUserByEmail(email, {
         data: { name: nome ?? '' },
         redirectTo: inviteRedirectTo,
-      }).catch(() => { /* non-fatal */ });
+      })).catch(() => { /* non-fatal */ });
     }
 
     return new Response(JSON.stringify({ id: userId }), {

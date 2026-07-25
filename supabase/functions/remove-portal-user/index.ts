@@ -14,6 +14,41 @@ function resolveServiceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 }
 
+// The GoTrue Admin API (auth.admin.*) has been observed intermittently
+// rejecting whichever of the two candidate service keys resolveServiceKey()
+// picked first, with this same "unrecognized JWT kid" error — while the
+// other candidate works fine for that same call moments later. Rather than
+// surface that raw auth error to the user, adminCall() below tries every
+// candidate key in order and only gives up if all of them fail.
+function serviceKeyCandidates(): string[] {
+  const out: string[] = [];
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    if (keys?.default) out.push(keys.default);
+  } catch { /* not JSON or unset */ }
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy && !out.includes(legacy)) out.push(legacy);
+  return out;
+}
+
+function isJwtKeyError(err: { message?: string } | null): boolean {
+  return !!err?.message && /unrecognized JWT kid|invalid JWT/i.test(err.message);
+}
+
+async function adminCall<T>(
+  supabaseUrl: string,
+  run: (client: ReturnType<typeof createClient>) => Promise<{ data: T; error: { message: string } | null }>
+): Promise<{ data: T; error: { message: string } | null }> {
+  const candidates = serviceKeyCandidates();
+  let last: { data: T; error: { message: string } | null } | null = null;
+  for (const key of candidates) {
+    const result = await run(createClient(supabaseUrl, key));
+    if (!result.error || !isJwtKeyError(result.error)) return result;
+    last = result;
+  }
+  return last!;
+}
+
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
   'http://localhost:5173',
@@ -116,7 +151,7 @@ Deno.serve(async (req) => {
     let accountDeleted = false;
     let accountDeleteError: string | undefined;
     if (!remaining || remaining.length === 0) {
-      const { error: delUserError } = await adminClient.auth.admin.deleteUser(target.user_id as string);
+      const { error: delUserError } = await adminCall(supabaseUrl, c => c.auth.admin.deleteUser(target.user_id as string));
       if (!delUserError) accountDeleted = true;
       else accountDeleteError = delUserError.message;
     }

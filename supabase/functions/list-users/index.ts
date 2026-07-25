@@ -14,6 +14,41 @@ function resolveServiceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 }
 
+// The GoTrue Admin API (auth.admin.*) has been observed intermittently
+// rejecting whichever of the two candidate service keys resolveServiceKey()
+// picked first, with this same "unrecognized JWT kid" error — while the
+// other candidate works fine for that same call moments later. Rather than
+// surface that raw auth error to the user, adminCall() below tries every
+// candidate key in order and only gives up if all of them fail.
+function serviceKeyCandidates(): string[] {
+  const out: string[] = [];
+  try {
+    const keys = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}');
+    if (keys?.default) out.push(keys.default);
+  } catch { /* not JSON or unset */ }
+  const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (legacy && !out.includes(legacy)) out.push(legacy);
+  return out;
+}
+
+function isJwtKeyError(err: { message?: string } | null): boolean {
+  return !!err?.message && /unrecognized JWT kid|invalid JWT/i.test(err.message);
+}
+
+async function adminCall<T>(
+  supabaseUrl: string,
+  run: (client: ReturnType<typeof createClient>) => Promise<{ data: T; error: { message: string } | null }>
+): Promise<{ data: T; error: { message: string } | null }> {
+  const candidates = serviceKeyCandidates();
+  let last: { data: T; error: { message: string } | null } | null = null;
+  for (const key of candidates) {
+    const result = await run(createClient(supabaseUrl, key));
+    if (!result.error || !isJwtKeyError(result.error)) return result;
+    last = result;
+  }
+  return last!;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -52,8 +87,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      supabaseUrl,
       resolveServiceKey(),
     );
 
@@ -61,7 +97,7 @@ Deno.serve(async (req) => {
     // the first 1000 once the project grows past that.
     const fetchedUsers: { id: string; email?: string; app_metadata?: Record<string, unknown>; user_metadata?: Record<string, unknown>; banned_until?: string | null }[] = [];
     for (let page = 1; page <= 20; page++) {
-      const { data: pageData, error } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
+      const { data: pageData, error } = await adminCall(supabaseUrl, c => c.auth.admin.listUsers({ page, perPage: 1000 }));
       if (error) throw error;
       fetchedUsers.push(...pageData.users);
       if (pageData.users.length < 1000) break;
