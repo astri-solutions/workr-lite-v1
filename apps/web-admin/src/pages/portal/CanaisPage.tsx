@@ -10,6 +10,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { loadMaterias, persistMateria } from '../../hooks/useMateriasStore';
 import { loadCvmRoutedPageIds } from '../../services/cvm.service';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
@@ -346,6 +348,15 @@ interface ConfirmDeleteState {
   canalId: string;
   subId?: string;
   subSubId?: string;
+  // Linked-content check (populated async after the modal opens)
+  checking: boolean;
+  affectedIds: string[]; // this node's id + every descendant's id
+  hasTabelaResultados: boolean;
+  cvmDocsCount: number;
+  otherDocsCount: number;
+  materiasCount: number;
+  resultadosPublicadosCount: number;
+  transferTo: string;
 }
 
 function orderKey(list: Canal[]): string {
@@ -365,6 +376,11 @@ export default function CanaisPage() {
   useEffect(() => {
     if (!activePortalId) return;
     loadCvmRoutedPageIds(activePortalId).then(setCvmPageIds).catch(() => {});
+  }, [activePortalId]);
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!activePortalId) return;
+    resolvePortalId(activePortalId).then(setPortalDbId).catch(() => setPortalDbId(null));
   }, [activePortalId]);
   const portalEmpresas = loadPortalEmpresas(activePortalId);
   const hasMultipleEmpresas = portalEmpresas.length > 1;
@@ -580,11 +596,159 @@ export default function CanaisPage() {
   }
 
   // ── Delete with confirmation ───────────────────────────────────────────
-  function openConfirmDelete(state: ConfirmDeleteState) {
-    setConfirmDelete(state);
+  // Flat list of every leaf/parent node id + its own pageType, across all
+  // three levels — this is the same id scheme portal_documents.pagina_ids
+  // and portal_materias.page_id store, unlike the composite ids `allPages`
+  // (above) uses for the edit-modal transfer picker.
+  function flatNodeList(): Array<{ id: string; label: string; pageType?: PageType }> {
+    const out: Array<{ id: string; label: string; pageType?: PageType }> = [];
+    for (const c of canais) {
+      out.push({ id: c.id, label: c.label, pageType: c.pageType });
+      for (const s of c.children) {
+        out.push({ id: s.id, label: `${c.label} → ${s.label}`, pageType: s.pageType });
+        for (const ss of s.children ?? []) {
+          out.push({ id: ss.id, label: `${c.label} → ${s.label} → ${ss.label}`, pageType: ss.pageType });
+        }
+      }
+    }
+    return out;
   }
-  function doDelete() {
+  function collectAffectedIds(state: ConfirmDeleteState): string[] {
+    if (state.type === 'canal') {
+      const canal = canais.find(c => c.id === state.canalId);
+      if (!canal) return [state.canalId];
+      const ids = [canal.id];
+      for (const s of canal.children) {
+        ids.push(s.id);
+        for (const ss of s.children ?? []) ids.push(ss.id);
+      }
+      return ids;
+    }
+    if (state.type === 'sub') {
+      const canal = canais.find(c => c.id === state.canalId);
+      const sub = canal?.children.find(s => s.id === state.subId);
+      const ids = [state.subId!];
+      for (const ss of sub?.children ?? []) ids.push(ss.id);
+      return ids;
+    }
+    return [state.subSubId!];
+  }
+
+  async function openConfirmDelete(base: Pick<ConfirmDeleteState, 'type' | 'label' | 'canalId' | 'subId' | 'subSubId'>) {
+    const initial: ConfirmDeleteState = {
+      ...base,
+      checking: true,
+      affectedIds: [],
+      hasTabelaResultados: false,
+      cvmDocsCount: 0,
+      otherDocsCount: 0,
+      materiasCount: 0,
+      resultadosPublicadosCount: 0,
+      transferTo: '',
+    };
+    setConfirmDelete(initial);
+    const affectedIds = collectAffectedIds(initial);
+    const nodes = flatNodeList();
+    const hasTabelaResultados = affectedIds.some(id => nodes.find(n => n.id === id)?.pageType === 'tabela-resultados');
+
+    if (!portalDbId || !isSupabaseConfigured || !supabase) {
+      setConfirmDelete(prev => prev && prev === initial ? { ...prev, checking: false, affectedIds, hasTabelaResultados } : prev);
+      return;
+    }
+    try {
+      const [{ data: docs }, { data: materias }, resultadosRes] = await Promise.all([
+        supabase.from('portal_documents').select('id, from_cvm, pagina_ids').eq('portal_id', portalDbId).overlaps('pagina_ids', affectedIds),
+        supabase.from('portal_materias').select('id', { count: 'exact', head: false }).eq('portal_id', portalDbId).in('page_id', affectedIds),
+        hasTabelaResultados
+          ? supabase.from('portal_resultado_periodos').select('id', { count: 'exact', head: true }).eq('portal_id', portalDbId).eq('status', 'Publicado')
+          : Promise.resolve({ count: 0 }),
+      ]);
+      const cvmDocsCount = (docs ?? []).filter(d => d.from_cvm).length;
+      const otherDocsCount = (docs ?? []).length - cvmDocsCount;
+      setConfirmDelete(prev => prev && prev.canalId === initial.canalId && prev.subId === initial.subId && prev.subSubId === initial.subSubId ? {
+        ...prev,
+        checking: false,
+        affectedIds,
+        hasTabelaResultados,
+        cvmDocsCount,
+        otherDocsCount,
+        materiasCount: materias?.length ?? 0,
+        resultadosPublicadosCount: (resultadosRes as { count: number | null }).count ?? 0,
+      } : prev);
+    } catch (e) {
+      console.error(e);
+      setConfirmDelete(prev => prev ? { ...prev, checking: false, affectedIds, hasTabelaResultados } : prev);
+    }
+  }
+
+  async function handleLinkedContent(state: ConfirmDeleteState) {
+    if (!portalDbId || !isSupabaseConfigured || !supabase || state.affectedIds.length === 0) return;
+    const { affectedIds, transferTo } = state;
+
+    // Documents (CVM-imported and manual) whose pagina_ids reference a
+    // deleted page.
+    const { data: docs } = await supabase.from('portal_documents')
+      .select('id, from_cvm, pagina_ids').eq('portal_id', portalDbId).overlaps('pagina_ids', affectedIds);
+    if (docs && docs.length > 0) {
+      const cvmDocs = docs.filter(d => d.from_cvm);
+      const otherDocs = docs.filter(d => !d.from_cvm);
+
+      if (transferTo) {
+        // Transfer: swap the deleted ids for the target page id in pagina_ids.
+        await Promise.all(docs.map(d => {
+          const kept = ((d.pagina_ids as string[]) ?? []).filter(id => !affectedIds.includes(id));
+          const nextIds = kept.includes(transferTo) ? kept : [...kept, transferTo];
+          return supabase!.from('portal_documents').update({ pagina_ids: nextIds }).eq('id', d.id);
+        }));
+      } else {
+        // No transfer: CVM-imported docs are deleted outright; manually
+        // uploaded docs are unlinked (or drafted if that leaves them with
+        // no specific page, so they don't silently start showing on every
+        // page — an empty pagina_ids means "all pages" elsewhere in this app).
+        if (cvmDocs.length > 0) {
+          const paths = cvmDocs.flatMap((d: Record<string, unknown>) => {
+            const arquivos = (d.arquivos as Record<string, { filePath?: string }> | null) ?? {};
+            const fromArquivos = Object.values(arquivos).map(a => a.filePath).filter((p): p is string => !!p);
+            return fromArquivos.length > 0 ? fromArquivos : ((d.file_path as string | null) ? [d.file_path as string] : []);
+          });
+          await supabase.from('portal_documents').delete().in('id', cvmDocs.map(d => d.id));
+          if (paths.length > 0) await supabase.storage.from('portal-documents').remove(paths);
+        }
+        await Promise.all(otherDocs.map(d => {
+          const kept = ((d.pagina_ids as string[]) ?? []).filter(id => !affectedIds.includes(id));
+          return supabase!.from('portal_documents').update({
+            pagina_ids: kept,
+            ...(kept.length === 0 ? { status: 'Rascunho' } : {}),
+          }).eq('id', d.id);
+        }));
+      }
+    }
+
+    // Matérias (incl. Formulários, which reuse the same store): always drop
+    // to draft, unlinked, waiting to be reassigned to another page.
+    if (state.materiasCount > 0) {
+      await supabase.from('portal_materias')
+        .update({ page_id: null, page_label: null, status: 'rascunho' })
+        .eq('portal_id', portalDbId).in('page_id', affectedIds);
+    }
+
+    // Resultados: this page (pageType 'tabela-resultados') is the only
+    // place these render, so there's nowhere to "transfer" them to — drop
+    // to draft and flag for auto-reactivation once a new Central de
+    // Resultados page exists (handled in CentralDeResultadosPage2).
+    if (state.hasTabelaResultados && state.resultadosPublicadosCount > 0) {
+      await Promise.all([
+        supabase.from('portal_resultado_periodos')
+          .update({ status: 'Rascunho', pending_reactivation: true }).eq('portal_id', portalDbId).eq('status', 'Publicado'),
+        supabase.from('portal_resultado_arquivos')
+          .update({ status: 'Rascunho', pending_reactivation: true }).eq('portal_id', portalDbId).eq('status', 'Publicado'),
+      ]);
+    }
+  }
+
+  async function doDelete() {
     if (!confirmDelete) return;
+    await handleLinkedContent(confirmDelete);
     if (confirmDelete.type === 'canal') {
       removeCanal(confirmDelete.canalId);
     } else if (confirmDelete.type === 'sub') {
@@ -1088,6 +1252,54 @@ export default function CanaisPage() {
             {confirmDelete.type === 'sub' && (
               <p className="ct-confirm-delete__warn">
                 As sub-páginas desta página também serão removidas.
+              </p>
+            )}
+
+            {confirmDelete.checking && (
+              <p className="ct-confirm-delete__warn">Verificando conteúdo vinculado…</p>
+            )}
+
+            {!confirmDelete.checking && (confirmDelete.cvmDocsCount > 0 || confirmDelete.otherDocsCount > 0) && (
+              <div className="ct-transfer">
+                <div className="ct-transfer__warn">
+                  <span className="material-symbols-outlined ct-transfer__warn-icon">warning</span>
+                  <span>
+                    {confirmDelete.cvmDocsCount > 0 && <>{confirmDelete.cvmDocsCount} documento{confirmDelete.cvmDocsCount !== 1 ? 's' : ''} do Auto CVM</>}
+                    {confirmDelete.cvmDocsCount > 0 && confirmDelete.otherDocsCount > 0 && ' e '}
+                    {confirmDelete.otherDocsCount > 0 && <>{confirmDelete.otherDocsCount} documento{confirmDelete.otherDocsCount !== 1 ? 's' : ''} manual{confirmDelete.otherDocsCount !== 1 ? 'is' : ''}</>}
+                    {' '}{(confirmDelete.cvmDocsCount + confirmDelete.otherDocsCount) !== 1 ? 'estão' : 'está'} vinculado{(confirmDelete.cvmDocsCount + confirmDelete.otherDocsCount) !== 1 ? 's' : ''} a esta página.
+                  </span>
+                </div>
+                <p className="canais-edit-section-title" style={{ marginTop: 8 }}>Transferir documentos para outra página</p>
+                <select className="canais-edit-form__input filter-select" value={confirmDelete.transferTo}
+                  onChange={e => setConfirmDelete(m => m ? { ...m, transferTo: e.target.value } : m)}>
+                  <option value="">— Não transferir —</option>
+                  {flatNodeList().filter(p => !confirmDelete.affectedIds.includes(p.id)).map(p => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+                {!confirmDelete.transferTo && confirmDelete.cvmDocsCount > 0 && (
+                  <p className="ct-transfer__hint">
+                    Sem transferência, os {confirmDelete.cvmDocsCount} documento{confirmDelete.cvmDocsCount !== 1 ? 's' : ''} do Auto CVM {confirmDelete.cvmDocsCount !== 1 ? 'serão excluídos' : 'será excluído'} permanentemente.
+                  </p>
+                )}
+                {!confirmDelete.transferTo && confirmDelete.otherDocsCount > 0 && (
+                  <p className="ct-transfer__hint">
+                    Documentos manuais não serão excluídos — ficarão como rascunho, sem página vinculada.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {!confirmDelete.checking && confirmDelete.materiasCount > 0 && (
+              <p className="ct-confirm-delete__warn">
+                {confirmDelete.materiasCount} matéria{confirmDelete.materiasCount !== 1 ? 's' : ''} (incluindo formulários) vinculada{confirmDelete.materiasCount !== 1 ? 's' : ''} a esta página {confirmDelete.materiasCount !== 1 ? 'ficarão' : 'ficará'} como rascunho, aguardando ser vinculada a outra página.
+              </p>
+            )}
+
+            {!confirmDelete.checking && confirmDelete.hasTabelaResultados && confirmDelete.resultadosPublicadosCount > 0 && (
+              <p className="ct-confirm-delete__warn">
+                Esta é a página Central de Resultados. {confirmDelete.resultadosPublicadosCount} trimestre{confirmDelete.resultadosPublicadosCount !== 1 ? 's' : ''} publicado{confirmDelete.resultadosPublicadosCount !== 1 ? 's' : ''} {confirmDelete.resultadosPublicadosCount !== 1 ? 'ficarão' : 'ficará'} como rascunho e {confirmDelete.resultadosPublicadosCount !== 1 ? 'serão reativados' : 'será reativado'} automaticamente quando uma nova página Central de Resultados for criada.
               </p>
             )}
           </div>

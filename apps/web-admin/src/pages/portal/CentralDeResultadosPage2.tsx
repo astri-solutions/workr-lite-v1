@@ -476,6 +476,70 @@ export default function CentralDeResultadosPage2() {
   const [quarters, setQuarters] = useState<Quarter[]>([]);
   const [docs, setDocs] = useState<Record<string, FileEntry[]>>({});
 
+  // Resultados published here are a separate data source from the nav tree
+  // in Canais — they only become reachable on the live site if some canal
+  // node exists with pageType 'tabela-resultados'. If the admin deletes
+  // that page (see CanaisPage), affected periods/files get flagged
+  // pending_reactivation and drop to draft. Whenever this screen loads and
+  // finds no such page, it auto-creates one (additive-only); if it finds
+  // one AND there is pending_reactivation content, it republishes that
+  // content automatically, closing the loop the user asked for.
+  const [autoCreatedNotice, setAutoCreatedNotice] = useState<'checking' | 'ok' | 'created' | 'reactivated' | 'error'>('checking');
+  useEffect(() => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return;
+    let cancelled = false;
+    interface CanalNode { pageType?: string; children?: CanalNode[] }
+    function hasResultadosPage(nodes: CanalNode[]): boolean {
+      return nodes.some(n => n.pageType === 'tabela-resultados' || (n.children && hasResultadosPage(n.children)));
+    }
+    (async () => {
+      const { data } = await supabase!.from('portal_config').select('canais, updated_at').eq('portal_id', portalDbId).maybeSingle();
+      if (cancelled) return;
+      const canais = (data?.canais ?? []) as CanalNode[];
+
+      if (!hasResultadosPage(canais)) {
+        const newId = Math.random().toString(36).slice(2, 9);
+        const newCanal = {
+          id: newId,
+          href: `/${newId}.html`,
+          label: 'Central de Resultados',
+          labels: { [PORTAL_CONFIG.languages[0]]: 'Central de Resultados' },
+          enabled: true,
+          children: [],
+          pageType: 'tabela-resultados',
+          showInFooter: false,
+        };
+        const { error } = await supabase!
+          .from('portal_config')
+          .update({ canais: [...canais, newCanal] })
+          .eq('portal_id', portalDbId)
+          .eq('updated_at', data?.updated_at ?? '');
+        if (cancelled) return;
+        if (error) { setAutoCreatedNotice('error'); return; }
+        setAutoCreatedNotice('created');
+      } else {
+        setAutoCreatedNotice('ok');
+      }
+
+      const [{ count: pendingPeriodos }, { count: pendingArquivos }] = await Promise.all([
+        supabase!.from('portal_resultado_periodos').select('id', { count: 'exact', head: true }).eq('portal_id', portalDbId).eq('pending_reactivation', true),
+        supabase!.from('portal_resultado_arquivos').select('id', { count: 'exact', head: true }).eq('portal_id', portalDbId).eq('pending_reactivation', true),
+      ]);
+      if (cancelled) return;
+      if ((pendingPeriodos ?? 0) > 0 || (pendingArquivos ?? 0) > 0) {
+        await Promise.all([
+          supabase!.from('portal_resultado_periodos').update({ status: 'Publicado', pending_reactivation: false }).eq('portal_id', portalDbId).eq('pending_reactivation', true),
+          supabase!.from('portal_resultado_arquivos').update({ status: 'Publicado', pending_reactivation: false }).eq('portal_id', portalDbId).eq('pending_reactivation', true),
+        ]);
+        if (cancelled) return;
+        setAutoCreatedNotice('reactivated');
+        loadData();
+      }
+    })().catch(() => { if (!cancelled) setAutoCreatedNotice('error'); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [portalDbId]);
+
   const loadData = useCallback(async () => {
     if (!portalDbId || !isSupabaseConfigured || !supabase) return;
     const [{ data: periodos }, { data: arquivos }] = await Promise.all([
@@ -805,6 +869,37 @@ export default function CentralDeResultadosPage2() {
           </button>
         }
       />
+
+      {autoCreatedNotice === 'created' && (
+        <div className="save-error-banner" role="alert" style={{ background: 'var(--color-success-50)', borderColor: 'var(--color-success-200)', color: 'var(--color-success-700)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
+          <span>
+            Este portal não tinha uma página do tipo "Tabela Resultados" em <strong>Canais</strong> — criamos automaticamente
+            a página <strong>Central de Resultados</strong>. Publique para que ela apareça no site (você ainda pode
+            renomear/reordenar em Canais).
+          </span>
+        </div>
+      )}
+
+      {autoCreatedNotice === 'reactivated' && (
+        <div className="save-error-banner" role="alert" style={{ background: 'var(--color-success-50)', borderColor: 'var(--color-success-200)', color: 'var(--color-success-700)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
+          <span>
+            Uma nova página Central de Resultados foi encontrada — reativamos automaticamente os trimestres e arquivos
+            que haviam ficado como rascunho quando a página anterior foi excluída.
+          </span>
+        </div>
+      )}
+
+      {autoCreatedNotice === 'error' && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
+          <span>
+            Não foi possível verificar/criar automaticamente a página Central de Resultados em <strong>Canais</strong>.
+            Crie manualmente uma página do tipo "Tabela Resultados", ou recarregue esta página para tentar de novo.
+          </span>
+        </div>
+      )}
 
       {/* Entity cards */}
       <div className="cdr-entities">
