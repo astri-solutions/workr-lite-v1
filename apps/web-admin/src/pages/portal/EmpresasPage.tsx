@@ -391,9 +391,18 @@ export default function EmpresasPage() {
                 <input
                   className={`emp-form__input${!form.cvmCodigo.trim() ? ' emp-form__input--error' : ''}`}
                   type="text"
+                  inputMode="numeric"
                   placeholder="Ex: 23574"
                   value={form.cvmCodigo}
-                  onChange={e => setForm(f => ({ ...f, cvmCodigo: e.target.value }))}
+                  onChange={e => {
+                    // O registro na CVM é sempre numérico, sem dígito
+                    // verificador. Descartar tudo a partir do primeiro
+                    // caractere não numérico (ex.: o "-6" de um ticker B3
+                    // como "23574-6") impede que esse sufixo seja salvo
+                    // e quebre a comparação feita pelo Auto CVM na importação.
+                    const digitsOnly = e.target.value.split(/[^0-9]/)[0] ?? '';
+                    setForm(f => ({ ...f, cvmCodigo: digitsOnly }));
+                  }}
                 />
                 {!form.cvmCodigo.trim() ? (
                   <span className="emp-form__error-hint">Obrigatório quando o Auto CVM está ativado.</span>
