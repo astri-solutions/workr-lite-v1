@@ -395,19 +395,19 @@ export default function EmpresasPage() {
                   placeholder="Ex: 23574"
                   value={form.cvmCodigo}
                   onChange={e => {
-                    // O registro na CVM é sempre numérico, sem dígito
-                    // verificador. Descartar tudo a partir do primeiro
-                    // caractere não numérico (ex.: o "-6" de um ticker B3
-                    // como "23574-6") impede que esse sufixo seja salvo
-                    // e quebre a comparação feita pelo Auto CVM na importação.
-                    const digitsOnly = e.target.value.split(/[^0-9]/)[0] ?? '';
+                    // O código CVM (cd_cvm) é sempre um número único, sem
+                    // hífen — confirmado no cadastro oficial da CVM. Um
+                    // hífen colado pelo usuário não é dígito verificador;
+                    // ele precisa ser removido mantendo todos os dígitos
+                    // (nunca truncando), senão o número final fica errado.
+                    const digitsOnly = e.target.value.replace(/\D/g, '');
                     setForm(f => ({ ...f, cvmCodigo: digitsOnly }));
                   }}
                 />
                 {!form.cvmCodigo.trim() ? (
                   <span className="emp-form__error-hint">Obrigatório quando o Auto CVM está ativado.</span>
                 ) : (
-                  <span className="emp-form__field-hint">Apenas os números do registro na CVM — sem o dígito verificador do ticker (ex: 23574, não 23574-6).</span>
+                  <span className="emp-form__field-hint">Apenas números — se houver hífen, remova-o mantendo todos os dígitos (ex: 23574-6 vira 235746).</span>
                 )}
               </label>
             </>

@@ -75,14 +75,14 @@ function onlyDigits(s: string): string {
 // CVM's own CSV pads Codigo_CVM with leading zeros (e.g. "024910"); the
 // admin panel stores whatever the user typed, usually without them
 // ("24910") — compare numerically so that difference never causes a
-// false non-match. CVM's code itself is a plain numeric id — it never
-// carries a check digit — but admins sometimes paste a B3-style ticker
-// registration number instead, which does ("02633-6"). Treating that
-// suffix as more digits ("026336") silently corrupts the comparison
-// value, so anything from the first non-digit separator onward is
-// dropped before normalizing.
+// false non-match. A dash some admins paste in (e.g. "02633-6", copied
+// from some third-party listing) is NOT a check-digit separator — CVM's
+// own cad_cia_aberta.csv confirms cd_cvm is a single, uninterrupted
+// numeric id (e.g. this exact company's real code is "26336", the digits
+// on both sides of that dash concatenated, not the value before it) — so
+// the dash must be stripped and every digit kept, never truncated at it.
 function normalizeCvmCode(s: string): string {
-  const digits = onlyDigits(s.split(/[^0-9]/)[0] ?? '');
+  const digits = onlyDigits(s);
   return digits.replace(/^0+/, '') || '0';
 }
 
