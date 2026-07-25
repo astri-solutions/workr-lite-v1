@@ -95,6 +95,19 @@ function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | und
   }
   return undefined;
 }
+function findCanalNode(canais: CanalCfg[] | undefined, id: string): { href: string; label: string } | undefined {
+  for (const c of canais ?? []) {
+    if (c.id === id) return { href: c.href ?? '/', label: c.label };
+    for (const s of c.children ?? []) {
+      if (s.id === id) return { href: s.href, label: s.label };
+      for (const ss of s.children ?? []) {
+        if (ss.id === id) return { href: ss.href, label: ss.label };
+      }
+    }
+  }
+  return undefined;
+}
+interface BannerShortcutCfg { id: string; pageId: string; label?: string; }
 interface EmpresaCfg { id: string; label: string; short: string; }
 
 interface SplashBtn { label: string; url: string; variant: string; }
@@ -304,6 +317,7 @@ function buildSiteConfig(opts: {
   cookies?: CookieCfg | null;
   errorPages?: ErrorPageCfg[] | null;
   banner?: BannerSlideCfg[] | null;
+  bannerShortcuts?: BannerShortcutCfg[] | null;
   logoExt?: string;
   logoNegativeExt?: string;
   faviconExt?: string;
@@ -366,6 +380,18 @@ function buildSiteConfig(opts: {
   const topbarShowTicker = tb?.showTicker ?? true;
 
   const languages = opts.languages?.length ? opts.languages : ['pt-BR'];
+
+  // Home hero shortcuts — up to 4 admin-picked destination pages. Falls back
+  // to null (site derives shortcuts from the full nav tree, today's default
+  // behavior) when the admin hasn't configured any.
+  const homeShortcuts = (opts.bannerShortcuts ?? [])
+    .map(s => {
+      const node = findCanalNode(opts.canais, s.pageId);
+      if (!node) return null;
+      return { label: s.label?.trim() || node.label, href: node.href };
+    })
+    .filter((s): s is { label: string; href: string } => !!s)
+    .slice(0, 4);
 
   return `// scripts/site.config.js
 // Gerado pelo Workr Lite CMS — não editar manualmente.
@@ -440,6 +466,11 @@ ${legalLinks}
 
   banner: ${opts.banner ? JSON.stringify(opts.banner, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n') : '[]'},
 
+  // Home hero shortcuts (Banner com navbar) — null = derive from siteConfig.nav.
+  home: {
+    shortcuts: ${homeShortcuts.length ? JSON.stringify(homeShortcuts, null, 2).split('\n').map((l, i) => i === 0 ? l : '    ' + l).join('\n') : 'null'},
+  },
+
   supabase: {
     url:      ${JSON.stringify(opts.supabaseUrl ?? null)},
     anonKey:  ${JSON.stringify(opts.supabaseAnonKey ?? null)},
@@ -489,7 +520,7 @@ Deno.serve(async (req) => {
 
     const {
       repoName: repoNameRaw, portalId, portalNome, layout, colors, fonts, footer, ticker,
-      canais, empresas, splash, cookies, errorPages, banner, logo, favicon, logoNegativo, topbar, languages,
+      canais, empresas, splash, cookies, errorPages, banner, bannerShortcuts, logo, favicon, logoNegativo, topbar, languages,
     } = await req.json() as {
       repoName?: string;
       portalId?: string;
@@ -505,6 +536,7 @@ Deno.serve(async (req) => {
       cookies?: CookieCfg | null;
       errorPages?: ErrorPageCfg[] | null;
       banner?: BannerSlideCfg[] | null;
+      bannerShortcuts?: BannerShortcutCfg[] | null;
       logo?: AssetCfg | null;
       favicon?: AssetCfg | null;
       logoNegativo?: AssetCfg | null;
@@ -663,6 +695,7 @@ Deno.serve(async (req) => {
       cookies: cookies ?? null,
       errorPages: errorPages ?? null,
       banner: resolvedBanner,
+      bannerShortcuts: bannerShortcuts ?? null,
       logoExt: logo?.ext ?? savedLogoExt,
       logoNegativeExt: logoNegativo?.ext ?? savedLogoNegativeExt,
       faviconExt: favicon?.ext ?? savedFaviconExt,
@@ -964,6 +997,7 @@ Deno.serve(async (req) => {
             splash: resolvedSplash,
             cookies: cookies ?? null,
             banner_slides: resolvedBanner.length ? resolvedBanner : null,
+            banner_shortcuts: bannerShortcuts?.length ? bannerShortcuts : null,
             updated_at: new Date().toISOString(),
           };
           if (logo?.ext) configPatch.logo_ext = logo.ext;

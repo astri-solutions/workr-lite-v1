@@ -80,6 +80,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
       const cookies    = nonEmpty(remoteConfig?.cookies)    ?? ls('portal_cookies');
       const errorPages = nonEmpty(remoteConfig?.error_pages) ?? ls('portal_error_pages');
       const bannerRaw  = nonEmpty(remoteConfig?.banner_slides) ?? ls('portal_banner');
+      const bannerShortcuts = nonEmpty(remoteConfig?.banner_shortcuts) ?? ls('portal_banner_shortcuts');
       const topbar     = nonEmpty(remoteConfig?.topbar)     ?? ls('portal_topbar');
       const idiomas    = (nonEmpty(remoteConfig?.idiomas) as string[] | null)
         ?? (() => { try { return JSON.parse(localStorage.getItem(`portal_idiomas_${pid ?? 'default'}`) ?? 'null'); } catch { return null; } })()
@@ -167,6 +168,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
             cookies:    cookies ?? null,
             errorPages: errorPages ?? null,
             banner:     banner ?? null,
+            bannerShortcuts: bannerShortcuts ?? null,
             logo:       logo ?? null,
             favicon:    favicon ?? null,
             logoNegativo: logoNegativo ?? null,

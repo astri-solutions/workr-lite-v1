@@ -9,9 +9,20 @@ import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
 import { usePublish } from '../../contexts/PublishContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
+
+interface BannerShortcut {
+  id: string;
+  pageId: string;
+  label: string; // custom override; empty = use the destination page's own label
+}
+
+const MAX_SHORTCUTS = 4;
+export const BANNER_SHORTCUTS_KEY = 'portal_banner_shortcuts';
 
 interface SlideContent {
   titulo: string;
@@ -60,11 +71,40 @@ const INITIAL_SLIDES: BannerSlide[] = [
 
 export default function BannerPage() {
   const portalName = usePortalName();
+  const { user } = useAuth();
   const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<BannerSlide[]>(
     BANNER_KEY, 'banner_slides', INITIAL_SLIDES,
   );
   const [slides, setSlides] = useState<BannerSlide[]>(persisted);
   const [activeId, setActiveId] = useState('b1');
+
+  const [persistedShortcuts, setPersistedShortcuts, { hydrated: shortcutsHydrated }] = usePortalState<BannerShortcut[]>(
+    BANNER_SHORTCUTS_KEY, 'banner_shortcuts', [],
+  );
+  const [shortcuts, setShortcuts] = useState<BannerShortcut[]>(persistedShortcuts);
+  useEffect(() => {
+    if (!shortcutsHydrated) return;
+    setShortcuts(persistedShortcuts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shortcutsHydrated]);
+
+  const destinos = useCanaisDestinos(user?.activePortalId ?? undefined);
+
+  function addShortcut() {
+    if (shortcuts.length >= MAX_SHORTCUTS) return;
+    setShortcuts(prev => [...prev, { id: Math.random().toString(36).slice(2), pageId: '', label: '' }]);
+    setDirty(true);
+  }
+
+  function updateShortcut(id: string, patch: Partial<BannerShortcut>) {
+    setShortcuts(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+    setDirty(true);
+  }
+
+  function removeShortcut(id: string) {
+    setShortcuts(prev => prev.filter(s => s.id !== id));
+    setDirty(true);
+  }
 
   // Sync draft once the authoritative Supabase value arrives
   useEffect(() => {
@@ -140,6 +180,7 @@ export default function BannerPage() {
 
   function handleDraft() {
     setPersisted(slides);
+    setPersistedShortcuts(shortcuts);
     setDirty(false);
     notifyDraft();
   }
@@ -150,7 +191,7 @@ export default function BannerPage() {
     // previous banner (this is exactly how a just-added slide image failed
     // to reach the site: the image write hadn't landed yet when publish()
     // re-fetched banner_slides).
-    await setPersisted(slides);
+    await Promise.all([setPersisted(slides), setPersistedShortcuts(shortcuts)]);
     setDirty(false);
     const ok = await publish();
     if (ok) setPublishSuccess(true);
@@ -265,6 +306,57 @@ export default function BannerPage() {
             </label>
           </div>
         </div>
+      </div>
+
+      <div className="pers-section banner-shortcuts">
+        <div className="banner-shortcuts__header">
+          <div>
+            <h2 className="pers-section__title" style={{ margin: 0 }}>Atalhos</h2>
+            <p className="banner-field__hint" style={{ margin: '4px 0 0' }}>
+              Escolha até {MAX_SHORTCUTS} páginas para exibir como atalhos no banner da home. Deixe vazio para usar o menu completo do portal.
+            </p>
+          </div>
+          <button type="button" className="banner-add-btn" onClick={addShortcut} disabled={shortcuts.length >= MAX_SHORTCUTS}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Adicionar atalho
+          </button>
+        </div>
+
+        {shortcuts.length === 0 ? (
+          <p className="banner-shortcuts__empty">Nenhum atalho configurado — o site usará o menu completo.</p>
+        ) : (
+          <div className="banner-shortcuts__list">
+            {shortcuts.map((s, i) => (
+              <div key={s.id} className="banner-shortcut-row">
+                <span className="banner-shortcut-row__num">{i + 1}</span>
+                <select
+                  className="filter-select banner-shortcut-row__select"
+                  value={s.pageId}
+                  onChange={e => updateShortcut(s.id, { pageId: e.target.value })}
+                >
+                  <option value="">Selecionar página...</option>
+                  {destinos.map(d => (
+                    <option key={d.id} value={d.id}>{d.parentLabel ? `${d.parentLabel} › ${d.label}` : d.label}</option>
+                  ))}
+                </select>
+                <input
+                  className="nm-field--sm banner-shortcut-row__label"
+                  type="text"
+                  placeholder="Rótulo (opcional)"
+                  value={s.label}
+                  onChange={e => updateShortcut(s.id, { label: e.target.value })}
+                />
+                <button type="button" className="banner-slide-item__remove" onClick={() => removeShortcut(s.id)} title="Remover atalho">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <UnsavedModal

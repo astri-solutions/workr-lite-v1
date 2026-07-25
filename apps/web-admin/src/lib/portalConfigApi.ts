@@ -30,6 +30,7 @@ export interface PortalConfigPatch {
   splash?:       unknown;
   cookies?:      unknown;
   banner_slides?: unknown;
+  banner_shortcuts?: unknown;
   informacoes?:  unknown;
   empresas?:     unknown;
   logo_ext?:     string;
