@@ -112,9 +112,13 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-    const success = await login(email, password);
-    if (!success) {
-      setError('Usuário ou senha inválidos.');
+    const result = await login(email, password);
+    if (!result.ok) {
+      setError(
+        result.reason === 'banned'
+          ? 'Seu acesso foi desativado. Entre em contato com a Astri através do e-mail suporte@astri.solutions.'
+          : 'Usuário ou senha inválidos.'
+      );
       return;
     }
     const raw = localStorage.getItem('workr_auth');

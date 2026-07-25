@@ -23,7 +23,7 @@ interface AuthContextValue {
   loading: boolean;
   /** Role do usuário no portal ativo. null se super_admin ou sem portal ativo. */
   portalRole: 'admin' | 'editor' | 'viewer' | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; reason?: 'banned' | 'invalid' }>;
   logout: () => Promise<void>;
   switchPortal: (portalId: string) => void;
   enterPortal: (id: string, nome: string) => void;
@@ -169,14 +169,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function login(email: string, password: string): Promise<boolean> {
-    if (!isSupabaseConfigured || !supabase) return false;
+  async function login(email: string, password: string): Promise<{ ok: boolean; reason?: 'banned' | 'invalid' }> {
+    if (!isSupabaseConfigured || !supabase) return { ok: false, reason: 'invalid' };
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) return false;
+    if (error || !data.user) {
+      // GoTrue reports a suspended account as its own error (code
+      // "user_banned" / message containing "banned") distinct from wrong
+      // credentials — surfaced separately so the login screen can point the
+      // user to support instead of implying they mistyped their password.
+      const code = (error as { code?: string } | null)?.code;
+      const banned = code === 'user_banned' || /banned/i.test(error?.message ?? '');
+      return { ok: false, reason: banned ? 'banned' : 'invalid' };
+    }
     const u = await buildClientUser(data.user, userFromStorage());
     setUser(u);
     persist(u);
-    return true;
+    return { ok: true };
   }
 
   async function logout() {
