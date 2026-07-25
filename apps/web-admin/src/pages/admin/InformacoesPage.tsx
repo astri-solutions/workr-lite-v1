@@ -89,7 +89,10 @@ export default function InformacoesPage() {
   const [values, setValues] = useState<FieldValues>(() => {
     try {
       const raw = localStorage.getItem(ADMIN_INFORMACOES_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_ADMIN_VALUES, ...parsed, address: { ...DEFAULT_ADMIN_VALUES.address, ...(parsed.address ?? {}) } };
+      }
     } catch { /* fall through */ }
     return DEFAULT_ADMIN_VALUES;
   });

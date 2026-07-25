@@ -53,8 +53,11 @@ interface EditState {
 
 const PAISES = ['Brasil', 'Portugal', 'Estados Unidos', 'Argentina', 'Chile', 'Colômbia', 'México'];
 
-function formatAddress(a: AddressValues): string {
-  const parts = [a.endereco, a.cidade, a.estado, a.pais].filter(Boolean);
+const DEFAULT_ADDRESS: AddressValues = { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' };
+
+function formatAddress(a: AddressValues | undefined): string {
+  const addr = a ?? DEFAULT_ADDRESS;
+  const parts = [addr.endereco, addr.cidade, addr.estado, addr.pais].filter(Boolean);
   return parts.join(', ') || '–';
 }
 
@@ -112,7 +115,7 @@ export default function InformacoesPortalPage() {
   const [edit, setEdit] = useState<EditState | null>(null);
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [addrOpen, setAddrOpen] = useState(false);
-  const [addrDraft, setAddrDraft] = useState<AddressValues>(values.address);
+  const [addrDraft, setAddrDraft] = useState<AddressValues>(values.address ?? DEFAULT_ADDRESS);
 
   function toggleLanguage(code: string) {
     setIdiomas((current) => {
@@ -144,7 +147,7 @@ export default function InformacoesPortalPage() {
   }
 
   function openAddr() {
-    setAddrDraft(values.address);
+    setAddrDraft(values.address ?? DEFAULT_ADDRESS);
     setAddrOpen(true);
   }
 
