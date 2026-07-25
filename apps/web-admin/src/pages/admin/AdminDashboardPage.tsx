@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import SearchInput from '../../components/SearchInput';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { useSort } from '../../hooks/useSort';
+import SortIcon from '../../components/SortIcon';
 import './AdminPages.css';
 import './AdminDashboardPage.css';
 
@@ -63,6 +65,8 @@ export default function AdminDashboardPage() {
     return portais.filter(p => p.cliente.toLowerCase().includes(q));
   }, [portais, search]);
 
+  const { sorted: sortedPortais, col, dir, toggle } = useSort(filteredPortais);
+
   function handleAdminSite(portal: PortalRow) {
     enterPortal(portal.portal_key, portal.cliente);
     navigate('/portal/empresas');
@@ -117,15 +121,15 @@ export default function AdminDashboardPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Empresa</th>
-                  <th>Status</th>
-                  <th>URL</th>
+                  <th className={`th-sort${col === 'cliente' ? ' th-sort--active' : ''}`} onClick={() => toggle('cliente')}><span className="th-sort-inner">Empresa <SortIcon dir={col === 'cliente' ? dir : null} /></span></th>
+                  <th className={`th-sort${col === 'empresa_status' ? ' th-sort--active' : ''}`} onClick={() => toggle('empresa_status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'empresa_status' ? dir : null} /></span></th>
+                  <th className={`th-sort${col === 'vercel_url' ? ' th-sort--active' : ''}`} onClick={() => toggle('vercel_url')}><span className="th-sort-inner">URL <SortIcon dir={col === 'vercel_url' ? dir : null} /></span></th>
                   <th>Usuários</th>
                   <th style={{ width: 220 }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredPortais.map((portal) => (
+                {sortedPortais.map((portal) => (
                   <tr key={portal.id}>
                     <td className="dashboard-portal-row__name">{portal.cliente}</td>
                     <td>
