@@ -38,8 +38,9 @@ type DeleteMode = 'choose' | 'migrate' | 'destroy';
 
 export default function EmpresasPage() {
   const portalName = usePortalName();
-  const { user } = useAuth();
+  const { user, portalRole } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
+  const canEditCnpj = isSuperAdmin || portalRole === 'admin';
 
   const activePortalId = user?.activePortalId;
   const storageKey = empresasKey(activePortalId);
@@ -333,16 +334,16 @@ export default function EmpresasPage() {
           <label className="emp-form__label">
             <span className="emp-form__label-text">CNPJ{form.autoCvm && <span className="emp-form__required">*</span>}</span>
             <input
-              className={`emp-form__input${editing?.cnpj && !isSuperAdmin ? ' emp-form__input--readonly' : ''}${form.autoCvm && !form.cnpj.trim() ? ' emp-form__input--error' : ''}`}
+              className={`emp-form__input${editing?.cnpj && !canEditCnpj ? ' emp-form__input--readonly' : ''}${form.autoCvm && !form.cnpj.trim() ? ' emp-form__input--error' : ''}`}
               type="text"
               placeholder="00.000.000/0001-00"
               value={form.cnpj}
-              onChange={e => (isSuperAdmin || !editing?.cnpj) && setForm(f => ({ ...f, cnpj: e.target.value }))}
-              readOnly={!!editing?.cnpj && !isSuperAdmin}
+              onChange={e => (canEditCnpj || !editing?.cnpj) && setForm(f => ({ ...f, cnpj: e.target.value }))}
+              readOnly={!!editing?.cnpj && !canEditCnpj}
             />
             {editing?.cnpj && (
-              isSuperAdmin ? (
-                <span className="emp-form__field-hint">Como Admin, você pode corrigir o CNPJ mesmo após o cadastro.</span>
+              canEditCnpj ? (
+                <span className="emp-form__field-hint">Como Admin do portal, você pode corrigir o CNPJ mesmo após o cadastro.</span>
               ) : (
                 <span className="emp-form__hint">O CNPJ não pode ser alterado após o cadastro.</span>
               )
