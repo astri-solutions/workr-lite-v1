@@ -42,6 +42,12 @@
   color: var(--color-gray-700);
 }
 
+/* .filter-wrap/.filter-select now standardize to 38px globally
+   (globals.css) — matches .atend-priority's 38px automatically. */
+.atend-field .filter-wrap {
+  width: 100%;
+}
+
 .atend-select {
   width: 100%;
 }
@@ -135,6 +141,69 @@
 
 .atend-priority__btn:hover:not(.atend-priority__btn--active) {
   background: var(--color-gray-50);
+}
+
+/* ── Attachments ── */
+.atend-anexos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.atend-anexo-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50);
+  font-size: var(--text-xs);
+  color: var(--color-gray-700);
+  max-width: 220px;
+}
+
+.atend-anexo-chip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atend-anexo-chip__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 2px;
+  border-radius: 50%;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.atend-anexo-chip__remove:hover {
+  background: var(--color-gray-200);
+  color: var(--color-gray-800);
+}
+
+.atend-anexo-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px dashed var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary-500);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.atend-anexo-add:hover {
+  border-color: var(--color-primary-400);
+  background: var(--color-primary-50, #e8f5f7);
 }
 
 /* ── Form footer ── */

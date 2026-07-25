@@ -89,10 +89,17 @@ input, textarea, select {
 
 /* ─── Filter select (shared across all pages) ────────── */
 /* Wrap <select className="filter-select"> in <div className="filter-wrap"> */
+/* 38px is this CMS's standard height for toolbar/filter-row controls —
+   applied here plus in SearchInput.css/DatePicker.css so every filter
+   control (select, search, date) lines up regardless of which page renders
+   them, instead of each one deriving a slightly different height from its
+   own padding. */
 .filter-wrap {
   position: relative;
   display: inline-flex;
   align-items: center;
+  height: 38px;
+  box-sizing: border-box;
 }
 
 .filter-wrap__icon {
@@ -119,6 +126,8 @@ input, textarea, select {
   transition: border-color 0.15s;
   box-shadow: var(--shadow-sm);
   width: 100%;
+  height: 38px;
+  box-sizing: border-box;
 }
 .filter-select:focus { border-color: var(--color-primary-400); }
 

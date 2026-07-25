@@ -75,12 +75,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId, assunto, prioridade, titulo, mensagem } = await req.json() as {
+    const { portalId, assunto, prioridade, titulo, mensagem, anexos } = await req.json() as {
       portalId?: string;
       assunto?: string;
       prioridade?: string;
       titulo?: string;
       mensagem?: string;
+      anexos?: string[]; // storage paths in the (private) portal-documents bucket, uploaded by the client before this call
     };
 
     if (!portalId || !assunto || !titulo?.trim() || !mensagem?.trim()) {
@@ -107,15 +108,33 @@ Deno.serve(async (req) => {
     const assuntoLabel = ASSUNTO_LABEL[assunto] ?? assunto;
     const prioridadeLabel = PRIORIDADE_LABEL[prioridade ?? 'media'] ?? 'Média';
 
+    // Attachments are uploaded straight to Storage by the client (this
+    // function only ever sees JSON) — sign each path here, with the service
+    // role, into a link the support team can open. 7 days is generous for a
+    // support ticket to be triaged without leaving the link live forever.
+    const ANEXO_TTL_SECONDS = 7 * 24 * 60 * 60;
+    const anexoLinks: string[] = [];
+    for (const path of anexos ?? []) {
+      try {
+        const { data } = await adminClient.storage.from('portal-documents').createSignedUrl(path, ANEXO_TTL_SECONDS);
+        if (data?.signedUrl) {
+          const fileName = path.split('/').pop() ?? 'anexo';
+          anexoLinks.push(`<a href="${data.signedUrl}">${fileName}</a>`);
+        }
+      } catch { /* one bad path shouldn't drop the whole ticket */ }
+    }
+
     await sendFormSubmission({
       portalNome,
       formTitulo: `Atendimento — ${assuntoLabel}`,
       toEmail,
       fields: [
+        { label: 'Portal', value: portalNome },
         { label: 'Assunto', value: assuntoLabel },
         { label: 'Prioridade', value: prioridadeLabel },
         { label: 'Título', value: titulo.trim() },
         { label: 'Mensagem', value: mensagem.trim() },
+        { label: 'Anexos', value: anexoLinks.join('<br>') },
         { label: 'Enviado por', value: user.email ?? '' },
       ],
       replyToEmail: user.email ?? undefined,

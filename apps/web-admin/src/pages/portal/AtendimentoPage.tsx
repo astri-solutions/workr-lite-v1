@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { usePortalState } from '../../hooks/usePortalState';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import '../admin/AdminPages.css';
 import './AtendimentoPage.css';
+
+const MAX_ANEXOS = 5;
+const MAX_ANEXO_SIZE = 25 * 1024 * 1024; // 25MB — generous for a screen recording, small enough for one email's worth of links
 
 const FN_BASE = import.meta.env.VITE_SUPABASE_URL
   ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
@@ -58,7 +62,26 @@ export default function AtendimentoPage() {
   const [status, setStatus] = useState<Status>('idle');
   const [sendError, setSendError] = useState<string | null>(null);
   const [suporteEmail, setSuporteEmail] = useState<string | null>(null);
+  const [anexos, setAnexos] = useState<File[]>([]);
+  const [anexoError, setAnexoError] = useState<string | null>(null);
+  const anexoInputRef = useRef<HTMLInputElement>(null);
   const [, setInteracoes] = usePortalState<InteracaoEntry[]>('portal_interacoes', 'interacoes', []);
+
+  function addAnexos(files: FileList | null) {
+    if (!files) return;
+    setAnexoError(null);
+    const picked = Array.from(files);
+    const tooBig = picked.find(f => f.size > MAX_ANEXO_SIZE);
+    if (tooBig) { setAnexoError(`"${tooBig.name}" excede 25MB.`); return; }
+    setAnexos(prev => {
+      const next = [...prev, ...picked];
+      if (next.length > MAX_ANEXOS) { setAnexoError(`Máximo de ${MAX_ANEXOS} anexos.`); return prev; }
+      return next;
+    });
+  }
+  function removeAnexo(idx: number) {
+    setAnexos(prev => prev.filter((_, i) => i !== idx));
+  }
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !user?.activePortalId) return;
@@ -96,6 +119,24 @@ export default function AtendimentoPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) throw new Error('Sessão expirada — faça login novamente');
+
+      // Attachments upload straight to Storage (same private bucket
+      // DocumentosPage uses) before the ticket itself is submitted — the
+      // edge function only ever sees JSON, so it gets storage paths and
+      // signs them into links for the support email.
+      const anexoPaths: string[] = [];
+      if (anexos.length > 0) {
+        const portalDbId = user?.activePortalId ? await resolvePortalId(user.activePortalId) : null;
+        if (portalDbId) {
+          for (const file of anexos) {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${portalDbId}/atendimento/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+            const { error } = await supabase.storage.from('portal-documents').upload(path, file, { contentType: file.type || 'application/octet-stream' });
+            if (!error) anexoPaths.push(path);
+          }
+        }
+      }
+
       const res = await fetch(`${FN_BASE}/submit-atendimento`, {
         method: 'POST',
         headers: {
@@ -103,7 +144,7 @@ export default function AtendimentoPage() {
           Authorization: `Bearer ${token}`,
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         },
-        body: JSON.stringify({ portalId: user?.activePortalId, assunto, prioridade, titulo: titulo.trim(), mensagem: mensagem.trim() }),
+        body: JSON.stringify({ portalId: user?.activePortalId, assunto, prioridade, titulo: titulo.trim(), mensagem: mensagem.trim(), anexos: anexoPaths }),
       });
       const body = await res.json().catch(() => ({})) as { ok?: boolean; error?: string };
       if (!res.ok || !body.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -113,6 +154,7 @@ export default function AtendimentoPage() {
       setPrioridade('media');
       setTitulo('');
       setMensagem('');
+      setAnexos([]);
     } catch (e) {
       // The interação was already recorded locally above — only the e-mail
       // notification failed, so let the user know it may not have reached
@@ -208,6 +250,38 @@ export default function AtendimentoPage() {
                   rows={8}
                   required
                 />
+              </div>
+
+              <div className="atend-field">
+                <label className="atend-label">Anexos <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}>(opcional — imagens ou vídeos, até {MAX_ANEXOS})</span></label>
+                <div className="atend-anexos">
+                  {anexos.map((f, i) => (
+                    <div key={i} className="atend-anexo-chip">
+                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                        {f.type.startsWith('video/') ? 'videocam' : 'image'}
+                      </span>
+                      <span className="atend-anexo-chip__name">{f.name}</span>
+                      <button type="button" className="atend-anexo-chip__remove" onClick={() => removeAnexo(i)} aria-label={`Remover ${f.name}`}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                      </button>
+                    </div>
+                  ))}
+                  {anexos.length < MAX_ANEXOS && (
+                    <button type="button" className="atend-anexo-add" onClick={() => anexoInputRef.current?.click()}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>attach_file</span>
+                      Anexar arquivo
+                    </button>
+                  )}
+                  <input
+                    ref={anexoInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => { addAnexos(e.target.files); e.target.value = ''; }}
+                  />
+                </div>
+                {anexoError && <p className="atend-form__hint" style={{ color: 'var(--color-error-600)' }}>{anexoError}</p>}
               </div>
 
               {sendError && (
