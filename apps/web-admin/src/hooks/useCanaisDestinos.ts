@@ -7,7 +7,12 @@ export interface Destino {
   label: string;
   parentLabel: string | null;
   pageType: PageType | undefined;
+  /** @deprecated use headerImageUrl !== null instead */
   canalHasHeaderImage: boolean;
+  /** This page's own header image, or the parent canal's if this page has none of its own. Null means no image at any level. */
+  headerImageUrl: string | null;
+  /** True when headerImageUrl comes from the parent canal, not this page's own override. */
+  headerImageInherited: boolean;
   hasPublishedMateria: boolean; // show pages already occupied
 }
 
@@ -15,26 +20,37 @@ function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
   const result: Destino[] = [];
   for (const canal of canais) {
     if (!canal.enabled) continue;
-    const canalHasHeaderImage = !!(canal.headerImage);
+    const canalHeaderImage = canal.headerImage ?? null;
     if (canal.children.length === 0) {
-      result.push({ id: canal.id, label: canal.label, parentLabel: null, pageType: canal.pageType, canalHasHeaderImage, hasPublishedMateria: false });
+      result.push({
+        id: canal.id, label: canal.label, parentLabel: null, pageType: canal.pageType,
+        canalHasHeaderImage: !!canalHeaderImage, headerImageUrl: canalHeaderImage, headerImageInherited: false,
+        hasPublishedMateria: false,
+      });
     } else {
       for (const sub of canal.children) {
+        const ownImage = sub.headerImage ?? null;
         result.push({
           id: sub.id,
           label: sub.label,
           parentLabel: canal.label,
           pageType: sub.pageType,
-          canalHasHeaderImage,
+          canalHasHeaderImage: !!canalHeaderImage,
+          headerImageUrl: ownImage ?? canalHeaderImage,
+          headerImageInherited: !ownImage && !!canalHeaderImage,
           hasPublishedMateria: sub.pageType === 'show' ? pageHasPublishedMateria(sub.id, portalKey) : false,
         });
         for (const ss of sub.children ?? []) {
+          const ssOwnImage = ss.headerImage ?? null;
+          const ssFallback = ownImage ?? canalHeaderImage;
           result.push({
             id: ss.id,
             label: ss.label,
             parentLabel: `${canal.label} › ${sub.label}`,
             pageType: ss.pageType,
-            canalHasHeaderImage,
+            canalHasHeaderImage: !!canalHeaderImage,
+            headerImageUrl: ssOwnImage ?? ssFallback,
+            headerImageInherited: !ssOwnImage && !!ssFallback,
             hasPublishedMateria: ss.pageType === 'show' ? pageHasPublishedMateria(ss.id, portalKey) : false,
           });
         }

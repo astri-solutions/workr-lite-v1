@@ -264,6 +264,8 @@ interface EditState {
   externalUrl: string;
   showInFooter: boolean;
   transferTo: string;
+  headerImageUrl: string | null;
+  canalHeaderImage: string | null; // parent canal's own image, for the inherit hint
   // lista-agrupada
   laByEmpresa: boolean;
   laSelectedEmpresas: string[];
@@ -781,7 +783,10 @@ export default function CanaisPage() {
 
     if (newSubForm.parentSubId) {
       // L3: add as sub-sub-page
-      const ss: SubSubCanal = { id: newId, label, labels: newSubForm.labels, href, enabled: !newSubForm.draft };
+      const ss: SubSubCanal = {
+        id: newId, label, labels: newSubForm.labels, href, enabled: !newSubForm.draft,
+        ...(newSubForm.headerImageUrl ? { headerImage: newSubForm.headerImageUrl } : {}),
+      };
       mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : {
         ...c, children: c.children.map(s => s.id !== newSubForm.parentSubId ? s : {
           ...s, children: [...(s.children ?? []), ss],
@@ -796,6 +801,7 @@ export default function CanaisPage() {
         ...(newSubForm.pageType === 'lista-agrupada'
           ? { listaAgrupadaStyle: newSubForm.laStyle, listaAgrupadaCategories: resolveGroupCategories(newSubForm) }
           : {}),
+        ...(newSubForm.headerImageUrl ? { headerImage: newSubForm.headerImageUrl } : {}),
       };
       mutate(prev => prev.map(c => c.id !== newSubForm.canalId ? c : { ...c, children: [...c.children, s] }));
     }
@@ -867,7 +873,7 @@ export default function CanaisPage() {
           headerImage: headerImageUrl ?? undefined, showInFooter,
         };
         if (applyHeaderToChildren && headerImageUrl) {
-          updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl } as SubCanal & { headerImage?: string }));
+          updated.children = c.children.map(s => ({ ...s, headerImage: headerImageUrl }));
         }
         return updated;
       });
@@ -918,6 +924,7 @@ export default function CanaisPage() {
 
   function openEdit(cid: string, sub: SubCanal, parentSubId?: string) {
     const primaryLang = PORTAL_CONFIG.languages[0];
+    const parentCanal = canais.find(c => c.id === cid);
     setEditModal({
       canalId: cid, parentSubId, subId: sub.id,
       locale: primaryLang,
@@ -926,6 +933,8 @@ export default function CanaisPage() {
       pageType: sub.pageType ?? 'show', listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
       isExternalLink: sub.isExternalLink ?? false, externalUrl: sub.externalUrl ?? '',
       showInFooter: sub.showInFooter ?? false, transferTo: '',
+      headerImageUrl: sub.headerImage ?? null,
+      canalHeaderImage: parentCanal?.headerImage ?? null,
       ..._laDefaults,
       laByEmpresa: false,
       laCategories: sub.listaAgrupadaCategories ?? [],
@@ -933,6 +942,8 @@ export default function CanaisPage() {
   }
   function openEditSubSub(cid: string, sid: string, ss: SubSubCanal) {
     const primaryLang = PORTAL_CONFIG.languages[0];
+    const parentCanal = canais.find(c => c.id === cid);
+    const parentSub = parentCanal?.children.find(s => s.id === sid);
     setEditModal({
       canalId: cid, parentSubId: sid, subId: ss.id,
       locale: primaryLang,
@@ -941,6 +952,8 @@ export default function CanaisPage() {
       pageType: ss.pageType ?? 'show', listaAgrupadaStyle: 'accordion',
       isExternalLink: ss.isExternalLink ?? false, externalUrl: ss.externalUrl ?? '',
       showInFooter: false, transferTo: '',
+      headerImageUrl: ss.headerImage ?? null,
+      canalHeaderImage: parentSub?.headerImage ?? parentCanal?.headerImage ?? null,
       ..._laDefaults,
     });
   }
@@ -948,7 +961,7 @@ export default function CanaisPage() {
     if (!editModal) return;
     const primaryLang = PORTAL_CONFIG.languages[0];
     const resolvedLabel = editModal.labels[primaryLang]?.trim() || editModal.label;
-    const { canalId, parentSubId, subId, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter } = editModal;
+    const { canalId, parentSubId, subId, href, targetCanalId, pageType, listaAgrupadaStyle, isExternalLink, externalUrl, showInFooter, headerImageUrl } = editModal;
     const label = resolvedLabel;
     if (parentSubId) {
       setCanais(prev => {
@@ -957,6 +970,7 @@ export default function CanaisPage() {
             ...s, children: (s.children ?? []).map(ss => ss.id !== subId ? ss : {
               ...ss, label: label.trim() || ss.label, labels: editModal.labels, href: href.trim() || ss.href,
               pageType, isExternalLink, externalUrl: isExternalLink ? externalUrl : undefined,
+              headerImage: headerImageUrl ?? undefined,
             }),
           }),
         });
@@ -974,6 +988,7 @@ export default function CanaisPage() {
             listaAgrupadaStyle: pageType === 'lista-agrupada' ? listaAgrupadaStyle : undefined,
             listaAgrupadaCategories: pageType === 'lista-agrupada' ? resolveGroupCategories(editModal) : undefined,
             isExternalLink, externalUrl: isExternalLink ? externalUrl : undefined, showInFooter,
+            headerImage: headerImageUrl ?? undefined,
           };
           return { ...c, children: c.children.filter(s => s.id !== subId) };
         });
@@ -1474,6 +1489,7 @@ export default function CanaisPage() {
                   <HeaderImageEditor
                     value={newSubForm.headerImageUrl}
                     onChange={v => patchSub({ headerImageUrl: v })}
+                    portalDbId={portalDbId}
                   />
                 )}
               </>
@@ -1816,6 +1832,7 @@ export default function CanaisPage() {
                 <HeaderImageEditor
                   value={canalEditModal.headerImageUrl}
                   onChange={v => setCanalEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
+                  portalDbId={portalDbId}
                 />
                 <label className="canal-apply-default">
                   <input type="checkbox" checked={canalEditModal.applyHeaderToChildren}
@@ -1961,6 +1978,36 @@ export default function CanaisPage() {
             <div className="canais-edit-divider" />
             <p className="canais-edit-section-title">Tipo de página</p>
             <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v, ..._laDefaults } : m)} />
+
+            {!editModal.isExternalLink && (
+              <>
+                <div className="canais-edit-divider" />
+                <p className="canais-edit-section-title">
+                  Imagem do header
+                  <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)', marginLeft: 6 }}>(opcional)</span>
+                </p>
+                {editModal.headerImageUrl == null && editModal.canalHeaderImage ? (
+                  <>
+                    <p className="ct-wizard-hint">
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>photo_library</span>
+                      Esta página herda a imagem do canal pai.
+                    </p>
+                    <HeaderImageEditor
+                      value={null}
+                      onChange={v => setEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
+                      portalDbId={portalDbId}
+                      placeholderLabel="Clique para usar uma imagem própria nesta página"
+                    />
+                  </>
+                ) : (
+                  <HeaderImageEditor
+                    value={editModal.headerImageUrl}
+                    onChange={v => setEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
+                    portalDbId={portalDbId}
+                  />
+                )}
+              </>
+            )}
 
             {/* Lista Agrupada flow */}
             {editModal.pageType === 'lista-agrupada' && (
@@ -2227,7 +2274,7 @@ export default function CanaisPage() {
               <div className="canal-header-img-wrap">
                 <p className="canais-edit-section-title">Imagem do header</p>
                 <HeaderImageEditor value={newCanalForm.headerImageUrl}
-                  onChange={v => setNewCanalForm(f => ({ ...f, headerImageUrl: v }))} />
+                  onChange={v => setNewCanalForm(f => ({ ...f, headerImageUrl: v }))} portalDbId={portalDbId} />
               </div>
             )}
             <div key={newCanalForm.locale} className="canais-edit-form__label-group">
@@ -2600,20 +2647,43 @@ function MateriasLinkPicker({ selected, onChange, portalKey }: { selected: strin
   );
 }
 
-function HeaderImageEditor({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+// Uploads straight to Storage and returns a real public URL — a data: URL
+// embedded in portal_config.canais would bloat that JSON blob with a full
+// base64 image and never actually resolve as a stable, cacheable asset
+// (same anti-pattern already fixed for matéria section images).
+async function uploadCanalHeaderImage(file: File, objectUrl: string, portalDbId: string | null): Promise<string> {
+  if (!portalDbId || !isSupabaseConfigured || !supabase) return objectUrl;
+  try {
+    const path = `${portalDbId}/header/canal-${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+    const { error } = await supabase.storage.from('portal-media').upload(path, file, { upsert: true, contentType: file.type || 'image/webp' });
+    if (error) return objectUrl;
+    return supabase.storage.from('portal-media').getPublicUrl(path).data.publicUrl;
+  } catch {
+    return objectUrl;
+  }
+}
+
+function HeaderImageEditor({ value, onChange, portalDbId, placeholderLabel }: {
+  value: string | null; onChange: (v: string | null) => void; portalDbId: string | null; placeholderLabel?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const result = await processImageToDataUrl(f, 'channel-header');
-    onChange(result.dataUrl);
+    setUploading(true);
+    try {
+      const result = await processImageToDataUrl(f, 'channel-header');
+      const url = await uploadCanalHeaderImage(result.file, result.dataUrl, portalDbId);
+      onChange(url);
+    } finally { setUploading(false); }
   }
   if (value) return (
     <div className="canal-header-img-preview">
       <img src={value} alt="Header" className="canal-header-img-preview__img" />
       <div className="canal-header-img-preview__actions">
         <label className="btn-action btn-action--enter canais-img-file-label">
-          Substituir
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+          {uploading ? 'Enviando…' : 'Substituir'}
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading} />
         </label>
         <button className="btn-action btn-action--danger" type="button" onClick={() => onChange(null)}>Remover</button>
       </div>
@@ -2621,9 +2691,9 @@ function HeaderImageEditor({ value, onChange }: { value: string | null; onChange
   );
   return (
     <label className="canal-header-img-empty canais-img-file-label">
-      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading} />
       <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
-      <span>Clique para adicionar imagem de header</span>
+      <span>{uploading ? 'Enviando…' : (placeholderLabel ?? 'Clique para adicionar imagem de header')}</span>
     </label>
   );
 }

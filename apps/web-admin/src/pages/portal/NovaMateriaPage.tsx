@@ -885,12 +885,10 @@ export default function NovaMateriaPage() {
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
   const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
-  // NOTE: not yet persisted — portal_materias has no header-image column
-  // today, and the live site has no per-matéria header-image rendering
-  // either. Kept local (like before) so this one field doesn't block the
-  // section-image persistence fix; needs its own follow-up (schema +
-  // template) if the client actually uses this field.
-  const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  // The header image itself now lives on the page/canal node (Canais →
+  // editar canal/página), not on the matéria — this screen only displays
+  // the effective (own or inherited) image read-only, via `selectedDestino`
+  // below.
   const [sections, setSections] = useState<ContentSection[]>(
     isGaleria || isTabela || isHtml ? [] : [{ id: 'init', type: 'text' }]
   );
@@ -909,7 +907,6 @@ export default function NovaMateriaPage() {
   const [locale, setLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [page, setPage] = useState(editing?.pagina ?? '');
   const selectedDestino = destinos.find(d => d.id === page);
-  const pageInheritsHeaderImage = selectedDestino?.canalHasHeaderImage ?? false;
   const pageOccupied = !isGaleria && !isTabela && !isHtml && (selectedDestino?.hasPublishedMateria ?? false);
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const [status, setStatus] = useState<PublishStatus>((editing?.status as PublishStatus | undefined) ?? 'draft');
@@ -1117,16 +1114,14 @@ export default function NovaMateriaPage() {
           <div key={locale} className="lang-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
-              {!isGaleria && !isTabela && !isHtml && (
-                pageInheritsHeaderImage ? (
-                  <div className="nm-header-inherited">
-                    <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-gray-400)' }}>photo_library</span>
-                    <span>Esta página herda a imagem de header do canal.</span>
-                  </div>
-                ) : (
-                  <ImageUpload label="Imagem de header" ratio="21/5" value={headerImageUrl}
-                    onChange={setHeaderImageUrl} portalDbId={portalDbId} />
-                )
+              {!isGaleria && !isTabela && !isHtml && selectedDestino?.headerImageUrl && (
+                <div className="nm-header-inherited" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
+                  <img src={selectedDestino.headerImageUrl} alt="" style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8 }} />
+                  <span>
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px', color: 'var(--color-gray-400)', verticalAlign: 'middle', marginRight: 4 }}>photo_library</span>
+                    {selectedDestino.headerImageInherited ? 'Herdada do canal' : 'Própria desta página'} — para trocar, edite em <strong>Canais</strong>.
+                  </span>
+                </div>
               )}
               <input
                 className="nm-field nm-field--title"

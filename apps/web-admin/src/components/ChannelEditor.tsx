@@ -19,6 +19,9 @@ export interface SubSubCanal {
   pageType?: PageType;
   isExternalLink?: boolean;
   externalUrl?: string;
+  // Own header image for this specific page — overrides the parent canal's
+  // `headerImage`. Unset means "inherit from the parent canal".
+  headerImage?: string;
 }
 
 export interface SubCanal {
@@ -37,6 +40,9 @@ export interface SubCanal {
   externalUrl?: string;
   showInFooter?: boolean;
   children?: SubSubCanal[];
+  // Own header image for this specific page — overrides the parent canal's
+  // `headerImage`. Unset means "inherit from the parent canal".
+  headerImage?: string;
 }
 
 export interface Canal {
