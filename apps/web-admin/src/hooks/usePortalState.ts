@@ -38,6 +38,15 @@ export function usePortalState<T>(
   const [hydrated, setHydrated] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
+  // Mirrors `value` synchronously. update() reads/writes through this ref
+  // instead of extracting the resolved value out of a setValue() updater
+  // callback — relying on React to have already invoked that callback by
+  // the next line is an implementation detail, not a guarantee, and doing
+  // so previously let a call site silently persist a stale/undefined value
+  // to Supabase (the write still succeeded, just with the wrong payload).
+  const valueRef = useRef(value);
+  useEffect(() => { valueRef.current = value; }, [value]);
+
   // Guard: don't let an in-flight hydration overwrite a user edit made
   // after the fetch started.
   const dirtySinceMount = useRef(false);
@@ -53,6 +62,7 @@ export function usePortalState<T>(
         const remote = data?.[configColumn as string];
         if (remote !== null && remote !== undefined) {
           localStorage.setItem(cacheKey, JSON.stringify(remote));
+          valueRef.current = remote as T;
           setValue(remote as T);
         }
       })
@@ -70,12 +80,10 @@ export function usePortalState<T>(
   // resolves after the write settles lets callers await it before publishing.
   const update = useCallback((next: T | ((prev: T) => T)): Promise<void> => {
     dirtySinceMount.current = true;
-    let resolved!: T;
-    setValue(prev => {
-      resolved = typeof next === 'function' ? (next as (p: T) => T)(prev) : next;
-      try { localStorage.setItem(cacheKey, JSON.stringify(resolved)); } catch { /* quota */ }
-      return resolved;
-    });
+    const resolved = typeof next === 'function' ? (next as (p: T) => T)(valueRef.current) : next;
+    valueRef.current = resolved;
+    setValue(resolved);
+    try { localStorage.setItem(cacheKey, JSON.stringify(resolved)); } catch { /* quota */ }
     if (!portalId) return Promise.resolve();
     setSaveError(false);
     return savePortalConfig(portalId, { [configColumn]: resolved } as PortalConfigPatch)
