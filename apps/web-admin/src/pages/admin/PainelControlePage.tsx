@@ -18,13 +18,6 @@ interface SiteData {
   ip: string;
   status: 'Ativo' | 'Suspenso';
   criadoEm: string;
-  disco: { usado: number; total: number };
-  cpu: number;
-  memoria: number;
-  inodes: { usado: number; total: number };
-  phpVersion: string;
-  ssl: boolean;
-  cdn: boolean;
   githubRepo?: string;
   vercelUrl?: string;
   vercelCreated?: boolean;
@@ -44,16 +37,6 @@ const FN_BASE = import.meta.env.VITE_SUPABASE_URL
   ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
   : '';
 
-
-function StatBar({ value, max }: { value: number; max: number }) {
-  const pct = Math.min(100, (value / max) * 100);
-  const color = pct > 80 ? 'var(--color-error-500)' : pct > 60 ? 'var(--color-warning-500)' : 'var(--color-primary-500)';
-  return (
-    <div className="painel-bar">
-      <div className="painel-bar__fill" style={{ width: `${pct}%`, background: color }} />
-    </div>
-  );
-}
 
 export default function PainelControlePage() {
   const { siteId } = useParams<{ siteId: string }>();
@@ -140,6 +123,13 @@ export default function PainelControlePage() {
   const [suporteSaved, setSuporteSaved] = useState(false);
   const [suporteError, setSuporteError] = useState<string | null>(null);
 
+  // Real Vercel data (deploy status + domain/SSL verification) — disco, CPU,
+  // memória, inodes e versão do PHP não têm equivalente na Vercel (hosting
+  // serverless) e por isso não aparecem mais aqui em vez de serem inventados.
+  const [deployState, setDeployState] = useState<string | null>(null);
+  const [deployCreatedAt, setDeployCreatedAt] = useState<string | null>(null);
+  const [domainVerified, setDomainVerified] = useState<boolean | null>(null);
+
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
     (async () => {
@@ -198,13 +188,6 @@ export default function PainelControlePage() {
         ip: info.ip,
         status: info.status,
         criadoEm: info.criadoEm,
-        disco: { usado: 0, total: 10 },
-        cpu: 0,
-        memoria: 0,
-        inodes: { usado: 0, total: 200000 },
-        phpVersion: '—',
-        ssl: true,
-        cdn: false,
         githubRepo: info.githubRepo,
         vercelUrl: info.vercelUrl,
         vercelCreated: info.vercelCreated,
@@ -230,6 +213,36 @@ export default function PainelControlePage() {
       .maybeSingle()
       .then(({ data }) => setMaintenance(Boolean(data?.maintenance)));
   }, [site?.portalId]);
+
+  useEffect(() => {
+    if (!site || !isSupabaseConfigured || !supabase) return;
+    const projectName = site.vercelUrl
+      ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
+      : site.githubRepo;
+    if (!projectName) return;
+    (async () => {
+      const { data: { session } } = await supabase!.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      try {
+        const res = await fetch(`${FN_BASE}/get-site-status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({ projectName }),
+        });
+        const json = await res.json().catch(() => ({})) as { deployState?: string | null; deployCreatedAt?: string | null; domainVerified?: boolean | null };
+        if (res.ok) {
+          setDeployState(json.deployState ?? null);
+          setDeployCreatedAt(json.deployCreatedAt ?? null);
+          setDomainVerified(json.domainVerified ?? null);
+        }
+      } catch { /* non-fatal — Saúde do site card just falls back to "—" */ }
+    })();
+  }, [site?.id]);
 
   // Check if this portal has at least one admin user
   useEffect(() => {
@@ -387,8 +400,12 @@ export default function PainelControlePage() {
   }
 
   const effectiveStatus = siteStatus ?? site.status;
-  const discoPercent = Math.round((site.disco.usado / site.disco.total) * 100);
-  const inodesPercent = Math.round((site.inodes.usado / site.inodes.total) * 100);
+  const deployCreatedLabel = deployCreatedAt
+    ? new Date(deployCreatedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
+  const deployStateLabel: Record<string, string> = {
+    READY: 'No ar', ERROR: 'Falhou', BUILDING: 'Em deploy', QUEUED: 'Na fila', CANCELED: 'Cancelado', INITIALIZING: 'Iniciando',
+  };
 
   return (
     <div className="page painel-page">
@@ -432,20 +449,12 @@ export default function PainelControlePage() {
           </div>
         </div>
         <div className="painel-header__badges">
-          {site.ssl && (
+          {domainVerified && (
             <span className="painel-badge painel-badge--success">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               SSL
-            </span>
-          )}
-          {site.cdn && (
-            <span className="painel-badge painel-badge--success">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              CDN
             </span>
           )}
           <span className={`painel-badge ${effectiveStatus === 'Ativo' ? 'painel-badge--success' : 'painel-badge--error'}`}>
@@ -661,23 +670,19 @@ export default function PainelControlePage() {
             </div>
             <div className="painel-saude__rows">
               <div className="painel-saude__row">
-                <span className="painel-saude__label">PHP</span>
-                <span className="painel-saude__value">{site.phpVersion}</span>
-              </div>
-              <div className="painel-saude__row">
-                <span className="painel-saude__label">IP do servidor</span>
-                <span className="painel-saude__value painel-saude__value--mono">{site.ip}</span>
-              </div>
-              <div className="painel-saude__row">
-                <span className="painel-saude__label">SSL</span>
-                <span className={`painel-saude__value ${site.ssl ? 'painel-saude__value--ok' : 'painel-saude__value--warn'}`}>
-                  {site.ssl ? 'Ativo' : 'Inativo'}
+                <span className="painel-saude__label">Último deploy</span>
+                <span className={`painel-saude__value ${deployState === 'READY' ? 'painel-saude__value--ok' : deployState === 'ERROR' ? 'painel-saude__value--warn' : ''}`}>
+                  {deployState ? (deployStateLabel[deployState] ?? deployState) : '—'}
                 </span>
               </div>
+              <div className="painel-saude__row">
+                <span className="painel-saude__label">Publicado em</span>
+                <span className="painel-saude__value painel-saude__value--mono">{deployCreatedLabel ?? '—'}</span>
+              </div>
               <div className="painel-saude__row painel-saude__row--last">
-                <span className="painel-saude__label">CDN</span>
-                <span className={`painel-saude__value ${site.cdn ? 'painel-saude__value--ok' : 'painel-saude__value--muted'}`}>
-                  {site.cdn ? 'Ativo' : 'Não configurado'}
+                <span className="painel-saude__label">SSL / Domínio</span>
+                <span className={`painel-saude__value ${domainVerified ? 'painel-saude__value--ok' : 'painel-saude__value--muted'}`}>
+                  {domainVerified === null ? '—' : domainVerified ? 'Verificado' : 'Pendente'}
                 </span>
               </div>
             </div>
@@ -714,51 +719,6 @@ export default function PainelControlePage() {
             </div>
             {suporteSaved && <p style={{ color: 'var(--color-success-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>✓ Atendimento atualizado</p>}
             {suporteError && <p style={{ color: 'var(--color-error-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>{suporteError}</p>}
-          </div>
-
-          <div className="painel-card painel-recursos">
-            <div className="painel-card__header-row">
-              <div className="painel-card__title">Consumo de recursos</div>
-              <span className="painel-recursos__hint">Últimas 24 horas</span>
-            </div>
-
-            <div className="painel-recursos__grid">
-              <div className="painel-recurso">
-                <div className="painel-recurso__header">
-                  <span className="painel-recurso__label">Uso de disco</span>
-                  <span className={`painel-recurso__value ${discoPercent > 80 ? 'painel-recurso__value--warn' : 'painel-recurso__value--primary'}`}>
-                    {site.disco.usado} GB / {site.disco.total} GB
-                  </span>
-                </div>
-                <StatBar value={site.disco.usado} max={site.disco.total} />
-              </div>
-
-              <div className="painel-recurso">
-                <div className="painel-recurso__header">
-                  <span className="painel-recurso__label">CPU</span>
-                  <span className="painel-recurso__value painel-recurso__value--primary">{site.cpu}%</span>
-                </div>
-                <StatBar value={site.cpu} max={100} />
-              </div>
-
-              <div className="painel-recurso">
-                <div className="painel-recurso__header">
-                  <span className="painel-recurso__label">Inodes</span>
-                  <span className={`painel-recurso__value ${inodesPercent > 80 ? 'painel-recurso__value--warn' : 'painel-recurso__value--primary'}`}>
-                    {(site.inodes.usado / 1000).toFixed(1)}K / {(site.inodes.total / 1000).toFixed(0)}K
-                  </span>
-                </div>
-                <StatBar value={site.inodes.usado} max={site.inodes.total} />
-              </div>
-
-              <div className="painel-recurso">
-                <div className="painel-recurso__header">
-                  <span className="painel-recurso__label">Memória</span>
-                  <span className="painel-recurso__value painel-recurso__value--primary">{site.memoria} MB</span>
-                </div>
-                <StatBar value={site.memoria} max={512} />
-              </div>
-            </div>
           </div>
 
         </div>
