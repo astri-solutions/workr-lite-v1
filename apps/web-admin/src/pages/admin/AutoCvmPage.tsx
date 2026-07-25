@@ -39,6 +39,11 @@ const CVM_ROUTABLE_CATEGORIES = [
   { id: 'valores-mobiliarios-negociados', label: 'Valores Mobiliários Negociados e Detidos' },
 ];
 
+// Hidden from the routing UI pending a decision on how Calendário de
+// Eventos should be populated (auto-pull CVM's historical events vs.
+// manual entry) — pulling this back in is just removing the id here.
+const HIDDEN_ROUTABLE_CATEGORY_IDS = new Set(['calendario-eventos']);
+
 function RoutingSection({ portalId, empresaId, initialRouting, discoveredCategories }: { portalId: string; empresaId: string; initialRouting: CvmRoutingRule[]; discoveredCategories: DiscoveredCategory[] }) {
   const [open, setOpen] = useState(false);
   const [pages, setPages] = useState<RoutablePage[]>([]);
@@ -54,7 +59,7 @@ function RoutingSection({ portalId, empresaId, initialRouting, discoveredCategor
   const categories = useMemo(() => {
     const staticIds = new Set(CVM_ROUTABLE_CATEGORIES.map(c => c.id));
     const extra = discoveredCategories.filter(c => !staticIds.has(c.id));
-    return [...CVM_ROUTABLE_CATEGORIES, ...extra];
+    return [...CVM_ROUTABLE_CATEGORIES, ...extra].filter(c => !HIDDEN_ROUTABLE_CATEGORY_IDS.has(c.id));
   }, [discoveredCategories]);
 
   useEffect(() => {
