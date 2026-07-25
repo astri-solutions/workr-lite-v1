@@ -4,7 +4,7 @@ import type { AdminOutletContext } from '../../components/AdminLayout';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { loadPortalSiteAsync } from '../../utils/loadPortalSite';
-import { deletePortal } from '../../lib/portalsApi';
+import { deletePortal, updateSiteStatus } from '../../lib/portalsApi';
 import Modal from '../../components/Modal';
 import './AdminPages.css';
 import './PainelControlePage.css';
@@ -64,6 +64,8 @@ export default function PainelControlePage() {
   const [cacheDone, setCacheDone] = useState(false);
   const [siteStatus, setSiteStatus] = useState<'Ativo' | 'Suspenso' | null>(null);
   const [suspendConfirm, setSuspendConfirm] = useState(false);
+  const [suspendUpdating, setSuspendUpdating] = useState(false);
+  const [suspendError, setSuspendError] = useState<string | null>(null);
   const [maintenance, setMaintenance] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [dangerInput1, setDangerInput1] = useState('');
@@ -73,6 +75,23 @@ export default function PainelControlePage() {
   const [deleteGhWarn, setDeleteGhWarn] = useState<string | null>(null);
   const [site, setSite] = useState<SiteData | null | undefined>(undefined);
   const dangerRef = useRef<HTMLDivElement>(null);
+
+  // setSiteStatus alone only updated local component state (never actually
+  // written anywhere) — the badge looked updated but reverted to the old
+  // status on reload since portal_sites.status was never touched.
+  async function handleSetSiteStatus(next: 'Ativo' | 'Suspenso') {
+    if (!site) return;
+    setSuspendUpdating(true);
+    setSuspendError(null);
+    try {
+      await updateSiteStatus(site.id, next);
+      setSiteStatus(next);
+    } catch (e) {
+      setSuspendError(`Não foi possível ${next === 'Suspenso' ? 'suspender' : 'reativar'} o site: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setSuspendUpdating(false);
+    setSuspendConfirm(false);
+  }
 
   // Admin invite state
   const [hasAdmin, setHasAdmin] = useState<boolean | null>(null); // null = loading
@@ -733,6 +752,13 @@ export default function PainelControlePage() {
       </div>
 
       {/* ── Suspend / Reactivate block ──────────────────── */}
+      {suspendError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>{suspendError}</span>
+        </div>
+      )}
+
       {effectiveStatus === 'Ativo' ? (
         <div className={`painel-suspend-card${suspendConfirm ? ' painel-suspend-card--confirming' : ''}`}>
           {!suspendConfirm ? (
@@ -777,7 +803,7 @@ export default function PainelControlePage() {
                 <button className="painel-suspend-card__btn-cancel" type="button" onClick={() => setSuspendConfirm(false)}>
                   Cancelar
                 </button>
-                <button className="painel-suspend-card__btn painel-suspend-card__btn--confirm" type="button" onClick={() => { setSiteStatus('Suspenso'); setSuspendConfirm(false); }}>
+                <button className="painel-suspend-card__btn painel-suspend-card__btn--confirm" type="button" disabled={suspendUpdating} onClick={() => handleSetSiteStatus('Suspenso')}>
                   Sim, suspender
                 </button>
               </div>
@@ -825,7 +851,7 @@ export default function PainelControlePage() {
                 <button className="painel-suspend-card__btn-cancel" type="button" onClick={() => setSuspendConfirm(false)}>
                   Cancelar
                 </button>
-                <button className="painel-suspend-card__btn painel-suspend-card__btn--reativar" type="button" onClick={() => { setSiteStatus('Ativo'); setSuspendConfirm(false); }}>
+                <button className="painel-suspend-card__btn painel-suspend-card__btn--reativar" type="button" disabled={suspendUpdating} onClick={() => handleSetSiteStatus('Ativo')}>
                   Sim, reativar
                 </button>
               </div>
