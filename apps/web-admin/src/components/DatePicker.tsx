@@ -197,11 +197,13 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
             )}
 
             <div className="dp__footer">
-              <button type="button" className="dp__link" onClick={() => setDraft('')}>Limpar</button>
-              <button type="button" className="dp__link" onClick={applyToday}>Hoje</button>
               <div className="dp__footer-actions">
                 <button type="button" className="btn-outline" onClick={() => setOpen(false)}>Cancelar</button>
                 <button type="button" className="btn-primary" onClick={() => { onChange(draft); setOpen(false); }}>Aplicar</button>
+              </div>
+              <div className="dp__footer-links">
+                <button type="button" className="dp__link" onClick={() => setDraft('')}>Limpar</button>
+                <button type="button" className="dp__link" onClick={applyToday}>Hoje</button>
               </div>
             </div>
           </div>

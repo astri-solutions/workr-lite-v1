@@ -178,7 +178,7 @@
 
 .dp__footer {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-3);
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-gray-100);
@@ -199,5 +199,12 @@
 .dp__footer-actions {
   display: flex;
   gap: var(--space-2);
-  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.dp__footer-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: center;
 }
