@@ -400,6 +400,8 @@ Deno.serve(async (req) => {
     let skippedUnrouted = 0;
     let skippedNoMap = 0;
     let skippedNoDate = 0;
+    let viewerPageOnly = 0;
+    let uploadFailed = 0;
     const unroutedCategories = new Set<string>();
     let discoveredChanged = false;
 
@@ -451,15 +453,34 @@ Deno.serve(async (req) => {
       const downloaded = await downloadCvmFile(row.linkDownload);
       let filePath: string | null = null;
       let externalLink: string | null = row.linkDownload || null;
+      // Generated up front (rather than left to the DB default) so the
+      // storage object's filename can start with it — the anon-read RLS
+      // policy on storage.objects matches on `storage.filename(name) LIKE
+      // pd.id || '%'`, so a path not prefixed with this doc's own id would
+      // upload fine but 404/403 for every site visitor trying to open it.
+      const docId = crypto.randomUUID();
       if (downloaded) {
-        const storagePath = `${portalId}/cvm-${empresaId}-${dedupeKey.replace(/[^a-zA-Z0-9._-]/g, '_')}.${downloaded.ext}`;
+        const storagePath = `${portalId}/${docId}.${downloaded.ext}`;
         const { error: uploadError } = await admin.storage
           .from('portal-documents')
           .upload(storagePath, downloaded.bytes, { upsert: true, contentType: downloaded.contentType });
-        if (!uploadError) { filePath = storagePath; externalLink = null; }
+        if (!uploadError) {
+          filePath = storagePath;
+          externalLink = null;
+        } else {
+          uploadFailed++;
+        }
+      } else if (row.linkDownload) {
+        // CVM's Link_Download pointed at an HTML viewer page (or an
+        // unrecognized/missing content-type) rather than a raw file —
+        // expected for most modern filing categories, not an error, but
+        // worth surfacing distinctly from a genuine upload failure so an
+        // admin isn't left guessing why a document still shows as a link.
+        viewerPageOnly++;
       }
 
       const { error: insertError } = await admin.from('portal_documents').insert({
+        id: docId,
         portal_id: portalId,
         entity_id: empresaId,
         titulo: { 'pt-BR': row.descricaoAssunto || mapped.label },
@@ -515,6 +536,8 @@ Deno.serve(async (req) => {
         ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) sem categoria informada pela CVM.`] : []),
         ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
         ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
+        ...(viewerPageOnly > 0 ? [`${viewerPageOnly} documento(s) importados como link externo — a CVM só disponibiliza uma página de visualização para essas categorias, não o arquivo bruto.`] : []),
+        ...(uploadFailed > 0 ? [`${uploadFailed} documento(s) tiveram o arquivo baixado mas falharam ao salvar no armazenamento — importados como link externo.`] : []),
         ...(canaisWriteConflict ? [`A árvore de canais foi editada em paralelo — a promoção automática para lista agrupada não foi aplicada nesta sincronização. Rode novamente.`] : []),
       ],
     };
