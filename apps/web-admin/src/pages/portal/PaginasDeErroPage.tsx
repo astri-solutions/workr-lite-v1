@@ -103,7 +103,7 @@ const DEFAULT_PAGES: ErrorPage[] = [
 export default function PaginasDeErroPage() {
   const activePortalId = useActivePortalId();
   const { publish } = usePublish();
-  const [persisted, setPersisted, { hydrated }] = usePortalState<ErrorPage[]>(ERROR_PAGES_KEY, 'error_pages', DEFAULT_PAGES);
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<ErrorPage[]>(ERROR_PAGES_KEY, 'error_pages', DEFAULT_PAGES);
   const [draft, setDraft] = useState<ErrorPage[]>(persisted);
   const [saved, setSaved] = useState(false);
 
@@ -176,6 +176,13 @@ export default function PaginasDeErroPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="ep-list">
         {pages.map((p, i) => (

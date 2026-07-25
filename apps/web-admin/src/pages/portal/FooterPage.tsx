@@ -226,7 +226,7 @@ export default function FooterPage() {
   const portalLayout = (localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
   const isBannerModel = portalLayout === 'banner';
   const destPages = buildDestPages(loadPortalCanais(activePortalId));
-  const [persisted, setPersisted, { hydrated }] = usePortalState<StoredFooter>(
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<StoredFooter>(
     FOOTER_KEY, 'footer', stripIcons(DEFAULT),
   );
   const [config, setConfig] = useState<FooterConfig>(() => reviveFooter(persisted));
@@ -328,6 +328,13 @@ export default function FooterPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       {PORTAL_CONFIG.languages.length > 1 && (
         <div className="pers-section">

@@ -79,9 +79,9 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: #e8f4f6;
+  background: var(--color-primary-tint);
   color: var(--color-primary-500);
-  border: 1px solid #b8dde3;
+  border: 1px solid var(--color-primary-200);
   line-height: 1.6;
 }
 
@@ -516,9 +516,9 @@
   white-space: nowrap;
   overflow: hidden;
 }
-.sidebar-publish-btn:hover:not(:disabled) { background: #094a56; }
+.sidebar-publish-btn:hover:not(:disabled) { background: var(--color-primary-600); }
 .sidebar-publish-btn:disabled { opacity: 0.6; cursor: default; }
-.sidebar-publish-btn--ok { background: #00a84b; }
+.sidebar-publish-btn--ok { background: var(--color-success-500); }
 .sidebar-publish-btn--err { background: var(--color-error-600); }
 .admin-sidebar--collapsed .sidebar-publish-btn { padding: 8px 0; font-size: 0; gap: 0; }
 .admin-sidebar--collapsed .sidebar-publish-btn svg { width: 16px; height: 16px; }

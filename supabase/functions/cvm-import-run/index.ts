@@ -177,6 +177,14 @@ function mapToCategoryId(row: IpeRow): { id: string; label: string } | null {
   if (all.includes('comunicado ao mercado') || all.includes('comunicado')) return { id: 'comunicado', label: 'Comunicado ao Mercado' };
   if (all.includes('aviso') && all.includes('acionist')) return { id: 'aviso-acionistas', label: 'Aviso aos Acionistas' };
   if (all.includes('convocacao') || all.includes('edital')) return { id: 'convocacao', label: 'Convocação' };
+  // Board/fiscal-council minutes ("Ata de Reunião do Conselho de
+  // Administração/Fiscal") also contain "ata" but are a legally distinct
+  // document type from shareholder-meeting minutes — must be excluded
+  // before the generic assembleia/ata branch below, or they silently get
+  // mislabeled as Ata de AGO.
+  if (all.includes('conselho de administracao') || all.includes('conselho fiscal')) {
+    return { id: 'documentos-societarios', label: 'Documentos Societários' };
+  }
   if (all.includes('assembleia') || all.includes('ata de reuniao') || all.includes('ata')) {
     if (all.includes('extraordinaria')) return { id: 'ata-age', label: 'Ata de AGE' };
     if (all.includes('ordinaria')) return { id: 'ata-ago', label: 'Ata de AGO' };
@@ -265,6 +273,20 @@ interface CanalNode {
   id?: string; label: string; pageType?: string; listaAgrupadaCategories?: string[]; children?: CanalNode[];
 }
 
+// Confirms a routing rule's targetId still points at a real node in the
+// live canais tree. Without this check, a page renamed/removed after being
+// routed would still accept the insert with a dead pagina_ids — the
+// document becomes invisible on the site, and since cvm_protocolo is
+// unique per (portal_id, cvm_protocolo), it can never be re-imported even
+// after the routing is fixed, because that protocol is already "consumed".
+function nodeExists(canais: CanalNode[], targetId: string): boolean {
+  for (const node of canais) {
+    if (node.id === targetId) return true;
+    if (node.children && nodeExists(node.children, targetId)) return true;
+  }
+  return false;
+}
+
 // Additive-only: promotes a node to 'lista-agrupada' and/or appends a
 // missing category label. Never removes or reorders what a human configured.
 function ensureCategoryOnTree(canais: CanalNode[], targetId: string, categoryLabel: string): { canais: CanalNode[]; changed: boolean } {
@@ -322,7 +344,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, resolveServiceKey());
 
-    const { data: cfg } = await admin.from('portal_config').select('empresas, canais').eq('portal_id', portalId).maybeSingle();
+    const { data: cfg } = await admin.from('portal_config').select('empresas, canais, updated_at').eq('portal_id', portalId).maybeSingle();
     const empresas = (cfg?.empresas ?? []) as EmpresaRow[];
     const empresa = empresas.find(e => e.id === empresaId);
     if (!empresa) {
@@ -391,6 +413,15 @@ Deno.serve(async (req) => {
         skippedUnrouted++;
         continue;
       }
+      // A routed page that no longer exists (renamed/removed after the
+      // routing rule was configured) must not silently consume this
+      // document's dedupe key — treat it the same as unrouted so a fixed
+      // routing rule can still pick it up on the next sync.
+      if (!nodeExists(canais, rule.targetId)) {
+        unroutedCategories.add(`${mapped.label} (página roteada não existe mais — reconfigure em Auto CVM)`);
+        skippedUnrouted++;
+        continue;
+      }
 
       const dataPublicacao = parseCvmDate(row.dataEntrega) ?? parseCvmDate(row.dataReferencia);
       if (!dataPublicacao) { skippedNoDate++; continue; }
@@ -400,7 +431,11 @@ Deno.serve(async (req) => {
       // instead of silently dropping the document.
       const dedupeKey = row.protocoloEntrega || `sem-protocolo:${onlyDigits(row.cnpjCompanhia)}:${mapped.id}:${row.dataEntrega}:${row.descricaoAssunto}`.slice(0, 250);
 
-      const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, mapped.label);
+      // The admin can route a discovered category into a specific existing
+      // group within a lista-agrupada page (rule.groupCategory) instead of
+      // just grouping by the raw CVM category text — honor that choice.
+      const groupLabel = rule.groupCategory || mapped.label;
+      const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, groupLabel);
       if (changed) { canais = nextCanais; canaisChanged = true; }
 
       // Prefer storing the real file (same as a manual upload in Documentos)
@@ -426,7 +461,7 @@ Deno.serve(async (req) => {
         tipo: mapped.label,
         status: 'Publicado',
         pagina_ids: [rule.targetId],
-        sub_group_ids: { [rule.targetId]: [mapped.label] },
+        sub_group_ids: { [rule.targetId]: [groupLabel] },
         idiomas: ['pt-BR'],
         pt_only: true,
         file_path: filePath,
@@ -446,8 +481,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Read-modify-write on the whole canais JSONB column races against a
+    // human editing Canais at the same time — an optimistic check against
+    // the updated_at snapshot taken before this run started ensures a
+    // concurrent manual edit is never silently clobbered. If it changed
+    // underneath us, skip writing (the next sync retries the promotion)
+    // rather than overwriting whatever the human just saved.
+    let canaisWriteConflict = false;
     if (canaisChanged) {
-      await admin.from('portal_config').upsert({ portal_id: portalId, canais }, { onConflict: 'portal_id' });
+      const { data: updRows, error: updErr } = await admin
+        .from('portal_config')
+        .update({ canais })
+        .eq('portal_id', portalId)
+        .eq('updated_at', cfg?.updated_at ?? '')
+        .select('portal_id');
+      if (updErr || !updRows || updRows.length === 0) canaisWriteConflict = true;
     }
 
     const resultNow = new Date().toISOString();
@@ -462,6 +510,7 @@ Deno.serve(async (req) => {
         ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) sem categoria informada pela CVM.`] : []),
         ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
         ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
+        ...(canaisWriteConflict ? [`A árvore de canais foi editada em paralelo — a promoção automática para lista agrupada não foi aplicada nesta sincronização. Rode novamente.`] : []),
       ],
     };
 

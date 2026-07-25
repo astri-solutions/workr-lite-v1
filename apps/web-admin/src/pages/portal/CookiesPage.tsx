@@ -226,7 +226,7 @@ export default function CookiesPage() {
   const portalName = usePortalName();
   const activePortalId = useActivePortalId();
   const { publish } = usePublish();
-  const [persisted, setPersisted, { hydrated }] = usePortalState<CookieConfig>(COOKIES_KEY, 'cookies', DEFAULT);
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<CookieConfig>(COOKIES_KEY, 'cookies', DEFAULT);
   const [cfg, setCfg] = useState<CookieConfig>(persisted);
   const [saved, setSaved] = useState(false);
   const [activeLang, setActiveLang] = useState<LocaleCode>(primaryLocale);
@@ -307,6 +307,13 @@ export default function CookiesPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="splash-layout">
         {/* ── Editor ── */}

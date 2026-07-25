@@ -163,7 +163,7 @@ export default function AcessoAreaRestritaPage() {
       <Modal
         open={modalOpen}
         onClose={() => { setModalOpen(false); setInviteSent(false); setNewNome(''); setNewEmail(''); }}
-        title={inviteSent ? 'Convite enviado' : 'Convidar para Área Restrita'}
+        title={inviteSent ? 'Acesso adicionado' : 'Convidar para Área Restrita'}
         size="sm"
         footer={
           inviteSent ? (
@@ -174,7 +174,7 @@ export default function AcessoAreaRestritaPage() {
             <div className="modal-footer">
               <button type="button" className="btn-outline" onClick={() => setModalOpen(false)}>Cancelar</button>
               <button type="button" className="btn-primary" onClick={handleInvite} disabled={!newNome.trim() || !newEmail.trim()}>
-                Enviar convite
+                Adicionar acesso
               </button>
             </div>
           )
@@ -186,14 +186,14 @@ export default function AcessoAreaRestritaPage() {
               <span className="material-symbols-outlined">mark_email_read</span>
             </div>
             <p className="acr-invite-sent__text">
-              Um link de boas-vindas foi enviado para <strong>{newEmail}</strong>.<br />
-              {newNome} poderá criar sua senha e acessar a área restrita pelo link recebido.
+              <strong>{newNome}</strong> ({newEmail}) foi adicionado à lista de acesso.<br />
+              O envio automático de e-mail de boas-vindas ainda não está disponível — combine o acesso diretamente com a pessoa.
             </p>
           </div>
         ) : (
           <div className="acr-modal-form">
             <p className="acr-invite-hint">
-              O usuário receberá um e-mail com um link para criar sua senha no primeiro acesso.
+              O usuário será adicionado à lista de acesso à área restrita. O envio automático de e-mail ainda não está disponível.
             </p>
             <div className="acr-field">
               <label className="acr-label">Nome</label>

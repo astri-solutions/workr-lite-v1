@@ -36,7 +36,7 @@ export default function TopbarPage() {
   const activePortalId = useActivePortalId();
   const { publish } = usePublish();
   const [saved, setSaved] = useState(false);
-  const [persisted, setPersisted, { hydrated }] = usePortalState<TopbarDraft>(TOPBAR_KEY, 'topbar', DEFAULT);
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<TopbarDraft>(TOPBAR_KEY, 'topbar', DEFAULT);
   const [draft, setDraft] = useState<TopbarDraft>(persisted);
 
   useEffect(() => {
@@ -82,6 +82,13 @@ export default function TopbarPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="ticker-section">
         <h2 className="ticker-section__title">Links institucionais</h2>

@@ -121,7 +121,7 @@ export default function SplashPage() {
   const activePortalId = useActivePortalId();
   const { publish } = usePublish();
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [persisted, setPersisted, { hydrated }] = usePortalState<SplashConfig>(SPLASH_KEY, 'splash', DEFAULT_SPLASH);
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<SplashConfig>(SPLASH_KEY, 'splash', DEFAULT_SPLASH);
   const [config, setConfig] = useState<SplashConfig>(persisted);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -174,7 +174,7 @@ export default function SplashPage() {
     await publish();
   }
 
-  const selectedSize = SIZE_OPTIONS.find(s => s.id === config.size)!;
+  const selectedSize = SIZE_OPTIONS.find(s => s.id === config.size) ?? SIZE_OPTIONS[0];
 
   return (
     <div className="page">
@@ -194,6 +194,13 @@ export default function SplashPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <LangTabs active={activeLang} onChange={setActiveLang} />
 

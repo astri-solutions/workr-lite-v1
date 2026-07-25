@@ -39,7 +39,7 @@ export default function TickerPage() {
   const activePortalId = useActivePortalId();
   const { publish } = usePublish();
   const [saved, setSaved] = useState(false);
-  const [persisted, setPersisted, { hydrated }] = usePortalState<TickerDraft>(TICKER_KEY, 'ticker', DEFAULT);
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<TickerDraft>(TICKER_KEY, 'ticker', DEFAULT);
   const [draft, setDraft] = useState<TickerDraft>(persisted);
 
   // Sync draft once the authoritative Supabase value arrives
@@ -86,6 +86,13 @@ export default function TickerPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       {/* Tipo */}
       <div className="ticker-section">

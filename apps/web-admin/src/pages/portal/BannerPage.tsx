@@ -60,7 +60,7 @@ const INITIAL_SLIDES: BannerSlide[] = [
 
 export default function BannerPage() {
   const portalName = usePortalName();
-  const [persisted, setPersisted, { hydrated }] = usePortalState<BannerSlide[]>(
+  const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<BannerSlide[]>(
     BANNER_KEY, 'banner_slides', INITIAL_SLIDES,
   );
   const [slides, setSlides] = useState<BannerSlide[]>(persisted);
@@ -171,6 +171,13 @@ export default function BannerPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="banner-layout">
         {/* Slide list */}

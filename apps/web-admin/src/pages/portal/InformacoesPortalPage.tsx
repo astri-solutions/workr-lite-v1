@@ -97,7 +97,7 @@ export default function InformacoesPortalPage() {
   const portalName = usePortalName();
   const { user } = useAuth();
 
-  const [values, setValues] = usePortalState<FieldValues>(INFORMACOES_PORTAL_KEY, 'informacoes', {
+  const [values, setValues, { saveError: valuesSaveError }] = usePortalState<FieldValues>(INFORMACOES_PORTAL_KEY, 'informacoes', {
     nome: user?.name ?? '',
     address: { pais: 'Brasil', estado: '', cidade: '', endereco: '', cep: '' },
     telefone: '',
@@ -106,7 +106,8 @@ export default function InformacoesPortalPage() {
     emailRecup: '',
   });
 
-  const [idiomas, setIdiomas] = usePortalState<string[]>(IDIOMAS_KEY, 'idiomas', DEFAULT_LANGUAGES);
+  const [idiomas, setIdiomas, { saveError: idiomasSaveError }] = usePortalState<string[]>(IDIOMAS_KEY, 'idiomas', DEFAULT_LANGUAGES);
+  const saveError = valuesSaveError || idiomasSaveError;
 
   const [edit, setEdit] = useState<EditState | null>(null);
   const [changePwOpen, setChangePwOpen] = useState(false);
@@ -158,6 +159,13 @@ export default function InformacoesPortalPage() {
         title="Informações da conta"
         description={<>Configurações e dados do portal <strong>{portalName}</strong>.</>}
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="info-section">
         <p className="info-section__hint">

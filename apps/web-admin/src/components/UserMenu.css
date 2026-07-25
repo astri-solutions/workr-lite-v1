@@ -361,13 +361,13 @@
 }
 
 .um-role-badge--admin {
-  background: #e6f4f1;
+  background: var(--color-primary-tint);
   color: var(--color-primary-500);
 }
 
 .um-role-badge--editor {
-  background: #f0f0ff;
-  color: #4040c0;
+  background: var(--color-violet-100);
+  color: var(--color-violet-700);
 }
 
 .um-role-badge--viewer {

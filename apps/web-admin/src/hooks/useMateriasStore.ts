@@ -95,6 +95,41 @@ export function deleteMateria(id: string, portalKey?: string) {
   }
 }
 
+/**
+ * Mirrors activatePage's local-cache toggle into Supabase's portal_config.
+ * Without this, publishing a 'show'-type matéria only flips the page to
+ * enabled in the localStorage-cached canais tree — PublishContext prefers
+ * the Supabase value whenever it's present (i.e. for any portal that
+ * already has a canais tree persisted), so the activation was silently
+ * discarded the moment the CMS actually published the site.
+ */
+export async function activatePageInSupabase(pageId: string, portalDbId: string) {
+  if (!isSupabaseConfigured || !supabase || !portalDbId) return;
+  const { data } = await supabase.from('portal_config').select('canais').eq('portal_id', portalDbId).maybeSingle();
+  const canais: Canal[] = (data?.canais as Canal[] | null) ?? DEFAULT_CANAIS;
+  let changed = false;
+  const updated = canais.map(c => ({
+    ...c,
+    children: c.children.map(s => {
+      if (s.id === pageId) {
+        if (!s.enabled) changed = true;
+        return { ...s, enabled: true };
+      }
+      const children = (s.children ?? []).map(ss => {
+        if (ss.id === pageId) {
+          if (!ss.enabled) changed = true;
+          return { ...ss, enabled: true };
+        }
+        return ss;
+      });
+      return { ...s, children };
+    }),
+  }));
+  if (changed) {
+    await supabase.from('portal_config').update({ canais: updated }).eq('portal_id', portalDbId);
+  }
+}
+
 function activatePage(pageId: string, portalKey?: string) {
   try {
     const canaisKey = portalKey ? pKey(CANAIS_KEY, portalKey) : CANAIS_KEY;

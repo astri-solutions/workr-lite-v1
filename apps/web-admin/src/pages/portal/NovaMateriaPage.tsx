@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import DatePicker from '../../components/DatePicker';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
-import { persistMateria, syncMateriaToSupabase, type MateriaPageType } from '../../hooks/useMateriasStore';
+import { persistMateria, syncMateriaToSupabase, activatePageInSupabase, type MateriaPageType } from '../../hooks/useMateriasStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
@@ -898,7 +898,12 @@ export default function NovaMateriaPage() {
       persistMateria(m, portalKey);
       if (portalKey) {
         const portalDbId = await resolvePortalId(portalKey);
-        if (portalDbId) await syncMateriaToSupabase(m, portalDbId);
+        if (portalDbId) {
+          await syncMateriaToSupabase(m, portalDbId);
+          if (m.status === 'publicado' && m.pageSlugType === 'show') {
+            await activatePageInSupabase(m.pageId, portalDbId);
+          }
+        }
       }
       // Match the sidebar's global publish button's real-site effect.
       if (newStatus === 'published') await publish();

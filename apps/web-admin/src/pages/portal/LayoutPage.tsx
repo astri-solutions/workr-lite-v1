@@ -101,6 +101,7 @@ export default function LayoutPage() {
   });
   const [selected, setSelected] = useState<PortalLayout>(base);
   const [isDraft, setIsDraft] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const isDirty = selected !== base;
   const blocker = useUnsavedChanges(isDirty);
 
@@ -125,7 +126,8 @@ export default function LayoutPage() {
     setIsDraft(true);
     notifyDraft();
     if (portalId) {
-      try { await savePortalConfig(portalId, { layout: selected }); } catch (e) { console.error(e); }
+      setSaveError(false);
+      try { await savePortalConfig(portalId, { layout: selected }); } catch (e) { console.error(e); setSaveError(true); }
     }
   }
 
@@ -151,6 +153,13 @@ export default function LayoutPage() {
           )
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="pers-section">
         <h2 className="pers-section__title">Modelo de navegação</h2>

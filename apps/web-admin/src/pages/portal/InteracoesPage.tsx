@@ -52,7 +52,7 @@ const INT_FILTERS = [
 
 export default function InteracoesPage() {
   const portalName = usePortalName();
-  const [items, setItems] = usePortalState<Interacao[]>(INT_KEY, 'interacoes', []);
+  const [items, setItems, { saveError }] = usePortalState<Interacao[]>(INT_KEY, 'interacoes', []);
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', status: '' });
   const [selected, setSelected] = useState<Interacao | null>(null);
 
@@ -80,6 +80,13 @@ export default function InteracoesPage() {
         title="Interações"
         description={<>Mensagens recebidas pelo portal <strong>{portalName}</strong>.</>}
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       <div className="stat-cards">
         <div className="stat-card">

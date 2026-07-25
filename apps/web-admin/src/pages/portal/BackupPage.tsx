@@ -98,7 +98,7 @@ export default function BackupPage() {
               </div>
               <p className="bk-card__desc">Backups manuais podem ser criados uma vez a cada 24 horas e são ideais antes de atualizações, novos recursos ou grandes mudanças.</p>
               <div className="bk-card__footer">
-                <button className="bk-btn-outline" type="button">Fazer Upgrade</button>
+                <button className="bk-btn-outline" type="button" disabled title="Em breve">Fazer Upgrade</button>
               </div>
             </div>
 
@@ -126,7 +126,7 @@ export default function BackupPage() {
               </p>
               <div className="bk-upsell__footer">
                 <span className="bk-upsell__price">De <strong>R$11,99/mês</strong></span>
-                <button className="bk-btn-primary" type="button">Comprar backups diários</button>
+                <button className="bk-btn-primary" type="button" disabled title="Em breve">Comprar backups diários</button>
               </div>
             </div>
 
@@ -151,8 +151,8 @@ export default function BackupPage() {
                 {b.type === 'auto' ? 'Automático' : 'Manual'}
               </span>
               <div className="bk-list-row__actions">
-                <button className="bk-btn-outline bk-btn-outline--sm" type="button">Restaurar</button>
-                <button className="bk-btn-ghost" type="button">
+                <button className="bk-btn-outline bk-btn-outline--sm" type="button" disabled title="Em breve">Restaurar</button>
+                <button className="bk-btn-ghost" type="button" disabled title="Em breve">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />

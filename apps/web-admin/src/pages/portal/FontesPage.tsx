@@ -138,6 +138,7 @@ export default function FontesPage() {
   const [bodyFont, setBodyFont] = useState(baseBody);
   const [isDraft, setIsDraft] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const allFonts = [...BUILTIN_FONTS, ...customFonts];
@@ -162,7 +163,8 @@ export default function FontesPage() {
     setIsDraft(true);
     notifyDraft();
     if (portalId) {
-      try { await savePortalConfig(portalId, { fontes: value }); } catch (e) { console.error(e); }
+      setSaveError(false);
+      try { await savePortalConfig(portalId, { fontes: value }); } catch (e) { console.error(e); setSaveError(true); }
     }
   }
 
@@ -216,6 +218,13 @@ export default function FontesPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       {/* Preview */}
       <div className="pers-section">

@@ -261,6 +261,7 @@ export default function CoresPage() {
   const [draft, setDraft] = useState<Palette>(base);
   const [preview, setPreview] = useState<Palette>(base);
   const [isDraft, setIsDraft] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const isDirty = (
     draft.primary !== base.primary ||
@@ -292,7 +293,8 @@ export default function CoresPage() {
     // Await the Supabase write — publish() reads from Supabase, so the save
     // must land before publishing or the site gets stale colors.
     if (portalId) {
-      try { await savePortalConfig(portalId, { cores: draft }); } catch (e) { console.error(e); }
+      setSaveError(false);
+      try { await savePortalConfig(portalId, { cores: draft }); } catch (e) { console.error(e); setSaveError(true); }
     }
   }
 
@@ -320,6 +322,13 @@ export default function CoresPage() {
           </div>
         }
       />
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>Alteração não foi salva no banco. Se você acabou de receber acesso a este portal, saia e entre novamente para renovar a sessão.</span>
+        </div>
+      )}
 
       {/* Color pickers */}
       <div className="cores-inputs">
