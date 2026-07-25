@@ -30,6 +30,12 @@ interface ContentSection {
   id: string;
   type: SectionType;
   cards?: GaleriaCard[];
+  // 'text', 'image-text', 'bg-image' primary text; 'two-col'/'three-col' col 1
+  html?: string;
+  html2?: string; // 'two-col'/'three-col' col 2
+  html3?: string; // 'three-col' col 3
+  imageUrl?: string | null; // 'image-text', 'bg-image', 'image', 'image-full'
+  imageAlt?: string;
 }
 
 type SectionCategory = 'texto' | 'layout' | 'midia';
@@ -196,19 +202,35 @@ const SECTION_LABEL: Record<SectionType, string> = {
 
 
 
-/* ── Rich text editor (uncontrolled) ─────────────────────── */
-function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: string }) {
+/* ── Rich text editor ─────────────────────────────────────── */
+// contentEditable is inherently uncontrolled (re-writing innerHTML on every
+// keystroke would reset the caret), so the DOM only gets the `value` prop
+// once, on mount — after that, every edit calls `onChange` with the latest
+// innerHTML and the parent (SectionEditor's `sections` state) becomes the
+// source of truth, which is what actually reaches persistMateria() now.
+function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { value: string; onChange: (html: string) => void; placeholder?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [empty, setEmpty] = useState(true);
+  const [empty, setEmpty] = useState((value ?? '').replace(/<[^>]+>/g, '').trim() === '');
+
+  useEffect(() => {
+    if (ref.current) ref.current.innerHTML = value ?? '';
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount only — see comment above
 
   function exec(cmd: string, arg?: string) {
     ref.current?.focus();
     document.execCommand(cmd, false, arg);
     syncEmpty();
+    onChange(ref.current?.innerHTML ?? '');
   }
 
   function syncEmpty() {
     setEmpty((ref.current?.innerText ?? '').trim() === '');
+  }
+
+  function handleInput() {
+    syncEmpty();
+    onChange(ref.current?.innerHTML ?? '');
   }
 
   function md(e: React.MouseEvent, cmd: string, arg?: string) {
@@ -219,6 +241,7 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
   function handleBlockFormat(val: string) {
     ref.current?.focus();
     document.execCommand('formatBlock', false, val);
+    onChange(ref.current?.innerHTML ?? '');
   }
 
   function handleLink(e: React.MouseEvent) {
@@ -325,9 +348,9 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
           className="rte-content"
           contentEditable
           suppressContentEditableWarning
-          onInput={syncEmpty}
+          onInput={handleInput}
           onFocus={() => setEmpty(false)}
-          onBlur={syncEmpty}
+          onBlur={handleInput}
         />
       </div>
     </div>
@@ -335,20 +358,26 @@ function RichTextEditor({ placeholder = 'Escreva aqui...' }: { placeholder?: str
 }
 
 /* ── Image upload placeholder ─────────────────────────────── */
-function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; ratio?: string }) {
-  const [preview, setPreview] = useState<string | null>(null);
+function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portalDbId }: {
+  label?: string; ratio?: string; value: string | null; onChange: (url: string | null) => void; portalDbId: string | null;
+}) {
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
-    const result = await processImage(file, 'article-image');
-    setPreview(result.objectUrl);
+    setUploading(true);
+    try {
+      const result = await processImage(file, 'article-image');
+      const url = await uploadMateriaImage(result.file, result.objectUrl, portalDbId, 'section-image');
+      onChange(url);
+    } finally { setUploading(false); }
   }
 
   return (
     <div
-      className={`img-upload${preview ? ' img-upload--filled' : ''}`}
+      className={`img-upload${value ? ' img-upload--filled' : ''}`}
       style={{ aspectRatio: ratio }}
-      onClick={() => !preview && inputRef.current?.click()}
+      onClick={() => !value && inputRef.current?.click()}
     >
       <input
         ref={inputRef}
@@ -357,23 +386,26 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; rat
         style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
       />
-      {preview ? (
+      {value ? (
         <>
-          <img src={preview} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+          <img src={value} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
           <button
             type="button"
             className="img-upload__change-btn"
             onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
+            disabled={uploading}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
-            Alterar imagem
+            {uploading ? 'Enviando…' : 'Alterar imagem'}
           </button>
         </>
       ) : (
         <>
           <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>image</span>
           <span className="img-upload__label">{label}</span>
-          <button type="button" className="img-upload__btn" onClick={() => inputRef.current?.click()}>Escolher arquivo</button>
+          <button type="button" className="img-upload__btn" disabled={uploading} onClick={() => inputRef.current?.click()}>
+            {uploading ? 'Enviando…' : 'Escolher arquivo'}
+          </button>
         </>
       )}
     </div>
@@ -381,15 +413,23 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9' }: { label?: string; rat
 }
 
 /* ── Inline image editor (container-width image) ──────────── */
-function ImageEditor() {
-  const [file, setFile] = useState<{ name: string; url: string; w: number; h: number } | null>(null);
-  const [alt, setAlt] = useState('');
+function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
+  value: string | null; alt: string; onChange: (url: string | null) => void; onAltChange: (alt: string) => void; portalDbId: string | null;
+}) {
+  const [file, setFile] = useState<{ name: string; url: string; w: number; h: number } | null>(
+    value ? { name: '', url: value, w: 0, h: 0 } : null,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(f: File) {
     const result = await processImage(f, 'article-image');
     const img = new Image();
-    img.onload = () => setFile({ name: result.file.name, url: result.objectUrl, w: img.naturalWidth, h: img.naturalHeight });
+    img.onload = async () => {
+      setFile({ name: result.file.name, url: result.objectUrl, w: img.naturalWidth, h: img.naturalHeight });
+      const url = await uploadMateriaImage(result.file, result.objectUrl, portalDbId, 'section-image');
+      onChange(url);
+      setFile(prev => prev ? { ...prev, url } : prev);
+    };
     img.src = result.objectUrl;
   }
 
@@ -448,7 +488,7 @@ function ImageEditor() {
               type="button"
               className="img-editor__btn img-editor__btn--danger"
               title="Excluir"
-              onClick={() => setFile(null)}
+              onClick={() => { setFile(null); onChange(null); }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>delete</span>
             </button>
@@ -461,7 +501,7 @@ function ImageEditor() {
             type="text"
             placeholder="Short description for the visually impaired"
             value={alt}
-            onChange={(e) => setAlt(e.target.value)}
+            onChange={(e) => onAltChange(e.target.value)}
           />
         </div>
       </div>
@@ -496,10 +536,10 @@ const SAMPLE_GALERIA_CARDS: GaleriaCard[] = [
 // or on the published site. Falls back to the ephemeral blob URL only if
 // the portal id isn't resolved yet or the upload itself fails, so the user
 // still sees a preview rather than nothing.
-async function uploadGalleryImage(file: File, objectUrl: string, portalDbId: string | null): Promise<string> {
+async function uploadMateriaImage(file: File, objectUrl: string, portalDbId: string | null, kind: string): Promise<string> {
   if (!portalDbId || !isSupabaseConfigured || !supabase) return objectUrl;
   try {
-    const path = `${portalDbId}/materias/gallery-${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+    const path = `${portalDbId}/materias/${kind}-${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
     const { error } = await supabase.storage.from('portal-media').upload(path, file, { upsert: true, contentType: file.type || 'image/webp' });
     if (error) return objectUrl;
     return supabase.storage.from('portal-media').getPublicUrl(path).data.publicUrl;
@@ -549,7 +589,7 @@ function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; 
                     <label className="btn-action btn-action--enter galeria-img-label">
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>cached</span>
                       <input type="file" accept="image/*" style={{ display: 'none' }}
-                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadGalleryImage(r.file, r.objectUrl, portalDbId); update(card.id, { imageUrl: url }); } }} />
+                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'gallery-card'); update(card.id, { imageUrl: url }); } }} />
                     </label>
                     <button type="button" className="btn-action btn-action--danger" onClick={() => update(card.id, { imageUrl: null })}>
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
@@ -559,7 +599,7 @@ function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; 
               ) : (
                 <label className="galeria-card-img-empty galeria-img-label">
                   <input type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadGalleryImage(r.file, r.objectUrl, portalDbId); update(card.id, { imageUrl: url }); } }} />
+                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'gallery-card'); update(card.id, { imageUrl: url }); } }} />
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
                   <span>Imagem (opcional)</span>
                 </label>
@@ -732,7 +772,9 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
         </button>
       </div>
       <div className="sec-editor__body">
-        {section.type === 'text' && <RichTextEditor />}
+        {section.type === 'text' && (
+          <RichTextEditor value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
+        )}
 
         {section.type === 'image-text' && (
           <div className="sec-two-panel">
@@ -740,15 +782,17 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
               No site, imagem e texto ficam lado a lado
             </p>
-            <ImageUpload label="Imagem" ratio="4/3" />
-            <RichTextEditor placeholder="Texto da seção..." />
+            <ImageUpload label="Imagem" ratio="4/3" value={section.imageUrl ?? null}
+              onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            <RichTextEditor placeholder="Texto da seção..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
           </div>
         )}
 
         {section.type === 'bg-image' && (
           <div className="sec-bgimg">
-            <ImageUpload label="Imagem de fundo" ratio="21/5" />
-            <RichTextEditor placeholder="Texto de destaque sobre a imagem..." />
+            <ImageUpload label="Imagem de fundo" ratio="21/5" value={section.imageUrl ?? null}
+              onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            <RichTextEditor placeholder="Texto de destaque sobre a imagem..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
           </div>
         )}
 
@@ -758,8 +802,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
               No site, as colunas ficam lado a lado
             </p>
-            <RichTextEditor placeholder="Coluna 1..." />
-            <RichTextEditor placeholder="Coluna 2..." />
+            <RichTextEditor placeholder="Coluna 1..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
+            <RichTextEditor placeholder="Coluna 2..." value={section.html2 ?? ''} onChange={html2 => onUpdateSection({ html2 })} />
           </div>
         )}
 
@@ -769,21 +813,25 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="3" width="6" height="18" rx="1"/><rect x="16" y="3" width="6" height="18" rx="1"/></svg>
               No site, as colunas ficam lado a lado
             </p>
-            <RichTextEditor placeholder="Coluna 1..." />
-            <RichTextEditor placeholder="Coluna 2..." />
-            <RichTextEditor placeholder="Coluna 3..." />
+            <RichTextEditor placeholder="Coluna 1..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
+            <RichTextEditor placeholder="Coluna 2..." value={section.html2 ?? ''} onChange={html2 => onUpdateSection({ html2 })} />
+            <RichTextEditor placeholder="Coluna 3..." value={section.html3 ?? ''} onChange={html3 => onUpdateSection({ html3 })} />
           </div>
         )}
 
         {section.type === 'image' && (
           <div className="sec-image-container">
-            <ImageEditor />
+            <ImageEditor value={section.imageUrl ?? null} alt={section.imageAlt ?? ''}
+              onChange={imageUrl => onUpdateSection({ imageUrl })}
+              onAltChange={imageAlt => onUpdateSection({ imageAlt })}
+              portalDbId={portalDbId} />
           </div>
         )}
 
         {section.type === 'image-full' && (
           <div className="sec-image-full">
-            <ImageUpload label="Imagem full width" ratio="21/6" />
+            <ImageUpload label="Imagem full width" ratio="21/6" value={section.imageUrl ?? null}
+              onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
           </div>
         )}
 
@@ -837,6 +885,12 @@ export default function NovaMateriaPage() {
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
   const [subtitle, setSubtitle] = useState(isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : '');
+  // NOTE: not yet persisted — portal_materias has no header-image column
+  // today, and the live site has no per-matéria header-image rendering
+  // either. Kept local (like before) so this one field doesn't block the
+  // section-image persistence fix; needs its own follow-up (schema +
+  // template) if the client actually uses this field.
+  const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
   const [sections, setSections] = useState<ContentSection[]>(
     isGaleria || isTabela || isHtml ? [] : [{ id: 'init', type: 'text' }]
   );
@@ -1070,7 +1124,8 @@ export default function NovaMateriaPage() {
                     <span>Esta página herda a imagem de header do canal.</span>
                   </div>
                 ) : (
-                  <ImageUpload label="Imagem de header" ratio="21/5" />
+                  <ImageUpload label="Imagem de header" ratio="21/5" value={headerImageUrl}
+                    onChange={setHeaderImageUrl} portalDbId={portalDbId} />
                 )
               )}
               <input
