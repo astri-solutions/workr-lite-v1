@@ -177,6 +177,8 @@ function buildSiteConfig(opts: {
 // Gerado pelo Workr Lite CMS — não editar manualmente.
 export const siteConfig = {
 
+  maintenance: false,
+
   company: {
     name:        ${JSON.stringify(opts.nome)},
     nameShort:   ${JSON.stringify(opts.nome)},

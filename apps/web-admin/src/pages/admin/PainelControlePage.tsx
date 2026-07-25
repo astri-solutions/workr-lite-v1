@@ -67,6 +67,9 @@ export default function PainelControlePage() {
   const [suspendUpdating, setSuspendUpdating] = useState(false);
   const [suspendError, setSuspendError] = useState<string | null>(null);
   const [maintenance, setMaintenance] = useState(false);
+  const [maintenanceUpdating, setMaintenanceUpdating] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
+  const [maintenanceWarning, setMaintenanceWarning] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [dangerInput1, setDangerInput1] = useState('');
   const [dangerInput2, setDangerInput2] = useState('');
@@ -91,6 +94,35 @@ export default function PainelControlePage() {
     }
     setSuspendUpdating(false);
     setSuspendConfirm(false);
+  }
+
+  async function handleToggleMaintenance() {
+    if (!site || !isSupabaseConfigured || !supabase) return;
+    const next = !maintenance;
+    setMaintenanceUpdating(true);
+    setMaintenanceError(null);
+    setMaintenanceWarning(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada');
+      const res = await fetch(`${FN_BASE}/set-maintenance`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({ portalId: site.portalKey, maintenance: next }),
+      });
+      const json = await res.json().catch(() => ({})) as { ok?: boolean; sitePatched?: boolean; warning?: string; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setMaintenance(next);
+      if (json.warning) setMaintenanceWarning(json.warning);
+    } catch (e) {
+      setMaintenanceError(`Não foi possível ${next ? 'ativar' : 'desativar'} o modo de manutenção: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setMaintenanceUpdating(false);
   }
 
   // Admin invite state
@@ -188,6 +220,16 @@ export default function PainelControlePage() {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
     return () => setPortalCtx(null);
   }, [site?.id]);
+
+  useEffect(() => {
+    if (!site?.portalId || !isSupabaseConfigured || !supabase) return;
+    supabase
+      .from('portal_config')
+      .select('maintenance')
+      .eq('portal_id', site.portalId)
+      .maybeSingle()
+      .then(({ data }) => setMaintenance(Boolean(data?.maintenance)));
+  }, [site?.portalId]);
 
   // Check if this portal has at least one admin user
   useEffect(() => {
@@ -744,12 +786,26 @@ export default function PainelControlePage() {
           className={`painel-toggle${maintenance ? ' painel-toggle--on' : ''}`}
           role="switch"
           aria-checked={maintenance}
-          onClick={() => setMaintenance((v) => !v)}
+          onClick={handleToggleMaintenance}
+          disabled={maintenanceUpdating}
           aria-label="Alternar modo de manutenção"
         >
           <span className="painel-toggle__thumb" />
         </button>
       </div>
+
+      {maintenanceError && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+          <span>{maintenanceError}</span>
+        </div>
+      )}
+      {maintenanceWarning && (
+        <div className="save-error-banner" role="alert">
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
+          <span>{maintenanceWarning}</span>
+        </div>
+      )}
 
       {/* ── Suspend / Reactivate block ──────────────────── */}
       {suspendError && (

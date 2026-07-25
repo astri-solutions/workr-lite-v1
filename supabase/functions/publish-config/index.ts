@@ -306,6 +306,7 @@ function buildSiteConfig(opts: {
   portalUuid?: string;
   topbar?: TopbarCfg | null;
   languages?: string[];
+  maintenance?: boolean;
 }) {
   const year = new Date().getFullYear();
 
@@ -363,6 +364,10 @@ function buildSiteConfig(opts: {
   return `// scripts/site.config.js
 // Gerado pelo Workr Lite CMS — não editar manualmente.
 export const siteConfig = {
+
+  // Ligado via Painel de Controle (super_admin) — quando true, page.js
+  // mostra só uma tela de aviso e não inicializa o resto do site.
+  maintenance: ${opts.maintenance ? 'true' : 'false'},
 
   company: {
     name:        ${JSON.stringify(opts.nome)},
@@ -532,12 +537,13 @@ Deno.serve(async (req) => {
 
     // Fetch previously saved logo/favicon extensions + idiomas so we don't reset them on publish
     let savedLanguages: string[] | undefined;
+    let savedMaintenance = false;
     if (resolvedPortalUuid || portalId) {
       try {
         const adminClient = createClient(supabaseUrl, resolveServiceKey());
         const query = resolvedPortalUuid
-          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas').eq('portal_id', resolvedPortalUuid).maybeSingle()
-          : adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, portal_id').eq('portal_id',
+          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, maintenance').eq('portal_id', resolvedPortalUuid).maybeSingle()
+          : adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, maintenance, portal_id').eq('portal_id',
               (await adminClient.from('portals').select('id').eq('portal_key', portalId!).maybeSingle()).data?.id ?? ''
             ).maybeSingle();
         const { data: cfgRow } = await query;
@@ -545,6 +551,7 @@ Deno.serve(async (req) => {
         savedFaviconExt = cfgRow?.favicon_ext ?? undefined;
         savedLogoNegativeExt = cfgRow?.logo_negativo_ext ?? undefined;
         savedLanguages = Array.isArray(cfgRow?.idiomas) && cfgRow.idiomas.length > 0 ? cfgRow.idiomas : undefined;
+        savedMaintenance = cfgRow?.maintenance ?? false;
       } catch { /* non-fatal */ }
     }
 
@@ -658,6 +665,7 @@ Deno.serve(async (req) => {
       portalUuid: resolvedPortalUuid,
       topbar: topbar ?? null,
       languages: languages?.length ? languages : savedLanguages,
+      maintenance: savedMaintenance,
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
