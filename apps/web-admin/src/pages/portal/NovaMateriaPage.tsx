@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { processImage } from '../../utils/imageProcessor';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import DatePicker from '../../components/DatePicker';
@@ -489,7 +490,25 @@ const SAMPLE_GALERIA_CARDS: GaleriaCard[] = [
   { id: 'g6', titulo: 'IMC anuncia programa de recompra de ações', descricao: 'O Conselho de Administração aprovou programa de recompra de até 5% das ações em circulação pelo prazo de 18 meses.', data: '2026-04-22', link: '', imageUrl: null },
 ];
 
-function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (cards: GaleriaCard[]) => void }) {
+// Uploads the processed WebP straight to Storage and returns a real public
+// URL — a blob: URL (from processImage's objectUrl) only lives as long as
+// the tab does, so a card saved with one shows a broken image after reload
+// or on the published site. Falls back to the ephemeral blob URL only if
+// the portal id isn't resolved yet or the upload itself fails, so the user
+// still sees a preview rather than nothing.
+async function uploadGalleryImage(file: File, objectUrl: string, portalDbId: string | null): Promise<string> {
+  if (!portalDbId || !isSupabaseConfigured || !supabase) return objectUrl;
+  try {
+    const path = `${portalDbId}/materias/gallery-${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+    const { error } = await supabase.storage.from('portal-media').upload(path, file, { upsert: true, contentType: file.type || 'image/webp' });
+    if (error) return objectUrl;
+    return supabase.storage.from('portal-media').getPublicUrl(path).data.publicUrl;
+  } catch {
+    return objectUrl;
+  }
+}
+
+function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; onChange: (cards: GaleriaCard[]) => void; portalDbId: string | null }) {
   function update(id: string, patch: Partial<GaleriaCard>) {
     onChange(cards.map(c => c.id === id ? { ...c, ...patch } : c));
   }
@@ -530,7 +549,7 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
                     <label className="btn-action btn-action--enter galeria-img-label">
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>cached</span>
                       <input type="file" accept="image/*" style={{ display: 'none' }}
-                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); update(card.id, { imageUrl: r.objectUrl }); } }} />
+                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadGalleryImage(r.file, r.objectUrl, portalDbId); update(card.id, { imageUrl: url }); } }} />
                     </label>
                     <button type="button" className="btn-action btn-action--danger" onClick={() => update(card.id, { imageUrl: null })}>
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
@@ -540,7 +559,7 @@ function GaleriaEditor({ cards, onChange }: { cards: GaleriaCard[]; onChange: (c
               ) : (
                 <label className="galeria-card-img-empty galeria-img-label">
                   <input type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); update(card.id, { imageUrl: r.objectUrl }); } }} />
+                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadGalleryImage(r.file, r.objectUrl, portalDbId); update(card.id, { imageUrl: url }); } }} />
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
                   <span>Imagem (opcional)</span>
                 </label>
@@ -696,11 +715,12 @@ function TabelaEditor({ rows, headers, onChange }: {
 }
 
 /* ── Section editor ───────────────────────────────────────── */
-function SectionEditor({ section, index, onRemove, onUpdateSection }: {
+function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }: {
   section: ContentSection;
   index: number;
   onRemove: () => void;
   onUpdateSection: (patch: Partial<ContentSection>) => void;
+  portalDbId: string | null;
 }) {
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
@@ -771,6 +791,7 @@ function SectionEditor({ section, index, onRemove, onUpdateSection }: {
           <GaleriaEditor
             cards={section.cards ?? []}
             onChange={(cards) => onUpdateSection({ cards })}
+            portalDbId={portalDbId}
           />
         )}
       </div>
@@ -792,6 +813,17 @@ export default function NovaMateriaPage() {
   const isHtml = pageType === 'html';
 
   const allDestinos = useCanaisDestinos(user?.activePortalId ?? undefined);
+
+  // Resolved once up front so gallery image uploads can go straight to
+  // Storage as they're picked, instead of staying as ephemeral blob: URLs
+  // until the final save (which only had access to it after an async
+  // resolvePortalId() call at submit time).
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  useEffect(() => {
+    const portalKey = user?.activePortalId;
+    if (!portalKey) return;
+    resolvePortalId(portalKey).then(setPortalDbId).catch(() => {});
+  }, [user?.activePortalId]);
 
   // Filter destinations by article type compatibility
   const compatiblePageTypes: (string | undefined)[] = isGaleria
@@ -1062,7 +1094,7 @@ export default function NovaMateriaPage() {
                 onChange={(rows, headers) => { setTabelaRows(rows); setTabelaHeaders(headers); markDirty(); }}
               />
             ) : isGaleria ? (
-              <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} />
+              <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} portalDbId={portalDbId} />
             ) : isHtml ? (
               <div className="nm-html-editor">
                 <div className="nm-html-editor__header">
@@ -1100,6 +1132,7 @@ export default function NovaMateriaPage() {
                     index={i}
                     onRemove={() => removeSection(s.id)}
                     onUpdateSection={(patch) => updateSection(s.id, patch)}
+                    portalDbId={portalDbId}
                   />
                 ))}
                 <button

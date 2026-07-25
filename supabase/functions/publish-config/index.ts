@@ -38,6 +38,23 @@ function contentHash(s: string): string {
   return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0').slice(0, 4);
 }
 
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+const IMAGE_CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  svg: 'image/svg+xml',
+  ico: 'image/x-icon',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+};
+
 function corsHeaders(origin: string | null) {
   const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
@@ -583,12 +600,22 @@ Deno.serve(async (req) => {
     // Slide ids whose image changed this publish — old assets under the same
     // id (any extension/hash) get deleted below once the tree is fetched.
     const bannerSlidesWithFreshImage = new Set<string>();
+    // Every image pushed straight to the client's GitHub repo (logo,
+    // favicon, banner slides, splash header) never otherwise touches
+    // Supabase Storage or the portal_media table — Biblioteca de Mídia
+    // (which only lists portal_media) had no way to show them. Mirroring
+    // each fresh upload into the portal-media bucket + a portal_media row
+    // (keyed by a stable `slot`, upserted so re-publishing updates the same
+    // row instead of duplicating) closes that gap without changing how any
+    // of these pages actually upload.
+    const mediaMirror: { slot: string; name: string; ext: string; base64: string }[] = [];
     const resolvedBanner = (banner ?? []).map(slide => {
       const img = slide.imagem;
       if (img && typeof img === 'object' && 'base64' in img) {
         const path = `/assets/banner/${slide.id}-${contentHash(img.base64)}.${img.ext}`;
         bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
         bannerSlidesWithFreshImage.add(slide.id);
+        mediaMirror.push({ slot: `banner-${slide.id}`, name: `Banner — ${slide.id}`, ext: img.ext, base64: img.base64 });
         return { ...slide, imagem: path };
       }
       return slide;
@@ -605,6 +632,7 @@ Deno.serve(async (req) => {
         bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
         resolvedSplash = { ...resolvedSplash, imageUrl: path };
         splashHasFreshImage = true;
+        mediaMirror.push({ slot: 'splash-header', name: 'Splash — imagem', ext: img.ext, base64: img.base64 });
       }
     }
 
@@ -765,6 +793,7 @@ Deno.serve(async (req) => {
     // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.base64) {
       queueWrite(`public/assets/logotipo/logotipo-original.${logo.ext}`, logo.base64);
+      mediaMirror.push({ slot: 'logotipo-original', name: 'Logotipo', ext: logo.ext, base64: logo.base64 });
       // Only duplicate the original as a placeholder "negative" when no real
       // negative/light variant has ever been uploaded for this portal.
       if (!logoNegativo?.base64 && !savedLogoNegativeExt) {
@@ -773,9 +802,11 @@ Deno.serve(async (req) => {
     }
     if (logoNegativo?.base64) {
       queueWrite(`public/assets/logotipo/logotipo-negative.${logoNegativo.ext}`, logoNegativo.base64);
+      mediaMirror.push({ slot: 'logotipo-negativo', name: 'Logotipo (negativo)', ext: logoNegativo.ext, base64: logoNegativo.base64 });
     }
     if (favicon?.base64) {
       queueWrite(`public/favicon.${favicon.ext}`, favicon.base64);
+      mediaMirror.push({ slot: 'favicon', name: 'Favicon', ext: favicon.ext, base64: favicon.base64 });
     }
 
     // New pages for canais that don't have a file yet (idempotent — checked
@@ -926,6 +957,29 @@ Deno.serve(async (req) => {
           if (logoNegativo?.ext) configPatch.logo_negativo_ext = logoNegativo.ext;
           if (topbar) configPatch.topbar = topbar;
           await adminClient.from('portal_config').upsert(configPatch, { onConflict: 'portal_id' });
+
+          // Mirror logo/favicon/banner/splash assets into Storage + portal_media
+          // so Biblioteca de Mídia (which only lists portal_media) can show them —
+          // these are otherwise pushed straight to GitHub and never touch Storage.
+          for (const asset of mediaMirror) {
+            try {
+              const storagePath = `${portalRow.id}/system/${asset.slot}.${asset.ext}`;
+              const { error: upErr } = await adminClient.storage
+                .from('portal-media')
+                .upload(storagePath, base64ToBytes(asset.base64), { upsert: true, contentType: IMAGE_CONTENT_TYPE_BY_EXT[asset.ext] ?? 'application/octet-stream' });
+              if (!upErr) {
+                await adminClient.from('portal_media').upsert({
+                  portal_id: portalRow.id,
+                  slot: asset.slot,
+                  name: asset.name,
+                  type: 'image',
+                  size_bytes: base64ToBytes(asset.base64).length,
+                  file_path: storagePath,
+                  uploaded_by: 'Sistema',
+                }, { onConflict: 'portal_id,slot' });
+              }
+            } catch { /* non-fatal — a mirror failure must never block the actual publish */ }
+          }
         }
       } catch { /* non-fatal */ }
     }

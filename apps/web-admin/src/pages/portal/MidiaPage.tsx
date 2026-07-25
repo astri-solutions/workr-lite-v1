@@ -40,6 +40,7 @@ interface MediaFile {
   legenda?: string;
   descricao?: string;
   link?: string;
+  slot?: string;
 }
 
 function dbToMedia(r: Record<string, unknown>): MediaFile {
@@ -63,6 +64,7 @@ function dbToMedia(r: Record<string, unknown>): MediaFile {
     legenda: (r.legenda as string) ?? undefined,
     descricao: (r.descricao as string) ?? undefined,
     link: (r.link as string) ?? undefined,
+    slot: (r.slot as string) ?? undefined,
   };
 }
 
@@ -494,6 +496,7 @@ export default function MidiaPage() {
                   {f.dimensions && <p className="midia-card__dim">{f.dimensions}</p>}
                   <div className="midia-card__chips">
                     <span className="midia-chip midia-chip--ext">{extLabel(f.name)}</span>
+                    {f.slot && <span className="badge badge--gray" style={{ fontSize: '11px' }} title="Gerenciado automaticamente via Publicar">Sistema</span>}
                     {f.tags.map(t => (
                       <span key={t} className="midia-chip midia-chip--tag" onClick={e => { e.stopPropagation(); removeTag(f.id, t); }}>
                         {t} ×
@@ -616,11 +619,17 @@ export default function MidiaPage() {
 
               <div className="midia-detail__divider" />
 
-              <div className="midia-detail__links">
-                <button type="button" className="midia-detail__link" onClick={() => openReplaceModal(selectedFile.id)}>Substituir arquivo</button>
-                <span className="midia-detail__link-sep">|</span>
-                <button type="button" className="midia-detail__link midia-detail__link--danger" onClick={() => deleteFile(selectedFile.id)}>Excluir permanentemente</button>
-              </div>
+              {selectedFile.slot ? (
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', lineHeight: 1.5 }}>
+                  Gerenciado automaticamente pelo CMS. Para substituir ou remover, use a página de origem (Logotipo/Favicon/Banner) e clique em Publicar.
+                </p>
+              ) : (
+                <div className="midia-detail__links">
+                  <button type="button" className="midia-detail__link" onClick={() => openReplaceModal(selectedFile.id)}>Substituir arquivo</button>
+                  <span className="midia-detail__link-sep">|</span>
+                  <button type="button" className="midia-detail__link midia-detail__link--danger" onClick={() => deleteFile(selectedFile.id)}>Excluir permanentemente</button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -652,6 +661,7 @@ export default function MidiaPage() {
                   <td>
                     <div>
                       <span className="table-cell--bold">{f.name}</span>
+                      {f.slot && <span className="badge badge--gray" style={{ marginLeft: 6, fontSize: '11px' }} title="Gerenciado automaticamente via Publicar">Sistema</span>}
                       {f.tags.length > 0 && (
                         <div className="midia-list-chips">
                           {f.tags.map(t => <span key={t} className="midia-chip midia-chip--tag">{t}</span>)}
@@ -665,8 +675,8 @@ export default function MidiaPage() {
                   <td className="table-cell--muted">{f.uploadedAt}</td>
                   <td>
                     <div className="table-actions">
-                      <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(f.id)}>Substituir</button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)}>Excluir</button>
+                      <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(f.id)} disabled={!!f.slot} title={f.slot ? 'Substitua enviando um novo arquivo na página de origem (Logotipo/Favicon/Banner) e clicando em Publicar' : undefined}>Substituir</button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)} disabled={!!f.slot} title={f.slot ? 'Gerenciado automaticamente — remova na página de origem' : undefined}>Excluir</button>
                     </div>
                   </td>
                 </tr>
