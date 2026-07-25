@@ -131,6 +131,16 @@ Deno.serve(async (req) => {
       ?? (user.app_metadata?.portais as string[] | undefined) ?? [];
     const callerPortalIds = resolveIds(callerRawIds);
 
+    // Per-portal role (admin/editor) lives in portal_users, separate from the
+    // global app_metadata.role (super_admin/client_user) — fetch it so the
+    // admin panel can show/edit a client_user's role within each portal.
+    const { data: portalUsersData } = await adminClient.from('portal_users').select('user_id, portal_id, role');
+    const userPortalRoles: Record<string, Record<string, string>> = {};
+    for (const pu of portalUsersData ?? []) {
+      const key = uuidToPortalKey[pu.portal_id] ?? pu.portal_id;
+      (userPortalRoles[pu.user_id] ??= {})[key] = pu.role;
+    }
+
     let allUsers = data.users.map(u => {
       const rawIds = (u.app_metadata?.portalIds as string[] | undefined)
         ?? (u.app_metadata?.portais as string[] | undefined) ?? [];
@@ -144,6 +154,7 @@ Deno.serve(async (req) => {
         portalIds: ids,
         portais: ids, // backwards compat alias
         portaisNomes,
+        portalRoles: userPortalRoles[u.id] ?? {},
         status: u.banned_until ? 'Suspenso' : 'Ativo',
       };
     });

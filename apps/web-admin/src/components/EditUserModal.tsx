@@ -3,14 +3,22 @@ import Modal from './Modal';
 import './InviteUserModal.css';
 import './EditUserModal.css';
 
+export type PortalRole = 'admin' | 'editor';
+
 export interface EditableUser {
   id: string;
   nome: string;
   email: string;
   role: 'super_admin' | 'client_user';
   portais: string[];
+  portalRoles?: Record<string, PortalRole>;
   status: 'Ativo' | 'Suspenso';
 }
+
+const PORTAL_ROLES: { value: PortalRole; label: string }[] = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Editor' },
+];
 
 export interface PortalWithEmpresas {
   id: string;
@@ -23,7 +31,7 @@ interface EditUserModalProps {
   open: boolean;
   portais: PortalWithEmpresas[];
   onClose: () => void;
-  onSave: (id: string, role: 'super_admin' | 'client_user', portais: string[]) => void;
+  onSave: (id: string, role: 'super_admin' | 'client_user', portais: string[], portalRoles: Record<string, PortalRole>) => void;
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
 }
@@ -49,6 +57,7 @@ export default function EditUserModal({
   const [tab, setTab] = useState<'info' | 'acesso'>('info');
   const [role, setRole] = useState<'super_admin' | 'client_user'>('client_user');
   const [portaisIds, setPortaisIds] = useState<string[]>([]);
+  const [portalRolesDraft, setPortalRolesDraft] = useState<Record<string, PortalRole>>({});
   const [empresasIds, setEmpresasIds] = useState<string[]>([]);
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -58,6 +67,7 @@ export default function EditUserModal({
     if (user) {
       setRole(user.role);
       setPortaisIds(user.portais);
+      setPortalRolesDraft(user.portalRoles ?? {});
       setEmpresasIds([]);
       setConfirmDelete(false);
       setTab('info');
@@ -73,8 +83,12 @@ export default function EditUserModal({
 
   function handleSave() {
     if (!user) return;
-    onSave(user.id, role, role === 'super_admin' ? [] : portaisIds);
+    onSave(user.id, role, role === 'super_admin' ? [] : portaisIds, portalRolesDraft);
     handleClose();
+  }
+
+  function setPortalRole(portalId: string, portalRole: PortalRole) {
+    setPortalRolesDraft(prev => ({ ...prev, [portalId]: portalRole }));
   }
 
   function handleToggleStatus() {
@@ -149,7 +163,9 @@ export default function EditUserModal({
   const isSuspended = user.status === 'Suspenso';
   const portaisChanged = role === 'client_user' &&
     JSON.stringify([...portaisIds].sort()) !== JSON.stringify([...user.portais].sort());
-  const hasChanges = role !== user.role || portaisChanged;
+  const portalRolesChanged = role === 'client_user' &&
+    JSON.stringify(portalRolesDraft) !== JSON.stringify(user.portalRoles ?? {});
+  const hasChanges = role !== user.role || portaisChanged || portalRolesChanged;
 
   return (
     <Modal
@@ -302,6 +318,16 @@ export default function EditUserModal({
                           </span>
                           <span className="invite-portal-row__name">{portal.nome}</span>
                         </div>
+                        {(selected || partial) && (
+                          <select
+                            className="eu-portal-role-select"
+                            value={portalRolesDraft[portal.id] ?? 'editor'}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => setPortalRole(portal.id, e.target.value as PortalRole)}
+                          >
+                            {PORTAL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                          </select>
+                        )}
                         {emp.length > 0 && (
                           <button type="button" className="invite-portal-row__chevron"
                             onClick={() => setExpandedPortalId(isExpanded ? null : portal.id)}>

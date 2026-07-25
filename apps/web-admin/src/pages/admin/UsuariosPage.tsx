@@ -6,7 +6,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import FilterBar from '../../components/FilterBar';
 import SearchInput from '../../components/SearchInput';
 import InviteUserModal, { InviteFormData, PortalWithEmpresas } from '../../components/InviteUserModal';
-import EditUserModal, { EditableUser } from '../../components/EditUserModal';
+import EditUserModal, { EditableUser, PortalRole } from '../../components/EditUserModal';
 import Modal from '../../components/Modal';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
@@ -17,6 +17,7 @@ interface UsuarioItem {
   role: 'super_admin' | 'client_user';
   portais: string[];
   portaisNomes?: string[];
+  portalRoles?: Record<string, PortalRole>;
   status: 'Ativo' | 'Suspenso';
 }
 
@@ -198,11 +199,16 @@ export default function UsuariosPage() {
     }
   }
 
-  async function handleSaveRole(id: string, role: 'super_admin' | 'client_user', portaisIds: string[]) {
+  async function handleSaveRole(
+    id: string,
+    role: 'super_admin' | 'client_user',
+    portaisIds: string[],
+    portalRoles?: Record<string, PortalRole>,
+  ) {
     setActionLoading(id);
     setActionError(null);
     try {
-      await callManageUser({ action: 'update', userId: id, role, portais: portaisIds });
+      await callManageUser({ action: 'update', userId: id, role, portais: portaisIds, portalRoles });
       await fetchUsuarios();
     } catch (e) {
       setActionError(`Não foi possível salvar as alterações: ${e instanceof Error ? e.message : String(e)}`);
@@ -494,7 +500,7 @@ export default function UsuariosPage() {
                             className="btn-action btn-action--enter"
                             type="button"
                             disabled={isLoading}
-                            onClick={() => setEditTarget({ id: u.id, nome: u.nome, email: u.email, role: u.role, portais: u.portais, status: u.status })}
+                            onClick={() => setEditTarget({ id: u.id, nome: u.nome, email: u.email, role: u.role, portais: u.portais, portalRoles: u.portalRoles, status: u.status })}
                           >
                             Editar
                           </button>

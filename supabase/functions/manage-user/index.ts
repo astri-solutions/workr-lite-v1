@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       userId: string;
       role?: string;
       portais?: string[];
+      portalRoles?: Record<string, string>;
     };
 
     const { action, userId } = body;
@@ -139,6 +140,29 @@ Deno.serve(async (req) => {
         app_metadata: updates,
       }));
       if (error) throw error;
+
+      // Per-portal role (admin/editor) lives in portal_users, not
+      // app_metadata — apply it separately once the caller sends it.
+      if (body.portalRoles && Object.keys(body.portalRoles).length > 0) {
+        const { data: portalsData, error: portalsErr } = await adminCall(
+          supabaseUrl,
+          c => c.from('portals').select('id, portal_key'),
+        );
+        if (portalsErr) throw portalsErr;
+        const keyToUuid: Record<string, string> = {};
+        for (const p of (portalsData as { id: string; portal_key: string }[]) ?? []) {
+          keyToUuid[p.portal_key] = p.id;
+        }
+        for (const [portalKey, role] of Object.entries(body.portalRoles)) {
+          const portalUuid = keyToUuid[portalKey] ?? portalKey;
+          const { error: roleErr } = await adminCall(
+            supabaseUrl,
+            c => c.from('portal_users').update({ role }).eq('portal_id', portalUuid).eq('user_id', userId),
+          );
+          if (roleErr) throw roleErr;
+        }
+      }
+
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
