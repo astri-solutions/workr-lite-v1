@@ -56,6 +56,7 @@ interface FileEntry {
   locale: string;
   filePath?: string;
   externalLink?: string;
+  uploadedBy?: string;
   /** Raw File object for an entry not yet uploaded to Storage — set when
    * added via drop/pick or when replacing an existing entry's file; cleared
    * once persisted. */
@@ -113,7 +114,7 @@ function uid() {
   return `f${crypto.randomUUID()}`;
 }
 
-function makeEntries(files: File[]): FileEntry[] {
+function makeEntries(files: File[], uploadedBy?: string): FileEntry[] {
   return files.map(f => ({
     id: uid(),
     nome: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
@@ -122,6 +123,7 @@ function makeEntries(files: File[]): FileEntry[] {
     status: 'draft' as const,
     locale: 'pt-BR',
     file: f,
+    uploadedBy,
   }));
 }
 
@@ -252,6 +254,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                 <th style={{ width: 180 }}>Tipo de documento</th>
                 <th style={{ width: 60 }}>Idioma</th>
                 <th style={{ width: 56 }}>Ext.</th>
+                <th style={{ width: 150 }}>Publicado por</th>
                 <th style={{ width: 96 }} />
               </tr>
             </thead>
@@ -300,6 +303,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                     <td>
                       <span className={`cdr2-ext-badge${ext ? '' : ' cdr2-ext-badge--empty'}`}>{ext || '—'}</span>
                     </td>
+                    <td className="table-cell--muted">{entry.uploadedBy || '—'}</td>
                     <td>
                       <div className="cdr2-file-actions">
                         <button
@@ -456,6 +460,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
 export default function CentralDeResultadosPage2() {
   const portalName = usePortalName();
   const { user } = useAuth();
+  const userName = user?.name ?? user?.email ?? '';
   const ENTITIES = loadEntities(user?.activePortalId);
   const [activeEntity, setActiveEntity] = useState(ENTITIES[0]?.id ?? '');
   const [search, setSearch] = useState('');
@@ -499,6 +504,7 @@ export default function CentralDeResultadosPage2() {
           locale: r.locale as string,
           filePath,
           externalLink: (r.external_link as string | null) ?? undefined,
+          uploadedBy: (r.uploaded_by as string | null) ?? undefined,
         };
         const periodoId = r.periodo_id as string;
         (grouped[periodoId] ??= []).push(entry);
@@ -666,6 +672,7 @@ export default function CentralDeResultadosPage2() {
             nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
             external_link: entry.externalLink ?? null, locale: entry.locale,
             status, ordem: idx, updated_at: new Date().toISOString(),
+            uploaded_by: entry.uploadedBy ?? null,
           }, { onConflict: 'id' });
           if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
           continue;
@@ -780,7 +787,7 @@ export default function CentralDeResultadosPage2() {
         <FileListEditor
           entries={editorDocs}
           onChange={entries => updateQuarterDocs(editingQuarterId, entries)}
-          onDropFiles={files => updateQuarterDocs(editingQuarterId, [...editorDocs, ...makeEntries(files)])}
+          onDropFiles={files => updateQuarterDocs(editingQuarterId, [...editorDocs, ...makeEntries(files, userName)])}
         />
 
         <div className="cdr2-fullpage-footer">
@@ -1049,7 +1056,7 @@ export default function CentralDeResultadosPage2() {
           <FileListEditor
             entries={wEntries}
             onChange={setWEntries}
-            onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files)])}
+            onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files, userName)])}
             portugueseOnly={wPortugueseOnly}
             onPortugueseOnlyChange={setWPortugueseOnly}
           />
