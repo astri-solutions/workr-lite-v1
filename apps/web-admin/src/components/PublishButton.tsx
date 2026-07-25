@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePublish } from '../contexts/PublishContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface Props {
   disabled?: boolean;
@@ -9,27 +11,72 @@ interface Props {
 // Best-effort preview URL for the active portal's live site — mirrors the
 // same `workr_portais` lookup PublishContext already uses to resolve
 // repoName, so this stays in sync without a new data source.
-function usePreviewUrl(): string | null {
+function usePreviewBase(): { url: string; portalId: string } | null {
   const { user } = useAuth();
   try {
     const portais: Array<{ id: string; vercelUrl?: string; subdomain?: string }> =
       JSON.parse(localStorage.getItem('workr_portais') ?? '[]');
     const activeId = user?.activePortalId ?? user?.portais?.[0]?.id;
+    if (!activeId) return null;
     const record = portais.find(p => p.id === activeId);
     if (!record) return null;
     const base = record.vercelUrl || (record.subdomain ? `https://workr-portal-${record.subdomain}.vercel.app` : null);
-    return base ? `${base.replace(/\/$/, '')}/?preview=1` : null;
+    return base ? { url: base.replace(/\/$/, ''), portalId: activeId } : null;
   } catch { return null; }
 }
 
 function PreviewLink() {
-  const previewUrl = usePreviewUrl();
-  if (!previewUrl) return null;
+  const previewBase = usePreviewBase();
+  const [loading, setLoading] = useState(false);
+
+  if (!previewBase) return null;
+
+  // Best-effort: mints a short-lived token so the preview can also show
+  // draft matérias/documentos/resultados (not just config); if that call
+  // fails for any reason, still open the plain ?preview=1 link — that
+  // already covers cores/fontes/menu/footer/etc. on its own.
+  async function handleClick(e: React.MouseEvent) {
+    e.preventDefault();
+    if (loading || !previewBase) return;
+    setLoading(true);
+    // Open the tab synchronously (inside the click handler) so browsers
+    // don't treat it as a blocked popup — its location is set once the
+    // token (or the fallback URL) is ready below.
+    const tab = window.open('', '_blank', 'noreferrer');
+    let url = `${previewBase.url}/?preview=1`;
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (token) {
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mint-preview-token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            },
+            body: JSON.stringify({ portalId: previewBase.portalId }),
+          });
+          if (res.ok) {
+            const { token: previewToken } = await res.json();
+            if (previewToken) url += `&token=${encodeURIComponent(previewToken)}`;
+          }
+        }
+      }
+    } catch { /* fall back to the plain preview link below */ }
+    finally {
+      setLoading(false);
+      if (tab) tab.location.href = url;
+      else window.open(url, '_blank', 'noreferrer');
+    }
+  }
+
   return (
-    <a className="btn-outline" href={previewUrl} target="_blank" rel="noreferrer"
+    <button className="btn-outline" type="button" onClick={handleClick} disabled={loading}
       title="Ver o site ao vivo com as alterações ainda não publicadas">
-      Pré-visualizar
-    </a>
+      {loading ? 'Abrindo…' : 'Pré-visualizar'}
+    </button>
   );
 }
 
