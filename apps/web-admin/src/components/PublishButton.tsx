@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePublish } from '../contexts/PublishContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -27,56 +27,45 @@ function usePreviewBase(): { url: string; portalId: string } | null {
 
 function PreviewLink() {
   const previewBase = usePreviewBase();
-  const [loading, setLoading] = useState(false);
+  // Starts as the plain link (still fully functional — cores/fontes/menu/
+  // footer/etc. all preview without a token) and upgrades in place once the
+  // token arrives. A real <a href> is used throughout: unlike
+  // window.open() after an await, anchor navigation on click is never
+  // treated as a blocked popup by the browser, so this can never open a
+  // blank tab the way an async-then-window.open flow can.
+  const [url, setUrl] = useState<string | null>(previewBase ? `${previewBase.url}/?preview=1` : null);
 
-  if (!previewBase) return null;
+  useEffect(() => {
+    if (!previewBase) { setUrl(null); return; }
+    setUrl(`${previewBase.url}/?preview=1`);
+    let cancelled = false;
+    (async () => {
+      if (!isSupabaseConfigured || !supabase) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mint-preview-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({ portalId: previewBase.portalId }),
+      });
+      if (!res.ok || cancelled) return;
+      const { token: previewToken } = await res.json();
+      if (previewToken && !cancelled) setUrl(`${previewBase.url}/?preview=1&token=${encodeURIComponent(previewToken)}`);
+    })().catch(() => { /* keep the plain link on any failure */ });
+    return () => { cancelled = true; };
+  }, [previewBase?.url, previewBase?.portalId]);
 
-  // Best-effort: mints a short-lived token so the preview can also show
-  // draft matérias/documentos/resultados (not just config); if that call
-  // fails for any reason, still open the plain ?preview=1 link — that
-  // already covers cores/fontes/menu/footer/etc. on its own.
-  async function handleClick(e: React.MouseEvent) {
-    e.preventDefault();
-    if (loading || !previewBase) return;
-    setLoading(true);
-    // Open the tab synchronously (inside the click handler) so browsers
-    // don't treat it as a blocked popup — its location is set once the
-    // token (or the fallback URL) is ready below.
-    const tab = window.open('', '_blank', 'noreferrer');
-    let url = `${previewBase.url}/?preview=1`;
-    try {
-      if (isSupabaseConfigured && supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        if (token) {
-          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mint-preview-token`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-            },
-            body: JSON.stringify({ portalId: previewBase.portalId }),
-          });
-          if (res.ok) {
-            const { token: previewToken } = await res.json();
-            if (previewToken) url += `&token=${encodeURIComponent(previewToken)}`;
-          }
-        }
-      }
-    } catch { /* fall back to the plain preview link below */ }
-    finally {
-      setLoading(false);
-      if (tab) tab.location.href = url;
-      else window.open(url, '_blank', 'noreferrer');
-    }
-  }
-
+  if (!url) return null;
   return (
-    <button className="btn-outline" type="button" onClick={handleClick} disabled={loading}
+    <a className="btn-outline" href={url} target="_blank" rel="noreferrer"
       title="Ver o site ao vivo com as alterações ainda não publicadas">
-      {loading ? 'Abrindo…' : 'Pré-visualizar'}
-    </button>
+      Pré-visualizar
+    </a>
   );
 }
 
