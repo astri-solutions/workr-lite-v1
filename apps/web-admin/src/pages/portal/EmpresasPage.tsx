@@ -333,15 +333,19 @@ export default function EmpresasPage() {
           <label className="emp-form__label">
             <span className="emp-form__label-text">CNPJ{form.autoCvm && <span className="emp-form__required">*</span>}</span>
             <input
-              className={`emp-form__input${editing?.cnpj ? ' emp-form__input--readonly' : ''}${form.autoCvm && !form.cnpj.trim() ? ' emp-form__input--error' : ''}`}
+              className={`emp-form__input${editing?.cnpj && !isSuperAdmin ? ' emp-form__input--readonly' : ''}${form.autoCvm && !form.cnpj.trim() ? ' emp-form__input--error' : ''}`}
               type="text"
               placeholder="00.000.000/0001-00"
               value={form.cnpj}
-              onChange={e => !editing?.cnpj && setForm(f => ({ ...f, cnpj: e.target.value }))}
-              readOnly={!!editing?.cnpj}
+              onChange={e => (isSuperAdmin || !editing?.cnpj) && setForm(f => ({ ...f, cnpj: e.target.value }))}
+              readOnly={!!editing?.cnpj && !isSuperAdmin}
             />
             {editing?.cnpj && (
-              <span className="emp-form__hint">O CNPJ não pode ser alterado após o cadastro.</span>
+              isSuperAdmin ? (
+                <span className="emp-form__field-hint">Como Admin, você pode corrigir o CNPJ mesmo após o cadastro.</span>
+              ) : (
+                <span className="emp-form__hint">O CNPJ não pode ser alterado após o cadastro.</span>
+              )
             )}
             {form.autoCvm && !form.cnpj.trim() && (
               <span className="emp-form__error-hint">Obrigatório quando o Auto CVM está ativado.</span>
