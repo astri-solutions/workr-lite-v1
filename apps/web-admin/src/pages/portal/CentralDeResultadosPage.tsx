@@ -220,26 +220,46 @@ export default function CentralDeResultadosPage() {
   // Resultados published here (portal_quarters/portal_results) are a
   // separate data source from the nav tree in Canais — they only become
   // reachable on the live site if some canal node was created with
-  // pageType 'tabela-resultados'. Without one, everything saved here is
-  // silently orphaned (no broken error, just invisible), so warn the admin
-  // instead of letting that pass silently.
-  const [hasResultadosPage, setHasResultadosPage] = useState<boolean | null>(null);
+  // pageType 'tabela-resultados'. Without one, everything saved here used
+  // to be silently orphaned (no broken error, just invisible) — so instead
+  // of just warning, auto-create a "Central de Resultados" canal the
+  // moment this page detects one is missing, for any portal. This is
+  // additive-only (never touches/removes existing canais), matching the
+  // pattern already used by the Auto CVM importer's lista-agrupada
+  // promotion.
+  const [autoCreatedNotice, setAutoCreatedNotice] = useState<'checking' | 'ok' | 'created' | 'error'>('checking');
   useEffect(() => {
     if (!portalDbId || !isSupabaseConfigured || !supabase) return;
     let cancelled = false;
-    Promise.resolve(
-      supabase.from('portal_config').select('canais').eq('portal_id', portalDbId).maybeSingle()
-    )
-      .then(({ data }) => {
-        if (cancelled) return;
-        interface CanalNode { pageType?: string; children?: CanalNode[] }
-        function hasPage(nodes: CanalNode[]): boolean {
-          return nodes.some(n => n.pageType === 'tabela-resultados' || (n.children && hasPage(n.children)));
-        }
-        const canais = (data?.canais ?? []) as CanalNode[];
-        setHasResultadosPage(hasPage(canais));
-      })
-      .catch(() => { if (!cancelled) setHasResultadosPage(null); });
+    interface CanalNode { pageType?: string; children?: CanalNode[] }
+    function hasResultadosPage(nodes: CanalNode[]): boolean {
+      return nodes.some(n => n.pageType === 'tabela-resultados' || (n.children && hasResultadosPage(n.children)));
+    }
+    (async () => {
+      const { data } = await supabase!.from('portal_config').select('canais, updated_at').eq('portal_id', portalDbId).maybeSingle();
+      if (cancelled) return;
+      const canais = (data?.canais ?? []) as CanalNode[];
+      if (hasResultadosPage(canais)) { setAutoCreatedNotice('ok'); return; }
+
+      const newId = Math.random().toString(36).slice(2, 9);
+      const newCanal = {
+        id: newId,
+        href: `/${newId}.html`,
+        label: 'Central de Resultados',
+        labels: { [PORTAL_CONFIG.languages[0]]: 'Central de Resultados' },
+        enabled: true,
+        children: [],
+        pageType: 'tabela-resultados',
+        showInFooter: false,
+      };
+      const { error } = await supabase!
+        .from('portal_config')
+        .update({ canais: [...canais, newCanal] })
+        .eq('portal_id', portalDbId)
+        .eq('updated_at', data?.updated_at ?? '');
+      if (cancelled) return;
+      setAutoCreatedNotice(error ? 'error' : 'created');
+    })().catch(() => { if (!cancelled) setAutoCreatedNotice('error'); });
     return () => { cancelled = true; };
   }, [portalDbId]);
 
@@ -544,13 +564,23 @@ export default function CentralDeResultadosPage() {
         }
       />
 
-      {hasResultadosPage === false && (
+      {autoCreatedNotice === 'created' && (
+        <div className="save-error-banner" role="alert" style={{ background: 'var(--color-success-50)', borderColor: 'var(--color-success-200)', color: 'var(--color-success-700)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
+          <span>
+            Este portal não tinha uma página do tipo "Tabela Resultados" em <strong>Canais</strong> — criamos automaticamente
+            a página <strong>Central de Resultados</strong>. Publique para que ela apareça no site (você ainda pode
+            renomear/reordenar em Canais).
+          </span>
+        </div>
+      )}
+
+      {autoCreatedNotice === 'error' && (
         <div className="save-error-banner" role="alert">
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
           <span>
-            Nenhuma página do tipo "Tabela Resultados" foi criada em <strong>Canais</strong> para este portal.
-            Os resultados publicados aqui ficam salvos, mas não aparecem no site até que essa página exista —
-            crie uma em Canais (tipo "Tabela Resultados") e vincule-a ao menu.
+            Não foi possível criar automaticamente a página Central de Resultados em <strong>Canais</strong>.
+            Crie manualmente uma página do tipo "Tabela Resultados", ou recarregue esta página para tentar de novo.
           </span>
         </div>
       )}
