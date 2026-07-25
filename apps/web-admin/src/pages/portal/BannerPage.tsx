@@ -34,6 +34,11 @@ interface BannerSlide {
   id: string;
   imagem: string | null;
   content: Partial<Record<LocaleCode, SlideContent>>;
+  // Link/visibility aren't per-language, so they live on the slide itself,
+  // not inside `content`. Undefined ctaEnabled means "on" — keeps existing
+  // saved slides (from before this field existed) showing their button.
+  ctaLink?: string;
+  ctaEnabled?: boolean;
 }
 
 function emptyContent(): SlideContent {
@@ -146,7 +151,12 @@ export default function BannerPage() {
   function updateImage(value: string | null) {
     setSlides(prev => prev.map(s => s.id === activeId ? { ...s, imagem: value } : s));
     setDirty(true);
-    
+
+  }
+
+  function updateSlide(patch: Partial<Pick<BannerSlide, 'ctaLink' | 'ctaEnabled'>>) {
+    setSlides(prev => prev.map(s => s.id === activeId ? { ...s, ...patch } : s));
+    setDirty(true);
   }
 
   function addSlide() {
@@ -302,7 +312,23 @@ export default function BannerPage() {
               <span>Texto do botão (CTA)</span>
               <input className="banner-input" type="text" value={activeContent.cta}
                 onChange={e => updateContent('cta', e.target.value)}
+                disabled={active.ctaEnabled === false}
                 placeholder={locale === primaryLang ? 'Ex: Saiba mais' : primaryContent.cta} />
+            </label>
+            <label className="banner-field">
+              <span>Link do botão</span>
+              <input className="banner-input" type="text" value={active.ctaLink ?? ''}
+                onChange={e => updateSlide({ ctaLink: e.target.value })}
+                disabled={active.ctaEnabled === false}
+                placeholder="Ex: /central-de-resultados.html ou https://..." />
+              <p className="banner-field__hint" style={{ margin: '4px 0 0' }}>
+                Deixe em branco para usar automaticamente o primeiro item do menu.
+              </p>
+            </label>
+            <label className="banner-field banner-field--checkbox">
+              <input type="checkbox" checked={active.ctaEnabled === false}
+                onChange={e => updateSlide({ ctaEnabled: !e.target.checked })} />
+              <span>Ocultar botão no site</span>
             </label>
           </div>
         </div>
