@@ -20,6 +20,13 @@ export interface StoredMateria {
   autor: string;
   ultimaEdicao: string;
   ultimoEditor: string;
+  /**
+   * ISO timestamp a matéria with status 'agendado' goes live at. A pg_cron
+   * job (auto-publish-scheduled-materias) flips it to 'publicado' once this
+   * passes — the site reads matérias straight from Supabase, so the content
+   * appears without anyone having to click Publicar again.
+   */
+  scheduleAt?: string | null;
   // Rich content sections (persisted locally and synced to Supabase)
   content?: unknown;
 }
@@ -61,7 +68,10 @@ export function persistMateria(materia: StoredMateria, portalKey?: string) {
   }
   saveRaw(all, portalKey);
 
-  if (materia.status === 'publicado' && materia.pageSlugType === 'show') {
+  // 'agendado' counts too: the page has to already exist and be reachable
+  // when the cron flips the matéria live, otherwise the content would go
+  // published with nowhere to render until someone republished by hand.
+  if ((materia.status === 'publicado' || materia.status === 'agendado') && materia.pageSlugType === 'show') {
     activatePage(materia.pageId, portalKey);
   }
 }
@@ -83,6 +93,7 @@ export async function syncMateriaToSupabase(materia: StoredMateria, portalDbId: 
     autor: materia.autor,
     ultima_edicao: materia.ultimaEdicao,
     ultimo_editor: materia.ultimoEditor,
+    schedule_at: materia.scheduleAt ?? null,
     content: materia.content ?? null,
   }, { onConflict: 'id' });
 }

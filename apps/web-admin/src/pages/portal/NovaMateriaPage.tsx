@@ -1114,14 +1114,34 @@ export default function NovaMateriaPage() {
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const STATUS_FROM_STORED: Record<string, PublishStatus> = { publicado: 'published', rascunho: 'draft', agendado: 'scheduled' };
   const [status, setStatus] = useState<PublishStatus>(editing ? (STATUS_FROM_STORED[editing.status] ?? 'draft') : 'draft');
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [scheduleTime, setScheduleTime] = useState('');
+  // Reopening a scheduled matéria has to show the schedule it already has,
+  // or saving again would silently drop it back to "publish now".
+  const editingSchedule = editing?.scheduleAt ? new Date(editing.scheduleAt) : null;
+  const [scheduleDate, setScheduleDate] = useState(
+    editingSchedule ? `${editingSchedule.getFullYear()}-${String(editingSchedule.getMonth() + 1).padStart(2, '0')}-${String(editingSchedule.getDate()).padStart(2, '0')}` : ''
+  );
+  const [scheduleTime, setScheduleTime] = useState(
+    editingSchedule ? editingSchedule.toTimeString().slice(0, 5) : ''
+  );
   // Local date, not toISOString() — that's UTC, so late evening in BRT
   // (UTC-3) would already report tomorrow and block scheduling for today.
   const todayStr = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
+  // A date with no time means midnight of that day. `new Date('YYYY-MM-DDTHH:mm')`
+  // parses as LOCAL time, so toISOString() lands on the right UTC instant
+  // for the cron to compare against now().
+  const scheduleAtIso = (() => {
+    if (!scheduleDate) return null;
+    const d = new Date(`${scheduleDate}T${scheduleTime || '00:00'}`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  })();
+  // Only defer publication for a moment that hasn't passed yet — a date in
+  // the past would leave the matéria stuck as 'agendado' forever, since the
+  // cron would publish it on its next tick anyway.
+  const scheduleInPast = !!scheduleAtIso && new Date(scheduleAtIso).getTime() <= Date.now();
+  const willSchedule = !!scheduleAtIso && !scheduleInPast;
   // The matéria lives at its destination page's URL, so the slug mirrors
   // that page's name — it follows along if the page is renamed in Canais,
   // instead of drifting from whatever the matéria happened to be called.
@@ -1195,6 +1215,11 @@ export default function NovaMateriaPage() {
         autor: user?.name ?? user?.email ?? 'Usuário',
         ultimaEdicao: today,
         ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
+        // Built from the local date+time the admin picked; toISOString()
+        // converts to UTC so the cron fires at the intended local moment
+        // rather than three hours off. Only meaningful when scheduling —
+        // a draft or an immediate publish clears it.
+        scheduleAt: newStatus === 'scheduled' ? scheduleAtIso : null,
         // Galeria/timeline are saved wrapped as a single-item block array
         // (not the bare cards/items) so the site's existing renderBlock()
         // in materias.js — built for sections inside a 'show' page — can
@@ -1212,13 +1237,19 @@ export default function NovaMateriaPage() {
         const portalDbId = await resolvePortalId(portalKey);
         if (portalDbId) {
           await syncMateriaToSupabase(m, portalDbId);
-          if (m.status === 'publicado' && m.pageSlugType === 'show') {
+          // Scheduled counts as published for the page itself: the cron only
+          // flips the matéria's status in Supabase, it can't create the page
+          // or push the site. So the destination page has to be live and
+          // deployed now — it just shows "Em construção" until the scheduled
+          // moment, when the matéria starts being returned by the query the
+          // site already makes on every load.
+          if ((m.status === 'publicado' || m.status === 'agendado') && m.pageSlugType === 'show') {
             await activatePageInSupabase(m.pageId, portalDbId);
           }
         }
       }
       // Match the sidebar's global publish button's real-site effect.
-      if (newStatus === 'published') await publish();
+      if (newStatus === 'published' || newStatus === 'scheduled') await publish();
     }
 
     // Only flip to "Salvo!"/"Publicado!" once the async work above has
@@ -1276,7 +1307,7 @@ export default function NovaMateriaPage() {
               </button>
               <PublishButton
                 disabled={!dirty || !canPublish}
-                onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
+                onClick={() => handlePublish(willSchedule ? 'scheduled' : 'published')}
               />
             </>
           ) : (
@@ -1291,7 +1322,7 @@ export default function NovaMateriaPage() {
               </button>
               <PublishButton
                 disabled={!canPublish}
-                onClick={() => handlePublish(scheduleDate ? 'scheduled' : 'published')}
+                onClick={() => handlePublish(willSchedule ? 'scheduled' : 'published')}
               />
             </>
           )}
@@ -1459,9 +1490,21 @@ export default function NovaMateriaPage() {
               disabled={!scheduleDate}
               onChange={(e) => { setScheduleTime(e.target.value); markDirty(); }}
             />
-            <p className="nm-meta-hint">
-              Deixe em branco para publicar imediatamente ao clicar em Publicar.
-            </p>
+            {scheduleInPast ? (
+              <p className="nm-page-conflict">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>warning</span>
+                Esta data já passou — a matéria será publicada imediatamente.
+              </p>
+            ) : willSchedule ? (
+              <p className="nm-meta-hint">
+                Será publicada automaticamente em{' '}
+                <strong>{new Date(scheduleAtIso!).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>.
+              </p>
+            ) : (
+              <p className="nm-meta-hint">
+                Deixe em branco para publicar imediatamente ao clicar em Publicar.
+              </p>
+            )}
           </div>
 
           {/* Page destination */}

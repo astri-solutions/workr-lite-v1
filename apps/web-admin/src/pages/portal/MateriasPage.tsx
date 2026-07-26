@@ -158,6 +158,7 @@ export default function MateriasPage() {
         autor: (row.autor as string) ?? '',
         ultimaEdicao: (row.ultima_edicao as string) ?? '',
         ultimoEditor: (row.ultimo_editor as string) ?? '',
+        scheduleAt: (row.schedule_at as string | null) ?? null,
         content: row.content,
       };
       // Reflect the current position in the árvore de canais (e.g. "Documentos › Mailing")
