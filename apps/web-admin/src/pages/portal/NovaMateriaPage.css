@@ -631,6 +631,9 @@
 }
 .galeria-add-card:hover { border-color: var(--color-primary-400); color: var(--color-primary-500); }
 
+.timeline-editor__orientation { margin-bottom: var(--space-5); }
+.timeline-editor .galeria-add-card { display: flex; width: fit-content; margin: 0 auto; }
+
 /* ── Inline image editor ─────────────────────────── */
 .img-editor-empty {
   display: flex;
