@@ -14,7 +14,7 @@ import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
-type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria' | 'timeline';
+type SectionType = 'text' | 'image-text' | 'text-image' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria' | 'timeline';
 type PublishStatus = 'draft' | 'published' | 'scheduled';
 
 interface GaleriaCard {
@@ -84,6 +84,25 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; cat: Secti
         <rect x="80" y="45" width="58" height="4.5" rx="2" fill="#B8B8B8"/>
         <rect x="80" y="54" width="62" height="4.5" rx="2" fill="#B8B8B8"/>
         <rect x="80" y="63" width="50" height="4.5" rx="2" fill="#B8B8B8"/>
+      </svg>
+    ),
+  },
+  {
+    type: 'text-image',
+    label: 'Texto + Imagem',
+    desc: 'Texto à esquerda com imagem à direita — o inverso do modelo acima.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="12" y="22" width="68" height="7" rx="3" fill="#0B5B68" opacity="0.8"/>
+        <rect x="12" y="36" width="68" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="12" y="45" width="58" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="12" y="54" width="62" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="12" y="63" width="50" height="4.5" rx="2" fill="#B8B8B8"/>
+        <rect x="90" y="16" width="58" height="68" rx="5" fill="#C8DFE2"/>
+        <line x1="107" y1="42" x2="130" y2="58" stroke="#0B5B68" strokeWidth="1.5" opacity="0.4"/>
+        <circle cx="112" cy="34" r="6" fill="#0B5B68" opacity="0.25"/>
       </svg>
     ),
   },
@@ -224,6 +243,7 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; cat: Secti
 const SECTION_LABEL: Record<SectionType, string> = {
   text: 'Bloco de texto',
   'image-text': 'Imagem + Texto',
+  'text-image': 'Texto + Imagem',
   'bg-image': 'Fundo com texto',
   timeline: 'Linha do tempo',
   'two-col': 'Duas colunas',
@@ -908,11 +928,11 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
           <RichTextEditor value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
         )}
 
-        {section.type === 'image-text' && (
+        {(section.type === 'image-text' || section.type === 'text-image') && (
           <div className="sec-two-panel">
             <p className="sec-two-panel__hint">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
-              No site, imagem e texto ficam lado a lado
+              No site, {section.type === 'image-text' ? 'a imagem fica à esquerda e o texto à direita' : 'o texto fica à esquerda e a imagem à direita'}
             </p>
             <ImageUpload label="Imagem" ratio="4/3" value={section.imageUrl ?? null}
               onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
