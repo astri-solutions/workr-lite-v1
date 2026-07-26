@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
+import ColorPickerPopover from '../../components/ColorPickerPopover';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
@@ -53,6 +54,9 @@ interface ContentSection {
   imageAlt?: string;
   timelineItems?: TimelineItem[]; // 'timeline'
   timelineOrientation?: 'vertical' | 'horizontal'; // 'timeline'
+  /** Cores opcionais da seção. Vazio/ausente = herda o tema do portal. */
+  bgColor?: string;
+  textColor?: string;
   kpiItems?: KpiItem[]; // 'kpis'
   accordionItems?: AccordionItem[]; // 'accordion'
   tabItems?: TabItem[]; // 'tabs'
@@ -1073,6 +1077,20 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
       <div className="sec-editor__head">
         <span className="sec-editor__num">{index + 1}</span>
         <span className="sec-editor__label">{SECTION_LABEL[section.type]}</span>
+        <div className="sec-editor__colors">
+          {/* Sem cor definida a seção herda o tema do portal — por isso o
+              botão de limpar, e não um valor padrão fixo. */}
+          <span className="sec-editor__colors-label" title="Cor de fundo da seção">Fundo</span>
+          <ColorPickerPopover value={section.bgColor || '#ffffff'} onChange={bgColor => onUpdateSection({ bgColor })} />
+          <span className="sec-editor__colors-label" title="Cor do texto da seção">Texto</span>
+          <ColorPickerPopover value={section.textColor || '#141414'} onChange={textColor => onUpdateSection({ textColor })} />
+          {(section.bgColor || section.textColor) && (
+            <button type="button" className="sec-editor__del" title="Voltar às cores do tema"
+              onClick={() => onUpdateSection({ bgColor: '', textColor: '' })}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_color_reset</span>
+            </button>
+          )}
+        </div>
         <button type="button" className="sec-editor__del" onClick={onRemove} title="Remover">
           <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
         </button>

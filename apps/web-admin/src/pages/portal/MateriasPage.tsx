@@ -9,7 +9,7 @@ import SearchInput from '../../components/SearchInput';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos, type Destino } from '../../hooks/useCanaisDestinos';
-import { deleteMateria as deleteMateriaFromStore, type StoredMateria } from '../../hooks/useMateriasStore';
+import { deleteMateria as deleteMateriaFromStore, persistMateria, syncMateriaToSupabase, activatePageInSupabase, type StoredMateria } from '../../hooks/useMateriasStore';
 import { resolvePortalId } from '../../lib/portalDb';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
@@ -205,6 +205,35 @@ export default function MateriasPage() {
     setDeleteId(null);
   }
 
+  /**
+   * Publica / despublica sem apagar nada. Despublicar volta a matéria para
+   * rascunho e limpa o agendamento — senão o cron a republicaria sozinho no
+   * minuto seguinte, desfazendo a ação. O site consulta apenas
+   * status=publicado, então o conteúdo some da página sem republicar o
+   * portal; o registro (e todo o conteúdo) continua intacto para reativar.
+   */
+  async function toggleStatus(m: Materia) {
+    const nextStatus: Status = m.status === 'publicado' ? 'rascunho' : 'publicado';
+    const updated: StoredMateria = {
+      ...m.original,
+      status: nextStatus,
+      scheduleAt: null,
+      ultimaEdicao: new Date().toLocaleDateString('pt-BR'),
+    };
+
+    persistMateria(updated, activePortalId ?? undefined);
+    setMaterias(prev => prev.map(x => x.id === m.id ? { ...x, status: nextStatus, original: updated } : x));
+
+    if (portalDbId) {
+      await syncMateriaToSupabase(updated, portalDbId);
+      // Republicar precisa reativar a página no menu — ela pode ter sido
+      // escondida/desativada enquanto a matéria estava fora do ar.
+      if (nextStatus === 'publicado' && updated.pageSlugType === 'show') {
+        await activatePageInSupabase(updated.pageId, portalDbId);
+      }
+    }
+  }
+
   return (
     <div className="page">
       <StickyPageHeader
@@ -267,6 +296,16 @@ export default function MateriasPage() {
                           { state: { editing: m.original } },
                         )}>
                         Editar
+                      </button>
+                      <button
+                        className={`btn-action ${m.status === 'publicado' ? 'btn-action--secondary' : 'btn-action--publish'}`}
+                        type="button"
+                        onClick={() => toggleStatus(m)}
+                        title={m.status === 'publicado'
+                          ? 'Tira do ar sem apagar — pode publicar de novo depois'
+                          : 'Coloca no ar novamente'}
+                      >
+                        {m.status === 'publicado' ? 'Despublicar' : 'Publicar'}
                       </button>
                       <button className="btn-action btn-action--danger" type="button" onClick={() => setDeleteId(m.id)}>Excluir</button>
                     </div>
