@@ -993,12 +993,13 @@ export default function NovaMateriaPage() {
   const location = useLocation();
   const { user } = useAuth();
   const { publish } = usePublish();
-  const routeState = location.state as { editing?: StoredMateria & { pagina: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' } | null;
+  const routeState = location.state as { editing?: StoredMateria & { pagina: string }; pageType?: 'show' | 'galeria' | 'tabela' | 'html' | 'timeline' } | null;
   const editing = routeState?.editing ?? null;
-  const pageType = editing ? (editing.pageType as 'show' | 'galeria' | 'tabela' | 'html' | undefined) ?? 'show' : (routeState?.pageType ?? 'show');
+  const pageType = editing ? (editing.pageType as 'show' | 'galeria' | 'tabela' | 'html' | 'timeline' | undefined) ?? 'show' : (routeState?.pageType ?? 'show');
   const isGaleria = pageType === 'galeria';
   const isTabela = pageType === 'tabela';
   const isHtml = pageType === 'html';
+  const isTimeline = pageType === 'timeline';
 
   const allDestinos = useCanaisDestinos(user?.activePortalId ?? undefined);
 
@@ -1020,6 +1021,8 @@ export default function NovaMateriaPage() {
     ? ['tabela']
     : isHtml
     ? ['show', undefined]
+    : isTimeline
+    ? ['show', undefined]
     : ['show', undefined];
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
@@ -1031,7 +1034,7 @@ export default function NovaMateriaPage() {
   // below.
   const editingContent = editing?.content as unknown;
   const [sections, setSections] = useState<ContentSection[]>(() => {
-    if (!isGaleria && !isTabela && !isHtml) {
+    if (!isGaleria && !isTabela && !isHtml && !isTimeline) {
       if (editing && Array.isArray(editingContent)) return editingContent as ContentSection[];
       return [{ id: 'init', type: 'text' }];
     }
@@ -1058,6 +1061,19 @@ export default function NovaMateriaPage() {
       { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
       { id: genRowId(), cells: [{ value: '' }, { value: '' }, { value: '' }] },
     ]
+  );
+  // Standalone "Linha do tempo" matéria — same shape used when a timeline
+  // is embedded as one section inside a Show matéria (a single-item array
+  // wrapping { type: 'timeline', timelineItems, timelineOrientation }), so
+  // materias.js's renderBlock() handles both without a separate code path.
+  const editingTimeline = isTimeline && editing && Array.isArray(editingContent) && editingContent.length > 0
+    ? (editingContent[0] as { type?: string; timelineItems?: TimelineItem[]; timelineOrientation?: 'vertical' | 'horizontal' })
+    : null;
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>(
+    editingTimeline?.type === 'timeline' && Array.isArray(editingTimeline.timelineItems) ? editingTimeline.timelineItems : [newTimelineItem()]
+  );
+  const [timelineOrientation, setTimelineOrientation] = useState<'vertical' | 'horizontal'>(
+    editingTimeline?.timelineOrientation ?? 'vertical'
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
@@ -1089,7 +1105,7 @@ export default function NovaMateriaPage() {
   }, [page, portalDbId, editing]);
 
   const localOccupied = selectedDestino?.hasPublishedMateria ?? false;
-  const pageOccupied = !isGaleria && !isTabela && !isHtml && (remoteOccupied ?? localOccupied);
+  const pageOccupied = !isGaleria && !isTabela && !isHtml && !isTimeline && (remoteOccupied ?? localOccupied);
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const STATUS_FROM_STORED: Record<string, PublishStatus> = { publicado: 'published', rascunho: 'draft', agendado: 'scheduled' };
   const [status, setStatus] = useState<PublishStatus>(editing ? (STATUS_FROM_STORED[editing.status] ?? 'draft') : 'draft');
@@ -1152,20 +1168,22 @@ export default function NovaMateriaPage() {
         subtitulo: subtitle,
         pageId: page,
         pageLabel: dest?.label ?? page,
-        pageType: (isGaleria ? 'galeria' : isTabela ? 'tabela' : isHtml ? 'html' : 'show') as MateriaPageType,
+        pageType: (isGaleria ? 'galeria' : isTabela ? 'tabela' : isHtml ? 'html' : isTimeline ? 'timeline' : 'show') as MateriaPageType,
         pageSlugType: dest?.pageType,
         status: newStatus === 'published' ? 'publicado' as const : newStatus === 'scheduled' ? 'agendado' as const : 'rascunho' as const,
         data: today,
         autor: user?.name ?? user?.email ?? 'Usuário',
         ultimaEdicao: today,
         ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
-        // Galeria is saved wrapped as a single 'galeria' block (not the bare
-        // cards array) so the site's existing renderBlock()/renderGaleriaCards()
+        // Galeria/timeline are saved wrapped as a single-item block array
+        // (not the bare cards/items) so the site's existing renderBlock()
         // in materias.js — built for sections inside a 'show' page — can
-        // render it identically without a separate code path.
+        // render them identically without a separate code path, whether
+        // they're the whole matéria or just one section among others.
         content: isGaleria ? [{ id: 'galeria', type: 'galeria', cards: galeriaCards }]
           : isTabela ? { headers: tabelaHeaders, rows: tabelaRows }
           : isHtml ? htmlContent
+          : isTimeline ? [{ id: 'timeline', type: 'timeline', timelineItems, timelineOrientation }]
           : sections,
       };
       const portalKey = user?.activePortalId ?? undefined;
@@ -1264,9 +1282,9 @@ export default function NovaMateriaPage() {
       <LangTabs active={locale} onChange={setLocale} />
 
       {/* ── Body: 3 columns (show) or 2 columns (galeria/html) ── */}
-      <div className={`nm-body${isGaleria || isTabela || isHtml ? ' nm-body--galeria' : ''}`}>
+      <div className={`nm-body${isGaleria || isTabela || isHtml || isTimeline ? ' nm-body--galeria' : ''}`}>
         {/* Left: sections list (show only) */}
-        {!isGaleria && !isTabela && !isHtml && (
+        {!isGaleria && !isTabela && !isHtml && !isTimeline && (
           <aside className="nm-sections-panel">
             <p className="nm-panel-heading">Seções</p>
 
@@ -1305,7 +1323,7 @@ export default function NovaMateriaPage() {
           <div key={locale} className="lang-fade nm-content-wrap">
             {/* Global fields */}
             <div className="nm-global">
-              {!isGaleria && !isTabela && !isHtml && selectedDestino?.headerImageUrl && (
+              {!isGaleria && !isTabela && !isHtml && !isTimeline && selectedDestino?.headerImageUrl && (
                 <div className="nm-header-inherited" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
                   <img src={selectedDestino.headerImageUrl} alt="" style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8 }} />
                   <span>
@@ -1326,7 +1344,7 @@ export default function NovaMateriaPage() {
                 onChange={(e) => { setSubtitle(e.target.value); markDirty(); }}
                 placeholder="Subtítulo..."
               />
-              {!isGaleria && !isTabela && !isHtml && (
+              {!isGaleria && !isTabela && !isHtml && !isTimeline && (
                 <p className="nm-field-hint">
                   <span className="material-symbols-outlined" style={{ fontSize: '13px', verticalAlign: 'middle', marginRight: 4 }}>info</span>
                   Título e subtítulo aparecem dentro do conteúdo da página, não substituem o nome dela — o título exibido no topo (banner interno) é sempre o nome da página de destino, definido em <strong>Canais</strong>.
@@ -1342,6 +1360,14 @@ export default function NovaMateriaPage() {
               />
             ) : isGaleria ? (
               <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} portalDbId={portalDbId} />
+            ) : isTimeline ? (
+              <TimelineEditor
+                items={timelineItems}
+                orientation={timelineOrientation}
+                onChangeItems={(items) => { setTimelineItems(items); markDirty(); }}
+                onChangeOrientation={(o) => { setTimelineOrientation(o); markDirty(); }}
+                portalDbId={portalDbId}
+              />
             ) : isHtml ? (
               <div className="nm-html-editor">
                 <div className="nm-html-editor__header">

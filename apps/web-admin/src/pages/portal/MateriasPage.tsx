@@ -36,6 +36,7 @@ const TIPO_LABEL: Record<string, string> = {
   tabela: 'Tabela',
   formulario: 'Formulário',
   html: 'HTML',
+  timeline: 'Linha do tempo',
 };
 
 interface PaginaOption {
@@ -86,6 +87,12 @@ const PAGE_TYPES = [
     label: 'HTML',
     desc: 'Cole HTML diretamente. Compatível apenas com páginas do tipo Show.',
     icon: 'code',
+  },
+  {
+    id: 'timeline' as const,
+    label: 'Linha do tempo',
+    desc: 'Marcos por ano com título, descrição e imagem — vertical ou horizontal.',
+    icon: 'timeline',
   },
 ];
 
@@ -178,7 +185,7 @@ export default function MateriasPage() {
   const [filters, setFilters] = useState<Record<string, string>>({ pagina: '', status: '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'tabela' | 'formulario' | 'html'>('show');
+  const [selectedType, setSelectedType] = useState<'show' | 'galeria' | 'tabela' | 'formulario' | 'html' | 'timeline'>('show');
 
   const matFilters = buildMatFilters(buildPaginaOptions(destinos));
 
