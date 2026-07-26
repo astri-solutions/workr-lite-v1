@@ -632,7 +632,7 @@
 .galeria-add-card:hover { border-color: var(--color-primary-400); color: var(--color-primary-500); }
 
 .timeline-editor__orientation { margin-bottom: var(--space-5); }
-.timeline-editor .galeria-add-card { display: flex; width: fit-content; margin: 0 auto; }
+.timeline-editor .galeria-add-card { display: flex; width: fit-content; margin: var(--space-5) auto 0; }
 
 /* ── Inline image editor ─────────────────────────── */
 .img-editor-empty {
