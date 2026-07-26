@@ -33,7 +33,7 @@ const PROFILES: Record<ImageSlot, SizeProfile> = {
   'logo':           { maxWidth: 600,  maxHeight: 200,  quality: 0.90 },
   'logo-compact':   { maxWidth: 200,  maxHeight: 200,  quality: 0.90 },
   'favicon':        { maxWidth: 64,   maxHeight: 64,   quality: 0.85 },
-  'banner':         { maxWidth: 1920, maxHeight: 800,  quality: 0.82 },
+  'banner':         { maxWidth: 1920, maxHeight: 1080, quality: 0.82 },
   'channel-header': { maxWidth: 1600, maxHeight: 600,  quality: 0.82 },
   'splash-header':  { maxWidth: 1600, maxHeight: 640,  quality: 0.82 },
   'article-image':  { maxWidth: 1200, maxHeight: 900,  quality: 0.80 },

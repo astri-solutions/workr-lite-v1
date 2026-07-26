@@ -13,6 +13,9 @@ interface Props {
   /** Exported bitmap size, in px — rendered above the on-screen frame for crisp downscaling. */
   outputWidth?: number;
   outputHeight?: number;
+  /** Formato de saída. WebP é o padrão (bem menor que JPEG na mesma qualidade). */
+  outputFormat?: 'webp' | 'png' | 'jpeg';
+  outputQuality?: number;
 }
 
 /** Generic rectangular-crop modal (drag to reposition, slider to zoom) — same
@@ -26,6 +29,8 @@ export default function ImageCropModal({
   frameHeight = 480,
   outputWidth = 1600,
   outputHeight = 1600,
+  outputFormat = 'webp',
+  outputQuality = 0.82,
 }: Props) {
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
@@ -87,15 +92,21 @@ export default function ImageCropModal({
     const srcX = centerSrcX - cropSrcW / 2;
     const srcY = centerSrcY - cropSrcH / 2;
 
+    // Nunca exportar acima da resolução real do recorte: uma foto de 800px
+    // esticada para 1920 não ganha detalhe nenhum, só peso de arquivo.
+    const upscale = Math.min(1, cropSrcW / outputWidth, cropSrcH / outputHeight);
+    const outW = Math.max(1, Math.round(outputWidth * (upscale < 1 ? upscale : 1)));
+    const outH = Math.max(1, Math.round(outputHeight * (upscale < 1 ? upscale : 1)));
+
     const canvas = document.createElement('canvas');
-    canvas.width = outputWidth;
-    canvas.height = outputHeight;
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext('2d')!;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, srcX, srcY, cropSrcW, cropSrcH, 0, 0, outputWidth, outputHeight);
+    ctx.drawImage(img, srcX, srcY, cropSrcW, cropSrcH, 0, 0, outW, outH);
 
-    onConfirm(canvas.toDataURL('image/jpeg', 0.92));
+    onConfirm(canvas.toDataURL(`image/${outputFormat}`, outputQuality));
   }
 
   return (

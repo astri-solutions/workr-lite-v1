@@ -181,7 +181,8 @@ export default function LogotipoPage() {
           onConfirm={handleCompactCropConfirm}
           title="Recortar logo compacto"
           outputSize={320}
-          hint="Ajuste a área que será usada como logo compacto (sidebar recolhida / navegação com favicon). Apenas a região dentro do quadro é exportada, gerando um arquivo PNG quadrado de 320×320px."
+          outputFormat="webp"
+          hint="Ajuste a área que será usada como logo compacto (sidebar recolhida / navegação com favicon). Apenas a região dentro do quadro é exportada, gerando um arquivo WebP quadrado de 320×320px."
         />
       )}
 

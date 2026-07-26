@@ -4,6 +4,7 @@ import { usePortalState } from '../../hooks/usePortalState';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
+import { processImage } from '../../utils/imageProcessor';
 import '../admin/AdminPages.css';
 import './AtendimentoPage.css';
 
@@ -128,7 +129,16 @@ export default function AtendimentoPage() {
       if (anexos.length > 0) {
         const portalDbId = user?.activePortalId ? await resolvePortalId(user.activePortalId) : null;
         if (portalDbId) {
-          for (const file of anexos) {
+          for (const original of anexos) {
+            // Print de tela de celular chega com 8-12 MB; como anexo de
+            // suporte não faz sentido guardar isso no bucket em tamanho
+            // original. Não-imagens (pdf, vídeo) seguem intactas.
+            let file = original;
+            if (original.type.startsWith('image/')) {
+              try {
+                file = (await processImage(original, 'media-library')).file;
+              } catch { /* se a conversão falhar, envia o arquivo original */ }
+            }
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${portalDbId}/atendimento/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
             const { error } = await supabase.storage.from('portal-documents').upload(path, file, { contentType: file.type || 'application/octet-stream' });

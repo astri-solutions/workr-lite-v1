@@ -58,11 +58,38 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
   const hsvRef = useRef(hsv);
   hsvRef.current = hsv;
 
+  // Largura/altura reais do popover (ver ColorPickerPopover.css) — usadas para
+  // manter o painel dentro da viewport. Alinhar direto em rect.left/rect.bottom
+  // funcionava só nos usos em coluna larga: numa amostra encostada na borda
+  // direita (cabeçalho de seção da matéria) o painel saía da tela, e perto do
+  // rodapé abria para baixo sem espaço.
+  const CP_W = 240;
+  const CP_H = 260;
+  const GAP = 8;
+
   const calcPosition = useCallback(() => {
     if (!swatchRef.current) return;
     const rect = swatchRef.current.getBoundingClientRect();
-    setPopoverPos({ top: rect.bottom + 8, left: rect.left });
+    const left = Math.max(GAP, Math.min(rect.left, window.innerWidth - CP_W - GAP));
+    // Abre para baixo; se não couber, vira para cima da amostra.
+    const top = rect.bottom + GAP + CP_H > window.innerHeight && rect.top - GAP - CP_H > 0
+      ? rect.top - GAP - CP_H
+      : Math.min(rect.bottom + GAP, window.innerHeight - CP_H - GAP);
+    setPopoverPos({ top: Math.max(GAP, top), left });
   }, []);
+
+  // `position: fixed` congela o painel na tela: sem isto ele descola da
+  // amostra assim que a coluna do editor rola.
+  useEffect(() => {
+    if (!open) return;
+    const onReflow = () => calcPosition();
+    window.addEventListener('scroll', onReflow, true);
+    window.addEventListener('resize', onReflow);
+    return () => {
+      window.removeEventListener('scroll', onReflow, true);
+      window.removeEventListener('resize', onReflow);
+    };
+  }, [open, calcPosition]);
 
   useEffect(() => {
     if (/^#[0-9a-fA-F]{6}$/.test(value)) {

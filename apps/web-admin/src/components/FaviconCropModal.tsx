@@ -10,6 +10,10 @@ interface Props {
   title?: string;
   outputSize?: number; // exported square size in px (rendered above the on-screen target for crisp downscaling)
   hint?: string;
+  /** Favicon fica em PNG (WebP não é aceito como favicon em todo lugar);
+   *  outros usos do mesmo recorte quadrado (logo compacto) usam WebP. */
+  outputFormat?: 'png' | 'webp';
+  outputQuality?: number;
 }
 
 export default function FaviconCropModal({
@@ -17,6 +21,8 @@ export default function FaviconCropModal({
   title = 'Recortar favicon',
   outputSize = 256,
   hint,
+  outputFormat = 'png',
+  outputQuality = 0.9,
 }: Props) {
   const OUTPUT_SIZE = outputSize;
   const [imgUrl, setImgUrl] = useState<string | null>(null);
@@ -86,7 +92,7 @@ export default function FaviconCropModal({
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, srcX, srcY, cropSrcSize, cropSrcSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
 
-    onConfirm(canvas.toDataURL('image/png'));
+    onConfirm(canvas.toDataURL(`image/${outputFormat}`, outputQuality));
   }
 
   return (

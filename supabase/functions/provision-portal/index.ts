@@ -443,17 +443,11 @@ Deno.serve(async (req) => {
     // ── Step 2: wait for template files to be copied (poll up to 90s) ───────
     // Poll for the specific file we need — this confirms both repo existence
     // and template copy completion (GitHub copies files asynchronously).
-    let fileSha: string | undefined;
     let ready = false;
     for (let i = 0; i < 30; i++) {
       await sleep(3000);
       const checkRes = await gh(`/repos/${githubOrg}/${repoName}/contents/scripts/site.config.js`);
-      if (checkRes.ok) {
-        const fileData = await checkRes.json() as { sha: string };
-        fileSha = fileData.sha;
-        ready = true;
-        break;
-      }
+      if (checkRes.ok) { ready = true; break; }
     }
     if (!ready) throw new Error('Novo repositório não ficou pronto em 90s. Tente publicar a configuração manualmente.');
 
@@ -499,53 +493,38 @@ Deno.serve(async (req) => {
     });
     const encoded = btoa(unescape(encodeURIComponent(siteConfigContent)));
 
-    await ghJson<unknown>(await gh(`/repos/${githubOrg}/${repoName}/contents/scripts/site.config.js`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        message: `chore: configure portal [${nome}]`,
-        content: encoded,
-        ...(fileSha ? { sha: fileSha } : {}),
-      }),
-    }));
-
-    // ── Step 5: push logo and favicon if provided ─────────────────────────
+    // ── Steps 4b–5c: todos os arquivos em UM único commit ────────────────────
+    // Antes cada arquivo ia num PUT/DELETE separado da Contents API:
+    // site.config.js, logo, logo negativo, favicon, index.html, os dois
+    // home-*.html removidos e uma página em branco por canal — 10+ commits
+    // num provisionamento. Cada commit é um deploy na Vercel, e os primeiros
+    // subiam com o site.config.js DEFAULT do template (cores da marca Astri,
+    // não as do cliente). O visitante que pegasse o site entre um deploy e o
+    // seguinte via as cores antigas — é a origem do flash de cor no refresh.
+    // Blobs → tree → commit → ref faz tudo virar um commit e um deploy só,
+    // já com a configuração final.
     const assetErrors: string[] = [];
-    async function pushAsset(path: string, b64: string) {
-      const existing = await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`);
-      let sha: string | undefined;
-      if (existing.ok) {
-        const d = await existing.json() as { sha: string };
-        sha = d.sha;
-      }
-      const putRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${path}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          message: `chore: add asset ${path}`,
-          content: b64,
-          ...(sha ? { sha } : {}),
-        }),
-      });
-      if (!putRes.ok) {
-        const body = await putRes.json().catch(() => ({})) as { message?: string };
-        assetErrors.push(`${path}: GitHub ${putRes.status} ${body.message ?? ''}`.trim());
-      }
-    }
+    const writes: { path: string; b64: string }[] = [];
+    const deletes: string[] = [];
+    const queueWrite = (path: string, b64: string) => writes.push({ path, b64: b64.replace(/\n/g, '') });
+
+    queueWrite('scripts/site.config.js', encoded);
 
     // Static assets live under public/ — Vite only copies public/ into the
     // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.b64) {
       const ext = logo.ext ?? 'svg';
-      await pushAsset(`public/assets/logotipo/logotipo-original.${ext}`, logo.b64);
-      await pushAsset(`public/assets/logotipo/logotipo-negative.${ext}`, logo.b64);
+      queueWrite(`public/assets/logotipo/logotipo-original.${ext}`, logo.b64);
+      queueWrite(`public/assets/logotipo/logotipo-negative.${ext}`, logo.b64);
     }
     if (faviconAsset?.b64) {
-      await pushAsset(`public/favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
+      queueWrite(`public/favicon.${faviconAsset.ext ?? 'svg'}`, faviconAsset.b64);
     }
 
-    // ── Step 5b: swap index.html with the correct layout template ───────────
-    // banner → index.html (already correct, no swap needed)
-    // sidebar → home-side-bar.html replaces index.html
-    // tabmenu → home-v2.html replaces index.html
+    // ── index.html conforme o layout ────────────────────────────────────────
+    // banner → index.html (já correto, sem troca)
+    // sidebar → home-side-bar.html vira index.html
+    // tabmenu → home-v2.html vira index.html
     const layoutTemplateMap: Record<string, string> = {
       sidebar: 'home-side-bar.html',
       tabmenu: 'home-v2.html',
@@ -554,69 +533,86 @@ Deno.serve(async (req) => {
     if (templateFile) {
       const tplRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${templateFile}`);
       if (tplRes.ok) {
-        const tplData = await tplRes.json() as { content: string; sha: string };
-        // GitHub returns base64 with embedded newlines — strip them before re-pushing
-        const tplBase64 = tplData.content.replace(/\n/g, '');
-        const indexRes = await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`);
-        let indexSha: string | undefined;
-        if (indexRes.ok) {
-          const indexData = await indexRes.json() as { sha: string };
-          indexSha = indexData.sha;
+        const tplData = await tplRes.json() as { content: string };
+        queueWrite('index.html', tplData.content);
+      } else {
+        assetErrors.push(`index.html: ${templateFile} não encontrado no repositório novo`);
+      }
+    }
+
+    // Os três home-*.html vêm no template (publish-config precisa deles lá
+    // para self-healing), mas um portal provisionado usa só UM — deixar os
+    // outros torna /home-side-bar.html acessível num portal 'banner', o que
+    // já causou confusão em produção.
+    for (const f of ['home-side-bar.html', 'home-v2.html']) {
+      if (f !== templateFile) deletes.push(f);
+    }
+
+    // ── Páginas em branco a partir da árvore de canais ──────────────────────
+    const queueNewPage = (filePath: string, html: string) => {
+      if (PROTECTED_HTML.has(filePath)) return;
+      if (writes.some(w => w.path === filePath)) return;
+      queueWrite(filePath, btoa(unescape(encodeURIComponent(html))));
+    };
+    for (const canal of canais ?? []) {
+      if (!canal.enabled) continue;
+      const enabledChildren = canal.children.filter((sc: SubCanalCfg) => sc.enabled);
+      if (enabledChildren.length > 0) {
+        for (const sub of enabledChildren) {
+          if (!sub.href?.endsWith('.html')) continue;
+          queueNewPage(sub.href.replace(/^\//, ''), buildBlankPage(sub.label, canal.label));
         }
-        await gh(`/repos/${githubOrg}/${repoName}/contents/index.html`, {
-          method: 'PUT',
+      } else if (canal.href?.endsWith('.html')) {
+        queueNewPage(canal.href.replace(/^\//, ''), buildBlankPage(canal.label, null));
+      }
+    }
+
+    // ── Blobs → tree → commit → ref (um push só) ─────────────────────────────
+    {
+      const refData = await ghJson<{ object: { sha: string } }>(
+        await gh(`/repos/${githubOrg}/${repoName}/git/ref/heads/main`));
+      const baseCommitSha = refData.object.sha;
+      const commitData = await ghJson<{ tree: { sha: string } }>(
+        await gh(`/repos/${githubOrg}/${repoName}/git/commits/${baseCommitSha}`));
+      const baseTreeSha = commitData.tree.sha;
+
+      // Um delete de arquivo inexistente faz a criação da tree falhar inteira —
+      // e com ela o provisionamento. Filtra pelo que realmente está no repo.
+      const treeData = await ghJson<{ tree: { path: string; type: string }[] }>(
+        await gh(`/repos/${githubOrg}/${repoName}/git/trees/${baseTreeSha}?recursive=1`));
+      const existingPaths = new Set(treeData.tree.filter(t => t.type === 'blob').map(t => t.path));
+
+      const blobEntries = await Promise.all(writes.map(async w => {
+        const blob = await ghJson<{ sha: string }>(
+          await gh(`/repos/${githubOrg}/${repoName}/git/blobs`, {
+            method: 'POST',
+            body: JSON.stringify({ content: w.b64, encoding: 'base64' }),
+          }));
+        return { path: w.path, mode: '100644', type: 'blob', sha: blob.sha };
+      }));
+      const deleteEntries = deletes
+        .filter(p => existingPaths.has(p))
+        .map(path => ({ path, mode: '100644', type: 'blob', sha: null }));
+
+      const newTree = await ghJson<{ sha: string }>(
+        await gh(`/repos/${githubOrg}/${repoName}/git/trees`, {
+          method: 'POST',
+          body: JSON.stringify({ base_tree: baseTreeSha, tree: [...blobEntries, ...deleteEntries] }),
+        }));
+      const newCommit = await ghJson<{ sha: string }>(
+        await gh(`/repos/${githubOrg}/${repoName}/git/commits`, {
+          method: 'POST',
           body: JSON.stringify({
-            message: `chore: set ${layout} layout as homepage`,
-            content: tplBase64,
-            ...(indexSha ? { sha: indexSha } : {}),
+            message: `chore: configure portal [${nome}]\n\n${[...writes.map(w => w.path), ...deletes].join(', ')}`,
+            tree: newTree.sha,
+            parents: [baseCommitSha],
           }),
-        });
-      }
-    }
-
-    // ── Step 5b2: remove the unused home-*.html template files ───────────────
-    // Every layout's own home file ships in the template repo (they're all
-    // needed there so publish-config can self-heal any of them later), but a
-    // freshly provisioned portal only ever uses ONE — leaving the other two
-    // in the repo is confusing (e.g. /home-side-bar.html reachable directly
-    // on a 'banner' portal) and was the source of a live mix-up.
-    const allHomeTemplateFiles = ['home-side-bar.html', 'home-v2.html'];
-    const unusedHomeFiles = allHomeTemplateFiles.filter(f => f !== templateFile);
-    for (const f of unusedHomeFiles) {
-      try {
-        const fileRes = await gh(`/repos/${githubOrg}/${repoName}/contents/${f}`);
-        if (fileRes.ok) {
-          const fileData = await fileRes.json() as { sha: string };
-          await gh(`/repos/${githubOrg}/${repoName}/contents/${f}`, {
-            method: 'DELETE',
-            body: JSON.stringify({ message: `chore: remove unused ${f} (layout is ${layout})`, sha: fileData.sha }),
-          });
-        }
-      } catch { /* non-fatal */ }
-    }
-
-    // ── Step 5c: generate blank pages from canais tree ────────────────────────
-    if (canais && canais.length > 0) {
-      for (const canal of canais) {
-        if (!canal.enabled) continue;
-        const enabledChildren = canal.children.filter((sc: SubCanalCfg) => sc.enabled);
-        if (enabledChildren.length > 0) {
-          for (const sub of enabledChildren) {
-            if (!sub.href || !sub.href.endsWith('.html')) continue;
-            const filePath = sub.href.replace(/^\//, '');
-            if (PROTECTED_HTML.has(filePath)) continue;
-            const html = buildBlankPage(sub.label, canal.label);
-            const b64 = btoa(unescape(encodeURIComponent(html)));
-            await pushAsset(filePath, b64);
-          }
-        } else if (canal.href && canal.href.endsWith('.html')) {
-          const filePath = canal.href.replace(/^\//, '');
-          if (PROTECTED_HTML.has(filePath)) continue;
-          const html = buildBlankPage(canal.label, null);
-          const b64 = btoa(unescape(encodeURIComponent(html)));
-          await pushAsset(filePath, b64);
-        }
-      }
+        }));
+      await ghJson<unknown>(
+        await gh(`/repos/${githubOrg}/${repoName}/git/refs/heads/main`, {
+          method: 'PATCH',
+          body: JSON.stringify({ sha: newCommit.sha }),
+        }));
     }
 
     const repoUrl  = `https://github.com/${githubOrg}/${repoName}`;
