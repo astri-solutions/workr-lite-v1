@@ -879,11 +879,13 @@
 }
 
 .nm-field-hint {
-  margin: -4px 0 0;
+  margin: 0;
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  border-top: 1px solid var(--color-gray-100);
   font-family: var(--font-body);
   font-size: var(--text-xs);
   color: var(--color-gray-500);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .nm-date-input {
