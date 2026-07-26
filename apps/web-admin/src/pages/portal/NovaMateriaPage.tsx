@@ -14,7 +14,8 @@ import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
-type SectionType = 'text' | 'image-text' | 'text-image' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria' | 'timeline';
+type SectionType = 'text' | 'image-text' | 'text-image' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria' | 'timeline'
+  | 'kpis' | 'accordion' | 'tabs' | 'pessoas';
 type PublishStatus = 'draft' | 'published' | 'scheduled';
 
 interface GaleriaCard {
@@ -34,6 +35,12 @@ interface TimelineItem {
   imageUrl: string | null;
 }
 
+/** Destaque numérico ("R$ 2,4 bi", "+18%") — o site anima a contagem. */
+interface KpiItem { id: string; valor: string; rotulo: string; variacao: string }
+interface AccordionItem { id: string; pergunta: string; resposta: string }
+interface TabItem { id: string; titulo: string; html: string }
+interface PessoaItem { id: string; nome: string; cargo: string; bio: string; imageUrl: string | null }
+
 interface ContentSection {
   id: string;
   type: SectionType;
@@ -46,9 +53,13 @@ interface ContentSection {
   imageAlt?: string;
   timelineItems?: TimelineItem[]; // 'timeline'
   timelineOrientation?: 'vertical' | 'horizontal'; // 'timeline'
+  kpiItems?: KpiItem[]; // 'kpis'
+  accordionItems?: AccordionItem[]; // 'accordion'
+  tabItems?: TabItem[]; // 'tabs'
+  pessoaItems?: PessoaItem[]; // 'pessoas'
 }
 
-type SectionCategory = 'texto' | 'layout' | 'midia';
+type SectionCategory = 'texto' | 'layout' | 'midia' | 'dados' | 'institucional';
 
 const SECTION_DEFS: { type: SectionType; label: string; desc: string; cat: SectionCategory; thumb: React.ReactNode }[] = [
   {
@@ -217,10 +228,90 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; cat: Secti
     ),
   },
   {
+    type: 'kpis',
+    label: 'Números / Indicadores',
+    desc: 'Destaques numéricos com rótulo e variação — a contagem anima no site.',
+    cat: 'dados',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        {[0, 1, 2].map(i => (
+          <g key={i} transform={`translate(${10 + i * 50}, 26)`}>
+            <rect width="40" height="48" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+            <rect x="7" y="10" width="26" height="11" rx="3" fill="#0B5B68" opacity="0.75"/>
+            <rect x="9" y="27" width="22" height="4" rx="2" fill="#B8B8B8"/>
+            <rect x="13" y="36" width="14" height="4" rx="2" fill="#00D865" opacity="0.7"/>
+          </g>
+        ))}
+      </svg>
+    ),
+  },
+  {
+    type: 'accordion',
+    label: 'Perguntas frequentes',
+    desc: 'Lista sanfonada de pergunta e resposta, expandindo uma por vez.',
+    cat: 'texto',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="12" y="12" width="136" height="16" rx="4" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="20" y="18" width="60" height="4" rx="2" fill="#0B5B68" opacity="0.7"/>
+        <polyline points="134,19 138,23 142,19" stroke="#949494" strokeWidth="1.5" fill="none"/>
+        <rect x="12" y="32" width="136" height="34" rx="4" fill="white" stroke="#0B5B68" strokeWidth="1" opacity="0.9"/>
+        <rect x="20" y="38" width="70" height="4" rx="2" fill="#0B5B68" opacity="0.7"/>
+        <rect x="20" y="49" width="118" height="3.5" rx="1.75" fill="#B8B8B8"/>
+        <rect x="20" y="57" width="96" height="3.5" rx="1.75" fill="#B8B8B8"/>
+        <rect x="12" y="70" width="136" height="16" rx="4" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="20" y="76" width="52" height="4" rx="2" fill="#0B5B68" opacity="0.7"/>
+      </svg>
+    ),
+  },
+  {
+    type: 'tabs',
+    label: 'Abas',
+    desc: 'Vários conteúdos no mesmo espaço, alternados por abas.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <rect x="12" y="14" width="42" height="14" rx="4" fill="#0B5B68" opacity="0.85"/>
+        <rect x="58" y="14" width="42" height="14" rx="4" fill="#E4E9ED"/>
+        <rect x="104" y="14" width="42" height="14" rx="4" fill="#E4E9ED"/>
+        <rect x="12" y="34" width="134" height="52" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+        <rect x="22" y="44" width="70" height="5" rx="2.5" fill="#0B5B68" opacity="0.6"/>
+        <rect x="22" y="56" width="112" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="22" y="65" width="100" height="4" rx="2" fill="#B8B8B8"/>
+        <rect x="22" y="74" width="80" height="4" rx="2" fill="#B8B8B8"/>
+      </svg>
+    ),
+  },
+  {
+    type: 'pessoas',
+    label: 'Pessoas',
+    desc: 'Cards de diretoria e conselho com foto, cargo e mini-bio.',
+    cat: 'institucional',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        {[0, 1, 2].map(i => (
+          <g key={i} transform={`translate(${12 + i * 46}, 14)`}>
+            <rect width="38" height="72" rx="5" fill="white" stroke="#D8D8D8" strokeWidth="1"/>
+            <circle cx="19" cy="24" r="11" fill="#C8DFE2"/>
+            <circle cx="19" cy="20" r="4" fill="#0B5B68" opacity="0.35"/>
+            <path d="M11 30a8 8 0 0 1 16 0z" fill="#0B5B68" opacity="0.35"/>
+            <rect x="7" y="43" width="24" height="4.5" rx="2" fill="#0B5B68" opacity="0.7"/>
+            <rect x="10" y="52" width="18" height="3.5" rx="1.75" fill="#B8B8B8"/>
+            <rect x="7" y="61" width="24" height="3" rx="1.5" fill="#E4E9ED"/>
+          </g>
+        ))}
+      </svg>
+    ),
+  },
+  {
     type: 'timeline',
     label: 'Linha do tempo',
     desc: 'Marcos por ano com título, descrição e imagem — vertical ou horizontal.',
-    cat: 'layout',
+    cat: 'institucional',
     thumb: (
       <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
         <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
@@ -246,6 +337,10 @@ const SECTION_LABEL: Record<SectionType, string> = {
   'text-image': 'Texto + Imagem',
   'bg-image': 'Fundo com texto',
   timeline: 'Linha do tempo',
+  kpis: 'Números / Indicadores',
+  accordion: 'Perguntas frequentes',
+  tabs: 'Abas',
+  pessoas: 'Pessoas',
   'two-col': 'Duas colunas',
   'three-col': 'Três colunas',
   image: 'Imagem',
@@ -786,6 +881,65 @@ function TimelineEditor({ items, orientation, onChangeItems, onChangeOrientation
   );
 }
 
+/* ── Editores de lista simples (KPIs, FAQ, Abas, Pessoas) ─── */
+// All four are "a list of small records with add/reorder/remove", so they
+// share one shell instead of four near-identical copies. `renderFields`
+// draws whatever inputs the specific block needs for one item.
+function genItemId() { return Math.random().toString(36).slice(2); }
+
+function ListBlockEditor<T extends { id: string }>({ items, itemLabel, addLabel, makeItem, onChange, renderFields }: {
+  items: T[];
+  itemLabel: string;
+  addLabel: string;
+  makeItem: () => T;
+  onChange: (items: T[]) => void;
+  renderFields: (item: T, update: (patch: Partial<T>) => void) => React.ReactNode;
+}) {
+  function move(i: number, dir: -1 | 1) {
+    const next = [...items];
+    const j = i + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  }
+
+  return (
+    <div className="timeline-editor">
+      {items.map((item, i) => (
+        <div key={item.id} className="galeria-card-editor">
+          <div className="galeria-card-editor__header">
+            <span className="galeria-card-editor__num">{itemLabel} {i + 1}</span>
+            <div className="galeria-card-editor__order">
+              <button type="button" className="ce-icon-btn" title="Mover para cima" disabled={i === 0} onClick={() => move(i, -1)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button type="button" className="ce-icon-btn" title="Mover para baixo" disabled={i === items.length - 1} onClick={() => move(i, 1)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <button type="button" className="sec-editor__del" title={`Remover ${itemLabel.toLowerCase()}`}
+              onClick={() => onChange(items.filter(x => x.id !== item.id))}>
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+            </button>
+          </div>
+          <div className="galeria-card-editor__fields">
+            {renderFields(item, patch => onChange(items.map(x => x.id === item.id ? { ...x, ...patch } : x)))}
+          </div>
+        </div>
+      ))}
+      <button type="button" className="galeria-add-card" onClick={() => onChange([...items, makeItem()])}>
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+        {addLabel}
+      </button>
+    </div>
+  );
+}
+
+function newKpi(): KpiItem { return { id: genItemId(), valor: '', rotulo: '', variacao: '' }; }
+function newAccordionItem(): AccordionItem { return { id: genItemId(), pergunta: '', resposta: '' }; }
+function newTab(): TabItem { return { id: genItemId(), titulo: '', html: '' }; }
+function newPessoa(): PessoaItem { return { id: genItemId(), nome: '', cargo: '', bio: '', imageUrl: null }; }
+
 /* ── Tabela editor ────────────────────────────────────────── */
 interface TabelaCell { value: string; }
 interface TabelaRow { id: string; cells: TabelaCell[]; }
@@ -995,6 +1149,100 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
           />
         )}
 
+        {section.type === 'kpis' && (
+          <ListBlockEditor<KpiItem>
+            items={section.kpiItems ?? []}
+            itemLabel="Indicador" addLabel="Adicionar indicador" makeItem={newKpi}
+            onChange={kpiItems => onUpdateSection({ kpiItems })}
+            renderFields={(item, update) => (
+              <div className="galeria-card-editor__col-fields">
+                <input className="nm-field--sm" type="text" placeholder="Valor (ex: R$ 2,4 bi)" value={item.valor}
+                  onChange={e => update({ valor: e.target.value })} />
+                <input className="nm-field--sm" type="text" placeholder="Rótulo (ex: Receita líquida)" value={item.rotulo}
+                  onChange={e => update({ rotulo: e.target.value })} />
+                <input className="nm-field--sm" type="text" placeholder="Variação (opcional — ex: +18% a/a)" value={item.variacao}
+                  onChange={e => update({ variacao: e.target.value })} />
+              </div>
+            )}
+          />
+        )}
+
+        {section.type === 'accordion' && (
+          <ListBlockEditor<AccordionItem>
+            items={section.accordionItems ?? []}
+            itemLabel="Pergunta" addLabel="Adicionar pergunta" makeItem={newAccordionItem}
+            onChange={accordionItems => onUpdateSection({ accordionItems })}
+            renderFields={(item, update) => (
+              <div className="galeria-card-editor__col-fields">
+                <input className="nm-field--sm" type="text" placeholder="Pergunta" value={item.pergunta}
+                  onChange={e => update({ pergunta: e.target.value })} />
+                <RichTextEditor placeholder="Resposta..." value={item.resposta}
+                  onChange={resposta => update({ resposta })} />
+              </div>
+            )}
+          />
+        )}
+
+        {section.type === 'tabs' && (
+          <ListBlockEditor<TabItem>
+            items={section.tabItems ?? []}
+            itemLabel="Aba" addLabel="Adicionar aba" makeItem={newTab}
+            onChange={tabItems => onUpdateSection({ tabItems })}
+            renderFields={(item, update) => (
+              <div className="galeria-card-editor__col-fields">
+                <input className="nm-field--sm" type="text" placeholder="Título da aba" value={item.titulo}
+                  onChange={e => update({ titulo: e.target.value })} />
+                <RichTextEditor placeholder="Conteúdo desta aba..." value={item.html}
+                  onChange={html => update({ html })} />
+              </div>
+            )}
+          />
+        )}
+
+        {section.type === 'pessoas' && (
+          <ListBlockEditor<PessoaItem>
+            items={section.pessoaItems ?? []}
+            itemLabel="Pessoa" addLabel="Adicionar pessoa" makeItem={newPessoa}
+            onChange={pessoaItems => onUpdateSection({ pessoaItems })}
+            renderFields={(item, update) => (
+              <>
+                <div className="galeria-card-editor__col-img">
+                  {item.imageUrl ? (
+                    <div className="galeria-card-img-preview">
+                      <img src={item.imageUrl} alt="" className="galeria-card-img-preview__img" />
+                      <div className="galeria-card-img-preview__actions">
+                        <label className="btn-action btn-action--enter galeria-img-label">
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>cached</span>
+                          <input type="file" accept="image/*" style={{ display: 'none' }}
+                            onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'pessoa'); update({ imageUrl: url }); } }} />
+                        </label>
+                        <button type="button" className="btn-action btn-action--danger" onClick={() => update({ imageUrl: null })}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="galeria-card-img-empty galeria-img-label">
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'pessoa'); update({ imageUrl: url }); } }} />
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>person</span>
+                      <span>Foto (opcional)</span>
+                    </label>
+                  )}
+                </div>
+                <div className="galeria-card-editor__col-fields">
+                  <input className="nm-field--sm" type="text" placeholder="Nome" value={item.nome}
+                    onChange={e => update({ nome: e.target.value })} />
+                  <input className="nm-field--sm" type="text" placeholder="Cargo" value={item.cargo}
+                    onChange={e => update({ cargo: e.target.value })} />
+                  <textarea className="nm-field--sm nm-textarea" rows={3} placeholder="Mini-bio (opcional)" value={item.bio}
+                    onChange={e => update({ bio: e.target.value })} />
+                </div>
+              </>
+            )}
+          />
+        )}
+
         {section.type === 'timeline' && (
           <TimelineEditor
             items={section.timelineItems ?? []}
@@ -1187,6 +1435,10 @@ export default function NovaMateriaPage() {
     const base: ContentSection = { id: Math.random().toString(36).slice(2), type };
     if (type === 'galeria') base.cards = [newCard()];
     if (type === 'timeline') { base.timelineItems = [newTimelineItem()]; base.timelineOrientation = 'vertical'; }
+    if (type === 'kpis') base.kpiItems = [newKpi()];
+    if (type === 'accordion') base.accordionItems = [newAccordionItem()];
+    if (type === 'tabs') base.tabItems = [newTab()];
+    if (type === 'pessoas') base.pessoaItems = [newPessoa()];
     setSections((prev) => [...prev, base]);
     setPickerOpen(false);
     markDirty();
@@ -1653,7 +1905,7 @@ export default function NovaMateriaPage() {
                 />
               </div>
               <nav className="nm-bp-cats">
-                {([['all', 'Tudo'], ['texto', 'Texto'], ['layout', 'Layout'], ['midia', 'Mídia']] as const).map(([val, label]) => (
+                {([['all', 'Tudo'], ['texto', 'Texto'], ['layout', 'Layout'], ['midia', 'Mídia'], ['dados', 'Dados'], ['institucional', 'Institucional']] as const).map(([val, label]) => (
                   <button
                     key={val}
                     type="button"
