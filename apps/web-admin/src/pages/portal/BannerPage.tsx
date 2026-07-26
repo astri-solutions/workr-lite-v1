@@ -11,6 +11,8 @@ import { usePortalState } from '../../hooks/usePortalState';
 import { usePublish } from '../../contexts/PublishContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -95,6 +97,14 @@ export default function BannerPage() {
 
   const destinos = useCanaisDestinos(user?.activePortalId ?? undefined);
 
+  // Necessário para montar o caminho da prévia no bucket portal-media.
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  useEffect(() => {
+    const portalKey = user?.activePortalId;
+    if (!portalKey) return;
+    resolvePortalId(portalKey).then(setPortalDbId).catch(() => {});
+  }, [user?.activePortalId]);
+
   function addShortcut() {
     if (shortcuts.length >= MAX_SHORTCUTS) return;
     setShortcuts(prev => [...prev, { id: Math.random().toString(36).slice(2), pageId: '', label: '' }]);
@@ -119,6 +129,26 @@ export default function BannerPage() {
     setActiveId(prev => (next.some(s => s.id === prev) ? prev : next[0].id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
+
+  /**
+   * Depois de publicar, `imagem` deixa de ser um data: URL e vira um caminho
+   * do site do cliente (ex.: /assets/banner/b1-abc.webp). Renderizado direto
+   * aqui, o navegador resolveria esse caminho contra o domínio do admin e
+   * daria 404 — a imagem "quebrada" ao voltar para a aba Banner.
+   *
+   * O publish-config espelha cada imagem no bucket portal-media (slot
+   * `banner-<id>`), então é de lá que vem a prévia: não depende do deploy
+   * do portal ter terminado nem de vercel_url estar preenchido.
+   */
+  function previewSrc(slide: BannerSlide): string | null {
+    const img = slide.imagem;
+    if (!img) return null;
+    if (img.startsWith('data:') || img.startsWith('http')) return img;
+    if (!portalDbId || !isSupabaseConfigured || !supabase) return null;
+    const ext = img.split('.').pop()?.toLowerCase() || 'webp';
+    const path = `${portalDbId}/system/banner-${slide.id}.${ext}`;
+    return supabase.storage.from('portal-media').getPublicUrl(path).data.publicUrl;
+  }
   const [locale, setLocale] = useState<LocaleCode>(primaryLang);
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [dirty, setDirty] = useState(false);
@@ -275,7 +305,7 @@ export default function BannerPage() {
           <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={handleImage} />
           {active.imagem ? (
             <div className="banner-img-preview">
-              <img src={active.imagem} alt="Banner" className="banner-img-preview__img" />
+              <img src={previewSrc(active) ?? ''} alt="Banner" className="banner-img-preview__img" />
               <button type="button" className="banner-img-preview__remove" onClick={() => updateImage(null)}>Remover imagem</button>
             </div>
           ) : (

@@ -75,9 +75,19 @@ interface FooterTexts {
 }
 interface FooterCfg {
   email?: string;
+  /** 'completo' | 'compacto' | 'reduzido' — escolhido em Personalização → Rodapé. */
+  model?: string;
   content?: Record<string, FooterTexts>;
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
+}
+
+// O rodapé sempre saía como 'simple', que no site esconde logo, colunas de
+// navegação, endereço, contato e redes sociais — ou seja, quase tudo que a
+// tela de Rodapé permite editar era descartado no publish. 'reduzido' é o
+// único modelo que corresponde ao 'simple'.
+function footerVariant(model: string | undefined): string {
+  return model === 'reduzido' ? 'simple' : 'full';
 }
 interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; children?: SubCanalCfg[]; headerImage?: string; }
 interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; headerImage?: string; }
@@ -449,7 +459,8 @@ ${buildEmpresasSection(opts.empresas, opts.nome)}
   restrictedNav: [],
 
   footer: {
-    variant: 'simple',
+    variant: ${JSON.stringify(footerVariant(f?.model))},
+    model: ${JSON.stringify(f?.model ?? 'completo')},
     email: ${email},
     content: ${JSON.stringify(footerContent)},
     social: { linkedin: ${linkedin}, instagram: ${instagram}, facebook: ${facebook} },
