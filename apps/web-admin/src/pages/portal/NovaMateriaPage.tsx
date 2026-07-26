@@ -14,7 +14,7 @@ import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
 
-type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria';
+type SectionType = 'text' | 'image-text' | 'bg-image' | 'two-col' | 'three-col' | 'image' | 'image-full' | 'galeria' | 'timeline';
 type PublishStatus = 'draft' | 'published' | 'scheduled';
 
 interface GaleriaCard {
@@ -23,6 +23,14 @@ interface GaleriaCard {
   descricao: string;
   data: string;
   link: string;
+  imageUrl: string | null;
+}
+
+interface TimelineItem {
+  id: string;
+  ano: string;
+  titulo: string;
+  descricao: string;
   imageUrl: string | null;
 }
 
@@ -36,6 +44,8 @@ interface ContentSection {
   html3?: string; // 'three-col' col 3
   imageUrl?: string | null; // 'image-text', 'bg-image', 'image', 'image-full'
   imageAlt?: string;
+  timelineItems?: TimelineItem[]; // 'timeline'
+  timelineOrientation?: 'vertical' | 'horizontal'; // 'timeline'
 }
 
 type SectionCategory = 'texto' | 'layout' | 'midia';
@@ -187,12 +197,35 @@ const SECTION_DEFS: { type: SectionType; label: string; desc: string; cat: Secti
       </svg>
     ),
   },
+  {
+    type: 'timeline',
+    label: 'Linha do tempo',
+    desc: 'Marcos por ano com título, descrição e imagem — vertical ou horizontal.',
+    cat: 'layout',
+    thumb: (
+      <svg viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="nm-thumb-svg">
+        <rect width="160" height="100" rx="6" fill="#F4F4F4"/>
+        <line x1="80" y1="12" x2="80" y2="88" stroke="#0B5B68" strokeWidth="2" opacity="0.35"/>
+        {[24, 50, 76].map((y, i) => (
+          <g key={i}>
+            <circle cx="80" cy={y} r="4" fill="#0B5B68" opacity="0.8"/>
+            {i % 2 === 0 ? (
+              <rect x="20" y={y - 6} width="48" height="12" rx="3" fill="#C8DFE2"/>
+            ) : (
+              <rect x="92" y={y - 6} width="48" height="12" rx="3" fill="#C8DFE2"/>
+            )}
+          </g>
+        ))}
+      </svg>
+    ),
+  },
 ];
 
 const SECTION_LABEL: Record<SectionType, string> = {
   text: 'Bloco de texto',
   'image-text': 'Imagem + Texto',
   'bg-image': 'Fundo com texto',
+  timeline: 'Linha do tempo',
   'two-col': 'Duas colunas',
   'three-col': 'Três colunas',
   image: 'Imagem',
@@ -634,6 +667,103 @@ function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; 
   );
 }
 
+/* ── Linha do tempo editor ─────────────────────────────────── */
+function newTimelineItem(): TimelineItem {
+  return { id: Math.random().toString(36).slice(2), ano: '', titulo: '', descricao: '', imageUrl: null };
+}
+
+function TimelineEditor({ items, orientation, onChangeItems, onChangeOrientation, portalDbId }: {
+  items: TimelineItem[];
+  orientation: 'vertical' | 'horizontal';
+  onChangeItems: (items: TimelineItem[]) => void;
+  onChangeOrientation: (orientation: 'vertical' | 'horizontal') => void;
+  portalDbId: string | null;
+}) {
+  function update(id: string, patch: Partial<TimelineItem>) {
+    onChangeItems(items.map(i => i.id === id ? { ...i, ...patch } : i));
+  }
+  function remove(id: string) { onChangeItems(items.filter(i => i.id !== id)); }
+  function add() { onChangeItems([...items, newTimelineItem()]); }
+  function move(i: number, dir: -1 | 1) {
+    const next = [...items];
+    const j = i + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[i], next[j]] = [next[j], next[i]];
+    onChangeItems(next);
+  }
+
+  return (
+    <div className="timeline-editor">
+      <div className="timeline-editor__orientation">
+        <span className="nm-meta-label">Orientação no site</span>
+        <div className="nm-type-chips">
+          <button type="button" className={`nm-type-chip${orientation === 'vertical' ? ' nm-type-chip--active' : ''}`}
+            onClick={() => onChangeOrientation('vertical')}>Vertical</button>
+          <button type="button" className={`nm-type-chip${orientation === 'horizontal' ? ' nm-type-chip--active' : ''}`}
+            onClick={() => onChangeOrientation('horizontal')}>Horizontal</button>
+        </div>
+      </div>
+
+      {items.map((item, i) => (
+        <div key={item.id} className="galeria-card-editor">
+          <div className="galeria-card-editor__header">
+            <span className="galeria-card-editor__num">Ano {i + 1}</span>
+            <div className="galeria-card-editor__order">
+              <button type="button" className="ce-icon-btn" title="Mover para cima" disabled={i === 0} onClick={() => move(i, -1)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              </button>
+              <button type="button" className="ce-icon-btn" title="Mover para baixo" disabled={i === items.length - 1} onClick={() => move(i, 1)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <button type="button" className="sec-editor__del" onClick={() => remove(item.id)} title="Remover ano">
+              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+            </button>
+          </div>
+          <div className="galeria-card-editor__fields">
+            <div className="galeria-card-editor__col-img">
+              {item.imageUrl ? (
+                <div className="galeria-card-img-preview">
+                  <img src={item.imageUrl} alt="" className="galeria-card-img-preview__img" />
+                  <div className="galeria-card-img-preview__actions">
+                    <label className="btn-action btn-action--enter galeria-img-label">
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>cached</span>
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'timeline-item'); update(item.id, { imageUrl: url }); } }} />
+                    </label>
+                    <button type="button" className="btn-action btn-action--danger" onClick={() => update(item.id, { imageUrl: null })}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="galeria-card-img-empty galeria-img-label">
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'timeline-item'); update(item.id, { imageUrl: url }); } }} />
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
+                  <span>Imagem (opcional)</span>
+                </label>
+              )}
+            </div>
+            <div className="galeria-card-editor__col-fields">
+              <input className="nm-field--sm" type="text" placeholder="Ano (ex: 1966)" value={item.ano}
+                onChange={e => update(item.id, { ano: e.target.value })} />
+              <input className="nm-field--sm" type="text" placeholder="Título (opcional)" value={item.titulo}
+                onChange={e => update(item.id, { titulo: e.target.value })} />
+              <textarea className="nm-field--sm nm-textarea" rows={2} placeholder="Descrição" value={item.descricao}
+                onChange={e => update(item.id, { descricao: e.target.value })} />
+            </div>
+          </div>
+        </div>
+      ))}
+      <button type="button" className="galeria-add-card" onClick={add}>
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
+        Adicionar ano
+      </button>
+    </div>
+  );
+}
+
 /* ── Tabela editor ────────────────────────────────────────── */
 interface TabelaCell { value: string; }
 interface TabelaRow { id: string; cells: TabelaCell[]; }
@@ -842,6 +972,16 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
             portalDbId={portalDbId}
           />
         )}
+
+        {section.type === 'timeline' && (
+          <TimelineEditor
+            items={section.timelineItems ?? []}
+            orientation={section.timelineOrientation ?? 'vertical'}
+            onChangeItems={(timelineItems) => onUpdateSection({ timelineItems })}
+            onChangeOrientation={(timelineOrientation) => onUpdateSection({ timelineOrientation })}
+            portalDbId={portalDbId}
+          />
+        )}
       </div>
     </div>
   );
@@ -966,6 +1106,7 @@ export default function NovaMateriaPage() {
   function addSection(type: SectionType) {
     const base: ContentSection = { id: Math.random().toString(36).slice(2), type };
     if (type === 'galeria') base.cards = [newCard()];
+    if (type === 'timeline') { base.timelineItems = [newTimelineItem()]; base.timelineOrientation = 'vertical'; }
     setSections((prev) => [...prev, base]);
     setPickerOpen(false);
   }
