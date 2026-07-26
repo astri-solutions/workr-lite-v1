@@ -909,6 +909,28 @@
   border-color: var(--color-primary-400);
 }
 
+.nm-date-input:disabled {
+  background: var(--color-gray-50);
+  color: var(--color-gray-400);
+  cursor: not-allowed;
+}
+
+.nm-meta-hint {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  line-height: 1.4;
+}
+
+/* Auto-derived, not user-editable (slug) — reads as locked rather than
+   as an empty field someone forgot to fill in. */
+.nm-field--sm[readonly] {
+  background: var(--color-gray-50);
+  color: var(--color-gray-500);
+  cursor: not-allowed;
+}
+
 
 /* ── Rich text editor ────────────────────────────── */
 .rte {

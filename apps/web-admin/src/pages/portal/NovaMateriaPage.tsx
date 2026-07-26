@@ -290,7 +290,9 @@ function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { 
       <div className="rte-toolbar">
         <select className="rte-format" defaultValue="p" onChange={(e) => handleBlockFormat(e.target.value)}>
           <option value="p">Parágrafo</option>
-          <option value="h1">Título 1</option>
+          {/* No h1 on purpose — the page's own name (rendered in the header
+              banner) is the single h1 of every page, so content headings
+              start at h2 to keep one h1 per document. */}
           <option value="h2">Título 2</option>
           <option value="h3">Título 3</option>
           <option value="h4">Título 4</option>
@@ -1027,7 +1029,10 @@ export default function NovaMateriaPage() {
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
-  const [subtitle, setSubtitle] = useState(editing?.subtitulo ?? (isGaleria && !editing ? 'Notas, avisos e informações relevantes para investidores.' : ''));
+  // No longer editable (the in-content title/subtitle card was removed —
+  // headings come from the page name and the content blocks), but whatever
+  // an older matéria already had is preserved on re-save rather than wiped.
+  const subtitle = editing?.subtitulo ?? '';
   // The header image itself now lives on the page/canal node (Canais →
   // editar canal/página), not on the matéria — this screen only displays
   // the effective (own or inherited) image read-only, via `selectedDestino`
@@ -1110,6 +1115,21 @@ export default function NovaMateriaPage() {
   const STATUS_FROM_STORED: Record<string, PublishStatus> = { publicado: 'published', rascunho: 'draft', agendado: 'scheduled' };
   const [status, setStatus] = useState<PublishStatus>(editing ? (STATUS_FROM_STORED[editing.status] ?? 'draft') : 'draft');
   const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+  // Local date, not toISOString() — that's UTC, so late evening in BRT
+  // (UTC-3) would already report tomorrow and block scheduling for today.
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  // The matéria lives at its destination page's URL, so the slug mirrors
+  // that page's name — it follows along if the page is renamed in Canais,
+  // instead of drifting from whatever the matéria happened to be called.
+  const slug = (selectedDestino?.label ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
   const [saved, setSaved] = useState(false);
   const [contentType, setContentType] = useState(isGaleria && !editing ? 'Notícia' : '');
   const [dirty, setDirty] = useState(false);
@@ -1321,9 +1341,13 @@ export default function NovaMateriaPage() {
         {/* Center: content editor */}
         <main className="nm-main">
           <div key={locale} className="lang-fade nm-content-wrap">
-            {/* Global fields */}
-            <div className="nm-global">
-              {!isGaleria && !isTabela && !isHtml && !isTimeline && selectedDestino?.headerImageUrl && (
+            {/* The page's own name (from Canais) is its heading — there's no
+                separate in-content title/subtitle to fill in here. Body
+                content comes entirely from the blocks/layout elements below;
+                the field in the top bar is just this matéria's name in the
+                Matérias listing. */}
+            {selectedDestino?.headerImageUrl && (
+              <div className="nm-global">
                 <div className="nm-header-inherited" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
                   <img src={selectedDestino.headerImageUrl} alt="" style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 8 }} />
                   <span>
@@ -1331,26 +1355,8 @@ export default function NovaMateriaPage() {
                     {selectedDestino.headerImageInherited ? 'Herdada do canal' : 'Própria desta página'} — para trocar, edite em <strong>Canais</strong>.
                   </span>
                 </div>
-              )}
-              <input
-                className="nm-field nm-field--title"
-                value={title}
-                onChange={(e) => { setTitle(e.target.value); markDirty(); }}
-                placeholder="Título..."
-              />
-              <input
-                className="nm-field nm-field--subtitle"
-                value={subtitle}
-                onChange={(e) => { setSubtitle(e.target.value); markDirty(); }}
-                placeholder="Subtítulo..."
-              />
-              {!isGaleria && !isTabela && !isHtml && !isTimeline && (
-                <p className="nm-field-hint">
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px', verticalAlign: 'middle', marginRight: 4 }}>info</span>
-                  Título e subtítulo aparecem dentro do conteúdo da página, não substituem o nome dela — o título exibido no topo (banner interno) é sempre o nome da página de destino, definido em <strong>Canais</strong>.
-                </p>
-              )}
-            </div>
+              </div>
+            )}
 
             {isTabela ? (
               <TabelaEditor
@@ -1431,14 +1437,31 @@ export default function NovaMateriaPage() {
               <span className={`badge ${badgeClass[status]}`}>{statusLabel[status]}</span>
             </div>
             <div className="nm-meta-row">
-              <span className="nm-meta-label">Data de publicação</span>
+              <span className="nm-meta-label">Agendar publicação</span>
             </div>
-            <input
-              type="datetime-local"
-              className="nm-date-input"
+            <DatePicker
               value={scheduleDate}
-              onChange={(e) => { setScheduleDate(e.target.value); markDirty(); }}
+              min={todayStr}
+              placeholder="dd/mm/aaaa"
+              onChange={(date) => {
+                setScheduleDate(date);
+                // Clearing the date clears the time too — an orphan time
+                // with no date can't schedule anything.
+                if (!date) setScheduleTime('');
+                markDirty();
+              }}
             />
+            <input
+              type="time"
+              className="nm-date-input"
+              style={{ marginTop: 'var(--space-2)' }}
+              value={scheduleTime}
+              disabled={!scheduleDate}
+              onChange={(e) => { setScheduleTime(e.target.value); markDirty(); }}
+            />
+            <p className="nm-meta-hint">
+              Deixe em branco para publicar imediatamente ao clicar em Publicar.
+            </p>
           </div>
 
           {/* Page destination */}
@@ -1519,11 +1542,16 @@ export default function NovaMateriaPage() {
           <div className="nm-meta-block">
             <p className="nm-meta-block__title">SEO & Metadados</p>
             <label className="nm-meta-label">Slug</label>
+            {/* Derived from the destination page, never the matéria's own
+                name — the page's URL is what it is, and a matéria doesn't
+                get its own address. Read-only until we decide whether
+                editing it is worth supporting. */}
             <input
               className="nm-field nm-field--sm"
               type="text"
-              placeholder="minha-materia"
-              defaultValue={title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}
+              readOnly
+              placeholder="Selecione a página de destino"
+              value={slug}
             />
             <label className="nm-meta-label" style={{ marginTop: 'var(--space-3)' }}>Descrição (SEO)</label>
             <textarea
