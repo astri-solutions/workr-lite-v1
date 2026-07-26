@@ -3,7 +3,7 @@ import './ChannelEditor.css';
 
 export const CANAIS_KEY = 'portal_canais';
 
-export type PageType = 'show' | 'lista' | 'lista-agrupada' | 'tabela' | 'tabela-resultados' | 'blog' | 'galeria' | 'formulario';
+export type PageType = 'show' | 'lista' | 'lista-agrupada' | 'tabela' | 'tabela-resultados' | 'blog' | 'galeria' | 'formulario' | 'timeline';
 export type ListaAgrupadaStyle = 'accordion' | 'secao';
 
 export interface SubSubCanal {

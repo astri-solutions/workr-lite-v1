@@ -192,6 +192,24 @@ const PAGE_TYPES: Array<{
       </svg>
     ),
   },
+  {
+    id: 'timeline', label: 'Linha do Tempo', icon: 'timeline',
+    desc: 'Marcos por ano com título, descrição e imagem.',
+    flow: 'Combine com uma matéria do tipo Linha do tempo em Matérias.',
+    thumb: (
+      <svg width="100%" height="48" viewBox="0 0 160 48" fill="none">
+        <line x1="80" y1="4" x2="80" y2="44" stroke="#c8d2db" strokeWidth="2"/>
+        {[10, 24, 38].map((y, i) => (
+          <g key={i}>
+            <circle cx="80" cy={y} r="3" fill="#8fa0b3"/>
+            {i % 2 === 0
+              ? <rect x="24" y={y - 4} width="40" height="8" rx="2" fill="#e8edf2"/>
+              : <rect x="96" y={y - 4} width="40" height="8" rx="2" fill="#e8edf2"/>}
+          </g>
+        ))}
+      </svg>
+    ),
+  },
 ];
 
 // Page types that support a matérias linking step

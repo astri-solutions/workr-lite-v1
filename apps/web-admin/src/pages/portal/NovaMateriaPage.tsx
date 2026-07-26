@@ -1022,7 +1022,7 @@ export default function NovaMateriaPage() {
     : isHtml
     ? ['show', undefined]
     : isTimeline
-    ? ['show', undefined]
+    ? ['timeline']
     : ['show', undefined];
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
