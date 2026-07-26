@@ -1159,20 +1159,27 @@ export default function NovaMateriaPage() {
   const dragIndex = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
 
+  // Every one of these mutates the matéria's content, so they all have to
+  // mark it dirty — when editing an existing matéria the Publicar button is
+  // gated on `dirty`, and without this writing in a text block (or adding,
+  // removing, reordering sections) left it disabled with no way to save.
   function addSection(type: SectionType) {
     const base: ContentSection = { id: Math.random().toString(36).slice(2), type };
     if (type === 'galeria') base.cards = [newCard()];
     if (type === 'timeline') { base.timelineItems = [newTimelineItem()]; base.timelineOrientation = 'vertical'; }
     setSections((prev) => [...prev, base]);
     setPickerOpen(false);
+    markDirty();
   }
 
   function removeSection(id: string) {
     setSections((prev) => prev.filter((s) => s.id !== id));
+    markDirty();
   }
 
   function updateSection(id: string, patch: Partial<ContentSection>) {
     setSections((prev) => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+    markDirty();
   }
 
   function handleDrop(targetIndex: number) {
@@ -1189,6 +1196,7 @@ export default function NovaMateriaPage() {
     });
     dragIndex.current = null;
     setDragOver(null);
+    markDirty();
   }
 
   function scrollTo(id: string) {
@@ -1396,7 +1404,7 @@ export default function NovaMateriaPage() {
                 onChange={(rows, headers) => { setTabelaRows(rows); setTabelaHeaders(headers); markDirty(); }}
               />
             ) : isGaleria ? (
-              <GaleriaEditor cards={galeriaCards} onChange={setGaleriaCards} portalDbId={portalDbId} />
+              <GaleriaEditor cards={galeriaCards} onChange={(cards) => { setGaleriaCards(cards); markDirty(); }} portalDbId={portalDbId} />
             ) : isTimeline ? (
               <TimelineEditor
                 items={timelineItems}
