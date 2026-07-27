@@ -59,6 +59,7 @@
   .page-header__action {
     width: 100%;
     padding-top: 0;
+    flex-direction: column;
   }
 
   .page-header__action > * {

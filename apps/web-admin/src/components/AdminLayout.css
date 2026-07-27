@@ -252,6 +252,13 @@
   .admin-topbar__right > .admin-topbar__separator {
     display: none;
   }
+
+  /* Pages that pass portalName already render their own
+     .painel-breadcrumb right below the topbar — showing both here
+     duplicates the same "← Portais / Nome" trail on narrow screens. */
+  .admin-topbar__portal-ctx {
+    display: none;
+  }
 }
 
 .admin-topbar__user {

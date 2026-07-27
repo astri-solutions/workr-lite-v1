@@ -696,10 +696,9 @@ export default function PainelControlePage() {
               <p className="painel-recursos__hint" style={{ marginBottom: 'var(--space-3)' }}>
                 Astri responsável pelo suporte deste portal — aparece no Dashboard do cliente com um link para a página Atendimento.
               </p>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div className="painel-suporte__row">
                 <select
-                  className="filter-select"
-                  style={{ flex: '1 1 220px' }}
+                  className="filter-select painel-suporte__select"
                   value={suporteSelected}
                   onChange={e => setSuporteSelected(e.target.value)}
                 >
@@ -709,7 +708,7 @@ export default function PainelControlePage() {
                   ))}
                 </select>
                 <button
-                  className="btn-primary"
+                  className="btn-primary painel-suporte__save"
                   type="button"
                   disabled={savingSuporte || suporteSelected === (site.suporteUserId ?? '')}
                   onClick={handleSalvarSuporte}

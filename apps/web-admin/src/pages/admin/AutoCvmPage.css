@@ -607,7 +607,7 @@
 
   /* Entity card fields: stack to single column */
   .cvm-entity-card__fields {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .cvm-modal__row {
@@ -656,11 +656,18 @@
 
   .cvm-entity-card__footer-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .cvm-entity-card__footer-actions .btn-outline-sm {
-    flex: 1;
+    flex: 1 1 calc(50% - var(--space-2));
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .cvm-entity-card__footer-actions .btn-outline-sm {
+    flex: 1 1 100%;
   }
 }
 

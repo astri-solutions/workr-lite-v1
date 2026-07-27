@@ -410,6 +410,17 @@
   padding: var(--space-4) var(--space-5);
 }
 
+.painel-suporte__row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.painel-suporte__select {
+  flex: 1 1 220px;
+}
+
 /* ─── Essenciais ─────────────────────────────────────── */
 .painel-essenciais > .painel-card__title {
   padding: var(--space-4) var(--space-5);
@@ -706,6 +717,32 @@
   .painel-header__badges {
     flex-shrink: 1;
     flex-wrap: wrap;
+  }
+
+  .painel-suspend-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .painel-suspend-card__btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .painel-suspend-card__confirm-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .painel-suporte__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .painel-suporte__select,
+  .painel-suporte__save {
+    flex: unset;
+    width: 100%;
   }
 }
 
