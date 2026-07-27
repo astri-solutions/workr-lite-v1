@@ -387,7 +387,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
-    const { portalId, empresaId, desde, backfillOnly } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean };
+    const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean; reprocessRoutingOnly?: boolean };
     if (!portalId || !empresaId) {
       return new Response(JSON.stringify({ error: 'Informe portalId e empresaId' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
@@ -444,6 +444,84 @@ Deno.serve(async (req) => {
         ],
       }), { status: 200, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
+    // ── Modo reprocessar roteamento: aplica a configuração de destino ATUAL
+    // a documentos já importados anteriormente ──────────────────────────────
+    // O import normal só grava pagina_ids/sub_group_ids no momento do INSERT
+    // (`.insert()`, não upsert) — reimportar depois de mudar o destino de uma
+    // categoria em Auto CVM nunca toca nos documentos já existentes (o
+    // protocolo já existe, cai em skippedDuplicate e para por aí). Este modo
+    // varre os documentos já importados desta empresa e corrige pagina_ids/
+    // sub_group_ids para bater com o roteamento salvo agora, usando `tipo`
+    // (= cvmCategoryLabel no momento do import original) para saber a que
+    // categoria cada documento pertence.
+    if (reprocessRoutingOnly) {
+      const admin = createClient(supabaseUrl, resolveServiceKey());
+      const { data: cfg } = await admin.from('portal_config').select('canais, updated_at').eq('portal_id', portalId).maybeSingle();
+      let canais = (cfg?.canais ?? []) as CanalNode[];
+      const { data: syncRow } = await admin.from('cvm_sync_state').select('routing').eq('portal_id', portalId).eq('empresa_id', empresaId).maybeSingle();
+      const routing = (syncRow?.routing ?? []) as CvmRoutingRule[];
+      const ruleByLabel = new Map(routing.map(r => [r.cvmCategoryLabel, r]));
+
+      const { data: docs, error: docsErr } = await admin
+        .from('portal_documents')
+        .select('id, tipo, pagina_ids, sub_group_ids')
+        .eq('portal_id', portalId)
+        .eq('entity_id', empresaId)
+        .eq('from_cvm', true);
+      if (docsErr) {
+        return new Response(JSON.stringify({ error: `Falha ao listar documentos: ${docsErr.message}` }), { status: 500, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+
+      let reprocessed = 0;
+      let unrouted = 0;
+      let canaisChanged = false;
+      const reprocessErrors: string[] = [];
+      for (const doc of docs ?? []) {
+        const rule = ruleByLabel.get(doc.tipo as string);
+        if (!rule) { unrouted++; continue; }
+        const currentIds = (doc.pagina_ids ?? []) as string[];
+        if (currentIds.length === 1 && currentIds[0] === rule.targetId) continue; // já está no destino certo
+
+        if (!nodeExists(canais, rule.targetId)) {
+          reprocessErrors.push(`${doc.tipo}: página de destino "${rule.targetLabel}" não existe mais — reconfigure em Auto CVM.`);
+          continue;
+        }
+        const groupLabel = rule.groupCategory || rule.cvmCategoryLabel;
+        const promoted = ensureCategoryOnTree(canais, rule.targetId, groupLabel);
+        canais = promoted.canais;
+        if (promoted.changed) canaisChanged = true;
+
+        const { error: updErr } = await admin.from('portal_documents')
+          .update({ pagina_ids: [rule.targetId], sub_group_ids: { [rule.targetId]: [groupLabel] } })
+          .eq('id', doc.id);
+        if (updErr) reprocessErrors.push(`${doc.id}: ${updErr.message}`);
+        else reprocessed++;
+      }
+
+      let canaisWriteConflict = false;
+      if (canaisChanged) {
+        const { data: updRows, error: updErr } = await admin
+          .from('portal_config')
+          .update({ canais })
+          .eq('portal_id', portalId)
+          .eq('updated_at', cfg?.updated_at ?? '')
+          .select('portal_id');
+        if (updErr || !updRows || updRows.length === 0) canaisWriteConflict = true;
+      }
+
+      return new Response(JSON.stringify({
+        entityId: empresaId,
+        syncedAt: new Date().toISOString(),
+        documentsFound: (docs ?? []).length,
+        documentsImported: reprocessed,
+        errors: [
+          ...reprocessErrors,
+          ...(unrouted > 0 ? [`${unrouted} documento(s) sem categoria correspondente no roteamento atual — ficaram como estavam.`] : []),
+          ...(canaisWriteConflict ? ['A árvore de canais foi editada em paralelo — rode novamente.'] : []),
+        ],
+      }), { status: 200, headers: { ...ch, 'Content-Type': 'application/json' } });
+    }
+
     // "desde" (Importar histórico) requests everything filed on/after that
     // date, which may span several years back. Without it (Verificar agora),
     // only the current + previous year are checked — that's the window CVM

@@ -190,6 +190,18 @@ export const cvmService = {
     return data as SyncResponse;
   },
 
+  /** Reaplica o roteamento ATUAL (Auto CVM → destinos) a documentos já
+   *  importados anteriormente. A importação normal só grava pagina_ids no
+   *  momento do insert — mudar o destino de uma categoria depois não move
+   *  os documentos que já existem, só afeta os próximos a serem importados.
+   *  Este modo corrige isso sem re-baixar nada da CVM. */
+  async reprocessRouting(portalId: string, empresaId: string): Promise<SyncResponse> {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase não configurado.');
+    const { data, error } = await supabase.functions.invoke('cvm-import-run', { body: { portalId, empresaId, reprocessRoutingOnly: true } });
+    if (error) throw new Error(`Falha ao reprocessar roteamento: ${error.message}`);
+    return data as SyncResponse;
+  },
+
   /** Get routing rules for one entity. */
   async getRouting(portalId: string, empresaId: string): Promise<CvmRoutingRule[]> {
     if (!isSupabaseConfigured || !supabase) return [];

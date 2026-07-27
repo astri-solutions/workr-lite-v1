@@ -240,6 +240,9 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
   const [backfilling, setBackfilling] = useState(false);
   const [backfillResult, setBackfillResult] = useState<{ found: number; imported: number; errors: string[] } | null>(null);
   const [backfillError, setBackfillError] = useState<string | null>(null);
+  const [reroutingRouting, setReroutingRouting] = useState(false);
+  const [reroutingResult, setReroutingResult] = useState<{ found: number; imported: number; errors: string[] } | null>(null);
+  const [reroutingError, setReroutingError] = useState<string | null>(null);
 
   const isAtivo = status === 'ativo';
   const isErro = status === 'erro';
@@ -284,6 +287,20 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
       setBackfillError('Falha ao reprocessar documentos. Tente novamente.');
     } finally {
       setBackfilling(false);
+    }
+  }
+
+  async function handleReprocessRouting() {
+    setReroutingRouting(true);
+    setReroutingResult(null);
+    setReroutingError(null);
+    try {
+      const res = await cvmService.reprocessRouting(entity.portalId, entity.id);
+      setReroutingResult({ found: res.documentsFound, imported: res.documentsImported, errors: res.errors });
+    } catch {
+      setReroutingError('Falha ao reprocessar roteamento. Tente novamente.');
+    } finally {
+      setReroutingRouting(false);
     }
   }
 
@@ -377,6 +394,7 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
       {syncError && <p className="cvm-error-msg">{syncError}</p>}
       {importError && <p className="cvm-error-msg">{importError}</p>}
       {backfillError && <p className="cvm-error-msg">{backfillError}</p>}
+      {reroutingError && <p className="cvm-error-msg">{reroutingError}</p>}
       {importResult && (
         <p className="cvm-import-result">
           {importResult.found} documento{importResult.found !== 1 ? 's' : ''} encontrado{importResult.found !== 1 ? 's' : ''} na CVM ·{' '}
@@ -389,6 +407,13 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
           {backfillResult.found} documento{backfillResult.found !== 1 ? 's' : ''} pendente{backfillResult.found !== 1 ? 's' : ''} ·{' '}
           {backfillResult.imported} arquivo{backfillResult.imported !== 1 ? 's' : ''} baixado{backfillResult.imported !== 1 ? 's' : ''} agora
           {backfillResult.errors.length > 0 && <> · {backfillResult.errors.join(' ')}</>}
+        </p>
+      )}
+      {reroutingResult && (
+        <p className="cvm-import-result">
+          {reroutingResult.found} documento{reroutingResult.found !== 1 ? 's' : ''} verificado{reroutingResult.found !== 1 ? 's' : ''} ·{' '}
+          {reroutingResult.imported} movido{reroutingResult.imported !== 1 ? 's' : ''} para o destino atual
+          {reroutingResult.errors.length > 0 && <> · {reroutingResult.errors.join(' ')}</>}
         </p>
       )}
 
@@ -445,6 +470,18 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
             {backfilling
               ? <><span className="cvm-spin" />Reprocessando…</>
               : 'Reprocessar links externos'
+            }
+          </button>
+          <button
+            className="btn-outline-sm"
+            type="button"
+            onClick={handleReprocessRouting}
+            disabled={reroutingRouting || !isAtivo}
+            title="Move documentos já importados para o destino atual configurado em Auto CVM, sem re-baixar nada da CVM"
+          >
+            {reroutingRouting
+              ? <><span className="cvm-spin" />Reprocessando…</>
+              : 'Reprocessar roteamento'
             }
           </button>
           <button
