@@ -310,7 +310,7 @@ interface CanalEditState {
   laCatInput: string;
 }
 
-type CanalType = 'pagina' | 'pai' | 'filho';
+type CanalType = 'pagina' | 'pai';
 
 interface NewCanalForm {
   step: 1 | 2 | 3;
@@ -318,9 +318,6 @@ interface NewCanalForm {
   subtitles: Record<string, string>;
   headerImageUrl: string | null;
   tipo: CanalType;
-  // Only used when tipo === 'filho' — id of the existing top-level canal
-  // this new page will be nested under (as a SubCanal / L2 node).
-  parentCanalId: string;
   pageType: PageType;
   draft: boolean;
   locale: LocaleCode;
@@ -347,7 +344,6 @@ function emptyNewCanalForm(empresas: PortalEmpresa[] = []): NewCanalForm {
     subtitles: {},
     headerImageUrl: null,
     tipo: 'pai',
-    parentCanalId: '',
     pageType: 'show',
     draft: false,
     locale: PORTAL_CONFIG.languages[0],
@@ -924,29 +920,16 @@ export default function CanaisPage() {
   function commitNewCanal() {
     const primaryLang = PORTAL_CONFIG.languages[0];
     const label = newCanalForm.titles[primaryLang]?.trim() || 'Novo canal';
-    const isLeaf = newCanalForm.tipo !== 'pai';
+    const isLeaf = newCanalForm.tipo === 'pagina';
     const newId = genId();
-
-    if (newCanalForm.tipo === 'filho') {
-      const s: SubCanal = {
-        id: newId, label, labels: newCanalForm.titles, href: `/${newId}.html`, enabled: !newCanalForm.draft,
-        pageType: newCanalForm.pageType,
-        ...(newCanalForm.isExternalLink ? { isExternalLink: true, externalUrl: newCanalForm.externalUrl } : {}),
-        ...(newCanalForm.pageType === 'lista-agrupada'
-          ? { listaAgrupadaStyle: newCanalForm.laStyle, listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
-        ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
-      };
-      mutate(prev => prev.map(c => c.id !== newCanalForm.parentCanalId ? c : { ...c, children: [...c.children, s] }));
-    } else {
-      const c: Canal = {
-        id: newId, label, labels: newCanalForm.titles, enabled: !newCanalForm.draft, children: [],
-        ...(isLeaf ? { pageType: newCanalForm.pageType, href: `/${newId}.html` } : {}),
-        ...(isLeaf && newCanalForm.pageType === 'lista-agrupada'
-          ? { listaAgrupadaStyle: newCanalForm.laStyle, listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
-        ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
-      };
-      mutate(prev => [...prev, c]);
-    }
+    const c: Canal = {
+      id: newId, label, labels: newCanalForm.titles, enabled: !newCanalForm.draft, children: [],
+      ...(isLeaf ? { pageType: newCanalForm.pageType, href: `/${newId}.html` } : {}),
+      ...(isLeaf && newCanalForm.pageType === 'lista-agrupada'
+        ? { listaAgrupadaStyle: newCanalForm.laStyle, listaAgrupadaCategories: resolveGroupCategories(newCanalForm) } : {}),
+      ...(newCanalForm.headerImageUrl ? { headerImage: newCanalForm.headerImageUrl } : {}),
+    };
+    mutate(prev => [...prev, c]);
 
     if (newCanalForm.linkedMateriaIds.length > 0) {
       const all = loadMaterias(activePortalId ?? undefined);
@@ -1059,8 +1042,7 @@ export default function CanaisPage() {
     })))),
   ]);
 
-  const canAdvanceNewCanal = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim()
-    && (newCanalForm.tipo !== 'filho' || !!newCanalForm.parentCanalId);
+  const canAdvanceNewCanal = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim();
   const canCommitNewCanal = newCanalForm.tipo === 'pai' || newCanalForm.pageType !== 'lista-agrupada' || (
     hasMultipleEmpresas
       ? (!newCanalForm.laByEmpresa ||
@@ -2352,17 +2334,17 @@ export default function CanaisPage() {
               <div>
                 <p className="canais-edit-section-title" style={{ marginBottom: '8px' }}>Tipo de canal</p>
                 <div className="canais-new-type-row">
-                  {(['pai', 'pagina', 'filho'] as const).map(t => (
+                  {(['pai', 'pagina'] as const).map(t => (
                     <button key={t} type="button"
                       className={`canais-new-type-btn${newCanalForm.tipo === t ? ' canais-new-type-btn--active' : ''}`}
                       onClick={() => setNewCanalForm(f => ({ ...f, tipo: t }))}
                     >
                       <span className="material-symbols-outlined canais-new-type-btn__icon">
-                        {t === 'pai' ? 'account_tree' : t === 'pagina' ? 'article' : 'subdirectory_arrow_right'}
+                        {t === 'pai' ? 'account_tree' : 'article'}
                       </span>
-                      <span className="canais-new-type-btn__label">{t === 'pai' ? 'Canal pai' : t === 'pagina' ? 'Página direta' : 'Filho'}</span>
+                      <span className="canais-new-type-btn__label">{t === 'pai' ? 'Canal pai' : 'Página direta'}</span>
                       <span className="canais-new-type-btn__desc">
-                        {t === 'pai' ? 'Agrupa páginas filhas na navegação' : t === 'pagina' ? 'Link direto sem filhos na navegação' : 'Sub-página dentro de um canal existente'}
+                        {t === 'pai' ? 'Agrupa páginas filhas na navegação' : 'Link direto sem filhos na navegação'}
                       </span>
                       {newCanalForm.tipo === t && (
                         <span className="canais-new-type-btn__check">
@@ -2372,21 +2354,7 @@ export default function CanaisPage() {
                     </button>
                   ))}
                 </div>
-                {newCanalForm.tipo === 'filho' && (
-                  <label className="canais-edit-form__label" style={{ marginTop: '8px' }}>
-                    Canal pai
-                    <select className="filter-select" style={{ width: '100%' }}
-                      value={newCanalForm.parentCanalId}
-                      onChange={e => setNewCanalForm(f => ({ ...f, parentCanalId: e.target.value }))}
-                    >
-                      <option value="">Selecione um canal…</option>
-                      {canais.map(c => (
-                        <option key={c.id} value={c.id}>{c.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-                {newCanalForm.tipo !== 'pai' && (
+                {newCanalForm.tipo === 'pagina' && (
                   <p className="ct-wizard-hint">
                     <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
                     Você escolherá o tipo de conteúdo no próximo passo.
