@@ -375,9 +375,62 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
-    const { portalId, empresaId, desde } = await req.json() as { portalId?: string; empresaId?: string; desde?: string };
+    const { portalId, empresaId, desde, backfillOnly } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean };
     if (!portalId || !empresaId) {
       return new Response(JSON.stringify({ error: 'Informe portalId e empresaId' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
+    }
+
+    // ── Modo backfill: reprocessa documentos já importados como link externo ──
+    // Cobre dois casos: (1) documentos importados antes de downloadCvmFile
+    // existir (nunca tentaram baixar o arquivo real) e (2) documentos onde a
+    // tentativa anterior esbarrou numa página de visualização que o scrape
+    // não reconheceu (viewerPageOnly) — o heurístico de extractRealDocUrl
+    // pode ter sido melhorado desde então. Não mexe no dedupe (cvm_protocolo
+    // já existe), só troca external_link por file_path quando o download
+    // funciona desta vez.
+    if (backfillOnly) {
+      const admin = createClient(supabaseUrl, resolveServiceKey());
+      const { data: pending, error: pendingErr } = await admin
+        .from('portal_documents')
+        .select('id, external_link')
+        .eq('portal_id', portalId)
+        .eq('entity_id', empresaId)
+        .eq('from_cvm', true)
+        .is('file_path', null)
+        .not('external_link', 'is', null);
+      if (pendingErr) {
+        return new Response(JSON.stringify({ error: `Falha ao listar pendentes: ${pendingErr.message}` }), { status: 500, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+
+      let backfilled = 0;
+      let stillExternal = 0;
+      const backfillErrors: string[] = [];
+      for (const doc of pending ?? []) {
+        const downloaded = await downloadCvmFile(doc.external_link as string);
+        if (!downloaded) { stillExternal++; continue; }
+        const storagePath = `${portalId}/${doc.id}.${downloaded.ext}`;
+        const { error: uploadError } = await admin.storage
+          .from('portal-documents')
+          .upload(storagePath, downloaded.bytes, { upsert: true, contentType: downloaded.contentType });
+        if (uploadError) { backfillErrors.push(`${doc.id}: ${uploadError.message}`); continue; }
+        const { error: updateError } = await admin
+          .from('portal_documents')
+          .update({ file_path: storagePath, external_link: null })
+          .eq('id', doc.id);
+        if (updateError) { backfillErrors.push(`${doc.id}: ${updateError.message}`); continue; }
+        backfilled++;
+      }
+
+      return new Response(JSON.stringify({
+        entityId: empresaId,
+        syncedAt: new Date().toISOString(),
+        documentsFound: (pending ?? []).length,
+        documentsImported: backfilled,
+        errors: [
+          ...backfillErrors,
+          ...(stillExternal > 0 ? [`${stillExternal} documento(s) continuam como link externo — a página de visualização da CVM não expôs um arquivo real para eles.`] : []),
+        ],
+      }), { status: 200, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
     // "desde" (Importar histórico) requests everything filed on/after that
     // date, which may span several years back. Without it (Verificar agora),

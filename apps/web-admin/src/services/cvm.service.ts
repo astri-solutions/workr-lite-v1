@@ -178,6 +178,18 @@ export const cvmService = {
     return { ...(data as SyncResponse), desde: req.desde };
   },
 
+  /** Reprocessa documentos já importados que ficaram como link externo —
+   *  tenta baixar o arquivo real de novo (cobre tanto documentos importados
+   *  antes do download automático existir quanto páginas de visualização
+   *  que o scrape não reconheceu na primeira tentativa). Nunca cria
+   *  documentos novos, só troca external_link por file_path quando funciona. */
+  async backfillFiles(portalId: string, empresaId: string): Promise<SyncResponse> {
+    if (!isSupabaseConfigured || !supabase) throw new Error('Supabase não configurado.');
+    const { data, error } = await supabase.functions.invoke('cvm-import-run', { body: { portalId, empresaId, backfillOnly: true } });
+    if (error) throw new Error(`Falha ao reprocessar documentos: ${error.message}`);
+    return data as SyncResponse;
+  },
+
   /** Get routing rules for one entity. */
   async getRouting(portalId: string, empresaId: string): Promise<CvmRoutingRule[]> {
     if (!isSupabaseConfigured || !supabase) return [];

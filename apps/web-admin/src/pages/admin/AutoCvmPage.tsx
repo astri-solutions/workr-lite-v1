@@ -237,6 +237,9 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<unknown>(null);
   const [testError, setTestError] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<{ found: number; imported: number; errors: string[] } | null>(null);
+  const [backfillError, setBackfillError] = useState<string | null>(null);
 
   const isAtivo = status === 'ativo';
   const isErro = status === 'erro';
@@ -267,6 +270,20 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
       setImportError('Falha ao importar histórico. Tente novamente.');
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    setBackfillResult(null);
+    setBackfillError(null);
+    try {
+      const res = await cvmService.backfillFiles(entity.portalId, entity.id);
+      setBackfillResult({ found: res.documentsFound, imported: res.documentsImported, errors: res.errors });
+    } catch {
+      setBackfillError('Falha ao reprocessar documentos. Tente novamente.');
+    } finally {
+      setBackfilling(false);
     }
   }
 
@@ -359,11 +376,19 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
 
       {syncError && <p className="cvm-error-msg">{syncError}</p>}
       {importError && <p className="cvm-error-msg">{importError}</p>}
+      {backfillError && <p className="cvm-error-msg">{backfillError}</p>}
       {importResult && (
         <p className="cvm-import-result">
           {importResult.found} documento{importResult.found !== 1 ? 's' : ''} encontrado{importResult.found !== 1 ? 's' : ''} na CVM ·{' '}
           {importResult.imported} importado{importResult.imported !== 1 ? 's' : ''}
           {importResult.errors.length > 0 && <> · {importResult.errors.join(' ')}</>}
+        </p>
+      )}
+      {backfillResult && (
+        <p className="cvm-import-result">
+          {backfillResult.found} documento{backfillResult.found !== 1 ? 's' : ''} pendente{backfillResult.found !== 1 ? 's' : ''} ·{' '}
+          {backfillResult.imported} arquivo{backfillResult.imported !== 1 ? 's' : ''} baixado{backfillResult.imported !== 1 ? 's' : ''} agora
+          {backfillResult.errors.length > 0 && <> · {backfillResult.errors.join(' ')}</>}
         </p>
       )}
 
@@ -408,6 +433,18 @@ function EntityCard({ entity }: { entity: CvmEntityView }) {
             {importing
               ? <><span className="cvm-spin" />Importando…</>
               : 'Importar histórico'
+            }
+          </button>
+          <button
+            className="btn-outline-sm"
+            type="button"
+            onClick={handleBackfill}
+            disabled={backfilling || !isAtivo}
+            title="Tenta baixar como arquivo os documentos que hoje aparecem como link externo"
+          >
+            {backfilling
+              ? <><span className="cvm-spin" />Reprocessando…</>
+              : 'Reprocessar links externos'
             }
           </button>
           <button
