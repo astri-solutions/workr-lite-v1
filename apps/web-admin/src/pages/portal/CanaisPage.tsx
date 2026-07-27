@@ -1115,8 +1115,8 @@ export default function CanaisPage() {
                     {canal.enabled ? 'Publicado' : 'Rascunho'}
                   </span>
                 </span>
-                <span className="table-cell--muted">Canal</span>
-                <span className="table-cell--muted">Raiz</span>
+                <span><span className="ct-type-badge">Canal</span></span>
+                <span><span className="ct-type-badge ct-type-badge--nivel">Raiz</span></span>
                 <span>
                   <div className="ct-row__reorder">
                     <button className="ct-icon-btn" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
@@ -1179,11 +1179,11 @@ export default function CanaisPage() {
                             {sub.enabled ? 'Publicado' : 'Rascunho'}
                           </span>
                         </span>
-                        <span className="table-cell--muted">
-                          {sub.pageType ? <span className="ct-type-badge">{sub.pageType}</span> : 'Página'}
+                        <span>
+                          <span className="ct-type-badge">{sub.pageType ?? 'Página'}</span>
                           {cvmPageIds.has(sub.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
                         </span>
-                        <span className="table-cell--muted">Subpágina</span>
+                        <span><span className="ct-type-badge ct-type-badge--nivel">Subpágina</span></span>
                         <span>
                           <div className="ct-row__reorder">
                             <button className="ct-icon-btn" type="button" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
@@ -1226,11 +1226,11 @@ export default function CanaisPage() {
                                   {ss.enabled ? 'Publicado' : 'Rascunho'}
                                 </span>
                               </span>
-                              <span className="table-cell--muted">
-                                {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : 'Sub-página'}
+                              <span>
+                                <span className="ct-type-badge">{ss.pageType ?? 'Sub-página'}</span>
                                 {cvmPageIds.has(ss.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
                               </span>
-                              <span className="table-cell--muted">Sub-subpágina</span>
+                              <span><span className="ct-type-badge ct-type-badge--nivel">Sub-subpágina</span></span>
                               <span>
                                 <div className="ct-row__reorder">
                                   <button className="ct-icon-btn" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
