@@ -1142,9 +1142,12 @@ export default function CanaisPage() {
                           Sub-página
                         </button>
                       )}
-                      <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>Editar</button>
-                      <button className={`btn-action ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleCanal(canal.id)}>
-                        {canal.enabled ? 'Despublicar' : 'Publicar'}
+                      <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openCanalEdit(canal)}>
+                        <span className="material-symbols-outlined">edit</span>
+                      </button>
+                      <button className={`btn-action btn-action--icon ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
+                        title={canal.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleCanal(canal.id)}>
+                        <span className="material-symbols-outlined">{canal.enabled ? 'visibility_off' : 'visibility'}</span>
                       </button>
                       <button className="btn-action btn-action--danger" type="button"
                         onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
@@ -1206,9 +1209,12 @@ export default function CanaisPage() {
                               Sub-página
                             </button>
                           )}
-                          <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
-                          <button className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSub(canal.id, sub.id)}>
-                            {sub.enabled ? 'Despublicar' : 'Publicar'}
+                          <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openEdit(canal.id, sub)}>
+                            <span className="material-symbols-outlined">edit</span>
+                          </button>
+                          <button className={`btn-action btn-action--icon ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
+                            title={sub.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleSub(canal.id, sub.id)}>
+                            <span className="material-symbols-outlined">{sub.enabled ? 'visibility_off' : 'visibility'}</span>
                           </button>
                           <button className="btn-action btn-action--danger" type="button"
                             onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
@@ -1242,9 +1248,12 @@ export default function CanaisPage() {
                             </div>
                           </td>
                           <td className="table-actions ct-col-acts">
-                            <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
-                            <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
-                              {ss.enabled ? 'Despublicar' : 'Publicar'}
+                            <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>
+                              <span className="material-symbols-outlined">edit</span>
+                            </button>
+                            <button className={`btn-action btn-action--icon ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
+                              title={ss.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
+                              <span className="material-symbols-outlined">{ss.enabled ? 'visibility_off' : 'visibility'}</span>
                             </button>
                             <button className="btn-action btn-action--danger" type="button"
                               onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>

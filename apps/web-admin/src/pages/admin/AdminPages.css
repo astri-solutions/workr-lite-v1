@@ -507,6 +507,21 @@ td:has(.table-actions) {
 }
 .btn-action--publish:hover { background: var(--color-primary-50, #e8f5f7); }
 
+/* Icon-only variant — same color modifiers (--enter/--secondary/--danger/
+   etc.), just square instead of a pill with a text label. Always pair
+   with a `title` attribute since there's no visible label. */
+.btn-action--icon {
+  gap: 0;
+  padding: 5px;
+  width: 26px;
+  height: 26px;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+.btn-action--icon .material-symbols-outlined {
+  font-size: 16px !important;
+}
+
 /* Dark mode: same filled treatment as .btn-outline above. */
 :root[data-theme="dark"] .btn-action--activate {
   background: var(--color-success-600);

@@ -114,7 +114,7 @@
    the action buttons instead of shrinking around them. */
 .ct-table td.ct-col-acts,
 .ct-table th.ct-col-acts {
-  width: 420px;
+  width: 280px;
   white-space: normal;
 }
 .ct-col-acts .table-actions { flex-wrap: wrap; }
