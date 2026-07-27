@@ -68,25 +68,28 @@ Deno.serve(async (req) => {
     // A pg_cron job calls this on a schedule so the golden rule ("every fix
     // reaches every portal") holds without anyone remembering to click a
     // button — it authenticates with the service_role key itself (fetched
-    // from Vault, never hardcoded in the cron job's SQL). That JWT's own
-    // `role` claim already says `service_role`; decoding it is enough to
-    // trust the call, since only server-side code ever holds that key —
-    // no need to also run it through a GoTrue user lookup.
-    const jwtRole = (() => {
+    // from Vault, never hardcoded in the cron job's SQL). This project has
+    // migrated to Supabase's newer opaque `sb_secret_...` key format for its
+    // service_role key — NOT a three-part JWT — so a bearer token equal to
+    // that resolved key IS the trusted service-role credential; there is no
+    // `role` claim to decode out of it (attempting to, e.g. via
+    // `token.split('.')[1]`, silently produced `undefined` for this opaque
+    // format, and every cron-triggered call fell through to the user-JWT
+    // path and failed with 401). A legacy long-lived JWT-format service key
+    // (`role: "service_role"` claim, base64url-encoded) is still accepted as
+    // a fallback for projects that haven't migrated.
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, '');
+    const isServiceRoleCall = bearerToken === resolveServiceKey() || (() => {
       try {
-        const segment = authHeader.replace(/^Bearer\s+/i, '').split('.')[1];
-        // JWTs are base64url (`-`/`_`, no padding), not standard base64
-        // (`+`/`/`, padded) — atob() only understands the latter, so any
-        // payload containing `-`/`_` used to throw here and get silently
-        // swallowed below, making every cron-triggered service_role call
-        // fall through to the user-JWT path and fail with 401.
+        const segment = bearerToken.split('.')[1];
+        if (!segment) return false;
         const base64 = segment.replace(/-/g, '+').replace(/_/g, '/').padEnd(segment.length + ((4 - (segment.length % 4)) % 4), '=');
         const payload = JSON.parse(atob(base64));
-        return payload?.role as string | undefined;
-      } catch { return undefined; }
+        return payload?.role === 'service_role';
+      } catch { return false; }
     })();
 
-    if (jwtRole !== 'service_role') {
+    if (!isServiceRoleCall) {
       const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
       const { data: { user }, error: authError } = await anonClient.auth.getUser();
       if (authError || !user) {
