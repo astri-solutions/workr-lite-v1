@@ -243,10 +243,22 @@ const FILE_EXT_BY_CONTENT_TYPE: Record<string, string> = {
 // in that case we scrape the page for that real URL and fetch it instead of
 // giving up. Only falls back to storing the CVM link as-is if no such
 // pattern is found or the follow-up fetch also isn't a real file.
+// rad.cvm.gov.br's WAF returns a bare 403 to requests without a browser-like
+// User-Agent (confirmed: every single download attempt failed identically,
+// regardless of protocolo/categoria — not a scrape-heuristic problem, the
+// initial fetch itself never got past this). dados.cvm.gov.br (the IPE CSV
+// endpoint above) doesn't enforce this, which is why that fetch always
+// worked while every document download silently failed.
+const CVM_BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+};
+
 async function downloadCvmFile(url: string, depth = 0): Promise<{ bytes: Uint8Array; ext: string; contentType: string } | null> {
   if (!url || depth > 2) return null;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: CVM_BROWSER_HEADERS });
     if (!res.ok) return null;
     const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
     if (contentType && !contentType.startsWith('text/html')) {
