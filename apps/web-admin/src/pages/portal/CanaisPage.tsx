@@ -408,8 +408,28 @@ export default function CanaisPage() {
   }, [activePortalId]);
   const portalEmpresas = loadPortalEmpresas(activePortalId);
   const hasMultipleEmpresas = portalEmpresas.length > 1;
-  const portalLayout = (localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar') as 'sidebar' | 'tabmenu' | 'banner';
+  // localStorage is only a cache (seeded at portal creation or whenever
+  // someone opens Personalização → Layout in THIS browser) — a banner
+  // portal opened fresh (new device, cleared storage) has no key here, and
+  // the `?? 'sidebar'` fallback used to silently misclassify it as flat
+  // layout, hiding "Sub-página"/"Tipo de canal" for a portal that actually
+  // supports them. Hydrate from Supabase (authoritative) on mount, same
+  // pattern as LayoutPage.tsx.
+  const layoutKey = `portal_layout_${activePortalId ?? 'default'}`;
+  const [portalLayout, setPortalLayout] = useState<'sidebar' | 'tabmenu' | 'banner'>(
+    () => (localStorage.getItem(layoutKey) as 'sidebar' | 'tabmenu' | 'banner' | null) ?? 'sidebar',
+  );
   const isFlatLayout = portalLayout === 'sidebar' || portalLayout === 'tabmenu';
+
+  useEffect(() => {
+    if (!activePortalId) return;
+    fetchPortalConfig(activePortalId).then(data => {
+      if (data?.layout && typeof data.layout === 'string') {
+        localStorage.setItem(layoutKey, data.layout);
+        setPortalLayout(data.layout as 'sidebar' | 'tabmenu' | 'banner');
+      }
+    }).catch(console.error);
+  }, [activePortalId, layoutKey]);
 
   // Flat layouts (sidebar/tabmenu) default to direct pages; banner gets the full tree
   const defaultCanais = isFlatLayout ? DEFAULT_CANAIS_FLAT : DEFAULT_CANAIS;

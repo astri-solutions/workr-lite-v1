@@ -11,6 +11,7 @@ import { useActivePortalId } from '../../hooks/useActivePortalId';
 import { useCanaisDestinos, type Destino } from '../../hooks/useCanaisDestinos';
 import { deleteMateria as deleteMateriaFromStore, persistMateria, syncMateriaToSupabase, activatePageInSupabase, type StoredMateria } from '../../hooks/useMateriasStore';
 import { resolvePortalId } from '../../lib/portalDb';
+import { fetchPortalConfig } from '../../lib/portalConfigApi';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import '../admin/AdminPages.css';
 import './MateriasPage.css';
@@ -123,8 +124,26 @@ export default function MateriasPage() {
   const portalName = usePortalName();
   const activePortalId = useActivePortalId();
   const navigate = useNavigate();
-  const portalLayout = localStorage.getItem(`portal_layout_${activePortalId ?? 'default'}`) ?? 'sidebar';
+  // localStorage is only a cache seeded at portal creation (NovoPortalPage)
+  // or when someone opens Personalização → Layout in THIS browser — a
+  // banner portal opened fresh (new device, cleared storage, first login)
+  // has no key here, and the `?? 'sidebar'` fallback used to silently
+  // misclassify it as flat layout, skipping the format picker straight to
+  // Formulário. Hydrate from Supabase (authoritative) on mount, same as
+  // LayoutPage.tsx does, so the fallback only ever applies transiently.
+  const layoutKey = `portal_layout_${activePortalId ?? 'default'}`;
+  const [portalLayout, setPortalLayout] = useState(() => localStorage.getItem(layoutKey) ?? 'sidebar');
   const isFlatLayout = portalLayout === 'sidebar' || portalLayout === 'tabmenu';
+
+  useEffect(() => {
+    if (!activePortalId) return;
+    fetchPortalConfig(activePortalId).then(data => {
+      if (data?.layout && typeof data.layout === 'string') {
+        localStorage.setItem(layoutKey, data.layout);
+        setPortalLayout(data.layout);
+      }
+    }).catch(console.error);
+  }, [activePortalId, layoutKey]);
 
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [portalDbId, setPortalDbId] = useState<string | null>(null);
