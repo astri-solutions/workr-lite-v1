@@ -104,6 +104,18 @@ Session persisted in `localStorage` (key: `workr_auth`).
 - **Button variants**: `btn-primary` (filled teal), `btn-outline` (white + gray border, same size as primary), `btn-action btn-action--enter` (neutral), `btn-action btn-action--publish` (teal outline), `btn-action btn-action--danger` (red), `btn-action btn-action--secondary` (gray).
 - **Modal footer pattern**: Always use `<div className="modal-footer">` for modal action rows. Never create page-specific footer classes. Renders `space-between` on desktop; stacks full-width on mobile (≤480px). Defined in `AdminPages.css`.
 
+## Regra de ouro: correções e melhorias de sistema alcançam todo portal já criado
+
+Cada portal é um site independente (repo próprio, projeto Vercel próprio, conteúdo próprio) — mas o **sistema** (o código que faz o site funcionar: `scripts/`, `styles/`, `vite.config.js` em `cliente-workr-lite`, e todas as Supabase Edge Functions) é um só, compartilhado por todos. Uma correção de bug, uma melhoria de performance, uma função de edge corrigida — **nunca** deve valer só para o próximo portal criado ou só para quem clicar "Publicar" de novo. Todo portal já existente precisa acabar rodando a versão corrigida do sistema, sem que isso jamais reescreva `site.config.js` ou qualquer conteúdo (canais, matérias, cores, banners, documentos) daquele portal específico.
+
+Isso já vale hoje para duas camadas:
+- **Edge Functions** (`supabase/functions/*`): compartilhadas por definição — corrigir e reployar uma função já corrige o comportamento para todos os portais, imediatamente, sem tocar em nada por portal.
+- **Admin panel** (`apps/web-admin`): um só app, um só deploy Vercel — toda correção alcança todo usuário (admin ou cliente) no próximo carregamento da página.
+
+A camada que **não** se autopropaga sozinha é o template do site do cliente (`cliente-workr-lite`: `scripts/`, `styles/`, `vite.config.js`, os `home-*.html`). Hoje esses arquivos só chegam a um portal já provisionado quando alguém clica "Publicar" naquele portal específico (o self-heal do `publish-config` resincroniza esses arquivos a cada publish) — um portal cujo cliente nunca mais publica fica preso na versão antiga do template para sempre, mesmo depois de bugs corrigidos.
+
+**Sempre que uma correção/melhoria mexer em `cliente-workr-lite` (scripts/styles/vite.config.js), ela precisa alcançar todo portal já provisionado sem depender do cliente publicar.** Isso é feito via `sync-template-all` (Edge Function) — itera todos os portais com repo vinculado e empurra só os arquivos compartilhados (mesma lista que o self-heal do `publish-config` usa: tudo em `scripts/` e `styles/` mais `vite.config.js`, exceto `scripts/site.config.js`), um commit por portal, nunca tocando em `site.config.js` nem em conteúdo. Disparado pelo botão "Sincronizar sistema em todos os portais" em `PortaisPage` (super_admin).
+
 ## Architecture notes
 
 - **Empresas** = document repositories within a portal (e.g. Itaú BB, Itaú Negócios). Not separate sites — sub-entities sharing one portal. Users can be restricted to specific empresas.

@@ -7,6 +7,7 @@ import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import { fetchPortais, deletePortal, updateEmpresaStatus, updateEmpresaData, type Portal, type SiteTipo } from '../../lib/portalsApi';
+import { syncTemplateService, type SyncTemplateResponse } from '../../services/syncTemplate.service';
 
 const TIPO_BADGE: Record<SiteTipo, string> = {
   'RI': 'badge--info',
@@ -238,6 +239,22 @@ export default function PortaisPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [syncingTemplate, setSyncingTemplate] = useState(false);
+  const [syncTemplateResult, setSyncTemplateResult] = useState<SyncTemplateResponse | null>(null);
+  const [syncTemplateError, setSyncTemplateError] = useState<string | null>(null);
+
+  async function handleSyncTemplate() {
+    setSyncingTemplate(true);
+    setSyncTemplateError(null);
+    try {
+      const res = await syncTemplateService.syncAllPortals();
+      setSyncTemplateResult(res);
+    } catch (e) {
+      setSyncTemplateError(e instanceof Error ? e.message : 'Falha ao sincronizar sistema.');
+    } finally {
+      setSyncingTemplate(false);
+    }
+  }
 
   const loadPortais = () => {
     setLoading(true);
@@ -340,12 +357,58 @@ export default function PortaisPage() {
         title="Portais"
         description="Os sites de RI dos clientes. Cada portal é um tenant isolado."
         action={
-          <button className="btn-primary" type="button" onClick={() => navigate('/admin/portais/novo')}>
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
-            Novo Portal
-          </button>
+          <>
+            <button
+              className="btn-outline"
+              type="button"
+              onClick={handleSyncTemplate}
+              disabled={syncingTemplate}
+              title="Envia correções e melhorias do sistema (scripts/estilos) para todos os portais já criados, sem alterar conteúdo de nenhum deles"
+            >
+              {syncingTemplate
+                ? <><span className="cvm-spin" />Sincronizando…</>
+                : <>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>sync</span>
+                    Sincronizar sistema em todos os portais
+                  </>
+              }
+            </button>
+            <button className="btn-primary" type="button" onClick={() => navigate('/admin/portais/novo')}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+              Novo Portal
+            </button>
+          </>
         }
       />
+
+      {(syncTemplateResult || syncTemplateError) && (
+        <Modal
+          open
+          onClose={() => { setSyncTemplateResult(null); setSyncTemplateError(null); }}
+          title="Sincronização do sistema"
+          size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-primary" type="button" onClick={() => { setSyncTemplateResult(null); setSyncTemplateError(null); }}>Fechar</button>
+            </div>
+          }
+        >
+          {syncTemplateError && <p className="cvm-error-msg">{syncTemplateError}</p>}
+          {syncTemplateResult && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <p style={{ margin: 0 }}>
+                {syncTemplateResult.portalsChecked} portal(is) verificado(s) · {' '}
+                <strong>{syncTemplateResult.portalsUpdated} atualizado(s)</strong> · {' '}
+                {syncTemplateResult.portalsAlreadyCurrent} já estavam em dia
+                {syncTemplateResult.portalsFailed > 0 && <> · {syncTemplateResult.portalsFailed} falharam</>}
+              </p>
+              {syncTemplateResult.results.filter(r => r.status === 'error').map(r => (
+                <p key={r.repoName} className="cvm-error-msg" style={{ margin: 0 }}>{r.repoName}: {r.error}</p>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
 
       <div className="stat-cards">
         <div className="stat-card">

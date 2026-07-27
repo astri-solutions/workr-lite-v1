@@ -835,3 +835,28 @@ td:has(.table-actions) {
   pointer-events: none;
   user-select: none;
 }
+
+/* ─── Shared spinner + inline error message ──────────── */
+/* Moved here from AutoCvmPage.css — same visual used by any async admin
+   action button (Auto CVM sync, sistema sync em todos os portais, etc.),
+   never a page-specific class per the toolbar/button conventions above. */
+.cvm-spin {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-gray-300);
+  border-top-color: var(--color-primary-500);
+  border-radius: 50%;
+  animation: cvm-spin 0.7s linear infinite;
+}
+@keyframes cvm-spin { to { transform: rotate(360deg); } }
+
+.cvm-error-msg {
+  font-size: var(--text-sm);
+  color: #c0392b;
+  background: #fff5f5;
+  border: 1px solid #fcc;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+}

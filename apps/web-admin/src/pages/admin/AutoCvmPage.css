@@ -41,17 +41,7 @@
   cursor: not-allowed;
 }
 
-/* Spinner for sync state */
-.cvm-spin {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-gray-300);
-  border-top-color: var(--color-primary-500);
-  border-radius: 50%;
-  animation: cvm-spin 0.7s linear infinite;
-}
-@keyframes cvm-spin { to { transform: rotate(360deg); } }
+/* .cvm-spin now lives in AdminPages.css — shared with any async admin button */
 
 /* ─── Portal selector ────────────────────────────────── */
 .cvm-section {
@@ -706,15 +696,7 @@
   padding: var(--space-6) 0;
 }
 
-.cvm-error-msg {
-  font-size: var(--text-sm);
-  color: #c0392b;
-  background: #fff5f5;
-  border: 1px solid #fcc;
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  margin-bottom: var(--space-3);
-}
+/* .cvm-error-msg now lives in AdminPages.css — shared inline error style */
 
 .cvm-routing__orphan-banner {
   display: flex;
