@@ -74,7 +74,14 @@ Deno.serve(async (req) => {
     // no need to also run it through a GoTrue user lookup.
     const jwtRole = (() => {
       try {
-        const payload = JSON.parse(atob(authHeader.replace(/^Bearer\s+/i, '').split('.')[1]));
+        const segment = authHeader.replace(/^Bearer\s+/i, '').split('.')[1];
+        // JWTs are base64url (`-`/`_`, no padding), not standard base64
+        // (`+`/`/`, padded) — atob() only understands the latter, so any
+        // payload containing `-`/`_` used to throw here and get silently
+        // swallowed below, making every cron-triggered service_role call
+        // fall through to the user-JWT path and fail with 401.
+        const base64 = segment.replace(/-/g, '+').replace(/_/g, '/').padEnd(segment.length + ((4 - (segment.length % 4)) % 4), '=');
+        const payload = JSON.parse(atob(base64));
         return payload?.role as string | undefined;
       } catch { return undefined; }
     })();

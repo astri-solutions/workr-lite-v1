@@ -255,21 +255,58 @@ const CVM_BROWSER_HEADERS = {
   'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
 };
 
+// rad.cvm.gov.br's frmDownloadDocumento.aspx serves the real file bytes with
+// a mislabeled `Content-Type: text/html` header (confirmed live: a fetch
+// against a known protocol returned status 200, content-type text/html, but
+// a body starting with the literal bytes "%PDF-1.7" — a genuine PDF). Every
+// download landed on this exact header/body mismatch: downloadCvmFile
+// trusted the header, decoded the PDF bytes as HTML text, found no
+// frame/link to scrape inside the garbled result, and gave up — which is
+// why 100% of CVM documents across every portal were stuck as external
+// links despite the "browser User-Agent" WAF fix being correct on its own.
+// Sniffing the body's real magic bytes (independent of whatever
+// Content-Type the server claims) is the only way to catch this.
+function sniffFileExt(bytes: Uint8Array): string | null {
+  if (bytes.length < 4) return null;
+  // %PDF
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return 'pdf';
+  // PK\x03\x04 — zip container (docx/xlsx/pptx/zip all share this signature;
+  // content-type/URL extension is still the tiebreaker between them below).
+  if (bytes[0] === 0x50 && bytes[1] === 0x4B && (bytes[2] === 0x03 || bytes[2] === 0x05 || bytes[2] === 0x07)) return 'zip-like';
+  // D0 CF 11 E0 — legacy OLE2 container (old .doc/.xls/.ppt)
+  if (bytes[0] === 0xD0 && bytes[1] === 0xCF && bytes[2] === 0x11 && bytes[3] === 0xE0) return 'ole';
+  return null;
+}
+
 async function downloadCvmFile(url: string, depth = 0): Promise<{ bytes: Uint8Array; ext: string; contentType: string } | null> {
   if (!url || depth > 2) return null;
   try {
     const res = await fetch(url, { headers: CVM_BROWSER_HEADERS });
     if (!res.ok) return null;
     const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (bytes.length === 0) return null;
+
+    const sniffed = sniffFileExt(bytes);
+    if (sniffed === 'pdf') return { bytes, ext: 'pdf', contentType: 'application/pdf' };
+    if (sniffed === 'ole') {
+      const ext = (url.match(/\.([a-z0-9]{2,4})(?:\?.*)?$/i)?.[1]?.toLowerCase()) ?? 'doc';
+      return { bytes, ext, contentType: contentType || 'application/msword' };
+    }
+    if (sniffed === 'zip-like') {
+      const urlExt = url.match(/\.([a-z0-9]{2,4})(?:\?.*)?$/i)?.[1]?.toLowerCase();
+      const ext = urlExt ?? FILE_EXT_BY_CONTENT_TYPE[contentType] ?? 'zip';
+      return { bytes, ext, contentType: contentType || 'application/zip' };
+    }
+
     if (contentType && !contentType.startsWith('text/html')) {
       const ext = FILE_EXT_BY_CONTENT_TYPE[contentType] ?? (url.match(/\.([a-z0-9]{2,4})(?:\?.*)?$/i)?.[1]?.toLowerCase());
       if (!ext) return null;
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      if (bytes.length === 0) return null;
       return { bytes, ext, contentType };
     }
-    // HTML viewer page — look for the real document inside it.
-    const html = await res.text();
+    // No recognizable file signature and the server claims HTML — genuinely
+    // a viewer page this time. Look for the real document inside it.
+    const html = new TextDecoder().decode(bytes);
     const realUrl = extractRealDocUrl(html, url);
     if (!realUrl || realUrl === url) return null;
     return await downloadCvmFile(realUrl, depth + 1);
@@ -376,11 +413,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: ch });
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
     const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) {
@@ -388,6 +426,7 @@ Deno.serve(async (req) => {
     }
 
     const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean; reprocessRoutingOnly?: boolean };
+
     if (!portalId || !empresaId) {
       return new Response(JSON.stringify({ error: 'Informe portalId e empresaId' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
