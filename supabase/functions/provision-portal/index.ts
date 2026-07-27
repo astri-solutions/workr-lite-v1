@@ -624,44 +624,60 @@ Deno.serve(async (req) => {
     let   vercelError: string | undefined;
 
     // ── Step 5: create Vercel project (optional) ──────────────────────────
+    // Wrapped in its own try/catch: a Vercel API hiccup (network error,
+    // unexpected response shape, timeout) must degrade to `vercelError`
+    // like the "no token" case below, never 500 the whole provision call —
+    // the GitHub repo + portal DB row above already succeeded and must not
+    // be thrown away because of a problem in this optional last step.
     if (vercelToken) {
-      const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: repoName,
-          // Explicit, not left to auto-detection — a portal provisioned with
-          // framework: null could get auto-detected as "Other" instead of
-          // Vite, which silently falls back to no build step / wrong output
-          // directory on the next rebuild that doesn't reuse the cached
-          // deployment config (manual redeploy, settings change, etc.).
-          framework: 'vite',
-          buildCommand: 'npm run build',
-          outputDirectory: 'dist',
-          gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
-        }),
-      });
-
-      if (vercelRes.ok) {
-        const vd = await vercelRes.json() as { name: string; id: string };
-        vercelUrl = `https://${vd.name}.vercel.app`;
-        vercelCreated = true;
-
-        // Commits were pushed before the Vercel project existed, so Vercel never saw them.
-        // Trigger an explicit deployment from the main branch now.
-        await fetch('https://api.vercel.com/v13/deployments', {
+      try {
+        const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: vd.name,
-            project: vd.id,
-            target: 'production',
-            gitSource: { type: 'github', org: githubOrg, repo: repoName, ref: 'main' },
+            name: repoName,
+            // Explicit, not left to auto-detection — a portal provisioned with
+            // framework: null could get auto-detected as "Other" instead of
+            // Vite, which silently falls back to no build step / wrong output
+            // directory on the next rebuild that doesn't reuse the cached
+            // deployment config (manual redeploy, settings change, etc.).
+            framework: 'vite',
+            buildCommand: 'npm run build',
+            outputDirectory: 'dist',
+            gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
           }),
         });
-      } else {
-        const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
-        vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
+
+        if (vercelRes.ok) {
+          const vd = await vercelRes.json() as { name: string; id: string };
+          vercelUrl = `https://${vd.name}.vercel.app`;
+          vercelCreated = true;
+
+          // Commits were pushed before the Vercel project existed, so Vercel never saw them.
+          // Trigger an explicit deployment from the main branch now.
+          const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: vd.name,
+              project: vd.id,
+              target: 'production',
+              gitSource: { type: 'github', org: githubOrg, repo: repoName, ref: 'main' },
+            }),
+          });
+          if (!deployRes.ok) {
+            const dBody = await deployRes.json().catch(() => ({})) as { error?: { message?: string } };
+            // Project exists (vercelCreated stays true) — only the initial
+            // deploy trigger failed; Vercel's own GitHub integration will
+            // still deploy on the next push.
+            vercelError = `Projeto criado, mas deploy inicial falhou: ${dBody?.error?.message ?? `HTTP ${deployRes.status}`}`;
+          }
+        } else {
+          const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
+          vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
+        }
+      } catch (e) {
+        vercelError = `Falha ao criar projeto Vercel: ${String((e as Error)?.message ?? e)}`;
       }
     } else {
       vercelError = 'VERCEL_TOKEN não configurado';
