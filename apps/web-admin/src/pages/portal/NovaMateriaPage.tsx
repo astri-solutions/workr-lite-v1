@@ -403,6 +403,20 @@ function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { 
     if (url) exec('createLink', url);
   }
 
+  // Pasting into a contentEditable, by default, inserts the clipboard's
+  // text/html — carrying over the source's own fonts/colors/inline styles
+  // (Word, Google Docs, another site). Those inline styles then win over
+  // this block's own Fundo/Texto colors and the portal's fonts, so the
+  // matéria text stops looking like it belongs to the rest of the page.
+  // Force plain text instead: the block's own formatting (toolbar above,
+  // Fundo/Texto swatches) is the only styling that should ever apply here.
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+    handleInput();
+  }
+
   return (
     <div className="rte">
       {/* Row 1 */}
@@ -505,6 +519,7 @@ function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { 
           onInput={handleInput}
           onFocus={() => setEmpty(false)}
           onBlur={handleInput}
+          onPaste={handlePaste}
         />
       </div>
     </div>

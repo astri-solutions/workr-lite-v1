@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import './ColorPickerPopover.css';
 
 function hexToHsv(hex: string): [number, number, number] {
@@ -58,25 +58,38 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
   const hsvRef = useRef(hsv);
   hsvRef.current = hsv;
 
-  // Largura/altura reais do popover (ver ColorPickerPopover.css) — usadas para
-  // manter o painel dentro da viewport. Alinhar direto em rect.left/rect.bottom
-  // funcionava só nos usos em coluna larga: numa amostra encostada na borda
-  // direita (cabeçalho de seção da matéria) o painel saía da tela, e perto do
-  // rodapé abria para baixo sem espaço.
+  // Fallback usado só na primeira chamada (antes do popover existir no DOM
+  // para medir de verdade) — precisava ficar em sincronia manual com o CSS
+  // e desviava sempre que .cp-popover mudava de padding/gap/conteúdo. Assim
+  // que o popover monta, `useLayoutEffect` abaixo re-mede o retângulo real
+  // via popoverRef e recalcula, então esses números só importam por um
+  // frame (evita o painel "piscar" na posição errada antes de corrigir).
   const CP_W = 240;
   const CP_H = 260;
   const GAP = 8;
 
-  const calcPosition = useCallback(() => {
+  const calcPosition = useCallback((measured?: { w: number; h: number }) => {
     if (!swatchRef.current) return;
+    const w = measured?.w ?? CP_W;
+    const h = measured?.h ?? CP_H;
     const rect = swatchRef.current.getBoundingClientRect();
-    const left = Math.max(GAP, Math.min(rect.left, window.innerWidth - CP_W - GAP));
+    const left = Math.max(GAP, Math.min(rect.left, window.innerWidth - w - GAP));
     // Abre para baixo; se não couber, vira para cima da amostra.
-    const top = rect.bottom + GAP + CP_H > window.innerHeight && rect.top - GAP - CP_H > 0
-      ? rect.top - GAP - CP_H
-      : Math.min(rect.bottom + GAP, window.innerHeight - CP_H - GAP);
+    const top = rect.bottom + GAP + h > window.innerHeight && rect.top - GAP - h > 0
+      ? rect.top - GAP - h
+      : Math.min(rect.bottom + GAP, window.innerHeight - h - GAP);
     setPopoverPos({ top: Math.max(GAP, top), left });
   }, []);
+
+  // Re-mede contra o tamanho REAL do popover assim que ele existe no DOM —
+  // corrige qualquer desvio entre CP_W/CP_H e o CSS de fato, permanentemente,
+  // em vez de depender de manter duas fontes de verdade sincronizadas.
+  useLayoutEffect(() => {
+    if (!open || !popoverRef.current) return;
+    const { width, height } = popoverRef.current.getBoundingClientRect();
+    calcPosition({ w: width, h: height });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // `position: fixed` congela o painel na tela: sem isto ele descola da
   // amostra assim que a coluna do editor rola.
