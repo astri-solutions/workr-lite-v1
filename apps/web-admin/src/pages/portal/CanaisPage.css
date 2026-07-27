@@ -86,8 +86,48 @@
 .ct-canal-card.ct-row--moved-up   { animation: canal-moved-up   350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 .ct-canal-card.ct-row--moved-down { animation: canal-moved-down 350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 
-/* ── Árvore de canais table (Nome/Status/Tipo/Nível/Posição) ──── */
-.ct-table-wrapper { margin-top: var(--space-4); }
+/* ── Árvore de canais: header fixo + um card por canal ──────────── */
+.ct-header-table {
+  margin-bottom: var(--space-3);
+}
+.ct-header-table tbody { display: none; }
+
+/* Fixed-width columns so the standalone header table and every
+   per-canal table (each its own independent <table>, full width)
+   line up pixel-for-pixel — Nome/Ações stay flexible, everything
+   else gets a fixed width so it renders at the same offset in all
+   of them regardless of that table's own content. */
+.ct-col-status { width: 130px; }
+.ct-col-tipo   { width: 170px; }
+.ct-col-nivel  { width: 130px; }
+.ct-col-pos    { width: 90px; }
+.ct-col-acts   { width: 1px; white-space: nowrap; }
+
+.ct-canal-group {
+  margin-bottom: var(--space-4);
+}
+.ct-canal-group:last-child { margin-bottom: 0; }
+
+.ct-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  vertical-align: middle;
+}
+.ct-collapse-btn:hover { background: var(--color-gray-100); color: var(--color-gray-800); }
+.ct-collapse-btn .material-symbols-outlined {
+  font-size: 18px;
+  transition: transform 0.15s;
+}
+.ct-collapse-btn__icon--closed { transform: rotate(-90deg); }
 
 .ct-tree-name { position: relative; }
 .ct-tree-name[data-level="1"] { padding-left: calc(var(--space-4) + 20px); }
@@ -105,8 +145,8 @@
 
 .ct-tr--off td { opacity: 0.5; }
 
-.ct-tr--moved-up,
-.ct-tr--moved-down { animation: canal-moved-up 350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
+.ct-canal-group.ct-row--moved-up,
+.ct-canal-group.ct-row--moved-down { animation: canal-moved-up 350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 
 .ct-tr--empty td { color: var(--color-gray-400); font-size: var(--text-sm); padding: var(--space-3) var(--space-4); }
 
