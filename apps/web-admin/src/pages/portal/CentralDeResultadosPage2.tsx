@@ -606,6 +606,14 @@ export default function CentralDeResultadosPage2() {
 
   // ── Quarter full-page editor ───────────────────────────────
   const [editingQuarterId, setEditingQuarterId] = useState<string | null>(null);
+  // Staged edits for the currently-open período — every change (upload,
+  // rename, delete, reorder, per-file publish toggle) used to call
+  // updateQuarterDocs() directly from onChange/onDropFiles, persisting to
+  // Supabase instantly. "Cancelar"/"Salvar" both looked like they mattered,
+  // but the file was already saved the moment it was dropped. Now the
+  // editor only touches this local array; only "Salvar e fechar"/"Salvar
+  // trimestre" actually call updateQuarterDocs.
+  const [stagedDocs, setStagedDocs] = useState<FileEntry[]>([]);
   const [saveConfirmId, setSaveConfirmId] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
@@ -792,9 +800,17 @@ export default function CentralDeResultadosPage2() {
   }
 
   // ── Full-page quarter editor ─────────────────────────────────────────────
+  // Re-seeds stagedDocs from the last-persisted state every time a DIFFERENT
+  // período is opened for editing — deliberately not depending on `docs`
+  // itself, so it doesn't reset mid-edit if some unrelated state update
+  // touches the `docs` map while the editor is open.
+  useEffect(() => {
+    if (editingQuarterId) setStagedDocs(docs[editingQuarterId] ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingQuarterId]);
+
   const editorQuarter = editingQuarterId ? quarters.find(q => q.id === editingQuarterId) : null;
-  const editorDocs = editingQuarterId ? (docs[editingQuarterId] ?? []) : [];
-  const editorPublished = editorDocs.filter(d => d.status === 'published').length;
+  const editorPublished = stagedDocs.filter(d => d.status === 'published').length;
 
   // ── Main return (always) ──────────────────────────────────────────────────
   return (
@@ -815,7 +831,7 @@ export default function CentralDeResultadosPage2() {
                 onClick={() => {
                   const p = parsePeriod(editorQuarter?.period ?? '');
                   setWEntity(editorQuarter?.entityId ?? activeEntity);
-                  setWEntries(editorDocs);
+                  setWEntries(stagedDocs);
                   setPendingId(editingQuarterId);
                   setWLocale(PORTAL_CONFIG.languages[0]);
                   setWPeriodType(p.quarter ? 'trimestral' : 'anual');
@@ -828,7 +844,7 @@ export default function CentralDeResultadosPage2() {
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                 Adicionar resultado
               </button>
-              <button type="button" className="btn-primary" onClick={() => handleSaveQuarter(editingQuarterId)}>
+              <button type="button" className="btn-primary" onClick={async () => { if (!editingQuarterId) return; await updateQuarterDocs(editingQuarterId, stagedDocs); handleSaveQuarter(editingQuarterId); }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
                 Salvar e fechar
               </button>
@@ -839,7 +855,7 @@ export default function CentralDeResultadosPage2() {
         <div className="cdr2-fullpage-meta">
           <span className="cdr2-meta-pill">
             <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>folder</span>
-            {editorDocs.length} arquivo{editorDocs.length !== 1 ? 's' : ''}
+            {stagedDocs.length} arquivo{stagedDocs.length !== 1 ? 's' : ''}
           </span>
           <span className="cdr2-meta-pill cdr2-meta-pill--pub">
             <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>visibility</span>
@@ -856,14 +872,14 @@ export default function CentralDeResultadosPage2() {
         </div>
 
         <FileListEditor
-          entries={editorDocs}
-          onChange={entries => updateQuarterDocs(editingQuarterId, entries)}
-          onDropFiles={files => updateQuarterDocs(editingQuarterId, [...editorDocs, ...makeEntries(files, userName)])}
+          entries={stagedDocs}
+          onChange={entries => setStagedDocs(entries)}
+          onDropFiles={files => setStagedDocs(prev => [...prev, ...makeEntries(files, userName)])}
         />
 
         <div className="cdr2-fullpage-footer">
           <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>Cancelar</button>
-          <button type="button" className="btn-primary" onClick={() => handleSaveQuarter(editingQuarterId)}>Salvar trimestre</button>
+          <button type="button" className="btn-primary" onClick={async () => { if (!editingQuarterId) return; await updateQuarterDocs(editingQuarterId, stagedDocs); handleSaveQuarter(editingQuarterId); }}>Salvar trimestre</button>
         </div>
       </>) : (<>
       <StickyPageHeader

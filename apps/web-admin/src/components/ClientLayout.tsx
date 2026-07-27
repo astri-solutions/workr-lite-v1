@@ -267,11 +267,15 @@ function ClientLayoutInner() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const hydrating = useRef(false);
 
-  // Hydrate localStorage from Supabase portal_config when a client_user logs in.
-  // This ensures portal admins always see the config that was published by super admin,
-  // even on a fresh device with empty localStorage.
+  // Hydrate localStorage from Supabase portal_config whenever this browser/
+  // session doesn't have it cached yet for the active portal — client_user
+  // AND super_admin alike (a super_admin managing a client's CMS via these
+  // same /portal/* routes hit the identical stale-cache problem: idiomas
+  // silently falling back to pt-BR-only — hiding LangTabs everywhere — or
+  // layout defaulting to 'sidebar' on a banner portal, both because nothing
+  // had ever populated this browser's localStorage for that portal yet).
   useEffect(() => {
-    if (!activePortalId || isSuperAdmin) return;
+    if (!activePortalId) return;
     const hydrationKey = `portal_hydrated_${activePortalId}`;
     if (sessionStorage.getItem(hydrationKey) || hydrating.current) return;
     hydrating.current = true;
