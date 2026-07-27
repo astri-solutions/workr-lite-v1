@@ -363,7 +363,7 @@ export default function PortaisPage() {
               type="button"
               onClick={handleSyncTemplate}
               disabled={syncingTemplate}
-              title="Envia correções e melhorias do sistema (scripts/estilos) para todos os portais já criados, sem alterar conteúdo de nenhum deles"
+              title="O sistema já se sincroniza sozinho a cada 15 min — use este botão só para forçar uma rodada imediata agora, sem alterar conteúdo de nenhum portal"
             >
               {syncingTemplate
                 ? <><span className="cvm-spin" />Sincronizando…</>
