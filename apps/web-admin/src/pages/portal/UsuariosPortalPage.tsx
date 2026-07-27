@@ -259,13 +259,16 @@ export default function UsuariosPortalPage() {
 
   async function handleSave() {
     if (!form.nome.trim() || !form.email.trim() || !empresaSelectionOk) return;
-    const empIds = form.allEmpresas ? [] : form.empresaIds;
+    // null is the "no restriction" convention everywhere this is read
+    // (portalUsersApi.ts, RLS) — sending [] here made "todas as empresas"
+    // indistinguishable from "explicitly picked zero empresas" server-side.
+    const empIds = form.allEmpresas ? null : form.empresaIds;
 
     // Edit existing user
     if (editing) {
       const role = form.role as PortalUserRole;
       setUsers(prev => prev.map(u => u.id === editing.id
-        ? { ...u, role: form.role, empresaIds: empIds } : u));
+        ? { ...u, role: form.role, empresaIds: empIds ?? [] } : u));
       setActionError(null);
       updatePortalUserRole(editing.id, role, empIds).catch(e => {
         setActionError(`Não foi possível salvar as alterações de ${editing.nome}: ${e instanceof Error ? e.message : String(e)}`);

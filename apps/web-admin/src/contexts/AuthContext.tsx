@@ -7,6 +7,8 @@ export interface Portal {
   id: string;
   nome: string;
   role?: 'admin' | 'editor' | 'viewer';
+  /** empresa ids this user is restricted to within this portal — null/undefined = every empresa. */
+  empresaIds?: string[] | null;
 }
 
 interface User {
@@ -23,6 +25,8 @@ interface AuthContextValue {
   loading: boolean;
   /** Role do usuário no portal ativo. null se super_admin ou sem portal ativo. */
   portalRole: 'admin' | 'editor' | 'viewer' | null;
+  /** Empresas que o usuário pode ver no portal ativo. null = todas (sem restrição). */
+  allowedEmpresaIds: string[] | null;
   login: (email: string, password: string) => Promise<{ ok: boolean; reason?: 'banned' | 'invalid' }>;
   logout: () => Promise<void>;
   switchPortal: (portalId: string) => void;
@@ -62,7 +66,7 @@ async function loadClientPortais(sbUserId: string): Promise<Portal[]> {
   try {
     const { data, error } = await supabase
       .from('portal_users')
-      .select('role, portals!inner(portal_key, cliente, vercel_url, subdomain, github_repo, vercel_created)')
+      .select('role, empresas, portals!inner(portal_key, cliente, vercel_url, subdomain, github_repo, vercel_created)')
       .eq('user_id', sbUserId);
     if (error || !data) return [];
     type PortalRow = {
@@ -70,11 +74,11 @@ async function loadClientPortais(sbUserId: string): Promise<Portal[]> {
       vercel_url?: string; subdomain?: string;
       github_repo?: string; vercel_created?: boolean;
     };
-    type Row = { role: string; portals: unknown };
+    type Row = { role: string; empresas: string[] | null; portals: unknown };
 
     const portais: Portal[] = (data as Row[]).map(row => {
       const p = row.portals as PortalRow;
-      return { id: p.portal_key, nome: p.cliente, role: row.role as 'admin' | 'editor' | 'viewer' };
+      return { id: p.portal_key, nome: p.cliente, role: row.role as 'admin' | 'editor' | 'viewer', empresaIds: row.empresas ?? null };
     });
 
     // Populate workr_portais so "Ver portal" link resolves correctly
@@ -229,9 +233,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Role do usuário no portal ativo (null para super_admin ou sem portal)
   const activePortal = user?.portais?.find(p => p.id === user.activePortalId);
   const portalRole: 'admin' | 'editor' | 'viewer' | null = activePortal?.role ?? null;
+  const allowedEmpresaIds: string[] | null = activePortal?.empresaIds ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, loading, portalRole, login, logout, switchPortal, enterPortal }}>
+    <AuthContext.Provider value={{ user, loading, portalRole, allowedEmpresaIds, login, logout, switchPortal, enterPortal }}>
       {children}
     </AuthContext.Provider>
   );

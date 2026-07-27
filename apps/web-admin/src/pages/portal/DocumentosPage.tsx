@@ -179,7 +179,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
 
 export default function DocumentosPage() {
   const portalName = usePortalName();
-  const { user } = useAuth();
+  const { user, allowedEmpresaIds } = useAuth();
   const [portalDbId, setPortalDbId] = useState<string | null>(null);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [activeEntity, setActiveEntity] = useState('');
@@ -191,7 +191,13 @@ export default function DocumentosPage() {
     try {
       const raw = localStorage.getItem(`portal_empresas_${portalKey}`);
       const items: Array<{ id: string; nome?: string; name?: string; tipo?: string }> = raw ? JSON.parse(raw) : [];
-      const loaded: Entity[] = items.map(e => ({
+      // A user restricted to specific empresas (portal_users.empresas) must
+      // never even see the others in this selector — RLS blocks the actual
+      // data underneath, but leaving every empresa selectable here just
+      // shows an editor a picker that quietly does nothing for most options.
+      const restricted = items
+        .filter(e => allowedEmpresaIds === null || allowedEmpresaIds.includes(e.id));
+      const loaded: Entity[] = restricted.map(e => ({
         id: e.id,
         name: e.nome ?? e.name ?? e.id,
         tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
@@ -199,7 +205,7 @@ export default function DocumentosPage() {
       setEntities(loaded);
       if (loaded.length > 0) setActiveEntity(loaded[0].id);
     } catch { setEntities([]); }
-  }, [user?.activePortalId]);
+  }, [user?.activePortalId, allowedEmpresaIds]);
 
   const [search, setSearch] = useState('');
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });

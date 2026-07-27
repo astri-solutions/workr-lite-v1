@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendUserInvite } from '../_shared/postmark.ts';
+import { sendUserInvite, sendPortalAccessGranted } from '../_shared/postmark.ts';
 
 // Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
 // legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
@@ -223,7 +223,12 @@ Deno.serve(async (req) => {
       userId = existingUser.id;
       const existingIds: string[] = (existingUser.app_metadata?.portalIds as string[] | undefined) ?? [];
       const newId = dbUuid ?? portalId;
-      const merged = newId && !existingIds.includes(newId) ? [...existingIds, newId] : existingIds;
+      // Whether this call actually grants access to a portal this email
+      // didn't already have — an admin merely editing an existing member's
+      // role/empresas hits this same branch and must NOT re-fire the "you
+      // were granted access" alert every time.
+      const isNewPortalForUser = !!newId && !existingIds.includes(newId);
+      const merged = isNewPortalForUser ? [...existingIds, newId!] : existingIds;
       const { error: updErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(existingUser.id, {
         app_metadata: { role: 'client_user', portalIds: merged },
       }));
@@ -239,31 +244,27 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (resend) {
-        // Re-send invite email via a new magic link (recovery link acts as login)
-        const inviteRedirectTo2 = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
-        const { data: linkData2, error: linkError2 } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
-          type: 'recovery',
-          email,
-          options: { redirectTo: inviteRedirectTo2 },
-        }));
-        if (!linkError2 && linkData2?.properties?.action_link) {
-          let portalNome2: string | undefined;
-          if (dbUuid) {
-            const { data: pRow2 } = await adminClient.from('portals').select('cliente').eq('id', dbUuid).maybeSingle();
-            portalNome2 = pRow2?.cliente as string | undefined;
-          }
-          try {
-            await sendUserInvite({ email, nome: nome ?? undefined, portalNome: portalNome2, inviteLink: linkData2.properties.action_link });
-          } catch (emailErr) {
-            return new Response(JSON.stringify({ id: userId, alreadyExists: true, emailError: String(emailErr) }), {
-              status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
-            });
-          }
-          return new Response(JSON.stringify({ id: userId, alreadyExists: true, emailSent: true }), {
+      // An email that already has an account never needs an activation
+      // link again — there's no signup step left. Whenever this grants
+      // access to a portal the user didn't already have (or an admin
+      // explicitly asks to resend), send the plain "you now have access"
+      // alert instead of an invite/recovery link.
+      if (isNewPortalForUser || resend) {
+        let portalNome2: string | undefined;
+        if (dbUuid) {
+          const { data: pRow2 } = await adminClient.from('portals').select('cliente').eq('id', dbUuid).maybeSingle();
+          portalNome2 = pRow2?.cliente as string | undefined;
+        }
+        try {
+          await sendPortalAccessGranted({ email, nome: nome ?? undefined, portalNome: portalNome2, role: role ?? 'editor' });
+        } catch (emailErr) {
+          return new Response(JSON.stringify({ id: userId, alreadyExists: true, emailError: String(emailErr) }), {
             status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
           });
         }
+        return new Response(JSON.stringify({ id: userId, alreadyExists: true, emailSent: true }), {
+          status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
       }
 
       return new Response(JSON.stringify({ id: userId, alreadyExists: true }), {

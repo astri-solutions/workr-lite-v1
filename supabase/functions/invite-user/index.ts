@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendUserInvite } from '../_shared/postmark.ts';
+import { sendUserInvite, sendPortalAccessGranted } from '../_shared/postmark.ts';
 
 // Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
 // legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
@@ -56,6 +56,21 @@ async function adminCall<T>(
     if (attempt < 2) await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
   }
   return last!;
+}
+
+// A failed listUsers() must never be treated the same as "no matching user
+// found" — see invite-portal-user's identical helper for the incident that
+// motivated this. Paginated so accounts beyond the first 1000 aren't invisible.
+async function listAllUsers(supabaseUrl: string) {
+  const perPage = 1000;
+  const all: { id: string; email?: string; app_metadata?: Record<string, unknown> }[] = [];
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await adminCall(supabaseUrl, c => c.auth.admin.listUsers({ page, perPage }));
+    if (error) return { users: null, error };
+    all.push(...data.users);
+    if (data.users.length < perPage) break;
+  }
+  return { users: all, error: null };
 }
 
 const corsHeaders = {
@@ -124,6 +139,94 @@ Deno.serve(async (req) => {
     const resolvedRedirectTo = redirectTo
       ?? (Deno.env.get('SITE_URL') ? `${Deno.env.get('SITE_URL')}/definir-senha` : 'https://workr-lite-v1.vercel.app/definir-senha');
 
+    const resolvedRole = inviteRole === 'super_admin' ? 'super_admin' : 'client_user';
+
+    // Resolve every portaisConfig entry to its real portal UUID up front —
+    // shared by both the existing-user and new-user paths below.
+    async function resolvePortalUuid(rawId: string): Promise<string | null> {
+      if (/^[0-9a-f-]{36}$/.test(rawId)) return rawId;
+      const { data: row } = await adminClient.from('portals').select('id').eq('portal_key', rawId).maybeSingle();
+      return row?.id ?? null;
+    }
+
+    async function linkPortalUsers(userId: string): Promise<{ resolvedUuids: string[]; portalLinkErrors: string[] }> {
+      const resolvedUuids: string[] = [];
+      const portalLinkErrors: string[] = [];
+      if (resolvedRole === 'client_user' && portaisConfig?.length) {
+        for (const cfg of portaisConfig) {
+          try {
+            const dbUuid = await resolvePortalUuid(cfg.portalId);
+            if (!dbUuid) continue;
+            resolvedUuids.push(dbUuid);
+            // Conflict target is (portal_id, email), not (portal_id, user_id) —
+            // email is the durable identity; this turns a would-be duplicate
+            // row for an already-invited email into an update instead.
+            const { error: linkErr } = await adminClient.from('portal_users').upsert({
+              portal_id: dbUuid,
+              user_id: userId,
+              email,
+              nome: nome ?? '',
+              role: cfg.role,
+              empresas: cfg.empresas.length > 0 ? cfg.empresas : null,
+            }, { onConflict: 'portal_id,email' });
+            if (linkErr) portalLinkErrors.push(`${cfg.portalId}: ${linkErr.message}`);
+          } catch (e) { portalLinkErrors.push(`${cfg.portalId}: ${String(e)}`); }
+        }
+      }
+      return { resolvedUuids, portalLinkErrors };
+    }
+
+    // An email that already has an account (invited to any portal before,
+    // or created directly in auth.users) never goes through the invite-link
+    // flow again — there's no signup step left to complete, and generating
+    // a fresh "invite" link for an existing user is either rejected by
+    // GoTrue or reads as a confusing password-reset. Instead: link the new
+    // portal(s) and send a plain "you now have access" alert.
+    const { users: existingUsers, error: listErr } = await listAllUsers(supabaseUrl);
+    if (listErr || !existingUsers) {
+      return new Response(JSON.stringify({ error: `Falha ao verificar usuários existentes: ${listErr?.message ?? 'erro desconhecido'}` }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const existingUser = existingUsers.find(u => u.email === email);
+
+    if (existingUser) {
+      const userId = existingUser.id;
+      const { resolvedUuids, portalLinkErrors } = await linkPortalUsers(userId);
+      const existingIds: string[] = (existingUser.app_metadata?.portalIds as string[] | undefined) ?? [];
+      const newlyAdded = resolvedUuids.filter(id => !existingIds.includes(id));
+      const mergedIds = [...new Set([...existingIds, ...resolvedUuids])];
+
+      const { error: metaErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId, {
+        app_metadata: { role: resolvedRole, portalIds: mergedIds },
+      }));
+      if (metaErr) {
+        return new Response(JSON.stringify({ error: `Falha ao atualizar metadados do usuário: ${metaErr.message}` }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (newlyAdded.length > 0) {
+        let portalNome: string | undefined;
+        if (newlyAdded.length === 1) {
+          const { data: pRow } = await adminClient.from('portals').select('cliente').eq('id', newlyAdded[0]).maybeSingle();
+          portalNome = pRow?.cliente as string | undefined;
+        }
+        const roleForEmail = portaisConfig?.find(c => c.portalId === newlyAdded[0])?.role;
+        try {
+          await sendPortalAccessGranted({ email, nome: nome ?? undefined, portalNome, role: roleForEmail });
+        } catch (emailErr) {
+          return new Response(JSON.stringify({ id: userId, alreadyExists: true, portalLinkErrors: portalLinkErrors.length ? portalLinkErrors : undefined, emailError: String(emailErr) }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({ id: userId, alreadyExists: true, portalLinkErrors: portalLinkErrors.length ? portalLinkErrors : undefined }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Generate the invite link ourselves so we can send it via Postmark —
     // Supabase's built-in inviteUserByEmail relies on the project's own SMTP
     // config (rate-limited / often unconfigured) and ignores POSTMARK_FROM.
@@ -139,42 +242,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const resolvedRole = inviteRole === 'super_admin' ? 'super_admin' : 'client_user';
     const userId = data.user.id;
-
-    // Resolve every portalId to its real UUID FIRST — portaisConfig may carry
-    // a portal_key (localStorage id), but both portal_users.portal_id and the
-    // RLS policy on portal_users compare against the UUID in app_metadata.
-    const resolvedUuids: string[] = [];
-    const portalLinkErrors: string[] = [];
-    if (resolvedRole === 'client_user' && portaisConfig?.length) {
-      for (const cfg of portaisConfig) {
-        try {
-          let dbUuid: string | null = null;
-          if (/^[0-9a-f-]{36}$/.test(cfg.portalId)) {
-            dbUuid = cfg.portalId;
-          } else {
-            const { data: row } = await adminClient
-              .from('portals').select('id').eq('portal_key', cfg.portalId).maybeSingle();
-            dbUuid = row?.id ?? null;
-          }
-          if (!dbUuid) continue;
-          resolvedUuids.push(dbUuid);
-          // Conflict target is (portal_id, email), not (portal_id, user_id) —
-          // email is the durable identity; this turns a would-be duplicate
-          // row for an already-invited email into an update instead.
-          const { error: linkErr } = await adminClient.from('portal_users').upsert({
-            portal_id: dbUuid,
-            user_id: userId,
-            email,
-            nome: nome ?? '',
-            role: cfg.role,
-            empresas: cfg.empresas.length > 0 ? cfg.empresas : null,
-          }, { onConflict: 'portal_id,email' });
-          if (linkErr) portalLinkErrors.push(`${cfg.portalId}: ${linkErr.message}`);
-        } catch (e) { portalLinkErrors.push(`${cfg.portalId}: ${String(e)}`); }
-      }
-    }
+    const { resolvedUuids, portalLinkErrors } = await linkPortalUsers(userId);
 
     // app_metadata key MUST be "portalIds" (not "portais") and hold the real
     // UUIDs — the portal_users RLS policy reads auth.jwt() -> app_metadata ->

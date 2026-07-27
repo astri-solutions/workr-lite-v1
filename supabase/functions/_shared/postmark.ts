@@ -94,6 +94,63 @@ export async function sendUserInvite(opts: {
 }
 
 /**
+ * Notify an email that ALREADY has an account that it was just granted
+ * access to another portal — no activation link, since there's no signup
+ * step left to complete. Sending an activation/magic link to someone who
+ * already has a working password is confusing (it reads as "reset your
+ * password?") and unnecessary; this is a plain heads-up: log in as usual.
+ */
+export async function sendPortalAccessGranted(opts: {
+  email: string;
+  nome?: string;
+  portalNome?: string;
+  role?: string;
+  loginUrl?: string;
+}): Promise<void> {
+  const displayName = opts.nome || opts.email;
+  const portal = opts.portalNome ? ` ao portal <strong>${opts.portalNome}</strong>` : ' a um novo portal';
+  const roleLabel: Record<string, string> = { admin: 'administrador', editor: 'editor', viewer: 'visualizador' };
+  const roleText = opts.role && roleLabel[opts.role] ? ` como <strong>${roleLabel[opts.role]}</strong>` : '';
+  const login = opts.loginUrl ?? 'https://workr-lite-v1.vercel.app/login';
+
+  await sendPostmark({
+    From: from(),
+    To: opts.email,
+    Subject: `Novo acesso liberado${opts.portalNome ? ` — ${opts.portalNome}` : ''}`,
+    MessageStream: 'outbound',
+    HtmlBody: `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Inter,Arial,sans-serif">
+  <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+    <div style="background:#0B5B68;padding:28px 32px">
+      <span style="color:#00D865;font-size:20px;font-weight:700;letter-spacing:-0.5px">Workr Lite</span>
+    </div>
+    <div style="padding:32px">
+      <p style="margin:0 0 16px;font-size:15px;color:#141414">Olá, <strong>${displayName}</strong></p>
+      <p style="margin:0 0 24px;font-size:15px;color:#414141;line-height:1.6">
+        Você foi adicionado${portal}${roleText}. Use sua conta existente (mesmo e-mail e senha de sempre) para acessar — não é preciso criar um novo cadastro.
+      </p>
+      <a href="${login}"
+         style="display:inline-block;padding:13px 28px;background:#0B5B68;color:#fff;text-decoration:none;border-radius:7px;font-size:14px;font-weight:600">
+        Acessar o painel
+      </a>
+      <p style="margin:24px 0 0;font-size:12px;color:#949494;line-height:1.5">
+        Se você não esperava este e-mail, entre em contato com quem administra o portal.
+      </p>
+    </div>
+    <div style="padding:16px 32px;background:#f9f9f9;border-top:1px solid #eee">
+      <p style="margin:0;font-size:11px;color:#B8B8B8">Workr Lite · Astri Solutions · astri.solutions</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    TextBody: `Olá ${displayName},\n\nVocê foi adicionado${opts.portalNome ? ` ao portal ${opts.portalNome}` : ' a um novo portal'}${opts.role && roleLabel[opts.role] ? ` como ${roleLabel[opts.role]}` : ''}.\n\nUse sua conta existente para acessar: ${login}\n\nSe você não esperava este e-mail, entre em contato com quem administra o portal.\n\n— Workr Lite / Astri Solutions`,
+  });
+}
+
+/**
  * Send a lead alert ("Fale com RI") to the portal's contact emails.
  */
 export async function sendLeadAlert(opts: {

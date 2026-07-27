@@ -18,16 +18,23 @@ const RESULTADOS_BUCKET = 'portal-documents';
 
 interface Entity { id: string; name: string; tipo: 'EMPRESA' | 'FUNDO'; }
 
-function loadEntities(portalId?: string): Entity[] {
+// allowedEmpresaIds: null = no restriction (portal_users.empresas convention).
+// A restricted editor must never even see the other empresas in this
+// selector — RLS blocks their actual data underneath, but leaving every
+// empresa selectable here shows a picker where most options quietly do
+// nothing.
+function loadEntities(portalId: string | undefined, allowedEmpresaIds: string[] | null): Entity[] {
   try {
     const raw = localStorage.getItem(`portal_empresas_${portalId ?? 'default'}`);
     if (!raw) return [];
     const items: Array<{ id: string; nome?: string; name?: string; tipo?: string }> = JSON.parse(raw);
-    return items.map(e => ({
-      id: e.id,
-      name: e.nome ?? e.name ?? e.id,
-      tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
-    }));
+    return items
+      .filter(e => allowedEmpresaIds === null || allowedEmpresaIds.includes(e.id))
+      .map(e => ({
+        id: e.id,
+        name: e.nome ?? e.name ?? e.id,
+        tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
+      }));
   } catch { return []; }
 }
 
@@ -459,9 +466,9 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
 
 export default function CentralDeResultadosPage2() {
   const portalName = usePortalName();
-  const { user } = useAuth();
+  const { user, allowedEmpresaIds } = useAuth();
   const userName = user?.name ?? user?.email ?? '';
-  const ENTITIES = loadEntities(user?.activePortalId);
+  const ENTITIES = loadEntities(user?.activePortalId, allowedEmpresaIds);
   const [activeEntity, setActiveEntity] = useState(ENTITIES[0]?.id ?? '');
   const [search, setSearch] = useState('');
   const [filterYear, setFilterYear] = useState('');
