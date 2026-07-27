@@ -89,8 +89,8 @@ interface FooterCfg {
 function footerVariant(model: string | undefined): string {
   return model === 'reduzido' ? 'simple' : 'full';
 }
-interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; children?: SubCanalCfg[]; headerImage?: string; }
-interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; headerImage?: string; }
+interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; children?: SubCanalCfg[]; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
+interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
 
 /** Resolves a legal link's custom pageId to the matching canal's real href. */
 function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | undefined {
@@ -257,6 +257,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
         ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
         ...(c.headerImage ? [`headerImage: ${JSON.stringify(c.headerImage)}`] : []),
+        ...(c.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(c.externalUrl ?? '')}`] : []),
         `children: []`,
       ];
       return `    { ${fields.join(', ')} }`;
@@ -270,6 +271,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
         ...(sc.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(sc.listaAgrupadaStyle)}`] : []),
         ...(sc.headerImage ? [`headerImage: ${JSON.stringify(sc.headerImage)}`] : []),
+        ...(sc.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(sc.externalUrl ?? '')}`] : []),
       ];
       return `      { ${f.join(', ')} }`;
     }).join(',\n');
@@ -281,6 +283,7 @@ function buildNavSection(canais: CanalCfg[]): string {
       ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
       ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
       ...(c.headerImage ? [`headerImage: ${JSON.stringify(c.headerImage)}`] : []),
+      ...(c.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(c.externalUrl ?? '')}`] : []),
     ];
     return `    { ${parentFields.join(', ')}, children: [\n${childLines},\n    ] }`;
   }).join(',\n');

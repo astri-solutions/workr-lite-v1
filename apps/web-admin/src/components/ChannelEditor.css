@@ -110,6 +110,7 @@
 
 .ce-sub {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 7px 12px 7px 36px;
@@ -131,6 +132,48 @@
   color: var(--color-gray-700);
   cursor: default;
   user-select: none;
+}
+
+.ce-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  margin: 0 12px 8px 36px;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+}
+
+.ce-canal > .ce-options {
+  margin: 0 12px 10px 12px;
+}
+
+.ce-options__check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-gray-800);
+}
+
+.ce-options__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-gray-600);
+}
+
+.ce-options__select,
+.ce-options__input {
+  font-size: 0.8125rem;
+  padding: 6px 8px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 6px;
+  background: var(--color-white);
+  color: var(--color-gray-900);
 }
 
 .ce-sub__label:hover {

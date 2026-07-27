@@ -57,6 +57,8 @@ export interface Canal {
   listaAgrupadaStyle?: ListaAgrupadaStyle;
   listaAgrupadaCategories?: string[];
   showInFooter?: boolean;
+  isExternalLink?: boolean;
+  externalUrl?: string;
 }
 
 export const DEFAULT_CANAIS: Canal[] = [
@@ -103,9 +105,88 @@ interface Props {
   flat?: boolean;
 }
 
+const PAGE_TYPE_OPTIONS: { value: PageType; label: string }[] = [
+  { value: 'show', label: 'Show (conteúdo livre)' },
+  { value: 'lista', label: 'Lista' },
+  { value: 'lista-agrupada', label: 'Lista agrupada' },
+  { value: 'tabela', label: 'Tabela' },
+  { value: 'tabela-resultados', label: 'Tabela de resultados' },
+  { value: 'blog', label: 'Blog' },
+  { value: 'galeria', label: 'Galeria' },
+  { value: 'formulario', label: 'Formulário' },
+  { value: 'timeline', label: 'Timeline' },
+];
+
 export default function ChannelEditor({ value, onChange, flat = false }: Props) {
   const [editing, setEditing] = useState<{ cid: string; sid?: string } | null>(null);
   const [editLabel, setEditLabel] = useState('');
+  const [optionsOpen, setOptionsOpen] = useState<{ cid: string; sid?: string } | null>(null);
+
+  function toggleOptions(cid: string, sid?: string) {
+    setOptionsOpen(prev => (prev?.cid === cid && prev?.sid === sid) ? null : { cid, sid });
+  }
+
+  function patchCanal(cid: string, patch: Partial<Canal>) {
+    onChange(value.map(c => c.id === cid ? { ...c, ...patch } : c));
+  }
+
+  function patchSub(cid: string, sid: string, patch: Partial<SubCanal>) {
+    onChange(value.map(c => c.id !== cid ? c : {
+      ...c, children: c.children.map(s => s.id === sid ? { ...s, ...patch } : s),
+    }));
+  }
+
+  function renderOptionsPanel(item: Canal | SubCanal, onPatch: (patch: Partial<Canal & SubCanal>) => void) {
+    return (
+      <div className="ce-options">
+        <label className="ce-options__check">
+          <input
+            type="checkbox"
+            checked={!!item.isExternalLink}
+            onChange={e => onPatch({ isExternalLink: e.target.checked })}
+          />
+          Link direto (externo)
+        </label>
+        {item.isExternalLink ? (
+          <input
+            className="ce-options__input"
+            type="text"
+            placeholder="https://exemplo.com"
+            value={item.externalUrl ?? ''}
+            onChange={e => onPatch({ externalUrl: e.target.value })}
+          />
+        ) : (
+          <>
+            <label className="ce-options__label">
+              Formato
+              <select
+                className="ce-options__select"
+                value={item.pageType ?? 'show'}
+                onChange={e => onPatch({ pageType: e.target.value as PageType })}
+              >
+                {PAGE_TYPE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </label>
+            {item.pageType === 'lista-agrupada' && (
+              <label className="ce-options__label">
+                Estilo da lista agrupada
+                <select
+                  className="ce-options__select"
+                  value={item.listaAgrupadaStyle ?? 'accordion'}
+                  onChange={e => onPatch({ listaAgrupadaStyle: e.target.value as ListaAgrupadaStyle })}
+                >
+                  <option value="accordion">Acordeão</option>
+                  <option value="secao">Divisão por seção</option>
+                </select>
+              </label>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
 
   function startEdit(cid: string, label: string, sid?: string) {
     setEditing({ cid, sid });
@@ -203,6 +284,11 @@ export default function ChannelEditor({ value, onChange, flat = false }: Props) 
               )}
 
               <div className="ce-canal__actions">
+                {!flat && canal.children.length === 0 && (
+                  <button className="ce-action" type="button" title="Link direto e formato" onClick={() => toggleOptions(canal.id)}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>tune</span>
+                  </button>
+                )}
                 <button className="ce-action" type="button" title="Renomear" onClick={() => startEdit(canal.id, canal.label)}>
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
                 </button>
@@ -217,6 +303,9 @@ export default function ChannelEditor({ value, onChange, flat = false }: Props) 
                 </button>
               </div>
             </div>
+
+            {!flat && canal.children.length === 0 && optionsOpen?.cid === canal.id && !optionsOpen.sid &&
+              renderOptionsPanel(canal, patch => patchCanal(canal.id, patch))}
 
             {!flat && canal.children.length > 0 && (
               <div className="ce-subs">
@@ -244,6 +333,9 @@ export default function ChannelEditor({ value, onChange, flat = false }: Props) 
                     )}
 
                     <div className="ce-sub__actions">
+                      <button className="ce-action" type="button" title="Link direto e formato" onClick={() => toggleOptions(canal.id, sub.id)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>tune</span>
+                      </button>
                       <button className="ce-action" type="button" title="Renomear" onClick={() => startEdit(canal.id, sub.label, sub.id)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span>
                       </button>
@@ -257,6 +349,9 @@ export default function ChannelEditor({ value, onChange, flat = false }: Props) 
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
                       </button>
                     </div>
+
+                    {optionsOpen?.cid === canal.id && optionsOpen.sid === sub.id &&
+                      renderOptionsPanel(sub, patch => patchSub(canal.id, sub.id, patch))}
                   </div>
                 ))}
               </div>
