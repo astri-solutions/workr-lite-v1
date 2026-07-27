@@ -461,31 +461,6 @@ export default function CanaisPage() {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDeleteState | null>(null);
   const [subConfirming, setSubConfirming] = useState(false);
 
-  // Accordion expand state — L1 canals and L2 subs with children
-  const [expandedCanals, setExpandedCanals] = useState<Set<string>>(
-    () => new Set(DEFAULT_CANAIS.map(c => c.id))
-  );
-  const [expandedSubs, setExpandedSubs] = useState<Set<string>>(
-    () => new Set(
-      DEFAULT_CANAIS.flatMap(c => c.children.filter(s => (s.children?.length ?? 0) > 0).map(s => s.id))
-    )
-  );
-
-  function toggleExpandCanal(id: string) {
-    setExpandedCanals(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-  function toggleExpandSub(id: string) {
-    setExpandedSubs(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-
   // Animation
   const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
   const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1093,121 +1068,103 @@ export default function CanaisPage() {
         </div>
       )}
 
-      {/* ── Accordion tree ────────────────────────────────────────────── */}
-      <div className="ct-tree">
-        {canais.length === 0 && (
+      {/* ── Árvore de canais (tabela) ─────────────────────────────────── */}
+      <div className="table-wrapper ct-table-wrapper">
+        {canais.length === 0 ? (
           <div className="ct-empty">Não há canais cadastrados</div>
-        )}
-        {canais.map((canal, ci) => {
-          const canalExpanded = expandedCanals.has(canal.id);
-          const movedInfo = movedCanals.find(x => x.id === canal.id);
-          return (
-            <div
-              key={canal.id}
-              className={['ct-canal-card', movedInfo ? `ct-row--moved-${movedInfo.dir === -1 ? 'up' : 'down'}` : ''].filter(Boolean).join(' ')}
-            >
-              {/* L1 — Canal row */}
-              <div
-                className={[
-                  'ct-row ct-row--l1',
-                  !canal.enabled ? 'ct-row--off' : '',
-                ].filter(Boolean).join(' ')}
-              >
-                <div className="ct-row__title">
-                  <span className="ct-row__name">{canal.label}</span>
-                  <span className="ct-row__path">Canal raiz</span>
-                </div>
-                <span className="ct-row__type-col">—</span>
-                <span className="ct-row__status-col">
-                  <span className={`ct-status-dot${canal.enabled ? ' ct-status-dot--on' : ''}`} />
-                </span>
-                <div className="ct-row__acts">
-                  <div className="ct-row__reorder">
-                    <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
-                      <span className="material-symbols-outlined">expand_less</span>
-                    </button>
-                    <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Descer" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
-                      <span className="material-symbols-outlined">expand_more</span>
-                    </button>
-                  </div>
-                  <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>Editar</button>
-                  <button className={`btn-action ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleCanal(canal.id)}>
-                    {canal.enabled ? 'Despublicar' : 'Publicar'}
-                  </button>
-                  <button className="btn-action btn-action--danger" type="button"
-                    onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
-                    Excluir
-                  </button>
-                  {!isFlatLayout && (
-                    <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
-                      Página
-                    </button>
-                  )}
-                </div>
-                <button
-                  className={`ct-expand ct-expand--l1${canalExpanded ? ' ct-expand--open' : ''}`}
-                  type="button"
-                  aria-label={canalExpanded ? 'Recolher' : 'Expandir'}
-                  onClick={() => toggleExpandCanal(canal.id)}
-                >
-                  <span className="material-symbols-outlined">expand_more</span>
-                </button>
-              </div>
-
-              {/* Animated canal body — always rendered, height animated */}
-              <div className={`ct-canal-body${canalExpanded ? ' ct-canal-body--open' : ''}`}>
-                <div className="ct-canal-body__inner">
-                  {canal.children.length === 0 && canal.pageType === 'lista-agrupada' && (
-                    <div className="ct-row ct-row--empty ct-row--groups">
-                      {(canal.listaAgrupadaCategories ?? []).length > 0 ? (
-                        <div className="ct-la-cats">
-                          {(canal.listaAgrupadaCategories ?? []).map(cat => (
-                            <span key={cat} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
-                          ))}
+        ) : (
+          <table className="data-table ct-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Status</th>
+                <th>Tipo</th>
+                <th>Nível</th>
+                <th>Posição</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {canais.map((canal, ci) => {
+                const movedInfo = movedCanals.find(x => x.id === canal.id);
+                const movedClass = movedInfo ? `ct-row--moved-${movedInfo.dir === -1 ? 'up' : 'down'}` : '';
+                return (
+                  <Fragment key={canal.id}>
+                    {/* L1 — Canal */}
+                    <tr className={['ct-tr', 'ct-tr--l1', !canal.enabled ? 'ct-tr--off' : '', movedClass].filter(Boolean).join(' ')}>
+                      <td className="table-cell--bold ct-tree-name" data-level={0}>{canal.label}</td>
+                      <td>
+                        <span className={`badge ${canal.enabled ? 'badge--success' : 'badge--gray'}`}>
+                          {canal.enabled ? 'Publicado' : 'Rascunho'}
+                        </span>
+                      </td>
+                      <td className="table-cell--muted">Canal</td>
+                      <td className="table-cell--muted">Raiz</td>
+                      <td>
+                        <div className="ct-row__reorder">
+                          <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Subir" onClick={() => moveCanal(ci, -1)} disabled={ci === 0}>
+                            <span className="material-symbols-outlined">expand_less</span>
+                          </button>
+                          <button className="ct-icon-btn ct-icon-btn--sm" type="button" title="Descer" onClick={() => moveCanal(ci, 1)} disabled={ci === canais.length - 1}>
+                            <span className="material-symbols-outlined">expand_more</span>
+                          </button>
                         </div>
-                      ) : (
-                        <span className="ct-empty">Nenhum grupo cadastrado — abra "Editar" para adicionar.</span>
-                      )}
-                    </div>
-                  )}
-                  {canal.children.length === 0 && canal.pageType !== 'lista-agrupada' && (
-                    <div className="ct-row ct-row--empty">
-                      <span className="ct-empty">Nenhuma página neste canal.</span>
-                    </div>
-                  )}
+                      </td>
+                      <td className="table-actions">
+                        {!isFlatLayout && (
+                          <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                            Sub-página
+                          </button>
+                        )}
+                        <button className="btn-action btn-action--enter" type="button" onClick={() => openCanalEdit(canal)}>Editar</button>
+                        <button className={`btn-action ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleCanal(canal.id)}>
+                          {canal.enabled ? 'Despublicar' : 'Publicar'}
+                        </button>
+                        <button className="btn-action btn-action--danger" type="button"
+                          onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
+                          Excluir
+                        </button>
+                      </td>
+                    </tr>
 
-                  {canal.children.map((sub, si) => {
-                    const hasL3 = (sub.children?.length ?? 0) > 0;
-                    const subExpanded = expandedSubs.has(sub.id);
-                    return (
-                      <Fragment key={sub.id}>
-                        {/* L2 row */}
-                        <div className={`ct-row ct-row--l2${!sub.enabled ? ' ct-row--off' : ''}`}>
-                          {hasL3 ? (
-                            <button
-                              className={`ct-expand ct-expand--sub${subExpanded ? ' ct-expand--open' : ''}`}
-                              type="button"
-                              aria-label={subExpanded ? 'Recolher' : 'Expandir'}
-                              onClick={() => toggleExpandSub(sub.id)}
-                            >
-                              <span className="material-symbols-outlined">add</span>
-                            </button>
+                    {canal.children.length === 0 && canal.pageType === 'lista-agrupada' && (
+                      <tr className="ct-tr ct-tr--empty">
+                        <td colSpan={6}>
+                          {(canal.listaAgrupadaCategories ?? []).length > 0 ? (
+                            <div className="ct-la-cats">
+                              {(canal.listaAgrupadaCategories ?? []).map(cat => (
+                                <span key={cat} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                              ))}
+                            </div>
                           ) : (
-                            <span className="ct-expand ct-expand--leaf" aria-hidden="true" />
+                            <span className="ct-empty">Nenhum grupo cadastrado — abra "Editar" para adicionar.</span>
                           )}
-                          <div className="ct-row__title">
-                            <span className="ct-row__name">{sub.label}</span>
-                            <span className="ct-row__path">{canal.label} › {sub.label}</span>
-                          </div>
-                          <span className="ct-row__type-col">
-                            {sub.pageType ? <span className="ct-type-badge">{sub.pageType}</span> : '—'}
+                        </td>
+                      </tr>
+                    )}
+                    {canal.children.length === 0 && canal.pageType !== 'lista-agrupada' && (
+                      <tr className="ct-tr ct-tr--empty">
+                        <td colSpan={6}><span className="ct-empty">Nenhuma página neste canal.</span></td>
+                      </tr>
+                    )}
+
+                    {/* L2 — Sub-página */}
+                    {canal.children.map((sub, si) => (
+                      <Fragment key={sub.id}>
+                        <tr className={['ct-tr', 'ct-tr--l2', !sub.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
+                          <td className="ct-tree-name" data-level={1}>{sub.label}</td>
+                          <td>
+                            <span className={`badge ${sub.enabled ? 'badge--success' : 'badge--gray'}`}>
+                              {sub.enabled ? 'Publicado' : 'Rascunho'}
+                            </span>
+                          </td>
+                          <td className="table-cell--muted">
+                            {sub.pageType ? <span className="ct-type-badge">{sub.pageType}</span> : 'Página'}
                             {cvmPageIds.has(sub.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
-                          </span>
-                          <span className="ct-row__status-col">
-                            <span className={`ct-status-dot${sub.enabled ? ' ct-status-dot--on' : ''}`} />
-                          </span>
-                          <div className="ct-row__acts">
+                          </td>
+                          <td className="table-cell--muted">Subpágina</td>
+                          <td>
                             <div className="ct-row__reorder">
                               <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSub(canal.id, si, -1)} disabled={si === 0}>
                                 <span className="material-symbols-outlined">expand_less</span>
@@ -1216,6 +1173,14 @@ export default function CanaisPage() {
                                 <span className="material-symbols-outlined">expand_more</span>
                               </button>
                             </div>
+                          </td>
+                          <td className="table-actions">
+                            {!isFlatLayout && (
+                              <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                                Sub-página
+                              </button>
+                            )}
                             <button className="btn-action btn-action--enter" type="button" onClick={() => openEdit(canal.id, sub)}>Editar</button>
                             <button className={`btn-action ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSub(canal.id, sub.id)}>
                               {sub.enabled ? 'Despublicar' : 'Publicar'}
@@ -1224,64 +1189,53 @@ export default function CanaisPage() {
                               onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
                               Excluir
                             </button>
-                            {!isFlatLayout && (
-                              <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
-                                Sub-página
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                          </td>
+                        </tr>
 
-                        {/* Animated L3 body */}
-                        {hasL3 && (
-                          <div className={`ct-sub-body${subExpanded ? ' ct-sub-body--open' : ''}`}>
-                            <div className="ct-sub-body__inner">
-                              {(sub.children ?? []).map((ss, ssi) => (
-                                <div key={ss.id} className={`ct-row ct-row--l3${!ss.enabled ? ' ct-row--off' : ''}`}>
-                                  <span className="ct-expand ct-expand--leaf" aria-hidden="true" />
-                                  <div className="ct-row__title">
-                                    <span className="ct-row__name">{ss.label}</span>
-                                    <span className="ct-row__path">{canal.label} › {sub.label} › {ss.label}</span>
-                                  </div>
-                                  <span className="ct-row__type-col">
-                                    {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : '—'}
-                                    {cvmPageIds.has(ss.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
-                                  </span>
-                                  <span className="ct-row__status-col">
-                                    <span className={`ct-status-dot${ss.enabled ? ' ct-status-dot--on' : ''}`} />
-                                  </span>
-                                  <div className="ct-row__acts">
-                                    <div className="ct-row__reorder">
-                                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
-                                        <span className="material-symbols-outlined">expand_less</span>
-                                      </button>
-                                      <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
-                                        <span className="material-symbols-outlined">expand_more</span>
-                                      </button>
-                                    </div>
-                                    <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
-                                    <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
-                                      {ss.enabled ? 'Despublicar' : 'Publicar'}
-                                    </button>
-                                    <button className="btn-action btn-action--danger" type="button"
-                                      onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
-                                      Excluir
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        {/* L3 — Sub-subpágina */}
+                        {(sub.children ?? []).map((ss, ssi) => (
+                          <tr key={ss.id} className={['ct-tr', 'ct-tr--l3', !ss.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
+                            <td className="ct-tree-name" data-level={2}>{ss.label}</td>
+                            <td>
+                              <span className={`badge ${ss.enabled ? 'badge--success' : 'badge--gray'}`}>
+                                {ss.enabled ? 'Publicado' : 'Rascunho'}
+                              </span>
+                            </td>
+                            <td className="table-cell--muted">
+                              {ss.pageType ? <span className="ct-type-badge">{ss.pageType}</span> : 'Sub-página'}
+                              {cvmPageIds.has(ss.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
+                            </td>
+                            <td className="table-cell--muted">Sub-subpágina</td>
+                            <td>
+                              <div className="ct-row__reorder">
+                                <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, -1)} disabled={ssi === 0}>
+                                  <span className="material-symbols-outlined">expand_less</span>
+                                </button>
+                                <button className="ct-icon-btn ct-icon-btn--sm" type="button" onClick={() => moveSubSub(canal.id, sub.id, ssi, 1)} disabled={ssi === (sub.children?.length ?? 0) - 1}>
+                                  <span className="material-symbols-outlined">expand_more</span>
+                                </button>
+                              </div>
+                            </td>
+                            <td className="table-actions">
+                              <button className="btn-action btn-action--enter" type="button" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>Editar</button>
+                              <button className={`btn-action ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button" onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
+                                {ss.enabled ? 'Despublicar' : 'Publicar'}
+                              </button>
+                              <button className="btn-action btn-action--danger" type="button"
+                                onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
+                                Excluir
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                       </Fragment>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                    ))}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* ── Confirm delete modal ──────────────────────────────────────── */}
