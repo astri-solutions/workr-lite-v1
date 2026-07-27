@@ -1085,18 +1085,20 @@ export default function CanaisPage() {
         )}
 
         {canais.length > 0 && (
-          <table className="data-table ct-table ct-header-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th className="ct-col-status">Status</th>
-                <th className="ct-col-tipo">Tipo</th>
-                <th className="ct-col-nivel">Nível</th>
-                <th className="ct-col-pos">Posição</th>
-                <th className="ct-col-acts"></th>
-              </tr>
-            </thead>
-          </table>
+          <div className="table-wrapper ct-header-wrapper">
+            <table className="data-table ct-table ct-header-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th className="ct-col-status">Status</th>
+                  <th className="ct-col-tipo">Tipo</th>
+                  <th className="ct-col-nivel">Nível</th>
+                  <th className="ct-col-pos">Posição</th>
+                  <th className="ct-col-acts"></th>
+                </tr>
+              </thead>
+            </table>
+          </div>
         )}
 
         {canais.map((canal, ci) => {

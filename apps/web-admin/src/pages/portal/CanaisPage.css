@@ -87,21 +87,44 @@
 .ct-canal-card.ct-row--moved-down { animation: canal-moved-down 350ms cubic-bezier(0.25, 1, 0.5, 1) both; }
 
 /* ── Árvore de canais: header fixo + um card por canal ──────────── */
-.ct-header-table {
+.ct-header-wrapper {
   margin-bottom: var(--space-3);
 }
 .ct-header-table tbody { display: none; }
 
-/* Fixed-width columns so the standalone header table and every
-   per-canal table (each its own independent <table>, full width)
-   line up pixel-for-pixel — Nome/Ações stay flexible, everything
-   else gets a fixed width so it renders at the same offset in all
-   of them regardless of that table's own content. */
+/* table-layout: fixed forces every column to the EXACT width below in
+   every table — the standalone header table and each canal's own
+   independent <table> — so they line up pixel-for-pixel regardless of
+   that specific table's own content (a longer "Tabela-Resultados" tag
+   or an extra action button in one canal can no longer push its
+   columns wider than the next canal's). Only Nome is left unconstrained
+   and takes the remainder, identical in every table since they all
+   render at the same container width. */
+.ct-table {
+  table-layout: fixed;
+}
+
 .ct-col-status { width: 130px; }
 .ct-col-tipo   { width: 170px; }
 .ct-col-nivel  { width: 130px; }
 .ct-col-pos    { width: 90px; }
-.ct-col-acts   { width: 1px; white-space: nowrap; }
+
+/* Overrides AdminPages.css's generic `td:has(.table-actions) { width: 1px }`
+   shrink-wrap rule — under table-layout: fixed a 1px column would clip
+   the action buttons instead of shrinking around them. */
+.ct-table td.ct-col-acts,
+.ct-table th.ct-col-acts {
+  width: 420px;
+  white-space: normal;
+}
+.ct-col-acts .table-actions { flex-wrap: wrap; }
+
+.ct-col-tipo,
+.ct-col-nivel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .ct-canal-group {
   margin-bottom: var(--space-4);
