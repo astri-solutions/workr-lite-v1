@@ -137,6 +137,25 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Nenhum arquivo compartilhado encontrado no template — abortando por segurança.' }), { status: 502, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
+    // Blob content, fetched from the template repo lazily and cached by sha —
+    // every portal that needs a given file shares the same fetch. Git blob
+    // SHAs are NOT valid across repos: even though the hash is a pure
+    // function of content, GitHub's Git Data API looks up the object in that
+    // specific repo's own store, so a portal repo that never had this exact
+    // blob rejects a tree entry pointing at it ("not a valid blob") — the
+    // content has to actually be POSTed into the target repo first.
+    const blobContentCache = new Map<string, string>();
+    async function templateBlobContent(sha: string): Promise<string | null> {
+      const cached = blobContentCache.get(sha);
+      if (cached) return cached;
+      const res = await gh(`/repos/${githubOrg}/cliente-workr-lite/git/blobs/${sha}`);
+      if (!res.ok) return null;
+      const data = await res.json() as { content: string };
+      const content = data.content.replace(/\n/g, '');
+      blobContentCache.set(sha, content);
+      return content;
+    }
+
     // ── 2. Every portal with a linked repo ──────────────────────────────────
     const admin = createClient(supabaseUrl, resolveServiceKey());
     const { data: portals, error: portalsErr } = await admin
@@ -170,7 +189,27 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const treeEntries = changedFiles.map(tf => ({ path: tf.path, mode: '100644', type: 'blob', sha: tf.sha }));
+        // Recreate each changed blob IN THIS repo — reusing the template's
+        // sha directly here is exactly what produced "tree.sha ... is not a
+        // valid blob" the first time around.
+        const treeEntries: { path: string; mode: string; type: string; sha: string }[] = [];
+        let blobFetchFailed = false;
+        for (const tf of changedFiles) {
+          const content = await templateBlobContent(tf.sha);
+          if (content === null) { blobFetchFailed = true; break; }
+          const blobRes = await gh(`/repos/${githubOrg}/${repoName}/git/blobs`, {
+            method: 'POST',
+            body: JSON.stringify({ content, encoding: 'base64' }),
+          });
+          if (!blobRes.ok) { blobFetchFailed = true; break; }
+          const blobData = await blobRes.json() as { sha: string };
+          treeEntries.push({ path: tf.path, mode: '100644', type: 'blob', sha: blobData.sha });
+        }
+        if (blobFetchFailed) {
+          results.push({ repoName, status: 'error', error: 'falha ao recriar um ou mais blobs neste repositório' });
+          continue;
+        }
+
         const newTreeRes = await gh(`/repos/${githubOrg}/${repoName}/git/trees`, {
           method: 'POST',
           body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries }),
