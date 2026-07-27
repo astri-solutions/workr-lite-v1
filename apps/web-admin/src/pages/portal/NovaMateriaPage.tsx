@@ -4,7 +4,7 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LangTabs from '../../components/LangTabs';
 import DatePicker from '../../components/DatePicker';
-import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
+import { useCanaisDestinos, type Destino } from '../../hooks/useCanaisDestinos';
 import { persistMateria, syncMateriaToSupabase, activatePageInSupabase, type MateriaPageType, type StoredMateria } from '../../hooks/useMateriasStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
@@ -1412,6 +1412,34 @@ export default function NovaMateriaPage() {
 
   const localOccupied = selectedDestino?.hasPublishedMateria ?? false;
   const pageOccupied = !isGaleria && !isTabela && !isHtml && !isTimeline && (remoteOccupied ?? localOccupied);
+
+  // Same staleness problem as `remoteOccupied` above, but for every option in
+  // the destino dropdown, not just the one currently selected — `d.hasPublishedMateria`
+  // (from useCanaisDestinos) is localStorage-only, so a page published from a
+  // different device/session never shows "(ocupada)" here even though it
+  // genuinely has a live matéria. Batch-fetch every occupied 'show' page id
+  // from Supabase once portalDbId is known, and let it override the local
+  // per-option guess the same way the single-page check does.
+  const [remoteOccupiedIds, setRemoteOccupiedIds] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!portalDbId || !isSupabaseConfigured || !supabase) { setRemoteOccupiedIds(null); return; }
+    let cancelled = false;
+    supabase.from('portal_materias')
+      .select('page_id')
+      .eq('portal_id', portalDbId).eq('status', 'publicado')
+      .then(({ data }) => {
+        if (cancelled) return;
+        setRemoteOccupiedIds(new Set((data ?? []).map((r: { page_id: string }) => r.page_id)));
+      });
+    return () => { cancelled = true; };
+  }, [portalDbId]);
+
+  function destinoOccupied(d: Destino): boolean {
+    if (d.pageType !== 'show') return false;
+    if (editing && editing.pageId === d.id) return false; // editing this matéria's own page doesn't occupy it
+    if (remoteOccupiedIds) return remoteOccupiedIds.has(d.id);
+    return d.hasPublishedMateria;
+  }
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
   const STATUS_FROM_STORED: Record<string, PublishStatus> = { publicado: 'published', rascunho: 'draft', agendado: 'scheduled' };
   const [status, setStatus] = useState<PublishStatus>(editing ? (STATUS_FROM_STORED[editing.status] ?? 'draft') : 'draft');
@@ -1509,9 +1537,6 @@ export default function NovaMateriaPage() {
   }
 
   async function handlePublish(newStatus: PublishStatus) {
-    setStatus(newStatus);
-    setDirty(false);
-
     if (page) {
       const dest = destinos.find(d => d.id === page);
       const today = new Date().toLocaleDateString('pt-BR');
@@ -1564,6 +1589,14 @@ export default function NovaMateriaPage() {
       // Match the sidebar's global publish button's real-site effect.
       if (newStatus === 'published' || newStatus === 'scheduled') await publish();
     }
+
+    // Status/dirty only flip once the save above has actually finished —
+    // setting them synchronously at the top of this function made the
+    // Status badge show "Publicado" (and the button gray out as "no
+    // unsaved changes") the instant the user clicked, even if the
+    // Supabase upsert or publish() below was still running or failed.
+    setStatus(newStatus);
+    setDirty(false);
 
     // Only flip to "Salvo!"/"Publicado!" once the async work above has
     // actually finished — showing it immediately was misleading while
@@ -1634,7 +1667,7 @@ export default function NovaMateriaPage() {
                 {saved && status === 'draft' ? 'Salvo!' : 'Salvar como Rascunho'}
               </button>
               <PublishButton
-                disabled={!canPublish}
+                disabled={!dirty || !canPublish}
                 onClick={() => handlePublish(willSchedule ? 'scheduled' : 'published')}
               />
             </>
@@ -1842,15 +1875,15 @@ export default function NovaMateriaPage() {
                 return (
                   <>
                     {ungrouped.map((d) => (
-                      <option key={d.id} value={d.id} disabled={d.hasPublishedMateria}>
-                        {d.label}{d.hasPublishedMateria ? ' (ocupada)' : ''}
+                      <option key={d.id} value={d.id} disabled={destinoOccupied(d)}>
+                        {d.label}{destinoOccupied(d) ? ' (ocupada)' : ''}
                       </option>
                     ))}
                     {Object.entries(groups).map(([parent, items]) => (
                       <optgroup key={parent} label={parent}>
                         {items.map((d) => (
-                          <option key={d.id} value={d.id} disabled={d.hasPublishedMateria}>
-                            {d.label}{d.hasPublishedMateria ? ' (ocupada)' : ''}
+                          <option key={d.id} value={d.id} disabled={destinoOccupied(d)}>
+                            {d.label}{destinoOccupied(d) ? ' (ocupada)' : ''}
                           </option>
                         ))}
                       </optgroup>
