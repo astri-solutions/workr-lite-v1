@@ -95,7 +95,15 @@
    what any one row's cells contain. */
 .ct-grid {
   display: grid;
-  grid-template-columns: 1fr 130px 170px 130px 140px auto;
+  /* Every column but Nome (1fr) is a fixed px — including Ações, which
+     must NOT be `auto`: each row is its OWN independent grid instance
+     (one per <div className="ct-grid">), so an `auto`/content-based
+     track is sized from THAT row's own button count. Rows with an extra
+     "+ Sub-página" button would get a wider Ações column than rows
+     without it (or the empty header cell), which shrinks/grows the 1fr
+     Nome column to compensate — misaligning every fixed column after it,
+     progressively, exactly like the table-layout bug this replaced. */
+  grid-template-columns: 1fr 130px 170px 130px 140px 300px;
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-4);
