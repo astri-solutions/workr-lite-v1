@@ -73,6 +73,44 @@ function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
 
+// Common CVM/IR document categories — shown as suggestions in the "Tipo"
+// combobox, but never the only option: "+ Novo tipo" lets a portal record
+// any category this list doesn't cover yet.
+const DOC_CATEGORIAS = [
+  'Fato Relevante',
+  'Comunicado ao Mercado',
+  'Aviso aos Acionistas',
+  'Ata de Assembleia',
+  'Ata de Reunião do Conselho',
+  'Formulário de Referência',
+  'Formulário Cadastral',
+  'Estatuto Social',
+  'Regulamento',
+  'Relatório de Sustentabilidade',
+  'Política Corporativa',
+  'Outros',
+];
+
+// Suggests a category from the título's own words — same idea as
+// guessType() in Central de Resultados, just tuned to document titles
+// instead of filenames (CVM filings and manually-typed titles both tend to
+// name the category directly).
+function guessDocTipo(titulo: string): string {
+  const t = titulo.toLowerCase();
+  if (t.includes('fato relevante')) return 'Fato Relevante';
+  if (t.includes('comunicado')) return 'Comunicado ao Mercado';
+  if (t.includes('aviso aos acionistas') || t.includes('aviso a acionistas')) return 'Aviso aos Acionistas';
+  if (t.includes('assembleia')) return 'Ata de Assembleia';
+  if (t.includes('conselho de administra')) return 'Ata de Reunião do Conselho';
+  if (t.includes('formulário de referência') || t.includes('formulario de referencia')) return 'Formulário de Referência';
+  if (t.includes('formulário cadastral') || t.includes('formulario cadastral')) return 'Formulário Cadastral';
+  if (t.includes('estatuto')) return 'Estatuto Social';
+  if (t.includes('regulamento')) return 'Regulamento';
+  if (t.includes('sustentabilidade') || t.includes('esg')) return 'Relatório de Sustentabilidade';
+  if (t.includes('política') || t.includes('politica')) return 'Política Corporativa';
+  return '';
+}
+
 // Sub-group categories (e.g. "Fatos Relevantes", "AGO/AGE") come from the
 // canal's own "Grupos" config (Árvore de canais → Tipo de página → Lista
 // agrupada) — only pages of that pageType have any to offer.
@@ -122,6 +160,11 @@ interface DocForm {
   // forward, to defer when something goes live). Empty = use today/now,
   // same as before this field existed.
   dataPublicacao: string;
+  // Free-text category ("Fato Relevante", "Ata", ...) — suggested from the
+  // título via guessDocTipo() but never locked to a closed list, so a
+  // document type this portal hasn't seen before doesn't get forced into
+  // "Outros".
+  tipo: string;
   filesByLocale: Partial<Record<string, LocaleFileState>>;
   // Storage paths orphaned by a remove/replace/switch-to-link action this
   // session — deleted from the bucket only after the DB write succeeds.
@@ -136,6 +179,7 @@ function emptyDocForm(entityId = ''): DocForm {
     allPages: false, paginaIds: [], subGroupIds: {},
     scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
     dataPublicacao: '',
+    tipo: '',
     filesByLocale: {},
     pendingStorageDeletes: [],
   };
@@ -229,6 +273,7 @@ export default function DocumentosPage() {
   const [docLocale, setDocLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [ptOnly, setPtOnly] = useState(false);
+  const [customTipo, setCustomTipo] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   // Which "Página de destino" entries have their group list expanded — chevron
@@ -306,6 +351,7 @@ export default function DocumentosPage() {
     setForm(emptyDocForm(activeEntity));
     setDocLocale(primaryLocale);
     setPtOnly(false);
+    setCustomTipo(false);
     setSaveError('');
     setDrawerOpen(true);
   }
@@ -347,10 +393,12 @@ export default function DocumentosPage() {
       scheduleDate: scheduleDt ? scheduleDt.toISOString().slice(0, 10) : '',
       scheduleTime: scheduleDt ? scheduleDt.toTimeString().slice(0, 5) : '',
       dataPublicacao: publicadoEm ? publicadoEm.slice(0, 10) : '',
+      tipo: (raw.tipo as string) === 'Documento' ? '' : ((raw.tipo as string) ?? ''),
       filesByLocale,
       pendingStorageDeletes: [],
     });
     setPtOnly(!!raw.pt_only);
+    setCustomTipo(false);
     setDocLocale(primaryLocale);
     setSaveError('');
     setDrawerOpen(true);
@@ -464,6 +512,7 @@ export default function DocumentosPage() {
       sub_group_ids: form.subGroupIds,
       idiomas: idiomasWithContent.length ? idiomasWithContent : [primaryLocale],
       pt_only: ptOnly,
+      tipo: form.tipo || 'Documento',
       arquivos: arquivosPatch,
       external_link: primaryEntry?.externalLink ?? null,
       file_path: primaryEntry?.filePath ?? null,
@@ -476,7 +525,6 @@ export default function DocumentosPage() {
       : await supabase.from('portal_documents').insert({
           id: docId,
           portal_id: portalDbId,
-          tipo: 'Documento',
           publicado_por: userName,
           ...patch,
         });
@@ -619,6 +667,8 @@ export default function DocumentosPage() {
   const missingLocales = !ptOnly
     ? PORTAL_CONFIG.languages.filter(l => l !== primaryLocale && !localeFileHasContent(getLocaleFile(form, l)))
     : [];
+  const isCustomTipo = customTipo || (!!form.tipo && !DOC_CATEGORIAS.includes(form.tipo));
+  const existingDocTipos = Array.from(new Set(docs.map(d => d.tipo).filter(t => t && t !== 'Documento')));
 
   return (
     <div className="page docs-page">
@@ -848,8 +898,56 @@ export default function DocumentosPage() {
             </label>
             <input className="doc-field__input" type="text" placeholder="Nome do documento"
               value={form.titulos[docLocale] ?? ''}
-              onChange={e => patchForm('titulos', { ...form.titulos, [docLocale]: e.target.value })}
+              onChange={e => {
+                const value = e.target.value;
+                patchForm('titulos', { ...form.titulos, [docLocale]: value });
+                // Only auto-fill while nothing has been chosen yet — never
+                // overwrite a category the user already picked or typed.
+                if (docLocale === primaryLocale && !form.tipo) {
+                  const guess = guessDocTipo(value);
+                  if (guess) patchForm('tipo', guess);
+                }
+              }}
               autoFocus />
+          </div>
+
+          <div className="doc-field">
+            <label className="doc-field__label">Tipo de documento</label>
+            {isCustomTipo ? (
+              <div className="cdr2-type-custom">
+                <input
+                  type="text"
+                  className="doc-field__input"
+                  placeholder="Nome do tipo"
+                  value={form.tipo}
+                  autoFocus={customTipo}
+                  onChange={e => patchForm('tipo', e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="cdr2-type-custom__revert"
+                  title="Voltar para a lista de tipos"
+                  onClick={() => { setCustomTipo(false); patchForm('tipo', ''); }}
+                >
+                  <span className="material-symbols-outlined">undo</span>
+                </button>
+              </div>
+            ) : (
+              <select
+                className="doc-field__input"
+                value={form.tipo}
+                onChange={e => {
+                  if (e.target.value === '__custom__') { setCustomTipo(true); patchForm('tipo', ''); return; }
+                  patchForm('tipo', e.target.value);
+                }}
+              >
+                <option value="">Selecione ou digite um novo…</option>
+                {Array.from(new Set([...DOC_CATEGORIAS, ...existingDocTipos])).map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+                <option value="__custom__">+ Novo tipo…</option>
+              </select>
+            )}
           </div>
 
           <div className="doc-source-toggle">

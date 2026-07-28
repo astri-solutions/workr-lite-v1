@@ -166,6 +166,18 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
   const confirmDeleteEntry = entries.find(e => e.id === confirmDeleteId);
   const editFileRef = useRef<HTMLInputElement>(null);
 
+  // Which rows are typing a custom "Tipo" not in DOC_TIPOS — guessType()
+  // still suggests one of the known categories from the filename, but a
+  // file that doesn't fit any of them (e.g. a new kind of document CVM
+  // starts requiring) can freely become its own category instead of being
+  // forced into "Outros". A loaded entry whose tipo isn't a known code is
+  // already effectively custom (typed in a previous session), so treat it
+  // the same way without requiring the user to re-pick "+ Novo tipo".
+  const [customTipoIds, setCustomTipoIds] = useState<Set<string>>(new Set());
+  function isCustomTipo(entry: FileEntry) {
+    return customTipoIds.has(entry.id) || (!!entry.tipo && !DOC_TIPOS.some(t => t.value === entry.tipo));
+  }
+
   function update(id: string, patch: Partial<FileEntry>) {
     onChange(entries.map(e => e.id === id ? { ...e, ...patch } : e));
   }
@@ -295,16 +307,48 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                       {portugueseOnly && <span className="cdr2-lang-badge cdr2-lang-badge--pt-only" style={{ marginLeft: 6 }}>Portuguese only</span>}
                     </td>
                     <td>
-                      <select
-                        className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
-                        value={entry.tipo}
-                        onChange={e => update(entry.id, { tipo: e.target.value })}
-                      >
-                        <option value="">Tipo…</option>
-                        {DOC_TIPOS.map(t => (
-                          <option key={t.value} value={t.value}>{t.label}</option>
-                        ))}
-                      </select>
+                      {isCustomTipo(entry) ? (
+                        <div className="cdr2-type-custom">
+                          <input
+                            type="text"
+                            className="cdr2-type-select cdr2-type-select--set"
+                            value={entry.tipo}
+                            placeholder="Nome do tipo"
+                            autoFocus={customTipoIds.has(entry.id)}
+                            onChange={e => update(entry.id, { tipo: e.target.value })}
+                          />
+                          <button
+                            type="button"
+                            className="cdr2-type-custom__revert"
+                            title="Voltar para a lista de tipos"
+                            onClick={() => {
+                              setCustomTipoIds(prev => { const n = new Set(prev); n.delete(entry.id); return n; });
+                              update(entry.id, { tipo: '' });
+                            }}
+                          >
+                            <span className="material-symbols-outlined">undo</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <select
+                          className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
+                          value={entry.tipo}
+                          onChange={e => {
+                            if (e.target.value === '__custom__') {
+                              setCustomTipoIds(prev => new Set(prev).add(entry.id));
+                              update(entry.id, { tipo: '' });
+                              return;
+                            }
+                            update(entry.id, { tipo: e.target.value });
+                          }}
+                        >
+                          <option value="">Tipo…</option>
+                          {DOC_TIPOS.map(t => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                          <option value="__custom__">+ Novo tipo…</option>
+                        </select>
+                      )}
                     </td>
                     <td>
                       <span className="cdr2-lang-badge" title={entry.locale ?? 'pt-BR'}>{langShort}</span>

@@ -590,6 +590,29 @@
   letter-spacing: 0.05em;
 }
 
+/* ── Tipo de documento — custom-category input ───────── */
+.cdr2-type-custom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cdr2-type-custom .doc-field__input { flex: 1; }
+.cdr2-type-custom__revert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.cdr2-type-custom__revert:hover { background: var(--color-gray-100); color: var(--color-gray-800); }
+.cdr2-type-custom__revert .material-symbols-outlined { font-size: 16px; }
+
 /* ── Page item + sub-group ───────────────────────────── */
 .doc-page-item {
   display: flex;
