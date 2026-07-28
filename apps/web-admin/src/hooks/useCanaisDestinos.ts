@@ -29,6 +29,7 @@ function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
       });
     } else {
       for (const sub of canal.children) {
+        if (!sub.enabled) continue;
         const ownImage = sub.headerImage ?? null;
         result.push({
           id: sub.id,
@@ -41,6 +42,7 @@ function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
           hasPublishedMateria: sub.pageType === 'show' ? pageHasPublishedMateria(sub.id, portalKey) : false,
         });
         for (const ss of sub.children ?? []) {
+          if (!ss.enabled) continue;
           const ssOwnImage = ss.headerImage ?? null;
           const ssFallback = ownImage ?? canalHeaderImage;
           result.push({
