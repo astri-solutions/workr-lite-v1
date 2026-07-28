@@ -430,6 +430,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    // colors is a required wizard step (Cores) — silently defaulting a
+    // missing payload to Astri's OWN brand palette would launch someone
+    // else's portal wearing Astri's colors instead of surfacing the real
+    // problem (a skipped/broken step upstream). Checked before any GitHub
+    // API call so a bad request never leaves behind an orphaned repo.
+    if (!colors?.primary || !colors?.secondary || !colors?.tertiary) {
+      return new Response(JSON.stringify({ error: 'Cores do portal não informadas — volte ao passo Cores do assistente.' }), {
+        status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ── Step 1: generate repo from template ───────────────────────────────
     // Requires cliente-workr-lite to be marked as "Template repository" in GitHub Settings.
     await ghJson<unknown>(await gh(`/repos/${githubOrg}/${templateRepo}/generate`, {
@@ -480,7 +491,7 @@ Deno.serve(async (req) => {
       nome,
       nomeFantasia,
       layout: layout ?? 'banner',
-      colors: colors ?? { primary: '#0B5B68', secondary: '#00D865', tertiary: '#141414' },
+      colors,
       fonts:  fonts  ?? { display: 'Plus Jakarta Sans', body: 'Inter' },
       footer: footer ?? null,
       canais: canais ?? [],
