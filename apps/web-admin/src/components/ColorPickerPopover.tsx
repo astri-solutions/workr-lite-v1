@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import './ColorPickerPopover.css';
 
 function hexToHsv(hex: string): [number, number, number] {
@@ -204,7 +205,7 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
           setOpen(o => !o);
         }}
       />
-      {open && (
+      {open && createPortal(
         <div
           ref={popoverRef}
           className="cp-popover"
@@ -257,7 +258,8 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
               }}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
