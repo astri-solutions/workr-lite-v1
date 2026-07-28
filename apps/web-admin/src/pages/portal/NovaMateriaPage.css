@@ -1014,6 +1014,19 @@
 .rte-btn--underline { text-decoration: underline; }
 .rte-btn--strike { text-decoration: line-through; }
 
+.rte-textcolor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.rte-textcolor .cp-swatch {
+  border-radius: var(--radius-sm, 4px);
+}
+
 .rte-body {
   position: relative;
   min-height: 48px;

@@ -363,6 +363,44 @@ const SECTION_LABEL: Record<SectionType, string> = {
 function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { value: string; onChange: (html: string) => void; placeholder?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [empty, setEmpty] = useState((value ?? '').replace(/<[^>]+>/g, '').trim() === '');
+  // Cor por trecho selecionado (independente da cor padrão da seção, definida
+  // no swatch "Texto" do cabeçalho) — o range é salvo no mousedown do botão,
+  // antes que o clique tire o foco do contentEditable e colapse a seleção.
+  const savedRangeRef = useRef<Range | null>(null);
+  const [lastTextColor, setLastTextColor] = useState('#141414');
+
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && ref.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  function applyTextColor(hex: string) {
+    const sel = window.getSelection();
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRangeRef.current);
+    }
+    ref.current?.focus();
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, hex);
+    setLastTextColor(hex);
+    syncEmpty();
+    onChange(ref.current?.innerHTML ?? '');
+  }
+
+  function resetTextColor() {
+    const sel = window.getSelection();
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRangeRef.current);
+    }
+    ref.current?.focus();
+    document.execCommand('styleWithCSS', false, 'true');
+    document.execCommand('foreColor', false, 'inherit');
+    onChange(ref.current?.innerHTML ?? '');
+  }
 
   useEffect(() => {
     if (ref.current) ref.current.innerHTML = value ?? '';
@@ -439,6 +477,28 @@ function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { 
         <button type="button" className="rte-btn rte-btn--italic" title="Itálico" onMouseDown={(e) => md(e, 'italic')}>I</button>
         <button type="button" className="rte-btn rte-btn--underline" title="Sublinhado" onMouseDown={(e) => md(e, 'underline')}>U</button>
         <button type="button" className="rte-btn rte-btn--strike" title="Tachado" onMouseDown={(e) => md(e, 'strikeThrough')}>S</button>
+
+        <div className="rte-sep" />
+
+        {/* Cor do texto — aplica só ao trecho selecionado, não à seção
+            inteira (essa é a função do swatch "Texto" no cabeçalho). Sem
+            seleção nenhuma cor é aplicada, mantendo o padrão do tema. */}
+        <div className="rte-textcolor" onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}>
+          <ColorPickerPopover
+            value={lastTextColor}
+            onChange={applyTextColor}
+            size={18}
+            title="Cor do texto selecionado"
+          />
+        </div>
+        <button
+          type="button"
+          className="rte-btn"
+          title="Remover cor do trecho selecionado (volta ao padrão da seção)"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); resetTextColor(); }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_color_reset</span>
+        </button>
 
         <div className="rte-sep" />
 
@@ -1097,7 +1157,7 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
               botão de limpar, e não um valor padrão fixo. */}
           <span className="sec-editor__colors-label" title="Cor de fundo da seção">Fundo</span>
           <ColorPickerPopover value={section.bgColor || '#ffffff'} onChange={bgColor => onUpdateSection({ bgColor })} />
-          <span className="sec-editor__colors-label" title="Cor do texto da seção">Texto</span>
+          <span className="sec-editor__colors-label" title="Cor padrão do texto da seção — trechos com cor própria (aplicada no editor de texto abaixo) não são afetados">Texto</span>
           <ColorPickerPopover value={section.textColor || '#141414'} onChange={textColor => onUpdateSection({ textColor })} />
           {(section.bgColor || section.textColor) && (
             <button type="button" className="sec-editor__del" title="Voltar às cores do tema"

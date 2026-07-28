@@ -41,9 +41,12 @@ function hsvToHex(h: number, s: number, v: number): string {
 interface Props {
   value: string;
   onChange: (hex: string) => void;
+  /** Swatch button size in px — default 36 (the Fundo/Texto section swatches). Toolbar-sized triggers (e.g. cor de texto inline) pass a smaller value. */
+  size?: number;
+  title?: string;
 }
 
-export default function ColorPickerPopover({ value, onChange }: Props) {
+export default function ColorPickerPopover({ value, onChange, size = 36, title }: Props) {
   const [open, setOpen] = useState(false);
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const [hsv, setHsv] = useState<[number, number, number]>(() =>
@@ -199,7 +202,13 @@ export default function ColorPickerPopover({ value, onChange }: Props) {
         ref={swatchRef}
         type="button"
         className="cp-swatch"
-        style={{ background: currentHex }}
+        title={title}
+        style={{ background: currentHex, width: size, height: size }}
+        // Prevents the button from stealing focus/collapsing an active text
+        // selection elsewhere on the page (e.g. a highlighted range inside a
+        // rich-text editor) before the click handler below even runs — same
+        // technique the RTE toolbar's bold/italic buttons already use.
+        onMouseDown={e => e.preventDefault()}
         onClick={() => {
           if (!open) calcPosition();
           setOpen(o => !o);
