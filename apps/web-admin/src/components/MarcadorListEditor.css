@@ -1,0 +1,105 @@
+.mk-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mk-editor__add {
+  display: flex;
+  gap: 8px;
+}
+
+.mk-editor__add .canais-edit-form__input {
+  flex: 1;
+}
+
+.mk-editor__list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mk-editor__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--color-white);
+}
+
+.mk-editor__row + .mk-editor__row {
+  border-top: 1px solid var(--color-gray-100);
+}
+
+.mk-editor__reorder {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.mk-editor__reorder button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  border: none;
+  background: none;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  padding: 0;
+}
+
+.mk-editor__reorder button:hover:not(:disabled) {
+  color: var(--color-primary-500);
+}
+
+.mk-editor__reorder button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mk-editor__input {
+  flex: 1;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  color: var(--color-gray-900);
+  background: transparent;
+  outline: none;
+}
+
+.mk-editor__input:hover,
+.mk-editor__input:focus {
+  border-color: var(--color-gray-200);
+  background: var(--color-gray-50);
+}
+
+.mk-editor__input::placeholder {
+  color: var(--color-gray-400);
+  font-style: italic;
+}
+
+.mk-editor__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mk-editor__remove:hover {
+  background: var(--color-error-100);
+  color: var(--color-error-600);
+}

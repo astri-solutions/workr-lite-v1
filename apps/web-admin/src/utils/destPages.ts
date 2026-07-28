@@ -1,11 +1,11 @@
-import { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType } from '../components/ChannelEditor';
+import { Canal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType, Marcador } from '../components/ChannelEditor';
 
 export interface DestPage {
   id: string;
   label: string;
   group: string;
   pageType?: PageType;
-  listaAgrupadaCategories?: string[];
+  listaAgrupadaCategories?: Marcador[];
 }
 
 /**

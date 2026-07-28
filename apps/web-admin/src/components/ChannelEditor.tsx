@@ -6,6 +6,36 @@ export const CANAIS_KEY = 'portal_canais';
 export type PageType = 'show' | 'lista' | 'lista-agrupada' | 'tabela' | 'tabela-resultados' | 'blog' | 'galeria' | 'formulario' | 'timeline';
 export type ListaAgrupadaStyle = 'accordion' | 'secao';
 
+// A "lista-agrupada" grouping marker — NOT a nav entry (never appears in the
+// site menu, publish-config only reads Canal.children for the live nav), but
+// otherwise editable like a real tree node: stable id, per-locale name,
+// reorderable. The id is what Auto CVM routing and document tagging
+// (`portal_documents.sub_group_ids`) reference, so renaming a marker's label
+// never breaks anything pointing at it.
+export interface Marcador {
+  id: string;
+  label: string;
+  labels?: Partial<Record<string, string>>;
+}
+
+export function genMarcadorId(): string {
+  return `mk-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+// Tolerates the pre-existing plain-string arrays already stored in portals
+// created before markers became id-based objects — no migration script
+// needed, every reader just normalizes on the way in. A legacy string's own
+// text becomes its id, so anything already referencing that label (document
+// tagging, Auto CVM routing) keeps resolving correctly.
+export function normalizeMarcadores(raw: unknown): Marcador[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(item => (typeof item === 'string' ? { id: item, label: item } : item as Marcador));
+}
+
+export function marcadorLabel(m: Marcador, locale: string, fallbackLocale: string): string {
+  return m.labels?.[locale] || m.labels?.[fallbackLocale] || m.label;
+}
+
 export interface SubSubCanal {
   id: string;
   label: string;
@@ -32,10 +62,10 @@ export interface SubCanal {
   enabled: boolean;
   pageType?: PageType;
   listaAgrupadaStyle?: ListaAgrupadaStyle;
-  // Group labels offered when tagging a document to this page, used only
-  // when pageType === 'lista-agrupada' — these are NOT sub-pages, just the
-  // set of accordion/section names documents can be assigned to.
-  listaAgrupadaCategories?: string[];
+  // Group markers offered when tagging a document to this page, used only
+  // when pageType === 'lista-agrupada' — editable like sub-pages (id, name,
+  // position) but never rendered as a nav entry.
+  listaAgrupadaCategories?: Marcador[];
   isExternalLink?: boolean;
   externalUrl?: string;
   showInFooter?: boolean;
@@ -55,7 +85,7 @@ export interface Canal {
   headerImage?: string;
   pageType?: PageType;
   listaAgrupadaStyle?: ListaAgrupadaStyle;
-  listaAgrupadaCategories?: string[];
+  listaAgrupadaCategories?: Marcador[];
   showInFooter?: boolean;
   isExternalLink?: boolean;
   externalUrl?: string;

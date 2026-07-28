@@ -49,12 +49,20 @@ interface SyncStateRow {
   discovered_categories: DiscoveredCategory[] | null;
 }
 
+// Markers are id-based objects in the canal tree (Canais can rename/reorder
+// them without breaking anything referencing them) — this still tolerates
+// the legacy plain-string arrays from before that change.
 interface CanalNode {
   id?: string;
   label: string;
   pageType?: string;
-  listaAgrupadaCategories?: string[];
+  listaAgrupadaCategories?: (string | { id: string; label: string })[];
   children?: CanalNode[];
+}
+
+function groupLabels(cats: CanalNode['listaAgrupadaCategories']): string[] | undefined {
+  if (!cats) return undefined;
+  return cats.map(c => (typeof c === 'string' ? c : c.label));
 }
 
 function collectRoutablePages(canais: CanalNode[]): RoutablePage[] {
@@ -68,7 +76,7 @@ function collectRoutablePages(canais: CanalNode[]): RoutablePage[] {
         label: node.label,
         path: path.join(' › '),
         isGrouped: node.pageType === 'lista-agrupada',
-        groupCategories: node.listaAgrupadaCategories,
+        groupCategories: groupLabels(node.listaAgrupadaCategories),
       });
     }
     for (const child of node.children ?? []) walk(child, path);

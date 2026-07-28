@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
 import { loadPortalCanais, buildDestPages as buildBasePages, type DestPage as BaseDestPage } from '../../utils/destPages';
+import { normalizeMarcadores } from '../../components/ChannelEditor';
 import { logActivity } from '../../lib/activityLog';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
@@ -84,7 +85,10 @@ interface DestPage extends BaseDestPage { subGroups: string[]; }
 function buildDestPages(canais: Parameters<typeof buildBasePages>[0]): DestPage[] {
   return buildBasePages(canais).map(p => ({
     ...p,
-    subGroups: p.pageType === 'lista-agrupada' ? (p.listaAgrupadaCategories ?? []) : [],
+    // Markers are id-based objects in the canal tree now (so Canais can
+    // rename/reorder them without breaking anything) — tagging a document
+    // still stores the plain label string here, same as before.
+    subGroups: p.pageType === 'lista-agrupada' ? normalizeMarcadores(p.listaAgrupadaCategories).map(m => m.label) : [],
   }));
 }
 

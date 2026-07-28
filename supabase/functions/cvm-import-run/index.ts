@@ -365,8 +365,16 @@ interface EmpresaRow {
 interface CvmRoutingRule {
   cvmCategoryId: string; cvmCategoryLabel: string; targetId: string; targetLabel: string; groupCategory?: string;
 }
+// Markers are id-based objects on the admin side now (Canais can rename/
+// reorder them without breaking Auto CVM routing or document tagging) — this
+// still tolerates the legacy plain-string arrays from before that change.
+interface Marcador { id: string; label: string; labels?: Record<string, string>; }
 interface CanalNode {
-  id?: string; label: string; pageType?: string; listaAgrupadaCategories?: string[]; children?: CanalNode[];
+  id?: string; label: string; pageType?: string; listaAgrupadaCategories?: (string | Marcador)[]; children?: CanalNode[];
+}
+
+function marcadorLabel(m: string | Marcador): string {
+  return typeof m === 'string' ? m : m.label;
 }
 
 // Confirms a routing rule's targetId still points at a real node in the
@@ -392,13 +400,15 @@ function ensureCategoryOnTree(canais: CanalNode[], targetId: string, categoryLab
     if (node.id === targetId) {
       const cats = node.listaAgrupadaCategories ?? [];
       const needsPromote = node.pageType !== 'lista-agrupada';
-      const needsCategory = !cats.includes(categoryLabel);
+      const needsCategory = !cats.some(c => marcadorLabel(c) === categoryLabel);
       if (needsPromote || needsCategory) {
         changed = true;
         next = {
           ...node,
           pageType: 'lista-agrupada',
-          listaAgrupadaCategories: needsCategory ? [...cats, categoryLabel] : cats,
+          listaAgrupadaCategories: needsCategory
+            ? [...cats, { id: categoryLabel, label: categoryLabel }]
+            : cats,
         };
       }
     }

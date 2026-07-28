@@ -3,7 +3,8 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
 import LangTabs from '../../components/LangTabs';
-import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType, ListaAgrupadaStyle } from '../../components/ChannelEditor';
+import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType, ListaAgrupadaStyle, Marcador, normalizeMarcadores } from '../../components/ChannelEditor';
+import MarcadorListEditor from '../../components/MarcadorListEditor';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,13 +29,20 @@ function genId() {
 function resolveGroupCategories(form: {
   laByEmpresa: boolean;
   laSelectedEmpresas: string[];
-  laCategories: string[];
-  laEmpresaCategories: Record<string, string[]>;
-}): string[] {
+  laCategories: Marcador[];
+  laEmpresaCategories: Record<string, Marcador[]>;
+}): Marcador[] {
   const raw = form.laByEmpresa
     ? form.laSelectedEmpresas.flatMap(id => form.laEmpresaCategories[id] ?? [])
     : form.laCategories;
-  return [...new Set(raw.map(c => c.trim()).filter(Boolean))];
+  const seen = new Set<string>();
+  const result: Marcador[] = [];
+  for (const m of raw) {
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    result.push(m);
+  }
+  return result;
 }
 
 // ── Portal empresas ──────────────────────────────────────────────────────────
@@ -235,10 +243,8 @@ interface NewSubForm {
   laByEmpresa: boolean;
   laSelectedEmpresas: string[];
   laFiltroEmpresa: boolean;
-  laCategories: string[];
-  laCatInput: string;
-  laEmpresaCategories: Record<string, string[]>;
-  laEmpresaCatInputs: Record<string, string>;
+  laCategories: Marcador[];
+  laEmpresaCategories: Record<string, Marcador[]>;
   laActiveEmpresa: string;
   linkedMateriaIds: string[];
 }
@@ -260,8 +266,8 @@ function emptyNewSubForm(canalId: string, parentSubId: string | null = null, can
     laByEmpresa: hasMultiple,
     laSelectedEmpresas: empresas.map(e => e.id),
     laFiltroEmpresa: hasMultiple,
-    laCategories: [], laCatInput: '',
-    laEmpresaCategories: {}, laEmpresaCatInputs: {},
+    laCategories: [],
+    laEmpresaCategories: {},
     laActiveEmpresa: empresas[0]?.id ?? '',
     linkedMateriaIds: [],
   };
@@ -288,10 +294,8 @@ interface EditState {
   laByEmpresa: boolean;
   laSelectedEmpresas: string[];
   laFiltroEmpresa: boolean;
-  laCategories: string[];
-  laCatInput: string;
-  laEmpresaCategories: Record<string, string[]>;
-  laEmpresaCatInputs: Record<string, string>;
+  laCategories: Marcador[];
+  laEmpresaCategories: Record<string, Marcador[]>;
   laActiveEmpresa: string;
 }
 
@@ -306,8 +310,7 @@ interface CanalEditState {
   applyHeaderToChildren: boolean;
   isLeaf: boolean;
   showInFooter: boolean;
-  laCategories: string[];
-  laCatInput: string;
+  laCategories: Marcador[];
 }
 
 type CanalType = 'pagina' | 'pai';
@@ -329,10 +332,8 @@ interface NewCanalForm {
   laByEmpresa: boolean;
   laSelectedEmpresas: string[];
   laFiltroEmpresa: boolean;
-  laCategories: string[];
-  laCatInput: string;
-  laEmpresaCategories: Record<string, string[]>;
-  laEmpresaCatInputs: Record<string, string>;
+  laCategories: Marcador[];
+  laEmpresaCategories: Record<string, Marcador[]>;
   linkedMateriaIds: string[];
 }
 
@@ -355,9 +356,7 @@ function emptyNewCanalForm(empresas: PortalEmpresa[] = []): NewCanalForm {
     laSelectedEmpresas: empresas.map(e => e.id),
     laFiltroEmpresa: hasMultiple,
     laCategories: [],
-    laCatInput: '',
     laEmpresaCategories: {},
-    laEmpresaCatInputs: {},
     linkedMateriaIds: [],
   };
 }
@@ -884,8 +883,7 @@ export default function CanaisPage() {
       applyHeaderToChildren: false,
       isLeaf: canal.children.length === 0,
       showInFooter: canal.showInFooter ?? false,
-      laCategories: canal.listaAgrupadaCategories ?? [],
-      laCatInput: '',
+      laCategories: normalizeMarcadores(canal.listaAgrupadaCategories),
     });
   }
   function commitCanalEdit() {
@@ -901,7 +899,7 @@ export default function CanaisPage() {
           pageType: isLeaf ? pageType : c.pageType,
           listaAgrupadaStyle: isLeaf && pageType === 'lista-agrupada' ? listaAgrupadaStyle : c.listaAgrupadaStyle,
           listaAgrupadaCategories: isLeaf && pageType === 'lista-agrupada'
-            ? [...new Set(laCategories.map(cat => cat.trim()).filter(Boolean))]
+            ? laCategories
             : c.listaAgrupadaCategories,
           headerImage: headerImageUrl ?? undefined, showInFooter,
         };
@@ -948,10 +946,8 @@ export default function CanaisPage() {
     laByEmpresa: hasMultipleEmpresas,
     laSelectedEmpresas: portalEmpresas.map(e => e.id),
     laFiltroEmpresa: hasMultipleEmpresas,
-    laCategories: [] as string[],
-    laCatInput: '',
-    laEmpresaCategories: {} as Record<string, string[]>,
-    laEmpresaCatInputs: {} as Record<string, string>,
+    laCategories: [] as Marcador[],
+    laEmpresaCategories: {} as Record<string, Marcador[]>,
     laActiveEmpresa: portalEmpresas[0]?.id ?? '',
   };
 
@@ -970,7 +966,7 @@ export default function CanaisPage() {
       canalHeaderImage: parentCanal?.headerImage ?? null,
       ..._laDefaults,
       laByEmpresa: false,
-      laCategories: sub.listaAgrupadaCategories ?? [],
+      laCategories: normalizeMarcadores(sub.listaAgrupadaCategories),
     });
   }
   function openEditSubSub(cid: string, sid: string, ss: SubSubCanal) {
@@ -1152,10 +1148,10 @@ export default function CanaisPage() {
 
               {!collapsed && canal.children.length === 0 && canal.pageType === 'lista-agrupada' && (
                 <div className="ct-tr ct-tr--empty">
-                  {(canal.listaAgrupadaCategories ?? []).length > 0 ? (
+                  {normalizeMarcadores(canal.listaAgrupadaCategories).length > 0 ? (
                     <div className="ct-la-cats">
-                      {(canal.listaAgrupadaCategories ?? []).map(cat => (
-                        <span key={cat} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                      {normalizeMarcadores(canal.listaAgrupadaCategories).map(cat => (
+                        <span key={cat.id} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat.label}</span>
                       ))}
                     </div>
                   ) : (
@@ -1726,8 +1722,8 @@ export default function CanaisPage() {
                         </div>
                         {cats.length > 0 && (
                           <div className="ct-la-emp-box__chips">
-                            {cats.slice(0, 4).map((cat, i) => (
-                              <span key={i} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                            {cats.slice(0, 4).map(cat => (
+                              <span key={cat.id} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat.label}</span>
                             ))}
                             {cats.length > 4 && <span className="ct-la-emp-box__more">+{cats.length - 4}</span>}
                           </div>
@@ -1737,56 +1733,23 @@ export default function CanaisPage() {
                   })}
                 </div>
 
-                {/* Active empresa category input */}
+                {/* Active empresa marker editor */}
                 {(() => {
                   const empId = newSubForm.laActiveEmpresa;
                   const emp = portalEmpresas.find(e => e.id === empId);
                   if (!emp || !newSubForm.laSelectedEmpresas.includes(empId)) return null;
                   const cats = newSubForm.laEmpresaCategories[empId] ?? [];
-                  const catInput = newSubForm.laEmpresaCatInputs[empId] ?? '';
                   return (
                     <div className="ct-la-active-emp">
                       <p className="ct-la-sub-title">{emp.label}</p>
-                      <div className="ct-la-cat-input">
-                        <input className="canais-edit-form__input" type="text"
-                          placeholder="Ex: ITR, DFP, Fatos Relevantes"
-                          value={catInput}
-                          onChange={e => patchSub({ laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [empId]: e.target.value } })}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && catInput.trim()) {
-                              e.preventDefault();
-                              patchSub({
-                                laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
-                                laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [empId]: '' },
-                              });
-                            }
-                          }}
-                        />
-                        <button className="btn-outline" type="button"
-                          disabled={!catInput.trim()}
-                          onClick={() => patchSub({
-                            laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
-                            laEmpresaCatInputs: { ...newSubForm.laEmpresaCatInputs, [empId]: '' },
-                          })}>
-                          Adicionar
-                        </button>
-                      </div>
-                      {cats.length > 0 ? (
-                        <div className="ct-la-cats">
-                          {cats.map((cat, i) => (
-                            <span key={i} className="ct-la-cat-chip">
-                              {cat}
-                              <button type="button" onClick={() => patchSub({
-                                laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: cats.filter((_, j) => j !== i) },
-                              })}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
-                      )}
+                      <MarcadorListEditor
+                        key={empId}
+                        groups={cats}
+                        onChange={next => patchSub({ laEmpresaCategories: { ...newSubForm.laEmpresaCategories, [empId]: next } })}
+                        locale={newSubForm.locale}
+                        fallbackLocale={PORTAL_CONFIG.languages[0]}
+                        placeholder="Ex: ITR, DFP, Fatos Relevantes"
+                      />
                     </div>
                   );
                 })()}
@@ -1798,38 +1761,12 @@ export default function CanaisPage() {
                   <span>Categorias <span className="ct-required">*</span></span>
                   <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
                 </p>
-                <div className="ct-la-cat-input">
-                  <input className="canais-edit-form__input" type="text"
-                    placeholder="Ex: Demonstrações Financeiras"
-                    value={newSubForm.laCatInput}
-                    onChange={e => patchSub({ laCatInput: e.target.value })}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && newSubForm.laCatInput.trim()) {
-                        e.preventDefault();
-                        patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' });
-                      }
-                    }}
-                  />
-                  <button className="btn-outline" type="button"
-                    disabled={!newSubForm.laCatInput.trim()}
-                    onClick={() => patchSub({ laCategories: [...newSubForm.laCategories, newSubForm.laCatInput.trim()], laCatInput: '' })}>
-                    Adicionar
-                  </button>
-                </div>
-                {newSubForm.laCategories.length > 0 ? (
-                  <div className="ct-la-cats">
-                    {newSubForm.laCategories.map((cat, i) => (
-                      <span key={i} className="ct-la-cat-chip">
-                        {cat}
-                        <button type="button" onClick={() => patchSub({ laCategories: newSubForm.laCategories.filter((_, j) => j !== i) })}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
-                )}
+                <MarcadorListEditor
+                  groups={newSubForm.laCategories}
+                  onChange={next => patchSub({ laCategories: next })}
+                  locale={newSubForm.locale}
+                  fallbackLocale={PORTAL_CONFIG.languages[0]}
+                />
               </>
             )}
           </div>
@@ -1906,38 +1843,14 @@ export default function CanaisPage() {
                       <span>Grupos <span className="ct-required">*</span></span>
                       <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
                     </p>
-                    <div className="ct-la-cat-input">
-                      <input className="canais-edit-form__input" type="text"
-                        placeholder="Ex: Fatos Relevantes"
-                        value={canalEditModal.laCatInput}
-                        onChange={e => setCanalEditModal(m => m ? { ...m, laCatInput: e.target.value } : m)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && canalEditModal.laCatInput.trim()) {
-                            e.preventDefault();
-                            setCanalEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m);
-                          }
-                        }}
-                      />
-                      <button className="btn-outline" type="button"
-                        disabled={!canalEditModal.laCatInput.trim()}
-                        onClick={() => setCanalEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m)}>
-                        Adicionar
-                      </button>
-                    </div>
-                    {canalEditModal.laCategories.length > 0 ? (
-                      <div className="ct-la-cats">
-                        {canalEditModal.laCategories.map((cat, i) => (
-                          <span key={i} className="ct-la-cat-chip">
-                            {cat}
-                            <button type="button" onClick={() => setCanalEditModal(m => m ? { ...m, laCategories: m.laCategories.filter((_, j) => j !== i) } : m)}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir um grupo.</p>
-                    )}
+                    <MarcadorListEditor
+                      groups={canalEditModal.laCategories}
+                      onChange={next => setCanalEditModal(m => m ? { ...m, laCategories: next } : m)}
+                      locale={canalEditModal.locale}
+                      fallbackLocale={PORTAL_CONFIG.languages[0]}
+                      placeholder="Ex: Fatos Relevantes"
+                      emptyHint='Pressione Enter ou clique em "Adicionar" para incluir um grupo.'
+                    />
                   </>
                 )}
               </>
@@ -2080,8 +1993,8 @@ export default function CanaisPage() {
                             </div>
                             {cats.length > 0 && (
                               <div className="ct-la-emp-box__chips">
-                                {cats.slice(0, 4).map((cat, i) => (
-                                  <span key={i} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat}</span>
+                                {cats.slice(0, 4).map(cat => (
+                                  <span key={cat.id} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat.label}</span>
                                 ))}
                                 {cats.length > 4 && <span className="ct-la-emp-box__more">+{cats.length - 4}</span>}
                               </div>
@@ -2096,53 +2009,17 @@ export default function CanaisPage() {
                       const emp = portalEmpresas.find(e => e.id === empId);
                       if (!emp || !editModal.laSelectedEmpresas.includes(empId)) return null;
                       const cats = editModal.laEmpresaCategories[empId] ?? [];
-                      const catInput = editModal.laEmpresaCatInputs[empId] ?? '';
                       return (
                         <div className="ct-la-active-emp">
                           <p className="ct-la-sub-title">{emp.label}</p>
-                          <div className="ct-la-cat-input">
-                            <input className="canais-edit-form__input" type="text"
-                              placeholder="Ex: ITR, DFP, Fatos Relevantes"
-                              value={catInput}
-                              onChange={e => setEditModal(m => m ? { ...m, laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [empId]: e.target.value } } : m)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' && catInput.trim()) {
-                                  e.preventDefault();
-                                  setEditModal(m => m ? {
-                                    ...m,
-                                    laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
-                                    laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [empId]: '' },
-                                  } : m);
-                                }
-                              }}
-                            />
-                            <button className="btn-outline" type="button"
-                              disabled={!catInput.trim()}
-                              onClick={() => setEditModal(m => m ? {
-                                ...m,
-                                laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: [...cats, catInput.trim()] },
-                                laEmpresaCatInputs: { ...m.laEmpresaCatInputs, [empId]: '' },
-                              } : m)}>
-                              Adicionar
-                            </button>
-                          </div>
-                          {cats.length > 0 ? (
-                            <div className="ct-la-cats">
-                              {cats.map((cat, i) => (
-                                <span key={i} className="ct-la-cat-chip">
-                                  {cat}
-                                  <button type="button" onClick={() => setEditModal(m => m ? {
-                                    ...m,
-                                    laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: cats.filter((_, j) => j !== i) },
-                                  } : m)}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
-                          )}
+                          <MarcadorListEditor
+                            key={empId}
+                            groups={cats}
+                            onChange={next => setEditModal(m => m ? { ...m, laEmpresaCategories: { ...m.laEmpresaCategories, [empId]: next } } : m)}
+                            locale={editModal.locale}
+                            fallbackLocale={PORTAL_CONFIG.languages[0]}
+                            placeholder="Ex: ITR, DFP, Fatos Relevantes"
+                          />
                         </div>
                       );
                     })()}
@@ -2154,38 +2031,12 @@ export default function CanaisPage() {
                       <span>Categorias <span className="ct-required">*</span></span>
                       <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
                     </p>
-                    <div className="ct-la-cat-input">
-                      <input className="canais-edit-form__input" type="text"
-                        placeholder="Ex: Demonstrações Financeiras"
-                        value={editModal.laCatInput}
-                        onChange={e => setEditModal(m => m ? { ...m, laCatInput: e.target.value } : m)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && editModal.laCatInput.trim()) {
-                            e.preventDefault();
-                            setEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m);
-                          }
-                        }}
-                      />
-                      <button className="btn-outline" type="button"
-                        disabled={!editModal.laCatInput.trim()}
-                        onClick={() => setEditModal(m => m ? { ...m, laCategories: [...m.laCategories, m.laCatInput.trim()], laCatInput: '' } : m)}>
-                        Adicionar
-                      </button>
-                    </div>
-                    {editModal.laCategories.length > 0 ? (
-                      <div className="ct-la-cats">
-                        {editModal.laCategories.map((cat, i) => (
-                          <span key={i} className="ct-la-cat-chip">
-                            {cat}
-                            <button type="button" onClick={() => setEditModal(m => m ? { ...m, laCategories: m.laCategories.filter((_, j) => j !== i) } : m)}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
-                    )}
+                    <MarcadorListEditor
+                      groups={editModal.laCategories}
+                      onChange={next => setEditModal(m => m ? { ...m, laCategories: next } : m)}
+                      locale={editModal.locale}
+                      fallbackLocale={PORTAL_CONFIG.languages[0]}
+                    />
                   </>
                 )}
               </div>
@@ -2466,51 +2317,16 @@ export default function CanaisPage() {
                             </p>
                             {portalEmpresas.filter(e => newCanalForm.laSelectedEmpresas.includes(e.id)).map(emp => {
                               const cats = newCanalForm.laEmpresaCategories[emp.id] ?? [];
-                              const catInput = newCanalForm.laEmpresaCatInputs[emp.id] ?? '';
                               return (
                                 <div key={emp.id} className="ct-la-emp-cats">
                                   <p className="ct-la-emp-cats__name">{emp.label}</p>
-                                  <div className="ct-la-cat-input">
-                                    <input className="canais-edit-form__input" type="text"
-                                      placeholder="Ex: ITR, DFP, Fatos Relevantes"
-                                      value={catInput}
-                                      onChange={e => setNewCanalForm(f => ({ ...f, laEmpresaCatInputs: { ...f.laEmpresaCatInputs, [emp.id]: e.target.value } }))}
-                                      onKeyDown={e => {
-                                        if (e.key === 'Enter' && catInput.trim()) {
-                                          e.preventDefault();
-                                          setNewCanalForm(f => ({
-                                            ...f,
-                                            laEmpresaCategories: { ...f.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
-                                            laEmpresaCatInputs: { ...f.laEmpresaCatInputs, [emp.id]: '' },
-                                          }));
-                                        }
-                                      }}
-                                    />
-                                    <button className="btn-outline" type="button"
-                                      disabled={!catInput.trim()}
-                                      onClick={() => setNewCanalForm(f => ({
-                                        ...f,
-                                        laEmpresaCategories: { ...f.laEmpresaCategories, [emp.id]: [...cats, catInput.trim()] },
-                                        laEmpresaCatInputs: { ...f.laEmpresaCatInputs, [emp.id]: '' },
-                                      }))}>
-                                      Adicionar
-                                    </button>
-                                  </div>
-                                  {cats.length > 0 && (
-                                    <div className="ct-la-cats">
-                                      {cats.map((cat, i) => (
-                                        <span key={i} className="ct-la-cat-chip">
-                                          {cat}
-                                          <button type="button" onClick={() => setNewCanalForm(f => ({
-                                            ...f,
-                                            laEmpresaCategories: { ...f.laEmpresaCategories, [emp.id]: cats.filter((_, j) => j !== i) },
-                                          }))}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                                          </button>
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
+                                  <MarcadorListEditor
+                                    groups={cats}
+                                    onChange={next => setNewCanalForm(f => ({ ...f, laEmpresaCategories: { ...f.laEmpresaCategories, [emp.id]: next } }))}
+                                    locale={newCanalForm.locale}
+                                    fallbackLocale={PORTAL_CONFIG.languages[0]}
+                                    placeholder="Ex: ITR, DFP, Fatos Relevantes"
+                                  />
                                 </div>
                               );
                             })}
@@ -2558,39 +2374,12 @@ export default function CanaisPage() {
                       <span>Categorias <span className="ct-required">*</span></span>
                       <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}> — mínimo 1</span>
                     </p>
-                    <div className="ct-la-cat-input">
-                      <input className="canais-edit-form__input" type="text"
-                        placeholder="Ex: Demonstrações Financeiras"
-                        value={newCanalForm.laCatInput}
-                        onChange={e => setNewCanalForm(f => ({ ...f, laCatInput: e.target.value }))}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && newCanalForm.laCatInput.trim()) {
-                            e.preventDefault();
-                            setNewCanalForm(f => ({ ...f, laCategories: [...f.laCategories, f.laCatInput.trim()], laCatInput: '' }));
-                          }
-                        }}
-                      />
-                      <button className="btn-outline" type="button"
-                        disabled={!newCanalForm.laCatInput.trim()}
-                        onClick={() => setNewCanalForm(f => ({ ...f, laCategories: [...f.laCategories, f.laCatInput.trim()], laCatInput: '' }))}>
-                        Adicionar
-                      </button>
-                    </div>
-                    {newCanalForm.laCategories.length > 0 && (
-                      <div className="ct-la-cats">
-                        {newCanalForm.laCategories.map((cat, i) => (
-                          <span key={i} className="ct-la-cat-chip">
-                            {cat}
-                            <button type="button" onClick={() => setNewCanalForm(f => ({ ...f, laCategories: f.laCategories.filter((_, j) => j !== i) }))}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {newCanalForm.laCategories.length === 0 && (
-                      <p className="ct-la-cat-hint">Pressione Enter ou clique em "Adicionar" para incluir uma categoria.</p>
-                    )}
+                    <MarcadorListEditor
+                      groups={newCanalForm.laCategories}
+                      onChange={next => setNewCanalForm(f => ({ ...f, laCategories: next }))}
+                      locale={newCanalForm.locale}
+                      fallbackLocale={PORTAL_CONFIG.languages[0]}
+                    />
                     <p className="ct-la-sub-title" style={{ marginTop: 'var(--space-2)' }}>Estilo de agrupamento</p>
                     <div className="canais-agrupada-grid">
                       {(['accordion', 'secao'] as const).map(s => (
