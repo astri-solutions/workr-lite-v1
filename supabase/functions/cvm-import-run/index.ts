@@ -179,8 +179,12 @@ function mapToCategoryId(row: IpeRow): { id: string; label: string } | null {
   const all = `${cat} ${tipo} ${especie}`;
 
   if (all.includes('fato relevante')) return { id: 'fato-relevante', label: 'Fato Relevante' };
-  if (all.includes('comunicado ao mercado') || all.includes('comunicado')) return { id: 'comunicado', label: 'Comunicado ao Mercado' };
+  // Checked before the generic "comunicado" branch below — CVM sometimes
+  // labels a filing "Comunicado ao Mercado — Aviso aos Acionistas", which
+  // would otherwise always match the broader comunicado branch first and
+  // silently mask the more specific Aviso aos Acionistas category.
   if (all.includes('aviso') && all.includes('acionist')) return { id: 'aviso-acionistas', label: 'Aviso aos Acionistas' };
+  if (all.includes('comunicado ao mercado') || all.includes('comunicado')) return { id: 'comunicado', label: 'Comunicado ao Mercado' };
   if (all.includes('convocacao') || all.includes('edital')) return { id: 'convocacao', label: 'Convocação' };
   // Board/fiscal-council minutes ("Ata de Reunião do Conselho de
   // Administração/Fiscal") also contain "ata" but are a legally distinct
