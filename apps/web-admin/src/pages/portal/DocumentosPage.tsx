@@ -963,11 +963,11 @@ export default function DocumentosPage() {
                           }} />
                         {p.label}{!compatible ? ' (incompatível)' : ''}
                         {p.subGroups.length > 0 && (
-                          <button type="button" className="doc-subgroup-chevron"
+                          <button type="button" className={`doc-subgroup-chevron${subgroupOpen ? ' doc-subgroup-chevron--open' : ''}`}
                             onClick={e => { e.preventDefault(); setSubgroupsOpen(prev => ({ ...prev, [p.id]: !subgroupOpen })); }}
                             title="Esta página tem grupos internos"
                             aria-label={subgroupOpen ? 'Ocultar grupos' : 'Mostrar grupos'} aria-expanded={subgroupOpen}>
-                            <span className="material-symbols-outlined">{subgroupOpen ? 'expand_less' : 'expand_more'}</span>
+                            <span className="material-symbols-outlined">expand_more</span>
                           </button>
                         )}
                       </label>
