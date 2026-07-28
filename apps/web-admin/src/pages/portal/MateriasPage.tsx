@@ -147,7 +147,7 @@ export default function MateriasPage() {
 
   const [materias, setMaterias] = useState<Materia[]>(INITIAL);
   const [portalDbId, setPortalDbId] = useState<string | null>(null);
-  const destinos = useCanaisDestinos(activePortalId ?? undefined);
+  const { destinos } = useCanaisDestinos(activePortalId ?? undefined);
   const destinoById = useMemo(() => new Map(destinos.map(d => [d.id, d])), [destinos]);
 
   useEffect(() => {

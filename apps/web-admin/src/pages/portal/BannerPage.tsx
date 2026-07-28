@@ -95,7 +95,7 @@ export default function BannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shortcutsHydrated]);
 
-  const destinos = useCanaisDestinos(user?.activePortalId ?? undefined);
+  const { destinos } = useCanaisDestinos(user?.activePortalId ?? undefined);
 
   // Necessário para montar o caminho da prévia no bucket portal-media.
   const [portalDbId, setPortalDbId] = useState<string | null>(null);

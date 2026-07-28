@@ -139,9 +139,10 @@ export default function NovoFormularioPage() {
     subtitles, submitLabels, successMessages, fields, infoCard, receiverEmail, replyTo, page,
   }) !== initialSnapshot;
 
-  const allDestinos = useCanaisDestinos(activePortalId ?? undefined);
-  // Formulário is compatible with pages that have pageType 'formulario' or undefined (generic pages)
-  const COMPATIBLE_TYPES = ['formulario', undefined] as (string | undefined)[];
+  const { destinos: allDestinos } = useCanaisDestinos(activePortalId ?? undefined);
+  // useCanaisDestinos already excludes pages with no pageType chosen yet in
+  // Canais — formulário only ever targets a page explicitly typed as such.
+  const COMPATIBLE_TYPES = ['formulario'] as (string | undefined)[];
 
   function addField(type: FieldType) {
     const f = newField(type);
