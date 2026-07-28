@@ -47,7 +47,7 @@
 .cal-home-toggle--on {
   background: var(--color-primary-50, #e8f5f7);
   border-color: var(--color-primary-400);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
 }
 
 /* Section headings */

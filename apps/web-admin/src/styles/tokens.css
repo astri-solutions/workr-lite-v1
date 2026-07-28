@@ -50,6 +50,14 @@
   --color-primary-tint:   #E8F5F7;
   --color-primary-tint-2: #F0FAFB;
   --color-primary-700-alt: #0A4E5A;
+  /* Dozens of components read --color-primary-600 as an "active"/accent TEXT
+     color on a plain (transparent or white) background — fine in light mode,
+     but --color-primary-600 is a fixed dark teal that barely stands out
+     against a dark-mode page. This alias exists so dark mode can repoint
+     just the text usage to something readable, without touching the same
+     token's other job as a normal (dark, high-contrast) background/border
+     fill, which must stay put. */
+  --color-primary-600-text: var(--color-primary-600);
 
   /* ── Grayscale ────────────────────────────────────────────── */
   --color-gray-50:  #FAFAFA;
@@ -188,6 +196,7 @@
   --color-primary-100: #163338;
   --color-secondary-50:  #12301f;
   --color-secondary-100: #163d28;
+  --color-primary-600-text: var(--color-primary-300);
 
   /* Semantic 50/100 tints are used as badge/banner BACKGROUNDS with the
      700 shade as text — in light mode that's a near-white pill with dark
@@ -236,6 +245,7 @@
     --color-primary-100: #163338;
     --color-secondary-50:  #12301f;
     --color-secondary-100: #163d28;
+    --color-primary-600-text: var(--color-primary-300);
     --color-error-50:   #3a1414;
     --color-error-100:  #4a1a1a;
     --color-error-700:  #ffb4b4;

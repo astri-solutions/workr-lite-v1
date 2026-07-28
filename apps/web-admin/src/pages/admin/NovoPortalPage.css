@@ -254,7 +254,7 @@
 .np-input__hint--warn { color: var(--color-warning-600, #d97706); }
 .np-input__hint--error { color: var(--color-error-600, var(--color-error-600)); }
 .np-input__hint--domain { color: var(--color-gray-500, #6F6F6F); margin-top: 4px; }
-.np-input__hint--domain strong { font-weight: 600; color: var(--color-primary-600, var(--color-primary-500)); }
+.np-input__hint--domain strong { font-weight: 600; color: var(--color-primary-600-text, var(--color-primary-500)); }
 
 .np-required {
   color: var(--color-error-500);
@@ -425,7 +425,7 @@
 }
 
 .np-tipo-card--selected .np-tipo-card__label {
-  color: var(--color-primary-600, #0a5260);
+  color: var(--color-primary-600-text, #0a5260);
 }
 
 .np-tipo-card__desc {
@@ -641,7 +641,7 @@
 
 .np-font-item--selected .np-font-item__name {
   font-weight: var(--font-semibold);
-  color: var(--color-primary-600, #0a5260);
+  color: var(--color-primary-600-text, #0a5260);
 }
 
 .np-font-item__check {

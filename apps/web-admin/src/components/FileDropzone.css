@@ -42,7 +42,7 @@
 }
 
 .file-dropzone__label strong {
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   font-weight: var(--font-semibold);
 }
 

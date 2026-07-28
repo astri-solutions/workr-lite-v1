@@ -126,7 +126,7 @@
   font-size: 11px;
   font-weight: var(--font-semibold);
   letter-spacing: 0.04em;
-  color: var(--color-primary-600, #0a4e5a);
+  color: var(--color-primary-600-text, #0a4e5a);
   background: var(--color-primary-50, #e8f5f7);
   border: 1px solid var(--color-primary-200, #a8d4da);
   border-radius: var(--radius-full);
@@ -777,7 +777,7 @@
 }
 
 .admin-nav-item--child-active {
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   font-weight: var(--font-semibold);
 }
 

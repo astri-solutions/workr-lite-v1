@@ -68,7 +68,7 @@
 }
 
 .eu-tab--active {
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   border-bottom-color: var(--color-primary-500);
   font-weight: var(--font-semibold);
 }

@@ -91,7 +91,7 @@
   cursor: pointer;
   transition: all 0.15s;
 }
-.trn-pg-num:hover { border-color: var(--color-primary-400); color: var(--color-primary-600); }
+.trn-pg-num:hover { border-color: var(--color-primary-400); color: var(--color-primary-600-text); }
 .trn-pg-num--active {
   background: var(--color-primary-500);
   border-color: var(--color-primary-500);
@@ -131,7 +131,7 @@
   white-space: nowrap;
 }
 .trn-tab:hover { color: var(--color-gray-800); }
-.trn-tab--active { color: var(--color-primary-600); border-bottom-color: var(--color-primary-500); font-weight: var(--font-semibold); }
+.trn-tab--active { color: var(--color-primary-600-text); border-bottom-color: var(--color-primary-500); font-weight: var(--font-semibold); }
 
 .trn-tab__badge {
   display: inline-flex;

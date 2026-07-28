@@ -318,7 +318,7 @@
 
 .cdr-doc-item__tipo {
   font-weight: var(--font-medium);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
 }
 
 /* ─── Add document button ────────────────────────────── */
@@ -335,7 +335,7 @@
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -421,7 +421,7 @@
   color: var(--color-gray-500);
 }
 
-.cdr-tipo-btn--active .cdr-tipo-btn__icon { color: var(--color-primary-600); }
+.cdr-tipo-btn--active .cdr-tipo-btn__icon { color: var(--color-primary-600-text); }
 
 .cdr-tipo-btn__label {
   font-size: 11px;

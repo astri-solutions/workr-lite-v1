@@ -29,7 +29,7 @@
 }
 
 .painel-breadcrumb__back:hover {
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
 }
 
 .painel-breadcrumb__sep {

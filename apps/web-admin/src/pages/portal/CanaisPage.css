@@ -546,7 +546,7 @@
   gap: 6px;
   font-family: var(--font-body);
   font-size: var(--text-xs);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   margin: var(--space-2) 0 0;
   padding: var(--space-2) var(--space-3);
   background: var(--color-primary-50, #e8f5f7);
@@ -603,7 +603,7 @@
   color: var(--color-gray-500);
   flex-shrink: 0;
 }
-.ct-pt-card--active .ct-pt-card__icon { color: var(--color-primary-600); }
+.ct-pt-card--active .ct-pt-card__icon { color: var(--color-primary-600-text); }
 
 .ct-pt-card__label {
   font-family: var(--font-body);
@@ -835,7 +835,7 @@ select.canais-edit-form__input,
 .canais-new-type-btn:hover { border-color: var(--color-primary-300); }
 .canais-new-type-btn--active { border-color: var(--color-primary-500); background: var(--color-primary-50, #e8f5f7); box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.1); }
 .canais-new-type-btn__icon { font-size: 22px; color: var(--color-gray-400); margin-bottom: var(--space-1); }
-.canais-new-type-btn--active .canais-new-type-btn__icon { color: var(--color-primary-600); }
+.canais-new-type-btn--active .canais-new-type-btn__icon { color: var(--color-primary-600-text); }
 .canais-new-type-btn__label { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--color-gray-800); }
 .canais-new-type-btn__desc { font-size: var(--text-xs); color: var(--color-gray-500); line-height: 1.4; }
 .canais-new-type-btn__check {
@@ -1054,7 +1054,7 @@ select.canais-edit-form__input,
 .ct-wizard-step--done .ct-wizard-step__dot {
   border-color: var(--color-primary-400);
   background: var(--color-primary-50, #e3f6ed);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
 }
 .ct-wizard-step__line {
   flex: 1;
@@ -1185,7 +1185,7 @@ select.canais-edit-form__input,
 }
 .ct-la-emp-box__count {
   font-size: var(--text-xs);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   font-weight: var(--font-semibold);
 }
 .ct-la-emp-box__empty {

@@ -305,7 +305,7 @@
 
 .cdr2-status-btn--pub {
   background: var(--color-primary-50, #e8f5f7);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
   border-color: var(--color-primary-300);
 }
 
@@ -541,7 +541,7 @@
 
 .cdr2-period-chip:hover {
   border-color: var(--color-primary-400);
-  color: var(--color-primary-600);
+  color: var(--color-primary-600-text);
 }
 
 .cdr2-period-chip--active {
@@ -852,7 +852,7 @@
 .cdr2-pt-only-chip--on {
   border-color: var(--color-primary-500);
   background: rgba(11, 91, 104, 0.06);
-  color: var(--color-primary-600, var(--color-primary-500));
+  color: var(--color-primary-600-text, var(--color-primary-500));
 }
 
 .cdr2-pt-only-note {
@@ -860,7 +860,7 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-xs);
-  color: var(--color-primary-600, var(--color-primary-500));
+  color: var(--color-primary-600-text, var(--color-primary-500));
   background: rgba(11, 91, 104, 0.06);
   border: 1px solid rgba(11, 91, 104, 0.18);
   border-radius: var(--radius-md);
@@ -929,7 +929,7 @@
   align-items: center;
   gap: var(--space-1);
   font-size: var(--text-xs);
-  color: var(--color-primary-600, var(--color-primary-500));
+  color: var(--color-primary-600-text, var(--color-primary-500));
 }
 
 .cdr2-edit-pt-only-switch {
