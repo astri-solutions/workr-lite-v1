@@ -231,6 +231,10 @@ export default function DocumentosPage() {
   const [ptOnly, setPtOnly] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  // Which "Página de destino" entries have their group list expanded — chevron
+  // starts open the first time a page with groups gets checked, so the choice
+  // stays visible without an extra click, but can be collapsed afterwards.
+  const [subgroupsOpen, setSubgroupsOpen] = useState<Record<string, boolean>>({});
 
   const primaryLocale = PORTAL_CONFIG.languages[0];
 
@@ -947,6 +951,7 @@ export default function DocumentosPage() {
                   const checked = form.paginaIds.includes(p.id);
                   const subs = form.subGroupIds[p.id] ?? [];
                   const compatible = !!p.pageType && COMPATIBLE_DOC_TYPES.includes(p.pageType);
+                  const subgroupOpen = subgroupsOpen[p.id] ?? true;
                   return (
                     <div key={p.id}>
                       <label className="up-form__check" title={!compatible ? 'Esta página não é do tipo Lista — não aceita documentos' : undefined}>
@@ -957,8 +962,15 @@ export default function DocumentosPage() {
                             if (!e.target.checked) patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
                           }} />
                         {p.label}{!compatible ? ' (incompatível)' : ''}
+                        {checked && p.subGroups.length > 0 && (
+                          <button type="button" className="doc-subgroup-chevron"
+                            onClick={e => { e.preventDefault(); setSubgroupsOpen(prev => ({ ...prev, [p.id]: !subgroupOpen })); }}
+                            aria-label={subgroupOpen ? 'Ocultar grupos' : 'Mostrar grupos'} aria-expanded={subgroupOpen}>
+                            <span className="material-symbols-outlined">{subgroupOpen ? 'expand_less' : 'expand_more'}</span>
+                          </button>
+                        )}
                       </label>
-                      {checked && p.subGroups.length > 0 && (
+                      {checked && p.subGroups.length > 0 && subgroupOpen && (
                         <div className="doc-subgroup">
                           <label className="doc-subgroup__check">
                             <input type="checkbox" checked={subs.length === 0}
