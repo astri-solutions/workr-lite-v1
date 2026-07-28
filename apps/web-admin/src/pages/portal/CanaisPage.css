@@ -362,6 +362,15 @@
   border: 1px solid var(--color-gray-200);
 }
 
+/* A page that predates the "sem formato padrão" sprint, or was never
+   deliberately typed — content can't target it (useCanaisDestinos excludes
+   it) until an admin picks a format via Editar. */
+.ct-type-badge--warn {
+  background: var(--color-warning-100);
+  color: var(--color-warning-700);
+  border: 1px solid var(--color-warning-100);
+}
+
 /* ── Status column (fixed 60px) ─────────────────── */
 .ct-row__status-col {
   width: 60px;

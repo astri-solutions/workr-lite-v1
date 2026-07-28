@@ -1074,7 +1074,7 @@ export default function CanaisPage() {
                 Salvar ordem
               </button>
             )}
-            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm({ ...emptyNewCanalForm(portalEmpresas), tipo: isFlatLayout ? 'pagina' : 'pai', pageType: isFlatLayout ? 'lista' : 'show' }); setNewCanalOpen(true); }}>
+            <button className="btn-outline" type="button" onClick={() => { setNewCanalForm({ ...emptyNewCanalForm(portalEmpresas), tipo: isFlatLayout ? 'pagina' : 'pai' }); setNewCanalOpen(true); }}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
               Novo canal
             </button>
@@ -1127,7 +1127,15 @@ export default function CanaisPage() {
                     {canal.enabled ? 'Publicado' : 'Rascunho'}
                   </span>
                 </span>
-                <span><span className="ct-type-badge">Canal</span></span>
+                <span>
+                  {canal.children.length === 0 ? (
+                    canal.pageType
+                      ? <span className="ct-type-badge">{canal.pageType}</span>
+                      : <span className="ct-type-badge ct-type-badge--warn" title="Nenhum conteúdo pode ser publicado aqui até um formato ser escolhido em Editar">Sem formato</span>
+                  ) : (
+                    <span className="ct-type-badge">Canal</span>
+                  )}
+                </span>
                 <span><span className="ct-type-badge ct-type-badge--nivel">Raiz</span></span>
                 <span>
                   <div className="ct-row__reorder">
@@ -1192,7 +1200,9 @@ export default function CanaisPage() {
                           </span>
                         </span>
                         <span>
-                          <span className="ct-type-badge">{sub.pageType ?? 'Página'}</span>
+                          {sub.pageType
+                            ? <span className="ct-type-badge">{sub.pageType}</span>
+                            : <span className="ct-type-badge ct-type-badge--warn" title="Nenhum conteúdo pode ser publicado aqui até um formato ser escolhido em Editar">Sem formato</span>}
                           {cvmPageIds.has(sub.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
                         </span>
                         <span><span className="ct-type-badge ct-type-badge--nivel">Subpágina</span></span>
@@ -1239,7 +1249,9 @@ export default function CanaisPage() {
                                 </span>
                               </span>
                               <span>
-                                <span className="ct-type-badge">{ss.pageType ?? 'Sub-página'}</span>
+                                {ss.pageType
+                                  ? <span className="ct-type-badge">{ss.pageType}</span>
+                                  : <span className="ct-type-badge ct-type-badge--warn" title="Nenhum conteúdo pode ser publicado aqui até um formato ser escolhido em Editar">Sem formato</span>}
                                 {cvmPageIds.has(ss.id) && <span className="ct-cvm-badge">⟳ Auto CVM</span>}
                               </span>
                               <span><span className="ct-type-badge ct-type-badge--nivel">Sub-subpágina</span></span>
