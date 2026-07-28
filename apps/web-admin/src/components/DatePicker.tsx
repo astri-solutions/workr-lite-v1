@@ -33,6 +33,7 @@ interface DatePickerProps {
   className?: string;
   id?: string;
   min?: string; // 'YYYY-MM-DD' — days before this are shown but not selectable
+  max?: string; // 'YYYY-MM-DD' — days after this are shown but not selectable
 }
 
 // Modal calendar replacing the native <input type="date"> across the CMS —
@@ -41,7 +42,7 @@ interface DatePickerProps {
 // Opens as a centered dialog (not an inline popover) with day/month/year
 // panels — click the header label to zoom out to month, then year, pick
 // there, and it zooms back in. Nothing commits until "Aplicar".
-export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa', label, disabled, className, id, min }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa', label, disabled, className, id, min, max }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>('days');
   const [cursor, setCursor] = useState(() => {
@@ -73,6 +74,7 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
   const today = todayParts();
   const selected = parseIso(draft);
   const minIso = min || undefined;
+  const maxIso = max || undefined;
 
   const grid = useMemo(() => {
     const startWeekday = new Date(cursor.y, cursor.m, 1).getDay();
@@ -149,7 +151,7 @@ export default function DatePicker({ value, onChange, placeholder = 'dd/mm/aaaa'
                     const iso = toIso(c.y, c.m, c.d);
                     const isSelected = !!selected && selected.y === c.y && selected.m === c.m && selected.d === c.d;
                     const isToday = today.y === c.y && today.m === c.m && today.d === c.d;
-                    const isDisabled = !!minIso && iso < minIso;
+                    const isDisabled = (!!minIso && iso < minIso) || (!!maxIso && iso > maxIso);
                     return (
                       <button
                         key={i}

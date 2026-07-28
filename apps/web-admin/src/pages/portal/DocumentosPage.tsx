@@ -115,6 +115,12 @@ interface DocForm {
   scheduleEnabled: boolean;
   scheduleDate: string;
   scheduleTime: string;
+  // Backdates the document's DISPLAY/sort date (data_publicacao) — for
+  // uploading old historical documents manually with their real date,
+  // independent of the schedule mechanism above (which only ever looks
+  // forward, to defer when something goes live). Empty = use today/now,
+  // same as before this field existed.
+  dataPublicacao: string;
   filesByLocale: Partial<Record<string, LocaleFileState>>;
   // Storage paths orphaned by a remove/replace/switch-to-link action this
   // session — deleted from the bucket only after the DB write succeeds.
@@ -128,6 +134,7 @@ function emptyDocForm(entityId = ''): DocForm {
     titulos: {},
     allPages: false, paginaIds: [], subGroupIds: {},
     scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
+    dataPublicacao: '',
     filesByLocale: {},
     pendingStorageDeletes: [],
   };
@@ -316,6 +323,7 @@ export default function DocumentosPage() {
     });
     const isAgendado = raw.status === 'Agendado' && !!raw.schedule_at;
     const scheduleDt = isAgendado ? new Date(raw.schedule_at as string) : null;
+    const publicadoEm = (raw.data_publicacao as string | null) ?? (raw.created_at as string | null);
     setForm({
       editingId: doc.id,
       entityId: (raw.entity_id as string) ?? '',
@@ -332,6 +340,7 @@ export default function DocumentosPage() {
       scheduleEnabled: isAgendado,
       scheduleDate: scheduleDt ? scheduleDt.toISOString().slice(0, 10) : '',
       scheduleTime: scheduleDt ? scheduleDt.toTimeString().slice(0, 5) : '',
+      dataPublicacao: publicadoEm ? publicadoEm.slice(0, 10) : '',
       filesByLocale,
       pendingStorageDeletes: [],
     });
@@ -426,6 +435,12 @@ export default function DocumentosPage() {
       }
     }
 
+    // Backdating: an empty value keeps the previous behavior (data_publicacao
+    // stays null, display/sort falls back to created_at — "now"). Noon UTC
+    // avoids the picked calendar day shifting by one when read back in a
+    // timezone behind UTC, same fix already used for CVM's own filing dates.
+    const dataPublicacaoIso = form.dataPublicacao ? new Date(`${form.dataPublicacao}T12:00:00Z`).toISOString() : null;
+
     const primaryEntry = arquivosPatch[primaryLocale];
     const idiomasWithContent = Object.keys(arquivosPatch);
     // "Todas as páginas" is stored as every compatible page id, not an empty
@@ -438,6 +453,7 @@ export default function DocumentosPage() {
       titulo: titulos,
       status,
       schedule_at: scheduleAtIso,
+      data_publicacao: dataPublicacaoIso,
       pagina_ids: paginaIdsToSave,
       sub_group_ids: form.subGroupIds,
       idiomas: idiomasWithContent.length ? idiomasWithContent : [primaryLocale],
@@ -949,6 +965,17 @@ export default function DocumentosPage() {
                 })}
               </div>
             )}
+          </div>
+
+          <div className="doc-field">
+            <label className="doc-field__label">Data de publicação</label>
+            <DatePicker max={todayStr}
+              value={form.dataPublicacao}
+              onChange={date => patchForm('dataPublicacao', date)}
+              placeholder="dd/mm/aaaa" />
+            <p className="doc-field__hint">
+              Deixe em branco para usar a data de hoje. Use para subir documentos antigos com a data real de publicação — o documento aparece na lista do site já na posição cronológica correta.
+            </p>
           </div>
 
           <div className="doc-field">

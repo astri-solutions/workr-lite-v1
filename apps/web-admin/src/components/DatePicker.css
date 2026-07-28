@@ -199,7 +199,7 @@
 .dp__footer-actions {
   display: flex;
   gap: var(--space-2);
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .dp__footer-links {
