@@ -8,6 +8,7 @@ import { useCanaisDestinos, type Destino } from '../../hooks/useCanaisDestinos';
 import { persistMateria, syncMateriaToSupabase, activatePageInSupabase, type MateriaPageType, type StoredMateria } from '../../hooks/useMateriasStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolvePortalId } from '../../lib/portalDb';
+import { fetchPortalConfig } from '../../lib/portalConfigApi';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
@@ -1366,6 +1367,23 @@ export default function NovaMateriaPage() {
 
   const { destinos: allDestinos, untypedCount } = useCanaisDestinos(user?.activePortalId ?? undefined);
 
+  // Sidebar/Tabmenu's "Show" is deliberately a much simpler page than the
+  // Banner layout's Show (which allows the full block palette — KPIs, tabs,
+  // people, etc.): just a text section (subtítulo + corpo). The block
+  // picker below filters down to that single block type when the portal
+  // is a flat layout and this matéria targets a 'show' page.
+  const [portalLayout, setPortalLayout] = useState<'sidebar' | 'tabmenu' | 'banner'>('banner');
+  useEffect(() => {
+    const portalKey = user?.activePortalId;
+    if (!portalKey) return;
+    fetchPortalConfig(portalKey).then(data => {
+      if (data?.layout && typeof data.layout === 'string') {
+        setPortalLayout(data.layout as 'sidebar' | 'tabmenu' | 'banner');
+      }
+    }).catch(console.error);
+  }, [user?.activePortalId]);
+  const isFlatShow = pageType === 'show' && (portalLayout === 'sidebar' || portalLayout === 'tabmenu');
+
   // Resolved once up front so gallery image uploads can go straight to
   // Storage as they're picked, instead of staying as ephemeral blob: URLs
   // until the final save (which only had access to it after an async
@@ -1565,6 +1583,14 @@ export default function NovaMateriaPage() {
     setSections((prev) => [...prev, base]);
     setPickerOpen(false);
     markDirty();
+  }
+
+  // Flat layouts' simplified Show has exactly one block type available —
+  // skip the WordPress-style picker overlay entirely (nothing to actually
+  // pick) and add the text section directly.
+  function openAddSection() {
+    if (isFlatShow) { addSection('text'); return; }
+    setPickerOpen(true);
   }
 
   function removeSection(id: string) {
@@ -1769,7 +1795,7 @@ export default function NovaMateriaPage() {
             <button
               type="button"
               className="nm-add-section"
-              onClick={() => setPickerOpen(true)}
+              onClick={openAddSection}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>add</span>
               Nova seção
@@ -1856,7 +1882,7 @@ export default function NovaMateriaPage() {
                 <button
                   type="button"
                   className="nm-add-inline"
-                  onClick={() => setPickerOpen(true)}
+                  onClick={openAddSection}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                   Adicionar seção
@@ -2068,6 +2094,7 @@ export default function NovaMateriaPage() {
               <div className="nm-bp-grid">
                 {SECTION_DEFS
                   .filter(def => isGaleria ? def.type === 'galeria' : def.type !== 'galeria')
+                  .filter(def => !isFlatShow || def.type === 'text')
                   .filter(def => pickerCat === 'all' || def.cat === pickerCat)
                   .filter(def => !pickerSearch || def.label.toLowerCase().includes(pickerSearch.toLowerCase()) || def.desc.toLowerCase().includes(pickerSearch.toLowerCase()))
                   .map(def => (

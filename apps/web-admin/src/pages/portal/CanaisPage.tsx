@@ -58,9 +58,11 @@ function loadPortalEmpresas(portalId?: string): PortalEmpresa[] {
 }
 
 // Sidebar/tabmenu portals are simple CVM-compliance sites: direct pages only,
-// no rich content sections. Only list (documents) and formulário (contact/
-// mailing) page types make sense there — banner portals allow every type.
-const FLAT_PAGE_TYPES: PageType[] = ['lista', 'lista-agrupada', 'tabela', 'tabela-resultados', 'formulario'];
+// no rich content sections. list/formulário page types make sense there, and
+// so does 'show' — but only in its simplified form (NovaMateriaPage
+// restricts it to a single subtítulo+texto block for flat layouts, instead
+// of the full block palette the Banner layout's Show allows).
+const FLAT_PAGE_TYPES: PageType[] = ['lista', 'lista-agrupada', 'tabela', 'tabela-resultados', 'formulario', 'show'];
 
 // ── Page type definitions ───────────────────────────────────────────────────
 const PAGE_TYPES: Array<{

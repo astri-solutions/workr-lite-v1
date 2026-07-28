@@ -123,7 +123,7 @@ A camada que **não** se autopropaga sozinha é o template do site do cliente (`
 ## Architecture notes
 
 - **Empresas** = document repositories within a portal (e.g. Itaú BB, Itaú Negócios). Not separate sites — sub-entities sharing one portal. Users can be restricted to specific empresas.
-- **Portal models**: `sidebar` (side nav), `tabmenu` (horizontal tabs), `banner` (header nav + hero banner + channel tree). All three go through the Canais step in the wizard — the real restriction is on content *type*: sidebar/tabmenu channels are limited to `lista`/`lista-agrupada`/`tabela`/`tabela-resultados`/`formulario` (`FLAT_PAGE_TYPES` in `CanaisPage.tsx`), not `show`/`blog`/`galeria`/`timeline`.
+- **Portal models**: `sidebar` (side nav), `tabmenu` (horizontal tabs), `banner` (header nav + hero banner + channel tree). All three go through the Canais step in the wizard — the real restriction is on content *type*: sidebar/tabmenu channels are limited to `lista`/`lista-agrupada`/`tabela`/`tabela-resultados`/`formulario`/`show` (`FLAT_PAGE_TYPES` in `CanaisPage.tsx`), not `blog`/`galeria`/`timeline`. `show` on a flat layout is deliberately simpler than on `banner`: `NovaMateriaPage.tsx` detects the portal's layout and restricts the block picker to a single "Bloco de texto" (subtítulo + parágrafos) instead of the full palette (KPIs, tabs, pessoas, galeria, etc.) — same `pageType`, same site template, just a narrower authoring surface.
 - **ChannelEditor**: shared component for toggle/rename/reorder/add/remove of the portal nav tree.
 
 ## Running locally
