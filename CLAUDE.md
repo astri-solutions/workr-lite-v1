@@ -71,7 +71,7 @@ Session persisted in `localStorage` (key: `workr_auth`).
 | Path | Page |
 |---|---|
 | `/admin/portais` | PortaisPage |
-| `/admin/portais/novo` | NovoPortalPage (wizard 7 or 8 steps) |
+| `/admin/portais/novo` | NovoPortalPage (wizard, 11 steps — Canais included for all three layouts) |
 | `/admin/portais/:siteId/painel` | PainelControlePage |
 | `/admin/portais/:siteId/analytics` | AnalyticsPage |
 | `/admin/usuarios` | UsuariosPage |
@@ -123,7 +123,7 @@ A camada que **não** se autopropaga sozinha é o template do site do cliente (`
 ## Architecture notes
 
 - **Empresas** = document repositories within a portal (e.g. Itaú BB, Itaú Negócios). Not separate sites — sub-entities sharing one portal. Users can be restricted to specific empresas.
-- **Portal models**: `sidebar` (side nav), `tabmenu` (horizontal tabs), `banner` (header nav + hero banner + channel tree). Only `banner` model has the Canais step in the wizard.
+- **Portal models**: `sidebar` (side nav), `tabmenu` (horizontal tabs), `banner` (header nav + hero banner + channel tree). All three go through the Canais step in the wizard — the real restriction is on content *type*: sidebar/tabmenu channels are limited to `lista`/`lista-agrupada`/`tabela`/`tabela-resultados`/`formulario` (`FLAT_PAGE_TYPES` in `CanaisPage.tsx`), not `show`/`blog`/`galeria`/`timeline`.
 - **ChannelEditor**: shared component for toggle/rename/reorder/add/remove of the portal nav tree.
 
 ## Running locally
@@ -153,6 +153,8 @@ Vercel auto-deploys on every push to `main`. No manual steps needed.
 | `GITHUB_TOKEN` | Supabase Edge Function secrets | Create/write repos in `astri-solutions` org |
 | `VERCEL_TOKEN` | Supabase Edge Function secrets | Create Vercel project per portal |
 | `GITHUB_ORG` | Supabase Edge Function secrets | Org name (default: `astri-solutions`) |
+| `PREVIEW_TOKEN_SECRET` | Supabase Edge Function secrets | Signs/verifies preview links (`mint-preview-token`/`preview-content`) — missing hard-fails preview with a 500 |
+| `OPS_ALERT_EMAIL` | Supabase Edge Function secrets | Recipient for ops alerts (`_shared/postmark.ts`) — missing just silently disables alerts, non-fatal |
 
 ### Future production setup (dedicated server + real domains)
 When migrating from Vercel/Supabase to a dedicated server:
