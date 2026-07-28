@@ -83,6 +83,7 @@ interface Quarter {
   period: string;
   exibirHome: boolean;
   status: 'draft' | 'published';
+  portugueseOnly: boolean;
 }
 
 function parsePeriod(period: string) {
@@ -561,6 +562,7 @@ export default function CentralDeResultadosPage2() {
         period: r.period as string,
         exibirHome: r.exibir_home as boolean,
         status: (r.status === 'Publicado' ? 'published' : 'draft') as 'draft' | 'published',
+        portugueseOnly: !!r.pt_only,
       })));
     }
     if (arquivos) {
@@ -652,12 +654,23 @@ export default function CentralDeResultadosPage2() {
     const isExisting = quarters.some(q => q.id === pendingId);
     if (!isExisting) {
       const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
-      setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const }, ...prev]);
+      setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const, portugueseOnly: wPortugueseOnly }, ...prev]);
       if (portalDbId && supabase) {
         await supabase.from('portal_resultado_periodos').insert({
           id: pendingId, portal_id: portalDbId, entity_id: wEntity, period,
-          exibir_home: wExibirHome, status: 'Rascunho', updated_at: new Date().toISOString(),
+          exibir_home: wExibirHome, status: 'Rascunho', pt_only: wPortugueseOnly, updated_at: new Date().toISOString(),
         });
+      }
+    } else {
+      // Reopening the wizard on an existing período (the "Adicionar
+      // resultado" shortcut from the full-page editor) can still flip
+      // "Apenas Português" — persist that change even though nothing else
+      // about the período is editable from here.
+      setQuarters(prev => prev.map(q => q.id === pendingId ? { ...q, portugueseOnly: wPortugueseOnly } : q));
+      if (portalDbId && supabase) {
+        await supabase.from('portal_resultado_periodos')
+          .update({ pt_only: wPortugueseOnly, updated_at: new Date().toISOString() })
+          .eq('id', pendingId);
       }
     }
     try {
@@ -845,7 +858,7 @@ export default function CentralDeResultadosPage2() {
                   setWPeriodType(p.quarter ? 'trimestral' : 'anual');
                   setWQuarter(p.quarter || '');
                   setWYear(p.year || editorQuarter?.period || '');
-                  setWPortugueseOnly(false);
+                  setWPortugueseOnly(editorQuarter?.portugueseOnly ?? false);
                   setWizardOpen('step2');
                 }}
               >
@@ -883,6 +896,7 @@ export default function CentralDeResultadosPage2() {
           entries={stagedDocs}
           onChange={entries => setStagedDocs(entries)}
           onDropFiles={files => setStagedDocs(prev => [...prev, ...makeEntries(files, userName)])}
+          portugueseOnly={editorQuarter?.portugueseOnly}
         />
 
         <div className="cdr2-fullpage-footer">
