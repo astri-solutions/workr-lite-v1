@@ -423,13 +423,107 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
-    const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
-    const { data: { user }, error: authError } = await anonClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
+
+    // A pg_cron job calls this on a schedule (autoBackfillAll) so documents
+    // stuck as external_link get retried without an operator having to
+    // remember to click "Reprocessar links externos" per empresa — same
+    // service_role-key-as-trusted-system-call pattern as sync-template-all's
+    // golden-rule cron. This project's service_role key is the newer opaque
+    // `sb_secret_...` format (not a JWT), so a bearer token equal to the
+    // resolved key IS the trusted credential; a legacy JWT-format key with a
+    // `role: "service_role"` claim is still accepted as a fallback.
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, '');
+    const isServiceRoleCall = bearerToken === resolveServiceKey() || (() => {
+      try {
+        const segment = bearerToken.split('.')[1];
+        if (!segment) return false;
+        const base64 = segment.replace(/-/g, '+').replace(/_/g, '/').padEnd(segment.length + ((4 - (segment.length % 4)) % 4), '=');
+        const payload = JSON.parse(atob(base64));
+        return payload?.role === 'service_role';
+      } catch { return false; }
+    })();
+
+    const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly, autoBackfillAll } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean; reprocessRoutingOnly?: boolean; autoBackfillAll?: boolean };
+
+    // ── Modo autoBackfillAll: retry agendado, sem operador nenhum envolvido ──
+    // Varre toda empresa com autoCvm ativado em todo portal e reaplica a
+    // mesma lógica do backfill manual (documentos presos como external_link
+    // tentam baixar o arquivo real de novo). Só aceita chamada de sistema —
+    // nunca de um usuário comum — porque itera TODOS os portais de uma vez.
+    if (autoBackfillAll) {
+      if (!isServiceRoleCall) {
+        return new Response(JSON.stringify({ error: 'Forbidden: system call required' }), { status: 403, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+      const admin = createClient(supabaseUrl, resolveServiceKey());
+      const { data: configs, error: cfgErr } = await admin.from('portal_config').select('portal_id, empresas');
+      if (cfgErr) {
+        return new Response(JSON.stringify({ error: `Falha ao listar portais: ${cfgErr.message}` }), { status: 500, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+
+      const targets: { portalId: string; empresaId: string }[] = [];
+      for (const cfg of configs ?? []) {
+        const empresas = (cfg.empresas ?? []) as EmpresaRow[];
+        for (const e of empresas) {
+          if (e.autoCvm) targets.push({ portalId: cfg.portal_id as string, empresaId: e.id });
+        }
+      }
+
+      let totalBackfilled = 0;
+      let totalStillExternal = 0;
+      const perEntity: { portalId: string; empresaId: string; backfilled: number; stillExternal: number; error?: string }[] = [];
+
+      for (const target of targets) {
+        const { data: pending, error: pendingErr } = await admin
+          .from('portal_documents')
+          .select('id, external_link')
+          .eq('portal_id', target.portalId)
+          .eq('entity_id', target.empresaId)
+          .eq('from_cvm', true)
+          .is('file_path', null)
+          .not('external_link', 'is', null);
+        if (pendingErr) {
+          perEntity.push({ ...target, backfilled: 0, stillExternal: 0, error: pendingErr.message });
+          continue;
+        }
+        if (!pending || pending.length === 0) continue;
+
+        let backfilled = 0;
+        let stillExternal = 0;
+        for (const doc of pending) {
+          const downloaded = await downloadCvmFile(doc.external_link as string);
+          if (!downloaded) { stillExternal++; continue; }
+          const storagePath = `${target.portalId}/${doc.id}.${downloaded.ext}`;
+          const { error: uploadError } = await admin.storage
+            .from('portal-documents')
+            .upload(storagePath, downloaded.bytes, { upsert: true, contentType: downloaded.contentType });
+          if (uploadError) { continue; }
+          const { error: updateError } = await admin
+            .from('portal_documents')
+            .update({ file_path: storagePath, external_link: null })
+            .eq('id', doc.id);
+          if (!updateError) backfilled++;
+        }
+        totalBackfilled += backfilled;
+        totalStillExternal += stillExternal;
+        perEntity.push({ ...target, backfilled, stillExternal });
+      }
+
+      return new Response(JSON.stringify({
+        syncedAt: new Date().toISOString(),
+        entitiesChecked: targets.length,
+        totalBackfilled,
+        totalStillExternal,
+        perEntity: perEntity.filter(e => e.backfilled > 0 || e.stillExternal > 0 || e.error),
+      }), { status: 200, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
-    const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean; reprocessRoutingOnly?: boolean };
+    if (!isServiceRoleCall) {
+      const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
+      const { data: { user }, error: authError } = await anonClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+    }
 
     if (!portalId || !empresaId) {
       return new Response(JSON.stringify({ error: 'Informe portalId e empresaId' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
