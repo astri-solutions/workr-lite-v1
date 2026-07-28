@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
@@ -8,7 +8,9 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
-import { savePortalConfig } from '../../lib/portalConfigApi';
+import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import FaviconCropModal from '../../components/FaviconCropModal';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -50,6 +52,37 @@ export default function LogotipoPage() {
 
   const isDirty = logo !== baseLogo || logoCollapsed !== baseCollapsed || logoNegative !== baseNegative;
   const blocker = useUnsavedChanges(isDirty);
+
+  // localStorage only ever holds an unpublished draft — on a fresh session,
+  // different browser, or cleared storage it's empty even though a logo is
+  // live on the published site. The real source of truth is the copy
+  // publish-config mirrors into the portal-media bucket at publish time, so
+  // fall back to that whenever there's no local draft to show instead.
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const [remoteLogoUrl, setRemoteLogoUrl] = useState<string | null>(null);
+  const [remoteNegativeUrl, setRemoteNegativeUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!portalId) return;
+    resolvePortalId(portalId).then(setPortalDbId).catch(() => {});
+  }, [portalId]);
+
+  useEffect(() => {
+    if (!portalId || !portalDbId || !isSupabaseConfigured || !supabase) return;
+    fetchPortalConfig(portalId).then(cfg => {
+      if (!cfg) return;
+      const logoExt = cfg.logo_ext as string | undefined;
+      const negExt = cfg.logo_negativo_ext as string | undefined;
+      if (logoExt) {
+        const path = `${portalDbId}/system/logotipo-original.${logoExt}`;
+        setRemoteLogoUrl(supabase!.storage.from('portal-media').getPublicUrl(path).data.publicUrl);
+      }
+      if (negExt) {
+        const path = `${portalDbId}/system/logotipo-negativo.${negExt}`;
+        setRemoteNegativeUrl(supabase!.storage.from('portal-media').getPublicUrl(path).data.publicUrl);
+      }
+    }).catch(() => {});
+  }, [portalId, portalDbId]);
 
   async function handleFile(
     e: React.ChangeEvent<HTMLInputElement>,
@@ -99,16 +132,26 @@ export default function LogotipoPage() {
     pendingLogoDataUrl.current = null;
     pendingLogoCollDataUrl.current = null;
     pendingLogoNegDataUrl.current = null;
-    // Persist logo extension to Supabase so publish-config uses the correct file extension
-    if (portalId && logo) {
-      const m = logo.match(/^data:([^;]+);base64,/);
-      const extMap: Record<string, string> = {
-        'image/svg+xml': 'svg', 'image/png': 'png',
-        'image/jpeg': 'jpg', 'image/webp': 'webp',
-        'image/x-icon': 'ico', 'image/vnd.microsoft.icon': 'ico',
+    // Persist logo extension(s) to Supabase so publish-config uses the correct
+    // file extension, and so the persistent preview above can resolve the
+    // right path in portal-media before anything is republished.
+    if (portalId) {
+      const extOf = (dataUrl: string | null): string | undefined => {
+        if (!dataUrl) return undefined;
+        const m = dataUrl.match(/^data:([^;]+);base64,/);
+        const extMap: Record<string, string> = {
+          'image/svg+xml': 'svg', 'image/png': 'png',
+          'image/jpeg': 'jpg', 'image/webp': 'webp',
+          'image/x-icon': 'ico', 'image/vnd.microsoft.icon': 'ico',
+        };
+        return m ? (extMap[m[1]] ?? 'png') : undefined;
       };
-      const ext = m ? (extMap[m[1]] ?? 'png') : undefined;
-      if (ext) savePortalConfig(portalId, { logo_ext: ext }).catch(console.error);
+      const logoExt = extOf(logo);
+      const negExt = extOf(logoNegative);
+      const patch: { logo_ext?: string; logo_negativo_ext?: string } = {};
+      if (logoExt) patch.logo_ext = logoExt;
+      if (negExt) patch.logo_negativo_ext = negExt;
+      if (Object.keys(patch).length > 0) savePortalConfig(portalId, patch).catch(console.error);
     }
     setBaseLogo(logo);
     setBaseCollapsed(logoCollapsed);
@@ -142,7 +185,7 @@ export default function LogotipoPage() {
         <UploadArea
           title="Logotipo principal"
           desc="Exibido no header do portal. Recomendado: SVG ou PNG transparente, 300×80px mínimo."
-          value={logo}
+          value={logo ?? remoteLogoUrl}
           onChange={v => { setLogo(v); }}
           inputRef={inputRef}
           onPickFile={() => inputRef.current?.click()}
@@ -164,7 +207,7 @@ export default function LogotipoPage() {
         <UploadArea
           title="Logotipo negativo (fundo escuro)"
           desc="Versão clara/branca usada sobre fundos escuros — topbar, footer e modo alto contraste. Recomendado: mesmo formato do logotipo principal."
-          value={logoNegative}
+          value={logoNegative ?? remoteNegativeUrl}
           onChange={v => { setLogoNegative(v); }}
           inputRef={inputNegRef}
           onPickFile={() => inputNegRef.current?.click()}

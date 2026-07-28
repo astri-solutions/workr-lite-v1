@@ -35,6 +35,7 @@ export interface PortalConfigPatch {
   empresas?:     unknown;
   logo_ext?:     string;
   favicon_ext?:  string;
+  logo_negativo_ext?: string;
   error_pages?:  unknown;
   interacoes?:   unknown;
   idiomas?:      unknown;

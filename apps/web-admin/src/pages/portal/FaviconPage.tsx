@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
@@ -8,7 +8,9 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
-import { savePortalConfig } from '../../lib/portalConfigApi';
+import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { resolvePortalId } from '../../lib/portalDb';
 import FaviconCropModal from '../../components/FaviconCropModal';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
@@ -30,6 +32,29 @@ export default function FaviconPage() {
 
   const isDirty = favicon !== baseFavicon;
   const blocker = useUnsavedChanges(isDirty);
+
+  // Same fallback used on Logotipo: localStorage only ever holds an
+  // unpublished draft, so a fresh session/browser needs to fall back to the
+  // copy publish-config already mirrors into portal-media at publish time.
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const [remoteFaviconUrl, setRemoteFaviconUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!portalId) return;
+    resolvePortalId(portalId).then(setPortalDbId).catch(() => {});
+  }, [portalId]);
+
+  useEffect(() => {
+    if (!portalId || !portalDbId || !isSupabaseConfigured || !supabase) return;
+    fetchPortalConfig(portalId).then(cfg => {
+      const ext = cfg?.favicon_ext as string | undefined;
+      if (!ext) return;
+      const path = `${portalDbId}/system/favicon.${ext}`;
+      setRemoteFaviconUrl(supabase!.storage.from('portal-media').getPublicUrl(path).data.publicUrl);
+    }).catch(() => {});
+  }, [portalId, portalDbId]);
+
+  const faviconSrc = favicon ?? remoteFaviconUrl;
 
   // SVG/ICO are vector/container formats — cropping a fixed pixel region
   // doesn't make sense for them, so they keep the original pass-through flow.
@@ -99,11 +124,11 @@ export default function FaviconPage() {
 
         <input ref={inputRef} type="file" accept=".ico,.png,.svg" style={{ display: 'none' }} onChange={handleFile} />
 
-        {favicon ? (
+        {faviconSrc ? (
           <div className="fav-preview">
             <div className="fav-preview__browser">
               <div className="fav-preview__tab">
-                <img src={favicon} alt="favicon" className="fav-preview__icon" />
+                <img src={faviconSrc} alt="favicon" className="fav-preview__icon" />
                 <span className="fav-preview__tab-label">Meu Portal RI</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -132,15 +157,15 @@ export default function FaviconPage() {
         <h2 className="pers-section__title">Onde o favicon aparece</h2>
         <div className="fav-examples">
           <div className="fav-example">
-            <div className="fav-example__icon">{favicon ? <img src={favicon} alt="" width="16" height="16" /> : <div className="fav-example__placeholder" />}</div>
+            <div className="fav-example__icon">{faviconSrc ? <img src={faviconSrc} alt="" width="16" height="16" /> : <div className="fav-example__placeholder" />}</div>
             <span>Aba do navegador</span>
           </div>
           <div className="fav-example">
-            <div className="fav-example__icon">{favicon ? <img src={favicon} alt="" width="20" height="20" /> : <div className="fav-example__placeholder" style={{ width: 20, height: 20 }} />}</div>
+            <div className="fav-example__icon">{faviconSrc ? <img src={faviconSrc} alt="" width="20" height="20" /> : <div className="fav-example__placeholder" style={{ width: 20, height: 20 }} />}</div>
             <span>Bookmark / favorito</span>
           </div>
           <div className="fav-example">
-            <div className="fav-example__icon">{favicon ? <img src={favicon} alt="" width="24" height="24" /> : <div className="fav-example__placeholder" style={{ width: 24, height: 24 }} />}</div>
+            <div className="fav-example__icon">{faviconSrc ? <img src={faviconSrc} alt="" width="24" height="24" /> : <div className="fav-example__placeholder" style={{ width: 24, height: 24 }} />}</div>
             <span>Ícone mobile</span>
           </div>
         </div>
