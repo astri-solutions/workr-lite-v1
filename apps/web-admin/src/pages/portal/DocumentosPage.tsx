@@ -962,9 +962,10 @@ export default function DocumentosPage() {
                             if (!e.target.checked) patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] });
                           }} />
                         {p.label}{!compatible ? ' (incompatível)' : ''}
-                        {checked && p.subGroups.length > 0 && (
+                        {p.subGroups.length > 0 && (
                           <button type="button" className="doc-subgroup-chevron"
                             onClick={e => { e.preventDefault(); setSubgroupsOpen(prev => ({ ...prev, [p.id]: !subgroupOpen })); }}
+                            title="Esta página tem grupos internos"
                             aria-label={subgroupOpen ? 'Ocultar grupos' : 'Mostrar grupos'} aria-expanded={subgroupOpen}>
                             <span className="material-symbols-outlined">{subgroupOpen ? 'expand_less' : 'expand_more'}</span>
                           </button>
