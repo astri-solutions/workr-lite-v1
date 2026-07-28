@@ -191,9 +191,12 @@ export default function ChannelEditor({ value, onChange, flat = false }: Props) 
               Formato
               <select
                 className="ce-options__select"
-                value={item.pageType ?? 'show'}
-                onChange={e => onPatch({ pageType: e.target.value as PageType })}
+                value={item.pageType ?? ''}
+                onChange={e => onPatch({ pageType: (e.target.value || undefined) as PageType | undefined })}
               >
+                {/* No default — an untouched page must not silently behave
+                    as 'show'. Blank forces the admin to pick one. */}
+                <option value="" disabled>Selecione o formato...</option>
                 {PAGE_TYPE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}

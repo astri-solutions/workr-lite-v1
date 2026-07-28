@@ -234,7 +234,9 @@ interface NewSubForm {
   href: string;
   headerImageUrl: string | null;
   hasChildren: boolean;
-  pageType: PageType;
+  // Undefined until the admin explicitly picks a format — never defaults to
+  // 'show', so a page can't silently accept content of the wrong shape.
+  pageType: PageType | undefined;
   isExternalLink: boolean;
   externalUrl: string;
   draft: boolean;
@@ -261,7 +263,7 @@ function emptyNewSubForm(canalId: string, parentSubId: string | null = null, can
     href: '',
     headerImageUrl: null,
     hasChildren: false,
-    pageType: 'show', isExternalLink: false, externalUrl: '',
+    pageType: undefined, isExternalLink: false, externalUrl: '',
     draft: false, laStyle: 'accordion',
     laByEmpresa: hasMultiple,
     laSelectedEmpresas: empresas.map(e => e.id),
@@ -282,7 +284,9 @@ interface EditState {
   label: string;
   href: string;
   targetCanalId: string;
-  pageType: PageType;
+  // Undefined until the admin explicitly picks a format — never defaults to
+  // 'show', so a page can't silently accept content of the wrong shape.
+  pageType: PageType | undefined;
   listaAgrupadaStyle: ListaAgrupadaStyle;
   isExternalLink: boolean;
   externalUrl: string;
@@ -304,7 +308,9 @@ interface CanalEditState {
   locale: LocaleCode;
   labels: Record<string, string>;
   label: string;
-  pageType: PageType;
+  // Undefined until the admin explicitly picks a format — never defaults to
+  // 'show', so a page can't silently accept content of the wrong shape.
+  pageType: PageType | undefined;
   listaAgrupadaStyle: ListaAgrupadaStyle;
   headerImageUrl: string | null;
   applyHeaderToChildren: boolean;
@@ -321,7 +327,9 @@ interface NewCanalForm {
   subtitles: Record<string, string>;
   headerImageUrl: string | null;
   tipo: CanalType;
-  pageType: PageType;
+  // Undefined until the admin explicitly picks a format — never defaults to
+  // 'show', so a page can't silently accept content of the wrong shape.
+  pageType: PageType | undefined;
   draft: boolean;
   locale: LocaleCode;
   isExternalLink: boolean;
@@ -345,7 +353,7 @@ function emptyNewCanalForm(empresas: PortalEmpresa[] = []): NewCanalForm {
     subtitles: {},
     headerImageUrl: null,
     tipo: 'pai',
-    pageType: 'show',
+    pageType: undefined,
     draft: false,
     locale: PORTAL_CONFIG.languages[0],
     isExternalLink: false,
@@ -859,15 +867,17 @@ export default function CanaisPage() {
   const canCommitSub = !!(
     newSubForm.labels[PORTAL_CONFIG.languages[0]]?.trim() &&
     (newSubForm.hasChildren ||
-     newSubForm.pageType !== 'lista-agrupada' ||
-     (hasMultipleEmpresas
-       ? newSubForm.laSelectedEmpresas.some(id => (newSubForm.laEmpresaCategories[id]?.length ?? 0) > 0)
-       : newSubForm.laCategories.length > 0))
+     (!!newSubForm.pageType && (
+       newSubForm.pageType !== 'lista-agrupada' ||
+       (hasMultipleEmpresas
+         ? newSubForm.laSelectedEmpresas.some(id => (newSubForm.laEmpresaCategories[id]?.length ?? 0) > 0)
+         : newSubForm.laCategories.length > 0)
+     )))
   );
 
-  const subHasMatStep = !newSubForm.hasChildren && MATERIA_STEP_TYPES.includes(newSubForm.pageType);
+  const subHasMatStep = !newSubForm.hasChildren && !!newSubForm.pageType && MATERIA_STEP_TYPES.includes(newSubForm.pageType);
   const subTotalSteps = newSubForm.hasChildren ? 1 : newSubForm.pageType === 'lista-agrupada' ? 4 : subHasMatStep ? 3 : 2;
-  const canalHasMatStep = newCanalForm.tipo !== 'pai' && MATERIA_STEP_TYPES.includes(newCanalForm.pageType);
+  const canalHasMatStep = newCanalForm.tipo !== 'pai' && !!newCanalForm.pageType && MATERIA_STEP_TYPES.includes(newCanalForm.pageType);
 
   // ── Canal edit ─────────────────────────────────────────────────────────
   function openCanalEdit(canal: Canal) {
@@ -877,7 +887,7 @@ export default function CanaisPage() {
       locale: primaryLang,
       labels: (canal.labels as Record<string, string> | undefined) ?? { [primaryLang]: canal.label },
       label: canal.label,
-      pageType: canal.pageType ?? 'show',
+      pageType: canal.pageType,
       listaAgrupadaStyle: canal.listaAgrupadaStyle ?? 'accordion',
       headerImageUrl: canal.headerImage ?? null,
       applyHeaderToChildren: false,
@@ -959,7 +969,7 @@ export default function CanaisPage() {
       locale: primaryLang,
       labels: (sub.labels as Record<string, string> | undefined) ?? { [primaryLang]: sub.label },
       label: sub.label, href: sub.href, targetCanalId: cid,
-      pageType: sub.pageType ?? 'show', listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
+      pageType: sub.pageType, listaAgrupadaStyle: sub.listaAgrupadaStyle ?? 'accordion',
       isExternalLink: sub.isExternalLink ?? false, externalUrl: sub.externalUrl ?? '',
       showInFooter: sub.showInFooter ?? false, transferTo: '',
       headerImageUrl: sub.headerImage ?? null,
@@ -978,7 +988,7 @@ export default function CanaisPage() {
       locale: primaryLang,
       labels: (ss.labels as Record<string, string> | undefined) ?? { [primaryLang]: ss.label },
       label: ss.label, href: ss.href, targetCanalId: cid,
-      pageType: ss.pageType ?? 'show', listaAgrupadaStyle: 'accordion',
+      pageType: ss.pageType, listaAgrupadaStyle: 'accordion',
       isExternalLink: ss.isExternalLink ?? false, externalUrl: ss.externalUrl ?? '',
       showInFooter: false, transferTo: '',
       headerImageUrl: ss.headerImage ?? null,
@@ -1039,11 +1049,15 @@ export default function CanaisPage() {
   ]);
 
   const canAdvanceNewCanal = !!newCanalForm.titles[PORTAL_CONFIG.languages[0]]?.trim();
-  const canCommitNewCanal = newCanalForm.tipo === 'pai' || newCanalForm.pageType !== 'lista-agrupada' || (
-    hasMultipleEmpresas
-      ? (!newCanalForm.laByEmpresa ||
-         newCanalForm.laSelectedEmpresas.some(id => (newCanalForm.laEmpresaCategories[id]?.length ?? 0) > 0))
-      : newCanalForm.laCategories.length > 0
+  const canCommitNewCanal = newCanalForm.tipo === 'pai' || (
+    !!newCanalForm.pageType && (
+      newCanalForm.pageType !== 'lista-agrupada' || (
+        hasMultipleEmpresas
+          ? (!newCanalForm.laByEmpresa ||
+             newCanalForm.laSelectedEmpresas.some(id => (newCanalForm.laEmpresaCategories[id]?.length ?? 0) > 0))
+          : newCanalForm.laCategories.length > 0
+      )
+    )
   );
 
   // ── Render ──────────────────────────────────────────────────────────────
@@ -1386,12 +1400,12 @@ export default function CanaisPage() {
                   Voltar
                 </button>
                 {newSubForm.pageType === 'lista-agrupada' || subHasMatStep ? (
-                  <button className="btn-primary" type="button" onClick={() => patchSub({ step: 3 })}>
+                  <button className="btn-primary" type="button" onClick={() => patchSub({ step: 3 })} disabled={!newSubForm.pageType}>
                     Próximo
                     <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
                   </button>
                 ) : (
-                  <button className="btn-primary" type="button" onClick={triggerSubConfirm}>
+                  <button className="btn-primary" type="button" onClick={triggerSubConfirm} disabled={!newSubForm.pageType}>
                     Criar página
                   </button>
                 )}
@@ -1596,7 +1610,7 @@ export default function CanaisPage() {
                     </button>
                   ))}
                 </div>
-                {newSubForm.pageType !== 'lista-agrupada' && (
+                {newSubForm.pageType && newSubForm.pageType !== 'lista-agrupada' && (
                   <div className="ct-flow-box">
                     <p className="ct-flow-box__desc">
                       <span className="material-symbols-outlined ct-flow-box__icon">
@@ -1779,7 +1793,8 @@ export default function CanaisPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setCanalEditModal(null)}>Cancelar</button>
-              <button className="btn-primary" type="button" onClick={commitCanalEdit}>Salvar</button>
+              <button className="btn-primary" type="button" onClick={commitCanalEdit}
+                disabled={canalEditModal.isLeaf && !canalEditModal.pageType}>Salvar</button>
             </div>
           }
         >
@@ -1818,7 +1833,10 @@ export default function CanaisPage() {
             {canalEditModal.isLeaf && (
               <>
                 <div className="canais-edit-divider" />
-                <p className="canais-edit-section-title">Tipo de página</p>
+                <p className="canais-edit-section-title">
+                  Tipo de página
+                  {!canalEditModal.pageType && <span className="ct-required"> * — obrigatório antes de publicar conteúdo</span>}
+                </p>
                 <PageTypePicker
                   value={canalEditModal.pageType}
                   onChange={v => setCanalEditModal(m => m ? { ...m, pageType: v } : m)}
@@ -1867,7 +1885,7 @@ export default function CanaisPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setEditModal(null)}>Cancelar</button>
-              <button className="btn-primary" type="button" onClick={commitEdit}>Salvar</button>
+              <button className="btn-primary" type="button" onClick={commitEdit} disabled={!editModal.pageType}>Salvar</button>
             </div>
           }
         >
@@ -1920,7 +1938,10 @@ export default function CanaisPage() {
             )}
 
             <div className="canais-edit-divider" />
-            <p className="canais-edit-section-title">Tipo de página</p>
+            <p className="canais-edit-section-title">
+              Tipo de página
+              {!editModal.pageType && <span className="ct-required"> * — obrigatório antes de publicar conteúdo</span>}
+            </p>
             <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v, ..._laDefaults } : m)} />
 
             {!editModal.isExternalLink && (
@@ -2403,7 +2424,7 @@ export default function CanaisPage() {
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
-function PageTypePicker({ value, onChange, allowed }: { value: PageType; onChange: (v: PageType) => void; allowed?: PageType[] }) {
+function PageTypePicker({ value, onChange, allowed }: { value: PageType | undefined; onChange: (v: PageType) => void; allowed?: PageType[] }) {
   const options = allowed ? PAGE_TYPES.filter(pt => allowed.includes(pt.id)) : PAGE_TYPES;
   return (
     <div className="canais-page-types">
