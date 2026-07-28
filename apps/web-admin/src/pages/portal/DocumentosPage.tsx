@@ -38,6 +38,7 @@ interface DocRow {
   dataPub: string;
   pagina: string;
   idiomas: string[];
+  ptOnly: boolean;
   tags: string[];
   publicadoPor: string;
   ultimaEdicao: string;
@@ -171,6 +172,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
     dataPub: r.status === 'Publicado' ? createdAt : r.status === 'Agendado' ? scheduleLabel : '—',
     pagina: paginaLabel,
     idiomas: (r.idiomas as string[]) ?? ['PT'],
+    ptOnly: !!r.pt_only,
     tags: [],
     publicadoPor: r.publicado_por as string ?? '',
     ultimaEdicao: updatedAt,
@@ -607,6 +609,12 @@ export default function DocumentosPage() {
   const activeLocaleFile = getLocaleFile(form, ptOnly ? primaryLocale : docLocale);
   const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
     && localeFileHasContent(getLocaleFile(form, primaryLocale));
+  // With "Apenas Português" off, each language is independent — silently
+  // publishing with a language left empty means that language shows nothing
+  // for this document on the site, easy to miss since nothing blocks saving.
+  const missingLocales = !ptOnly
+    ? PORTAL_CONFIG.languages.filter(l => l !== primaryLocale && !localeFileHasContent(getLocaleFile(form, l)))
+    : [];
 
   return (
     <div className="page docs-page">
@@ -691,7 +699,9 @@ export default function DocumentosPage() {
                   <td className="docs-cell-nome">
                     <span className="docs-nome-title" title={doc.nome}>{doc.nome}</span>
                     <div className="docs-nome-badges">
-                      {doc.idiomas.map(lang => <span key={lang} className="docs-badge docs-badge--lang">{localeShortLabel(lang)}</span>)}
+                      {doc.ptOnly
+                        ? <span className="docs-badge docs-badge--pt-only">Portuguese only</span>
+                        : doc.idiomas.map(lang => <span key={lang} className="docs-badge docs-badge--lang">{localeShortLabel(lang)}</span>)}
                     </div>
                   </td>
                   <td className="table-cell--muted">{doc.dataPub}</td>
@@ -819,6 +829,13 @@ export default function DocumentosPage() {
                 <span className="cdr2-toggle__knob" />
               </button>
             </label>
+          )}
+
+          {missingLocales.length > 0 && (
+            <p className="doc-field__warning">
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>warning</span>
+              Ainda não foi adicionado conteúdo para {missingLocales.map(l => localeShortLabel(l)).join(', ')} — o documento não aparecerá para quem visita o site nesse(s) idioma(s).
+            </p>
           )}
 
           <div className="doc-field">

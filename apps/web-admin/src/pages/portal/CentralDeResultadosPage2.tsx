@@ -291,6 +291,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                       <span className={!entry.nome ? 'cdr2-file-name-text--empty' : ''}>
                         {entry.nome || 'Sem nome'}
                       </span>
+                      {portugueseOnly && <span className="cdr2-lang-badge cdr2-lang-badge--pt-only" style={{ marginLeft: 6 }}>Portuguese only</span>}
                     </td>
                     <td>
                       <select
@@ -601,6 +602,13 @@ export default function CentralDeResultadosPage2() {
   const [wLocale, setWLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [pendingId, setPendingId] = useState('');
   const [wPortugueseOnly, setWPortugueseOnly] = useState(false);
+
+  // With "Apenas Português" off, each idioma needs its own files — nothing
+  // stops publishing with a language left completely empty, so warn instead
+  // of letting it go unnoticed until a client checks the live site.
+  const wMissingLocales = !wPortugueseOnly
+    ? PORTAL_CONFIG.languages.filter(l => l !== PORTAL_CONFIG.languages[0] && !wEntries.some(e => (e.locale ?? 'pt-BR') === l))
+    : [];
 
   const [savingWizard, setSavingWizard] = useState(false);
 
@@ -1167,6 +1175,13 @@ export default function CentralDeResultadosPage2() {
                 <span className="cdr2-toggle__knob" />
               </button>
             </label>
+          )}
+
+          {wMissingLocales.length > 0 && (
+            <p className="cdr2-missing-locale-warning">
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>warning</span>
+              Ainda não foi adicionado arquivo para {wMissingLocales.map(l => LOCALE_SHORT[l] ?? l).join(', ')} — o período não aparecerá para quem visita o site nesse(s) idioma(s).
+            </p>
           )}
 
           {/* Drag & file list */}

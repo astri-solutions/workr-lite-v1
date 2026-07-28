@@ -698,6 +698,11 @@
   white-space: nowrap;
 }
 
+.cdr2-lang-badge--pt-only {
+  background: #FFF4E5;
+  color: #B25E00;
+}
+
 /* ── Extension badge ─────────────────────────────── */
 .cdr2-ext-badge {
   display: inline-flex;
@@ -892,6 +897,19 @@
   font-weight: var(--font-normal);
   color: var(--color-gray-400);
   margin-left: var(--space-1);
+}
+
+.cdr2-missing-locale-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: #FFF4E5;
+  color: #9A5300;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  margin: 0;
 }
 
 /* ── Edit modal Portuguese-only row ─────────────── */
