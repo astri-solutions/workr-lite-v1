@@ -40,8 +40,14 @@ interface FooterCfg {
   socials?: SocialCfg[];
   legalLinks?: LegalLinkCfg[];
 }
-interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; children?: SubCanalCfg[]; isExternalLink?: boolean; externalUrl?: string; }
-interface CanalCfg { id?: string; label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; isExternalLink?: boolean; externalUrl?: string; }
+interface Marcador { id: string; label: string; labels?: Record<string, string>; }
+interface SubCanalCfg { id?: string; label: string; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; listaAgrupadaCategories?: (string | Marcador)[]; children?: SubCanalCfg[]; isExternalLink?: boolean; externalUrl?: string; }
+interface CanalCfg { id?: string; label: string; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; listaAgrupadaCategories?: (string | Marcador)[]; isExternalLink?: boolean; externalUrl?: string; }
+
+function normalizeMarcadores(raw: (string | Marcador)[] | undefined): Marcador[] {
+  if (!raw) return [];
+  return raw.map(m => (typeof m === 'string' ? { id: m, label: m } : m));
+}
 
 /** Resolves a legal link's custom pageId to the matching canal's real href. */
 function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | undefined {
@@ -96,6 +102,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         `href: ${JSON.stringify(c.href ?? '/')}`,
         ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
         ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
+        ...(c.listaAgrupadaCategories ? [`listaAgrupadaCategories: ${JSON.stringify(normalizeMarcadores(c.listaAgrupadaCategories))}`] : []),
         ...(c.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(c.externalUrl ?? '')}`] : []),
         `children: []`,
       ];
@@ -108,6 +115,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         `href: ${JSON.stringify(sc.href)}`,
         ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
         ...(sc.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(sc.listaAgrupadaStyle)}`] : []),
+        ...(sc.listaAgrupadaCategories ? [`listaAgrupadaCategories: ${JSON.stringify(normalizeMarcadores(sc.listaAgrupadaCategories))}`] : []),
         ...(sc.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(sc.externalUrl ?? '')}`] : []),
       ];
       return `      { ${f.join(', ')} }`;
@@ -117,6 +125,7 @@ function buildNavSection(canais: CanalCfg[]): string {
       `label: ${JSON.stringify(c.label)}`,
       ...(c.href ? [`href: ${JSON.stringify(c.href)}`] : []),
       ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
+      ...(c.listaAgrupadaCategories ? [`listaAgrupadaCategories: ${JSON.stringify(normalizeMarcadores(c.listaAgrupadaCategories))}`] : []),
       ...(c.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(c.externalUrl ?? '')}`] : []),
     ];
     return `    { ${parentFields.join(', ')}, children: [\n${childLines},\n    ] }`;

@@ -494,6 +494,18 @@ export default function CanaisPage() {
     });
   }
 
+  // Same collapse/expand as L1 canais, for an L2 sub-página that has its own
+  // L3 sub-subpáginas — those used to always render inline with no way to
+  // hide them.
+  const [collapsedSubs, setCollapsedSubs] = useState<Set<string>>(() => new Set());
+  function toggleSubCollapsed(id: string) {
+    setCollapsedSubs(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
   // Animation
   const [movedCanals, setMovedCanals] = useState<{ id: string; dir: -1 | 1 }[]>([]);
   const movedCanalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1190,10 +1202,21 @@ export default function CanaisPage() {
               {/* L2 — Sub-página */}
               {!collapsed && canal.children.length > 0 && (
                 <div className="ct-l2-group">
-                  {canal.children.map((sub, si) => (
+                  {canal.children.map((sub, si) => {
+                    const subHasChildren = (sub.children ?? []).length > 0;
+                    const subCollapsed = collapsedSubs.has(sub.id);
+                    return (
                     <Fragment key={sub.id}>
                       <div className={['ct-grid', 'ct-tr', 'ct-tr--l2', !sub.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
-                        <span className="ct-tree-name" data-level={1}>{sub.label}</span>
+                        <span className="ct-tree-name" data-level={1}>
+                          {subHasChildren && (
+                            <button className="ct-collapse-btn" type="button" onClick={() => toggleSubCollapsed(sub.id)}
+                              aria-label={subCollapsed ? 'Expandir' : 'Recolher'}>
+                              <span className={`material-symbols-outlined${subCollapsed ? ' ct-collapse-btn__icon--closed' : ''}`}>expand_more</span>
+                            </button>
+                          )}
+                          {sub.label}
+                        </span>
                         <span>
                           <span className={`badge ${sub.enabled ? 'badge--success' : 'badge--gray'}`}>
                             {sub.enabled ? 'Publicado' : 'Rascunho'}
@@ -1238,7 +1261,7 @@ export default function CanaisPage() {
                       </div>
 
                       {/* L3 — Sub-subpágina */}
-                      {(sub.children ?? []).length > 0 && (
+                      {!subCollapsed && subHasChildren && (
                         <div className="ct-l3-group">
                           {(sub.children ?? []).map((ss, ssi) => (
                             <div key={ss.id} className={['ct-grid', 'ct-tr', 'ct-tr--l3', !ss.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
@@ -1283,7 +1306,7 @@ export default function CanaisPage() {
                         </div>
                       )}
                     </Fragment>
-                  ))}
+                  );})}
                 </div>
               )}
             </div>

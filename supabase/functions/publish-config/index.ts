@@ -89,8 +89,17 @@ interface FooterCfg {
 function footerVariant(model: string | undefined): string {
   return model === 'reduzido' ? 'simple' : 'full';
 }
-interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; children?: SubCanalCfg[]; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
-interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
+interface Marcador { id: string; label: string; labels?: Record<string, string>; }
+interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; listaAgrupadaCategories?: (string | Marcador)[]; children?: SubCanalCfg[]; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
+interface CanalCfg { id?: string; label: string; labels?: Record<string, string>; href?: string; enabled: boolean; children: SubCanalCfg[]; pageType?: string; listaAgrupadaStyle?: string; listaAgrupadaCategories?: (string | Marcador)[]; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
+
+// Markers may still be legacy plain strings (pre-existing portals never
+// touched since markers became id-based objects) — normalize on the way
+// into site.config.js so the live site always sees a stable id.
+function normalizeMarcadores(raw: (string | Marcador)[] | undefined): Marcador[] {
+  if (!raw) return [];
+  return raw.map(m => (typeof m === 'string' ? { id: m, label: m } : m));
+}
 
 /** Resolves a legal link's custom pageId to the matching canal's real href. */
 function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | undefined {
@@ -256,6 +265,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         `href: ${JSON.stringify(c.href ?? '/')}`,
         ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
         ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
+        ...(c.listaAgrupadaCategories ? [`listaAgrupadaCategories: ${JSON.stringify(normalizeMarcadores(c.listaAgrupadaCategories))}`] : []),
         ...(c.headerImage ? [`headerImage: ${JSON.stringify(c.headerImage)}`] : []),
         ...(c.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(c.externalUrl ?? '')}`] : []),
         `children: []`,
@@ -270,6 +280,7 @@ function buildNavSection(canais: CanalCfg[]): string {
         `href: ${JSON.stringify(sc.href)}`,
         ...(sc.pageType ? [`pageType: ${JSON.stringify(sc.pageType)}`] : []),
         ...(sc.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(sc.listaAgrupadaStyle)}`] : []),
+        ...(sc.listaAgrupadaCategories ? [`listaAgrupadaCategories: ${JSON.stringify(normalizeMarcadores(sc.listaAgrupadaCategories))}`] : []),
         ...(sc.headerImage ? [`headerImage: ${JSON.stringify(sc.headerImage)}`] : []),
         ...(sc.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(sc.externalUrl ?? '')}`] : []),
       ];
@@ -282,6 +293,7 @@ function buildNavSection(canais: CanalCfg[]): string {
       ...(c.href ? [`href: ${JSON.stringify(c.href)}`] : []),
       ...(c.pageType ? [`pageType: ${JSON.stringify(c.pageType)}`] : []),
       ...(c.listaAgrupadaStyle ? [`listaAgrupadaStyle: ${JSON.stringify(c.listaAgrupadaStyle)}`] : []),
+      ...(c.listaAgrupadaCategories ? [`listaAgrupadaCategories: ${JSON.stringify(normalizeMarcadores(c.listaAgrupadaCategories))}`] : []),
       ...(c.headerImage ? [`headerImage: ${JSON.stringify(c.headerImage)}`] : []),
       ...(c.isExternalLink ? [`isExternalLink: true`, `externalUrl: ${JSON.stringify(c.externalUrl ?? '')}`] : []),
     ];
