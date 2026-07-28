@@ -73,6 +73,10 @@ async function listAllUsers(supabaseUrl: string) {
   return { users: all, error: null };
 }
 
+// Wildcard is safe here (unlike a cookie-based session): every request below
+// is authenticated by a bearer token in the Authorization header, which a
+// malicious page on another origin cannot read or forge on the caller's
+// behalf — CORS only controls which origins get to read the *response*.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
