@@ -185,6 +185,7 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  font-size: var(--text-sm);
 }
 .ct-tree-name[data-level="1"] { padding-left: 28px; }
 .ct-tree-name[data-level="2"] { padding-left: 52px; }
@@ -1259,6 +1260,37 @@ select.canais-edit-form__input,
   }
   .ct-row__acts .btn-action { padding-left: var(--space-2); padding-right: var(--space-2); font-size: 0.72rem; }
   .ct-expand--l1 { order: 0; }
+
+  /* .ct-grid: the table actually rendered today (canal/sub/subsub rows).
+     Six fixed-width columns (Status/Tipo/Nível/Posição/Ações) never fit a
+     phone-width viewport — Nome got squeezed toward 0 and wrapped across
+     several lines, and the header row became unreadable. Reflow into a
+     simple two-line card instead: Nome gets its own full-width line,
+     Status/Tipo/reorder sit inline below it, and Ações wraps onto its own
+     right-aligned line. Nível is dropped entirely on mobile — the tree's
+     own indentation already conveys depth. Column order in the markup is
+     always Nome → Status → Tipo → Nível → Posição → Ações for every row
+     (L1/L2/L3 alike), so nth-child targets each one without touching the
+     component. */
+  .ct-grid--header { display: none; }
+  .ct-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: var(--space-2);
+    column-gap: var(--space-2);
+    padding: var(--space-3);
+  }
+  .ct-grid > *:nth-child(1) { flex: 1 1 100%; white-space: normal; }
+  .ct-grid > *:nth-child(4) { display: none; }
+  .ct-grid > *:nth-child(5) { margin-left: auto; }
+  .ct-grid > *:nth-child(6) {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
 }
 
 /* ── Matérias link picker ────────────────────────── */
