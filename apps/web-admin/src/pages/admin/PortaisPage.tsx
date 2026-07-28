@@ -262,6 +262,7 @@ export default function PortaisPage() {
     fetchPortais().then(data => {
       setPortais(data);
       setLoading(false);
+      startPendingSitePoll();
     }).catch((e: unknown) => {
       setFetchError(String(e));
       setLoading(false);
@@ -272,6 +273,92 @@ export default function PortaisPage() {
     if (authLoading) return; // wait for Supabase session to restore before querying
     loadPortais();
   }, [authLoading]);
+
+  // Portais still showing "Configurando" (no portal_sites row yet) used to
+  // only flip to "Ativo" when someone manually opened "Painel de controle" —
+  // an optimistic write that never actually checked whether the Vercel
+  // deployment was real. This polls the real deploy state instead (same
+  // get-site-status function the painel's own "Saúde do site" card uses) and
+  // creates the row itself the moment the deploy is READY, so the badge
+  // reflects reality without requiring anyone to click in.
+  const portaisRef = useRef<Portal[]>([]);
+  useEffect(() => { portaisRef.current = portais; }, [portais]);
+  const pendingPollTimeout = useRef<number | null>(null);
+
+  async function checkPendingSitesOnce(): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) return false;
+    const pending = portaisRef.current.filter(p => p.sites.length === 0 && (p.vercelUrl || p.githubRepo));
+    if (pending.length === 0) return false;
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return true;
+    let stillPending = false;
+    for (const portal of pending) {
+      const projectName = portal.vercelUrl
+        ? portal.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
+        : portal.subdomain ?? portal.githubRepo?.replace(/^portal-/, '');
+      if (!projectName) { stillPending = true; continue; }
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-site-status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({ projectName }),
+        });
+        const json = await res.json().catch(() => ({})) as { deployState?: string | null };
+        if (!res.ok || json.deployState !== 'READY') { stillPending = true; continue; }
+        const link = portal.vercelUrl
+          ? portal.vercelUrl.replace(/^https?:\/\//, '')
+          : `${portal.githubRepo ?? portal.id}.vercel.app`;
+        const { data: newSite } = await supabase
+          .from('portal_sites')
+          .upsert({ portal_id: portal.dbId ?? portal.id, link, status: 'Ativo', ip: '', tipo: 'RI' }, { onConflict: 'portal_id' })
+          .select('id, link, ip, tipo, status')
+          .single();
+        if (newSite) {
+          setPortais(prev => prev.map(p => p.id !== portal.id ? p : {
+            ...p,
+            sites: [...p.sites, {
+              id: newSite.id as string,
+              link: newSite.link as string,
+              ip: (newSite.ip as string) ?? '',
+              status: 'Ativo' as const,
+              tipo: (newSite.tipo as SiteTipo) ?? 'RI',
+            }],
+          }));
+        } else {
+          stillPending = true;
+        }
+      } catch {
+        stillPending = true;
+      }
+    }
+    return stillPending;
+  }
+
+  // Polls every 15s while at least one portal is still waiting on its first
+  // real deployment, up to ~2 minutes — a deploy that isn't READY by then
+  // just stays "Configurando" until the next time this page loads, instead
+  // of polling forever in the background.
+  function startPendingSitePoll() {
+    if (pendingPollTimeout.current) window.clearTimeout(pendingPollTimeout.current);
+    let attempts = 0;
+    const tick = async () => {
+      attempts += 1;
+      const stillPending = await checkPendingSitesOnce();
+      if (stillPending && attempts < 8) {
+        pendingPollTimeout.current = window.setTimeout(tick, 15000);
+      }
+    };
+    tick();
+  }
+
+  useEffect(() => {
+    return () => { if (pendingPollTimeout.current) window.clearTimeout(pendingPollTimeout.current); };
+  }, []);
 
   function toggleExpand(portalId: string) {
     setExpandedPortalId(prev => prev === portalId ? null : portalId);
