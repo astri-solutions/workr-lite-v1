@@ -950,14 +950,14 @@ export default function CentralDeResultadosPage2() {
           <SearchInput value={search} onChange={setSearch} placeholder="Pesquisar por período..." />
           <div className="filter-wrap">
             <select className="filter-select" value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}>
-              <option value="">Trimestre</option>
+              <option value="">Todos</option>
               {QUARTER_OPTIONS.map(q => <option key={q} value={q}>{q}</option>)}
             </select>
             <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
           </div>
           <div className="filter-wrap">
             <select className="filter-select" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-              <option value="">Ano</option>
+              <option value="">Todos</option>
               {years.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
