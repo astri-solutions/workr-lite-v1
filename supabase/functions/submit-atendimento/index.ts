@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendFormSubmission } from '../_shared/postmark.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 // Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
 // legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
@@ -94,6 +95,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       resolveServiceKey(),
     );
+
+    // Logged-in, but still cheap for one account to flood support inboxes
+    // with tickets — a handful per minute is generous for a real user.
+    const { allowed } = await checkRateLimit(adminClient, `submit-atendimento:${user.id}`, 5, 60);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Muitas tentativas — aguarde um momento e tente novamente.' }), {
+        status: 429, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
+    }
 
     // portalId here is the portal_key (localStorage-style id), matching how
     // the CMS addresses the active portal everywhere else.

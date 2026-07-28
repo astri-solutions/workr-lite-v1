@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit, clientIp } from '../_shared/rateLimit.ts';
 
 function resolveServiceKey(): string {
   try {
@@ -75,6 +76,16 @@ Deno.serve(async (req) => {
     }
 
     const adminClient = createClient(Deno.env.get('SUPABASE_URL')!, resolveServiceKey());
+
+    // Fully public, no session — bound the worst case of a script hammering
+    // this with guessed/stale tokens. Generous enough for real preview usage
+    // (a page polling this a few times while someone reviews a draft).
+    const { allowed } = await checkRateLimit(adminClient, `preview-content:${clientIp(req)}`, 60, 60);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
 
     let data: unknown[] = [];
     if (kind === 'materias') {

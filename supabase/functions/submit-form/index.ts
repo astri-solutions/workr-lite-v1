@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendFormSubmission } from '../_shared/postmark.ts';
+import { checkRateLimit, clientIp } from '../_shared/rateLimit.ts';
 
 // Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
 // legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
@@ -73,6 +74,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       resolveServiceKey(),
     );
+
+    // Public, unauthenticated endpoint reachable from any client portal's
+    // static site — throttle per (IP, portal) so a bot/script flooding one
+    // portal's form can't spam interações/emails unbounded.
+    const { allowed } = await checkRateLimit(admin, `submit-form:${clientIp(req)}:${portalId}`, 10, 60);
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: 'Muitas tentativas — aguarde um momento e tente novamente.' }), {
+        status: 429, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Validate portalId+materiaId together — prevents submitting against a
     // matéria that belongs to a different portal, or one that's unpublished.
