@@ -1364,7 +1364,7 @@ export default function NovaMateriaPage() {
   const isHtml = pageType === 'html';
   const isTimeline = pageType === 'timeline';
 
-  const allDestinos = useCanaisDestinos(user?.activePortalId ?? undefined);
+  const { destinos: allDestinos, untypedCount } = useCanaisDestinos(user?.activePortalId ?? undefined);
 
   // Resolved once up front so gallery image uploads can go straight to
   // Storage as they're picked, instead of staying as ephemeral blob: URLs
@@ -1377,16 +1377,18 @@ export default function NovaMateriaPage() {
     resolvePortalId(portalKey).then(setPortalDbId).catch(() => {});
   }, [user?.activePortalId]);
 
-  // Filter destinations by article type compatibility
+  // Filter destinations by article type compatibility — useCanaisDestinos
+  // already excludes pages with no pageType chosen yet in Canais, so 'show'
+  // here only ever matches a page explicitly typed as such.
   const compatiblePageTypes: (string | undefined)[] = isGaleria
     ? ['galeria', 'lista-agrupada', 'lista', 'blog']
     : isTabela
     ? ['tabela']
     : isHtml
-    ? ['show', undefined]
+    ? ['show']
     : isTimeline
     ? ['timeline']
-    : ['show', undefined];
+    : ['show'];
   const destinos = allDestinos.filter(d => compatiblePageTypes.includes(d.pageType));
 
   const [title, setTitle] = useState(editing?.titulo ?? (isGaleria && !editing ? 'Comunicados ao Mercado' : ''));
@@ -1962,6 +1964,12 @@ export default function NovaMateriaPage() {
               <p className="nm-page-conflict nm-page-conflict--info">
                 <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
                 Nenhuma página compatível com este tipo de matéria foi encontrada.
+              </p>
+            )}
+            {untypedCount > 0 && (
+              <p className="nm-page-conflict nm-page-conflict--info">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                {untypedCount} página(s) não aparecem aqui por ainda não terem um formato definido em Canais.
               </p>
             )}
           </div>

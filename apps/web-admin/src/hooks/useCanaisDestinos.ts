@@ -16,13 +16,27 @@ export interface Destino {
   hasPublishedMateria: boolean; // show pages already occupied
 }
 
-function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
-  const result: Destino[] = [];
+export interface DestinosResult {
+  destinos: Destino[];
+  /** Leaf pages that exist but have no format chosen yet in Canais — kept out
+   * of `destinos` so content can never be authored against an untyped page,
+   * but surfaced separately so the UI can tell the admin why the list looks
+   * shorter than the full tree. */
+  untypedCount: number;
+}
+
+function buildDestinos(canais: Canal[], portalKey?: string): DestinosResult {
+  const destinos: Destino[] = [];
+  let untypedCount = 0;
+  function push(entry: Omit<Destino, 'pageType'> & { pageType: PageType | undefined }) {
+    if (!entry.pageType) { untypedCount++; return; }
+    destinos.push(entry as Destino);
+  }
   for (const canal of canais) {
     if (!canal.enabled) continue;
     const canalHeaderImage = canal.headerImage ?? null;
     if (canal.children.length === 0) {
-      result.push({
+      push({
         id: canal.id, label: canal.label, parentLabel: null, pageType: canal.pageType,
         canalHasHeaderImage: !!canalHeaderImage, headerImageUrl: canalHeaderImage, headerImageInherited: false,
         hasPublishedMateria: false,
@@ -31,7 +45,7 @@ function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
       for (const sub of canal.children) {
         if (!sub.enabled) continue;
         const ownImage = sub.headerImage ?? null;
-        result.push({
+        push({
           id: sub.id,
           label: sub.label,
           parentLabel: canal.label,
@@ -45,7 +59,7 @@ function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
           if (!ss.enabled) continue;
           const ssOwnImage = ss.headerImage ?? null;
           const ssFallback = ownImage ?? canalHeaderImage;
-          result.push({
+          push({
             id: ss.id,
             label: ss.label,
             parentLabel: `${canal.label} › ${sub.label}`,
@@ -59,12 +73,13 @@ function buildDestinos(canais: Canal[], portalKey?: string): Destino[] {
       }
     }
   }
-  return result;
+  return { destinos, untypedCount };
 }
 
-export function useCanaisDestinos(portalKey?: string): Destino[] {
+export function useCanaisDestinos(portalKey?: string): DestinosResult {
   const canaisKey = portalKey ? pKey(CANAIS_KEY, portalKey) : CANAIS_KEY;
   const stored = localStorage.getItem(canaisKey);
   const canais: Canal[] = stored ? (JSON.parse(stored) as Canal[]) : DEFAULT_CANAIS;
   return buildDestinos(canais, portalKey);
 }
+

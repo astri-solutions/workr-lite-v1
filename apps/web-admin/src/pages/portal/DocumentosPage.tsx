@@ -63,15 +63,10 @@ function localeShortLabel(lang: string): string {
 }
 
 // Documents only make sense on "lista"/"lista-agrupada" pages (accordion of
-// files) — pages without pageType set yet (legacy canais) stay selectable,
-// EXCEPT the default canais that are structurally never a document list
-// (contact forms, Central de Resultados which has its own document table,
-// calendar/ratings pages) — those must never be offered even without an
-// explicit pageType.
+// files) — a page with no pageType chosen yet in Canais is never offered
+// here (Sprint "Canais sem formato padrão": every page must be explicitly
+// typed before content can target it).
 const COMPATIBLE_DOC_TYPES = ['lista', 'lista-agrupada'] as (string | undefined)[];
-const NON_LIST_DEFAULT_IDS = new Set([
-  'fale-ri', 'mailing', 'resultados', 'central-resultados', 'calendario-eventos', 'ratings',
-]);
 
 function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
@@ -233,7 +228,7 @@ export default function DocumentosPage() {
   const destPages = useMemo(() => buildDestPages(loadPortalCanais(user?.activePortalId)), [user?.activePortalId]);
   const pageLabelById = useMemo(() => new Map(destPages.map(p => [p.id, p.label])), [destPages]);
   const compatiblePageIds = useMemo(() => destPages
-    .filter(p => p.pageType ? COMPATIBLE_DOC_TYPES.includes(p.pageType) : !NON_LIST_DEFAULT_IDS.has(p.id))
+    .filter(p => !!p.pageType && COMPATIBLE_DOC_TYPES.includes(p.pageType))
     .map(p => p.id), [destPages]);
   const docs = useMemo(() => rawDocs.map(r => dbToRow(r, pageLabelById)), [rawDocs, pageLabelById]);
 
@@ -918,9 +913,7 @@ export default function DocumentosPage() {
                 {destPages.map(p => {
                   const checked = form.paginaIds.includes(p.id);
                   const subs = form.subGroupIds[p.id] ?? [];
-                  const compatible = p.pageType
-                    ? COMPATIBLE_DOC_TYPES.includes(p.pageType)
-                    : !NON_LIST_DEFAULT_IDS.has(p.id);
+                  const compatible = !!p.pageType && COMPATIBLE_DOC_TYPES.includes(p.pageType);
                   return (
                     <div key={p.id}>
                       <label className="up-form__check" title={!compatible ? 'Esta página não é do tipo Lista — não aceita documentos' : undefined}>
