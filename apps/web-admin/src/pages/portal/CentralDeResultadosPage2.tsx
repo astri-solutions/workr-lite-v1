@@ -129,14 +129,14 @@ function uid() {
   return `f${crypto.randomUUID()}`;
 }
 
-function makeEntries(files: File[], uploadedBy?: string): FileEntry[] {
+function makeEntries(files: File[], uploadedBy?: string, locale: string = 'pt-BR'): FileEntry[] {
   return files.map(f => ({
     id: uid(),
     nome: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
     tipo: guessType(f.name),
     fileName: f.name,
     status: 'draft' as const,
-    locale: 'pt-BR',
+    locale,
     file: f,
     uploadedBy,
   }));
@@ -1258,7 +1258,7 @@ export default function CentralDeResultadosPage2() {
           <FileListEditor
             entries={wEntries}
             onChange={setWEntries}
-            onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files, userName)])}
+            onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files, userName, wLocale)])}
             portugueseOnly={wPortugueseOnly}
             onPortugueseOnlyChange={setWPortugueseOnly}
           />
