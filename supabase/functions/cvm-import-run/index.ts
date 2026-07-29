@@ -392,22 +392,36 @@ function nodeExists(canais: CanalNode[], targetId: string): boolean {
 }
 
 // Additive-only: promotes a node to 'lista-agrupada' and/or appends a
-// missing category label. Never removes or reorders what a human configured.
-function ensureCategoryOnTree(canais: CanalNode[], targetId: string, categoryLabel: string): { canais: CanalNode[]; changed: boolean } {
+// missing category. Never removes or reorders what a human configured.
+//
+// `categoryId` is the CVM taxonomy's own stable code (rule.cvmCategoryId /
+// mapped.id) — fixed forever, unlike the label. This used to dedupe/create
+// using the LABEL as the marker's id, which meant a marker a human renamed
+// in Canais (label changes, id doesn't) would no longer be recognized on
+// the next import: a duplicate marker got created under the old label,
+// splitting what should be one group into two on the site. Matching by
+// this stable id first (falling back to label, for markers created before
+// this fix, or created manually by a human with an unrelated id) keeps a
+// rename safe going forward.
+function ensureCategoryOnTree(canais: CanalNode[], targetId: string, categoryId: string, categoryLabel: string): { canais: CanalNode[]; changed: boolean } {
   let changed = false;
+  function matches(c: string | Marcador): boolean {
+    if (typeof c !== 'string' && c.id === categoryId) return true;
+    return marcadorLabel(c) === categoryLabel;
+  }
   function walk(node: CanalNode): CanalNode {
     let next = node;
     if (node.id === targetId) {
       const cats = node.listaAgrupadaCategories ?? [];
       const needsPromote = node.pageType !== 'lista-agrupada';
-      const needsCategory = !cats.some(c => marcadorLabel(c) === categoryLabel);
+      const needsCategory = !cats.some(matches);
       if (needsPromote || needsCategory) {
         changed = true;
         next = {
           ...node,
           pageType: 'lista-agrupada',
           listaAgrupadaCategories: needsCategory
-            ? [...cats, { id: categoryLabel, label: categoryLabel }]
+            ? [...cats, { id: categoryId, label: categoryLabel }]
             : cats,
         };
       }
@@ -634,7 +648,7 @@ Deno.serve(async (req) => {
           continue;
         }
         const groupLabel = rule.groupCategory || rule.cvmCategoryLabel;
-        const promoted = ensureCategoryOnTree(canais, rule.targetId, groupLabel);
+        const promoted = ensureCategoryOnTree(canais, rule.targetId, rule.cvmCategoryId, groupLabel);
         canais = promoted.canais;
         if (promoted.changed) canaisChanged = true;
 
@@ -770,7 +784,7 @@ Deno.serve(async (req) => {
       // group within a lista-agrupada page (rule.groupCategory) instead of
       // just grouping by the raw CVM category text — honor that choice.
       const groupLabel = rule.groupCategory || mapped.label;
-      const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, groupLabel);
+      const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, mapped.id, groupLabel);
       if (changed) { canais = nextCanais; canaisChanged = true; }
 
       // Prefer storing the real file (same as a manual upload in Documentos)
