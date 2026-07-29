@@ -212,6 +212,7 @@ export default function LogotipoPage() {
           inputRef={inputNegRef}
           onPickFile={() => inputNegRef.current?.click()}
           onClear={() => { setLogoNegative(null); }}
+          dark
           inputEl={<input ref={inputNegRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={handleNegativeFile} />}
         />
@@ -238,11 +239,14 @@ export default function LogotipoPage() {
   );
 }
 
-function UploadArea({ title, desc, value, onPickFile, onClear, inputEl }: {
+function UploadArea({ title, desc, value, onPickFile, onClear, inputEl, dark }: {
   title: string; desc: string; value: string | null;
   onChange: (v: string) => void;
   inputRef: React.RefObject<HTMLInputElement>;
   onPickFile: () => void; onClear: () => void; inputEl: React.ReactNode;
+  // Logo negativo is white/light-colored by design — previewing it on the
+  // same light gray box as the other logos makes it all but invisible.
+  dark?: boolean;
 }) {
   return (
     <div className="pers-section">
@@ -251,7 +255,7 @@ function UploadArea({ title, desc, value, onPickFile, onClear, inputEl }: {
       {inputEl}
       {value ? (
         <div className="logo-preview">
-          <img src={value} alt="Logo preview" className="logo-preview__img" />
+          <img src={value} alt="Logo preview" className={`logo-preview__img${dark ? ' logo-preview__img--dark' : ''}`} />
           <div className="logo-preview__actions">
             <button type="button" className="logo-btn logo-btn--replace" onClick={onPickFile}>Substituir</button>
             <button type="button" className="logo-btn logo-btn--remove" onClick={onClear}>Remover</button>

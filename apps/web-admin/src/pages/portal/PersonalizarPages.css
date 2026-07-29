@@ -423,6 +423,14 @@
   padding: var(--space-4);
   background: var(--color-gray-50);
 }
+/* Logo negativo is white/light by design — the default light-gray preview
+   background makes it disappear. Fixed (not --color-gray-900): that token
+   inverts in the admin's own dark mode, which would flip this back to a
+   light background exactly when it matters least to keep it dark. */
+.logo-preview__img--dark {
+  background: #141414;
+  border-color: #2d2d2d;
+}
 .logo-preview__actions { display: flex; gap: var(--space-3); }
 .logo-btn {
   padding: 8px var(--space-4);
