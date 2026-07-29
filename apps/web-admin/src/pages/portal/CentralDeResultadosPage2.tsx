@@ -38,6 +38,13 @@ function loadEntities(portalId: string | undefined, allowedEmpresaIds: string[] 
   } catch { return []; }
 }
 
+// None of the current site templates actually render a "resultados na home"
+// section yet, so the toggle just confused people into thinking they'd
+// turned something on that had no visible effect anywhere. Hidden (not
+// removed) — exibirHome/exibir_home keeps being read/written normally so
+// nothing here needs to change again once a template adds real support.
+const SHOW_HOME_OPTION = false;
+
 const DOC_TIPOS = [
   { value: 'apresentacao', label: 'Apresentação de Resultados', icon: 'slideshow' },
   { value: 'release',      label: 'Release de Resultados',     icon: 'newspaper' },
@@ -926,14 +933,16 @@ export default function CentralDeResultadosPage2() {
             <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>visibility</span>
             {editorPublished} publicado{editorPublished !== 1 ? 's' : ''}
           </span>
-          <button
-            type="button"
-            className={`cal-home-toggle${editorQuarter?.exibirHome ? ' cal-home-toggle--on' : ''}`}
-            onClick={() => toggleHome(editingQuarterId)}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
-            {editorQuarter?.exibirHome ? 'Na home' : 'Home'}
-          </button>
+          {SHOW_HOME_OPTION && (
+            <button
+              type="button"
+              className={`cal-home-toggle${editorQuarter?.exibirHome ? ' cal-home-toggle--on' : ''}`}
+              onClick={() => toggleHome(editingQuarterId)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
+              {editorQuarter?.exibirHome ? 'Na home' : 'Home'}
+            </button>
+          )}
         </div>
 
         <FileListEditor
@@ -1067,15 +1076,17 @@ export default function CentralDeResultadosPage2() {
                           ))}
                         </span>
                       )}
-                      <button
-                        type="button"
-                        className={`cal-home-toggle${q.exibirHome ? ' cal-home-toggle--on' : ''}`}
-                        onClick={() => toggleHome(q.id)}
-                        title={q.exibirHome ? 'Remover da home' : 'Exibir na home'}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
-                        {q.exibirHome ? 'Na home' : 'Home'}
-                      </button>
+                      {SHOW_HOME_OPTION && (
+                        <button
+                          type="button"
+                          className={`cal-home-toggle${q.exibirHome ? ' cal-home-toggle--on' : ''}`}
+                          onClick={() => toggleHome(q.id)}
+                          title={q.exibirHome ? 'Remover da home' : 'Exibir na home'}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>home</span>
+                          {q.exibirHome ? 'Na home' : 'Home'}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn-action btn-action--enter"
@@ -1260,21 +1271,23 @@ export default function CentralDeResultadosPage2() {
                 Configurações definidas no idioma principal ({PORTAL_CONFIG.languages[0]})
               </p>
             )}
-            <label className="cdr2-step2-opt">
-              <span className="cdr2-step2-opt__label">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>home</span>
-                Mostrar na home
-              </span>
-              <button
-                type="button"
-                className={`cdr2-toggle${wExibirHome ? ' cdr2-toggle--on' : ''}`}
-                onClick={() => wLocale === PORTAL_CONFIG.languages[0] && setWExibirHome(v => !v)}
-                aria-pressed={wExibirHome}
-                style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1, cursor: wLocale !== PORTAL_CONFIG.languages[0] ? 'not-allowed' : 'pointer' }}
-              >
-                <span className="cdr2-toggle__knob" />
-              </button>
-            </label>
+            {SHOW_HOME_OPTION && (
+              <label className="cdr2-step2-opt">
+                <span className="cdr2-step2-opt__label">
+                  <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>home</span>
+                  Mostrar na home
+                </span>
+                <button
+                  type="button"
+                  className={`cdr2-toggle${wExibirHome ? ' cdr2-toggle--on' : ''}`}
+                  onClick={() => wLocale === PORTAL_CONFIG.languages[0] && setWExibirHome(v => !v)}
+                  aria-pressed={wExibirHome}
+                  style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1, cursor: wLocale !== PORTAL_CONFIG.languages[0] ? 'not-allowed' : 'pointer' }}
+                >
+                  <span className="cdr2-toggle__knob" />
+                </button>
+              </label>
+            )}
             <label className="cdr2-step2-opt">
               <span className="cdr2-step2-opt__label">
                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
