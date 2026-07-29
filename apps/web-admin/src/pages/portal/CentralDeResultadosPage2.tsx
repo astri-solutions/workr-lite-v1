@@ -163,6 +163,13 @@ interface FileListEditorProps {
   onDropFiles: (files: File[]) => void;
   portugueseOnly?: boolean;
   onPortugueseOnlyChange?: (v: boolean) => void;
+  /** Set while a non-primary idioma tab (e.g. EN) is active and "Apenas
+   * Português" is off. Dropping a file here has no unambiguous target: it
+   * can't tell whether it's a translation of one of the documents already
+   * below or a brand new EN-only document, so the generic drop zone is
+   * replaced with a pointer to each row's own "+idioma" chip instead of
+   * silently creating a new, disconnected document. */
+  disabledForLocale?: string;
 }
 
 // Key that groups an entry with its per-locale siblings as ONE logical
@@ -172,7 +179,7 @@ function groupKeyOf(e: FileEntry): string {
   return e.groupId ?? e.id;
 }
 
-function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPortugueseOnlyChange }: FileListEditorProps) {
+function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPortugueseOnlyChange, disabledForLocale }: FileListEditorProps) {
   const [dropActive, setDropActive] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -297,27 +304,39 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
   return (
     <div className="cdr2-editor">
       {/* Drop zone */}
-      <div
-        className={`cdr2-dropzone${dropActive ? ' cdr2-dropzone--active' : ''}`}
-        onDragOver={e => { e.preventDefault(); setDropActive(true); }}
-        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropActive(false); }}
-        onDrop={e => { e.preventDefault(); setDropActive(false); onDropFiles(Array.from(e.dataTransfer.files)); }}
-      >
-        <span className="material-symbols-outlined cdr2-dropzone__icon">upload_file</span>
-        <p className="cdr2-dropzone__text">
-          Arraste arquivos aqui ou{' '}
-          <label className="cdr2-dropzone__link">
-            selecione do computador
-            <input
-              type="file"
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => { if (e.target.files) onDropFiles(Array.from(e.target.files)); e.target.value = ''; }}
-            />
-          </label>
-        </p>
-        <p className="cdr2-dropzone__hint">PDF, Excel, MP3, MP4 e outros</p>
-      </div>
+      {disabledForLocale ? (
+        <div className="cdr2-dropzone cdr2-dropzone--disabled">
+          <span className="material-symbols-outlined cdr2-dropzone__icon">translate</span>
+          <p className="cdr2-dropzone__text">
+            Arrastar aqui cria um documento novo só em {LOCALE_SHORT[disabledForLocale] ?? disabledForLocale}, sem versão em {LOCALE_SHORT[primaryLocale] ?? primaryLocale}.
+          </p>
+          <p className="cdr2-dropzone__hint">
+            Para adicionar a versão em {LOCALE_SHORT[disabledForLocale] ?? disabledForLocale} de um documento já existente, use o botão "+{LOCALE_SHORT[disabledForLocale] ?? disabledForLocale}" na linha dele, abaixo.
+          </p>
+        </div>
+      ) : (
+        <div
+          className={`cdr2-dropzone${dropActive ? ' cdr2-dropzone--active' : ''}`}
+          onDragOver={e => { e.preventDefault(); setDropActive(true); }}
+          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropActive(false); }}
+          onDrop={e => { e.preventDefault(); setDropActive(false); onDropFiles(Array.from(e.dataTransfer.files)); }}
+        >
+          <span className="material-symbols-outlined cdr2-dropzone__icon">upload_file</span>
+          <p className="cdr2-dropzone__text">
+            Arraste arquivos aqui ou{' '}
+            <label className="cdr2-dropzone__link">
+              selecione do computador
+              <input
+                type="file"
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => { if (e.target.files) onDropFiles(Array.from(e.target.files)); e.target.value = ''; }}
+              />
+            </label>
+          </p>
+          <p className="cdr2-dropzone__hint">PDF, Excel, MP3, MP4 e outros</p>
+        </div>
+      )}
 
       {/* File list */}
       {entries.length > 0 && (
@@ -1335,6 +1354,7 @@ export default function CentralDeResultadosPage2() {
             onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files, userName, wLocale)])}
             portugueseOnly={wPortugueseOnly}
             onPortugueseOnlyChange={setWPortugueseOnly}
+            disabledForLocale={!wPortugueseOnly && wLocale !== PORTAL_CONFIG.languages[0] ? wLocale : undefined}
           />
 
           {/* Bottom options — only editable on primary locale */}

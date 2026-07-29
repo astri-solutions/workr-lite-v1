@@ -26,6 +26,16 @@
   background: var(--color-primary-50, #e8f5f7);
 }
 
+.cdr2-dropzone--disabled {
+  border-style: solid;
+  border-color: var(--color-gray-100);
+  background: var(--color-gray-50, #F8F8F8);
+}
+
+.cdr2-dropzone--disabled .cdr2-dropzone__icon {
+  color: var(--color-gray-300);
+}
+
 .cdr2-dropzone__icon {
   font-size: 26px;
   color: var(--color-gray-300);
