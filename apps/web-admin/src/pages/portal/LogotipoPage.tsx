@@ -11,15 +11,10 @@ import PublishButton from '../../components/PublishButton';
 import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
-import FaviconCropModal from '../../components/FaviconCropModal';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
-// Vector/container formats — cropping a fixed pixel region doesn't apply.
-const CROPPABLE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp']);
-
 export const LOGO_KEY = 'portal_logotipo';
-export const LOGO_COMPACT_KEY = 'portal_logotipo_compact';
 export const LOGO_NEGATIVE_KEY = 'portal_logotipo_negativo';
 
 export default function LogotipoPage() {
@@ -27,30 +22,23 @@ export default function LogotipoPage() {
   const portalId = useActivePortalId();
 
   const logoKey = pKey(LOGO_KEY, portalId);
-  const logoCompactKey = pKey(LOGO_COMPACT_KEY, portalId);
   const logoNegativeKey = pKey(LOGO_NEGATIVE_KEY, portalId);
 
   // State holds data URLs (base64) which survive page reloads and are usable in <img src>
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
   const [baseLogo, setBaseLogo] = useState<string | null>(() => localStorage.getItem(logoKey));
-  const [baseCollapsed, setBaseCollapsed] = useState<string | null>(() => localStorage.getItem(logoCompactKey));
   const [baseNegative, setBaseNegative] = useState<string | null>(() => localStorage.getItem(logoNegativeKey));
   const [logo, setLogo] = useState<string | null>(baseLogo);
-  const [logoCollapsed, setLogoCollapsed] = useState<string | null>(baseCollapsed);
   const [logoNegative, setLogoNegative] = useState<string | null>(baseNegative);
   const [isDraft, setIsDraft] = useState(false);
-  const [cropFile, setCropFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const inputCollRef = useRef<HTMLInputElement>(null);
   const inputNegRef = useRef<HTMLInputElement>(null);
   const pendingLogoDataUrl = useRef<string | null>(null);
-  const pendingLogoCollDataUrl = useRef<string | null>(null);
   const pendingLogoNegDataUrl = useRef<string | null>(null);
   const logoBlobUrlRef = useRef<string | null>(null);
-  const logoCollBlobUrlRef = useRef<string | null>(null);
   const logoNegBlobUrlRef = useRef<string | null>(null);
 
-  const isDirty = logo !== baseLogo || logoCollapsed !== baseCollapsed || logoNegative !== baseNegative;
+  const isDirty = logo !== baseLogo || logoNegative !== baseNegative;
   const blocker = useUnsavedChanges(isDirty);
 
   // localStorage only ever holds an unpublished draft — on a fresh session,
@@ -89,15 +77,11 @@ export default function LogotipoPage() {
     setter: (v: string) => void,
     pendingRef: React.MutableRefObject<string | null>,
     blobUrlRef: React.MutableRefObject<string | null>,
-    slot: 'logo' | 'logo-compact',
+    slot: 'logo',
   ) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (slot === 'logo-compact' && CROPPABLE_TYPES.has(file.type)) {
-      setCropFile(file);
-      return;
-    }
     const result = await processImageToDataUrl(file, slot);
     if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     blobUrlRef.current = result.objectUrl;
@@ -116,21 +100,12 @@ export default function LogotipoPage() {
     setLogoNegative(result.dataUrl);
   }
 
-  function handleCompactCropConfirm(dataUrl: string) {
-    pendingLogoCollDataUrl.current = dataUrl;
-    setLogoCollapsed(dataUrl);
-    setCropFile(null);
-  }
-
   function saveDraft() {
     if (logo) localStorage.setItem(logoKey, logo);
     else localStorage.removeItem(logoKey);
-    if (logoCollapsed) localStorage.setItem(logoCompactKey, logoCollapsed);
-    else localStorage.removeItem(logoCompactKey);
     if (logoNegative) localStorage.setItem(logoNegativeKey, logoNegative);
     else localStorage.removeItem(logoNegativeKey);
     pendingLogoDataUrl.current = null;
-    pendingLogoCollDataUrl.current = null;
     pendingLogoNegDataUrl.current = null;
     // Persist logo extension(s) to Supabase so publish-config uses the correct
     // file extension, and so the persistent preview above can resolve the
@@ -154,7 +129,6 @@ export default function LogotipoPage() {
       if (Object.keys(patch).length > 0) savePortalConfig(portalId, patch).catch(console.error);
     }
     setBaseLogo(logo);
-    setBaseCollapsed(logoCollapsed);
     setBaseNegative(logoNegative);
     setIsDraft(true);
     notifyDraft();
@@ -194,17 +168,6 @@ export default function LogotipoPage() {
             onChange={e => handleFile(e, setLogo, pendingLogoDataUrl, logoBlobUrlRef, 'logo')} />}
         />
         <UploadArea
-          title="Logo compacto (sidebar/favicon nav)"
-          desc="Versão reduzida usada quando a sidebar está recolhida. Recomendado: ícone quadrado 80×80px."
-          value={logoCollapsed}
-          onChange={v => { setLogoCollapsed(v); }}
-          inputRef={inputCollRef}
-          onPickFile={() => inputCollRef.current?.click()}
-          onClear={() => { setLogoCollapsed(null); }}
-          inputEl={<input ref={inputCollRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
-            onChange={e => handleFile(e, setLogoCollapsed, pendingLogoCollDataUrl, logoCollBlobUrlRef, 'logo-compact')} />}
-        />
-        <UploadArea
           title="Logotipo negativo (fundo escuro)"
           desc="Versão clara/branca usada sobre fundos escuros — topbar, footer e modo alto contraste. Recomendado: mesmo formato do logotipo principal."
           value={logoNegative ?? remoteNegativeUrl}
@@ -217,18 +180,6 @@ export default function LogotipoPage() {
             onChange={handleNegativeFile} />}
         />
       </div>
-
-      {cropFile && (
-        <FaviconCropModal
-          file={cropFile}
-          onCancel={() => setCropFile(null)}
-          onConfirm={handleCompactCropConfirm}
-          title="Recortar logo compacto"
-          outputSize={320}
-          outputFormat="webp"
-          hint="Ajuste a área que será usada como logo compacto (sidebar recolhida / navegação com favicon). Apenas a região dentro do quadro é exportada, gerando um arquivo WebP quadrado de 320×320px."
-        />
-      )}
 
       <UnsavedModal
         open={blocker.state === 'blocked'}
