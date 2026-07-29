@@ -915,45 +915,6 @@ export default function DocumentosPage() {
               autoFocus />
           </div>
 
-          <div className="doc-field">
-            <label className="doc-field__label">Tipo de documento</label>
-            {isCustomTipo ? (
-              <div className="cdr2-type-custom">
-                <input
-                  type="text"
-                  className="doc-field__input"
-                  placeholder="Nome do tipo"
-                  value={form.tipo}
-                  autoFocus={customTipo}
-                  onChange={e => patchForm('tipo', e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="cdr2-type-custom__revert"
-                  title="Voltar para a lista de tipos"
-                  onClick={() => { setCustomTipo(false); patchForm('tipo', ''); }}
-                >
-                  <span className="material-symbols-outlined">undo</span>
-                </button>
-              </div>
-            ) : (
-              <select
-                className="doc-field__input"
-                value={form.tipo}
-                onChange={e => {
-                  if (e.target.value === '__custom__') { setCustomTipo(true); patchForm('tipo', ''); return; }
-                  patchForm('tipo', e.target.value);
-                }}
-              >
-                <option value="">Selecione ou digite um novo…</option>
-                {Array.from(new Set([...DOC_CATEGORIAS, ...existingDocTipos])).map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-                <option value="__custom__">+ Novo tipo…</option>
-              </select>
-            )}
-          </div>
-
           <div className="doc-source-toggle">
             <button type="button" className={`doc-source-toggle__btn${!activeLocaleFile.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
               onClick={() => patchLocaleFile(ptOnly ? primaryLocale : docLocale, { isExternalLink: false })}>
@@ -1039,6 +1000,45 @@ export default function DocumentosPage() {
               )}
             </div>
           )}
+
+          <div className="doc-field">
+            <label className="doc-field__label">Tipo de documento</label>
+            {isCustomTipo ? (
+              <div className="cdr2-type-custom">
+                <input
+                  type="text"
+                  className="doc-field__input"
+                  placeholder="Nome do tipo"
+                  value={form.tipo}
+                  autoFocus={customTipo}
+                  onChange={e => patchForm('tipo', e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="cdr2-type-custom__revert"
+                  title="Voltar para a lista de tipos"
+                  onClick={() => { setCustomTipo(false); patchForm('tipo', ''); }}
+                >
+                  <span className="material-symbols-outlined">undo</span>
+                </button>
+              </div>
+            ) : (
+              <select
+                className="doc-field__input"
+                value={form.tipo}
+                onChange={e => {
+                  if (e.target.value === '__custom__') { setCustomTipo(true); patchForm('tipo', ''); return; }
+                  patchForm('tipo', e.target.value);
+                }}
+              >
+                <option value="">Selecione ou digite um novo…</option>
+                {Array.from(new Set([...DOC_CATEGORIAS, ...existingDocTipos])).map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+                <option value="__custom__">+ Novo tipo…</option>
+              </select>
+            )}
+          </div>
 
           <div className="up-form__section">
             <span className="up-form__section-label">Página de destino</span>
