@@ -148,7 +148,6 @@ interface DocForm {
   editingId: string | null;
   entityId: string;
   titulos: Record<string, string>;
-  allPages: boolean;
   paginaIds: string[];
   subGroupIds: Record<string, string[]>;
   // Single field covering all three cases: blank = publish now, a past date
@@ -174,7 +173,7 @@ function emptyDocForm(entityId = ''): DocForm {
     editingId: null,
     entityId,
     titulos: {},
-    allPages: false, paginaIds: [], subGroupIds: {},
+    paginaIds: [], subGroupIds: {},
     dataPublicacao: '', scheduleTime: '',
     tipo: '',
     filesByLocale: {},
@@ -282,9 +281,6 @@ export default function DocumentosPage() {
 
   const destPages = useMemo(() => buildDestPages(loadPortalCanais(user?.activePortalId)), [user?.activePortalId]);
   const pageLabelById = useMemo(() => new Map(destPages.map(p => [p.id, p.label])), [destPages]);
-  const compatiblePageIds = useMemo(() => destPages
-    .filter(p => !!p.pageType && COMPATIBLE_DOC_TYPES.includes(p.pageType))
-    .map(p => p.id), [destPages]);
   const docs = useMemo(() => rawDocs.map(r => dbToRow(r, pageLabelById)), [rawDocs, pageLabelById]);
 
   const loadDocs = useCallback(async () => {
@@ -377,13 +373,6 @@ export default function DocumentosPage() {
       editingId: doc.id,
       entityId: (raw.entity_id as string) ?? '',
       titulos,
-      // "Todas as páginas" was previously stored as an EMPTY pagina_ids array
-      // (a bug in its own right — the site's contains-filter query can never
-      // match an empty array, so those documents never rendered anywhere).
-      // Reconstructing "all pages" from a non-empty set that covers every
-      // compatible page keeps this edit form consistent with what save now
-      // writes for "Todas as páginas" going forward.
-      allPages: compatiblePageIds.length > 0 && compatiblePageIds.every(id => paginaIds.includes(id)),
       paginaIds,
       subGroupIds,
       dataPublicacao: isAgendado && scheduleDt ? scheduleDt.toISOString().slice(0, 10) : (publicadoEm ? publicadoEm.slice(0, 10) : ''),
@@ -497,10 +486,6 @@ export default function DocumentosPage() {
 
     const primaryEntry = arquivosPatch[primaryLocale];
     const idiomasWithContent = Object.keys(arquivosPatch);
-    // "Todas as páginas" is stored as every compatible page id, not an empty
-    // array — an empty array can never match the site's contains-filter
-    // query, so the document would never actually render anywhere.
-    const paginaIdsToSave = form.allPages ? compatiblePageIds : form.paginaIds;
 
     const patch: Record<string, unknown> = {
       entity_id: form.entityId || activeEntity,
@@ -508,7 +493,7 @@ export default function DocumentosPage() {
       status,
       schedule_at: scheduleAtIso,
       data_publicacao: dataPublicacaoIso,
-      pagina_ids: paginaIdsToSave,
+      pagina_ids: form.paginaIds,
       sub_group_ids: form.subGroupIds,
       idiomas: idiomasWithContent.length ? idiomasWithContent : [primaryLocale],
       pt_only: ptOnly,
@@ -663,7 +648,7 @@ export default function DocumentosPage() {
   const scheduleInPast = isFutureDate && !!form.scheduleTime
     && new Date(`${form.dataPublicacao}T${form.scheduleTime}`).getTime() <= Date.now();
   const activeLocaleFile = getLocaleFile(form, ptOnly ? primaryLocale : docLocale);
-  const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
+  const canSave = !!primaryTitle && form.paginaIds.length > 0
     && localeFileHasContent(getLocaleFile(form, primaryLocale));
   // With "Apenas Português" off, each language is independent — silently
   // publishing with a language left empty means that language shows nothing
@@ -1042,14 +1027,8 @@ export default function DocumentosPage() {
 
           <div className="up-form__section">
             <span className="up-form__section-label">Página de destino</span>
-            <label className="up-form__check">
-              <input type="checkbox" checked={form.allPages}
-                onChange={e => patchForm('allPages', e.target.checked)} />
-              Todas as páginas do portal
-            </label>
-            {!form.allPages && (
-              <div className="up-form__emp-list">
-                {destPages.map(p => {
+            <div className="up-form__emp-list">
+              {destPages.map(p => {
                   const checked = form.paginaIds.includes(p.id);
                   const subs = form.subGroupIds[p.id] ?? [];
                   const compatible = !!p.pageType && COMPATIBLE_DOC_TYPES.includes(p.pageType);
@@ -1096,7 +1075,6 @@ export default function DocumentosPage() {
                   );
                 })}
               </div>
-            )}
           </div>
 
           <div className="doc-field">
