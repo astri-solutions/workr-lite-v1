@@ -505,28 +505,6 @@
   color: var(--color-fixed-white);
 }
 
-/* ─── Schedule ──────────────────────────────────────── */
-.doc-schedule-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-gray-50);
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-gray-700);
-}
-.doc-schedule-toggle input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-primary-500);
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
 /* ── Page checkboxes ─────────────────────────────── */
 .doc-page-checks {
   display: flex;
@@ -673,6 +651,11 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
   margin-top: var(--space-2);
+}
+/* No horário field yet (date isn't in the future) — let the date picker
+   take the full row instead of sitting in half a two-column grid. */
+.doc-schedule-row > *:only-child {
+  grid-column: 1 / -1;
 }
 
 .doc-field__error {

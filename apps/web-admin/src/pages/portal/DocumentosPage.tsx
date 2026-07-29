@@ -151,15 +151,13 @@ interface DocForm {
   allPages: boolean;
   paginaIds: string[];
   subGroupIds: Record<string, string[]>;
-  scheduleEnabled: boolean;
-  scheduleDate: string;
-  scheduleTime: string;
-  // Backdates the document's DISPLAY/sort date (data_publicacao) — for
-  // uploading old historical documents manually with their real date,
-  // independent of the schedule mechanism above (which only ever looks
-  // forward, to defer when something goes live). Empty = use today/now,
-  // same as before this field existed.
+  // Single field covering all three cases: blank = publish now, a past date
+  // = backdate (this is also the document's DISPLAY/sort date, data_publicacao
+  // — for uploading old historical documents with their real date), a future
+  // date = schedule (paired with scheduleTime below, since a future date alone
+  // isn't enough to know when that day to go live).
   dataPublicacao: string;
+  scheduleTime: string;
   // Free-text category ("Fato Relevante", "Ata", ...) — suggested from the
   // título via guessDocTipo() but never locked to a closed list, so a
   // document type this portal hasn't seen before doesn't get forced into
@@ -177,8 +175,7 @@ function emptyDocForm(entityId = ''): DocForm {
     entityId,
     titulos: {},
     allPages: false, paginaIds: [], subGroupIds: {},
-    scheduleEnabled: false, scheduleDate: '', scheduleTime: '',
-    dataPublicacao: '',
+    dataPublicacao: '', scheduleTime: '',
     tipo: '',
     filesByLocale: {},
     pendingStorageDeletes: [],
@@ -389,10 +386,8 @@ export default function DocumentosPage() {
       allPages: compatiblePageIds.length > 0 && compatiblePageIds.every(id => paginaIds.includes(id)),
       paginaIds,
       subGroupIds,
-      scheduleEnabled: isAgendado,
-      scheduleDate: scheduleDt ? scheduleDt.toISOString().slice(0, 10) : '',
-      scheduleTime: scheduleDt ? scheduleDt.toTimeString().slice(0, 5) : '',
-      dataPublicacao: publicadoEm ? publicadoEm.slice(0, 10) : '',
+      dataPublicacao: isAgendado && scheduleDt ? scheduleDt.toISOString().slice(0, 10) : (publicadoEm ? publicadoEm.slice(0, 10) : ''),
+      scheduleTime: isAgendado && scheduleDt ? scheduleDt.toTimeString().slice(0, 5) : '',
       tipo: (raw.tipo as string) === 'Documento' ? '' : ((raw.tipo as string) ?? ''),
       filesByLocale,
       pendingStorageDeletes: [],
@@ -413,14 +408,19 @@ export default function DocumentosPage() {
     const primaryEntryForCheck = ptOnly ? getLocaleFile(form, primaryLocale) : getLocaleFile(form, primaryLocale);
     if (!localeFileHasContent(primaryEntryForCheck)) return; // need either a file or an external link
     setSaveError('');
-    // A schedule that has already passed (or landed exactly on "now") must
-    // never fall through to an immediate publish — block instead of guessing.
-    // Checked here with a fresh Date.now() (not the render-time value used
-    // for the disabled/warning state) so a schedule that goes stale in the
-    // seconds between rendering and clicking still gets caught, with clear
-    // feedback instead of the click silently doing nothing.
-    if (!asDraft && form.scheduleEnabled && form.scheduleDate && form.scheduleTime) {
-      const scheduled = new Date(`${form.scheduleDate}T${form.scheduleTime}`);
+    // A future date needs a time to know when that day to go live — checked
+    // fresh here (not the render-time value used for the hint) so a
+    // schedule that goes stale in the seconds between rendering and
+    // clicking still gets caught, with clear feedback instead of the click
+    // silently doing nothing.
+    const todayStrNow = new Date().toISOString().slice(0, 10);
+    const isFutureDateNow = !!form.dataPublicacao && form.dataPublicacao > todayStrNow;
+    if (!asDraft && isFutureDateNow) {
+      if (!form.scheduleTime) {
+        setSaveError('Informe o horário para agendar a publicação nessa data.');
+        return;
+      }
+      const scheduled = new Date(`${form.dataPublicacao}T${form.scheduleTime}`);
       if (Number.isNaN(scheduled.getTime()) || scheduled.getTime() <= Date.now()) {
         setSaveError('A data e hora de agendamento já passaram. Ajuste o horário e tente novamente.');
         return;
@@ -481,8 +481,8 @@ export default function DocumentosPage() {
     // to 'Publicado' once schedule_at arrives.
     let scheduleAtIso: string | null = null;
     let status: DocStatus = asDraft ? 'Rascunho' : 'Publicado';
-    if (!asDraft && form.scheduleEnabled && form.scheduleDate && form.scheduleTime) {
-      const scheduled = new Date(`${form.scheduleDate}T${form.scheduleTime}`);
+    if (!asDraft && isFutureDateNow && form.scheduleTime) {
+      const scheduled = new Date(`${form.dataPublicacao}T${form.scheduleTime}`);
       if (!Number.isNaN(scheduled.getTime()) && scheduled.getTime() > Date.now()) {
         scheduleAtIso = scheduled.toISOString();
         status = 'Agendado';
@@ -656,8 +656,12 @@ export default function DocumentosPage() {
   const nowForSchedule = new Date();
   const todayStr = nowForSchedule.toISOString().slice(0, 10);
   const nowTimeStr = nowForSchedule.toTimeString().slice(0, 5);
-  const scheduleInPast = form.scheduleEnabled && !!form.scheduleDate && !!form.scheduleTime
-    && new Date(`${form.scheduleDate}T${form.scheduleTime}`).getTime() <= Date.now();
+  // A future date needs a time to know when that day to go live — this is
+  // what turns the single "Data de publicação" field into a schedule
+  // instead of a backdate.
+  const isFutureDate = !!form.dataPublicacao && form.dataPublicacao > todayStr;
+  const scheduleInPast = isFutureDate && !!form.scheduleTime
+    && new Date(`${form.dataPublicacao}T${form.scheduleTime}`).getTime() <= Date.now();
   const activeLocaleFile = getLocaleFile(form, ptOnly ? primaryLocale : docLocale);
   const canSave = !!primaryTitle && (form.allPages || form.paginaIds.length > 0)
     && localeFileHasContent(getLocaleFile(form, primaryLocale));
@@ -835,8 +839,8 @@ export default function DocumentosPage() {
               </button>
               <button type="button" className="btn-primary" onClick={() => handleSave(false)} disabled={!canSave || saving}>
                 {saving
-                  ? (form.scheduleEnabled ? 'Agendando…' : 'Publicando…')
-                  : (form.scheduleEnabled && form.scheduleDate && form.scheduleTime ? 'Agendar publicação' : form.editingId ? 'Salvar e publicar' : 'Publicar')}
+                  ? (isFutureDate ? 'Agendando…' : 'Publicando…')
+                  : (isFutureDate && form.scheduleTime ? 'Agendar publicação' : form.editingId ? 'Salvar e publicar' : 'Publicar')}
               </button>
             </div>
           </div>
@@ -1097,47 +1101,32 @@ export default function DocumentosPage() {
 
           <div className="doc-field">
             <label className="doc-field__label">Data de publicação</label>
-            <DatePicker max={todayStr}
-              value={form.dataPublicacao}
-              onChange={date => patchForm('dataPublicacao', date)}
-              placeholder="dd/mm/aaaa" />
+            <div className="doc-schedule-row">
+              <DatePicker
+                value={form.dataPublicacao}
+                onChange={date => {
+                  // Moving off a future date drops a stale "must be after
+                  // now" time that no longer applies to the new date.
+                  const time = date === todayStr && form.scheduleTime < nowTimeStr ? '' : form.scheduleTime;
+                  setForm(f => ({ ...f, dataPublicacao: date, scheduleTime: time }));
+                }}
+                placeholder="dd/mm/aaaa" />
+              {isFutureDate && (
+                <input className="doc-field__input" type="time"
+                  min={form.dataPublicacao === todayStr ? nowTimeStr : undefined}
+                  value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
+              )}
+            </div>
+            {scheduleInPast && (
+              <p className="doc-field__error">A data e hora de agendamento devem ser posteriores ao momento atual.</p>
+            )}
             <p className="doc-field__hint">
-              Deixe em branco para usar a data de hoje. Use para subir documentos antigos com a data real de publicação — o documento aparece na lista do site já na posição cronológica correta.
+              {isFutureDate
+                ? (form.editingId
+                  ? 'Uma data futura agenda a publicação: o documento sai do ar agora e volta automaticamente no horário definido.'
+                  : 'Informe o horário — o documento será publicado automaticamente nessa data e hora.')
+                : 'Deixe em branco para publicar agora. Escolha uma data anterior para subir documentos antigos com a data real (aparecem na posição cronológica correta) ou uma data futura para agendar a publicação.'}
             </p>
-          </div>
-
-          <div className="doc-field">
-            <label className="doc-field__label">Agendamento</label>
-            <label className="doc-schedule-toggle">
-              <input type="checkbox" checked={form.scheduleEnabled}
-                onChange={e => patchForm('scheduleEnabled', e.target.checked)} />
-              <span>Publicar em data e hora específica</span>
-            </label>
-            {form.editingId && (
-              <p className="doc-field__hint">
-                Marcar aqui despublica o documento agora e o publica automaticamente no horário definido.
-              </p>
-            )}
-            {form.scheduleEnabled && (
-              <>
-                <div className="doc-schedule-row">
-                  <DatePicker min={todayStr}
-                    value={form.scheduleDate}
-                    onChange={date => {
-                      // Moving off today drops a stale "must be after now" time
-                      // that's no longer relevant to the min for the new date.
-                      const time = date === todayStr && form.scheduleTime < nowTimeStr ? '' : form.scheduleTime;
-                      setForm(f => ({ ...f, scheduleDate: date, scheduleTime: time }));
-                    }} />
-                  <input className="doc-field__input" type="time"
-                    min={form.scheduleDate === todayStr ? nowTimeStr : undefined}
-                    value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
-                </div>
-                {scheduleInPast && (
-                  <p className="doc-field__error">A data e hora de agendamento devem ser posteriores ao momento atual.</p>
-                )}
-              </>
-            )}
           </div>
         </div>
       </Modal>
