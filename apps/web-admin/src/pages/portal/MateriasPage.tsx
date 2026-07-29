@@ -58,6 +58,12 @@ const INITIAL: Materia[] = [];
 const STATUS_LABEL: Record<Status, string> = { publicado: 'Publicado', rascunho: 'Rascunho', agendado: 'Agendado' };
 const STATUS_BADGE: Record<Status, string> = { publicado: 'badge--success', rascunho: 'badge--gray', agendado: 'badge--warning' };
 
+// Sidebar/tabmenu portals now support 'show' too (NovaMateriaPage restricts
+// it to the single subtítulo+texto block there), on top of the formulário
+// they already had — everything else (galeria/tabela/html/timeline) is
+// still Banner-only.
+const FLAT_MATERIA_TYPES = ['show', 'formulario'];
+
 const PAGE_TYPES = [
   {
     id: 'show' as const,
@@ -260,9 +266,6 @@ export default function MateriasPage() {
         description={<>Comunicados e artigos do portal <strong>{portalName}</strong>.</>}
         action={
           <button className="btn-primary" type="button" onClick={() => {
-            // Sidebar/tabmenu portals only support the formulário type — skip
-            // the picker and go straight to the form editor.
-            if (isFlatLayout) { navigate('/portal/materias/formulario'); return; }
             setSelectedType('show'); setTypePickerOpen(true);
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
@@ -359,7 +362,7 @@ export default function MateriasPage() {
         }
       >
         <div className="mat-type-picker">
-          {PAGE_TYPES.map(t => (
+          {(isFlatLayout ? PAGE_TYPES.filter(t => FLAT_MATERIA_TYPES.includes(t.id)) : PAGE_TYPES).map(t => (
             <button
               key={t.id}
               type="button"
@@ -369,7 +372,11 @@ export default function MateriasPage() {
               <span className="material-symbols-outlined mat-type-card__icon">{t.icon}</span>
               <div className="mat-type-card__info">
                 <span className="mat-type-card__label">{t.label}</span>
-                <span className="mat-type-card__desc">{t.desc}</span>
+                <span className="mat-type-card__desc">
+                  {isFlatLayout && t.id === 'show'
+                    ? 'Página simples com subtítulo e parágrafos de texto.'
+                    : t.desc}
+                </span>
               </div>
               {selectedType === t.id && (
                 <span className="mat-type-card__check">
