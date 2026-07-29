@@ -1008,20 +1008,23 @@ export default function DocumentosPage() {
                 </button>
               </div>
             ) : (
-              <select
-                className="doc-field__input"
-                value={form.tipo}
-                onChange={e => {
-                  if (e.target.value === '__custom__') { setCustomTipo(true); patchForm('tipo', ''); return; }
-                  patchForm('tipo', e.target.value);
-                }}
-              >
-                <option value="">Selecione ou digite um novo…</option>
-                {Array.from(new Set([...DOC_CATEGORIAS, ...existingDocTipos])).map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-                <option value="__custom__">+ Novo tipo…</option>
-              </select>
+              <div className="doc-select-wrap">
+                <select
+                  className="doc-field__select"
+                  value={form.tipo}
+                  onChange={e => {
+                    if (e.target.value === '__custom__') { setCustomTipo(true); patchForm('tipo', ''); return; }
+                    patchForm('tipo', e.target.value);
+                  }}
+                >
+                  <option value="">Selecione ou digite um novo…</option>
+                  {Array.from(new Set([...DOC_CATEGORIAS, ...existingDocTipos])).map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                  <option value="__custom__">+ Novo tipo…</option>
+                </select>
+                <span className="material-symbols-outlined doc-select-wrap__icon">expand_more</span>
+              </div>
             )}
           </div>
 
@@ -1052,7 +1055,7 @@ export default function DocumentosPage() {
                           </button>
                         )}
                       </label>
-                      {checked && p.subGroups.length > 0 && subgroupOpen && (
+                      {p.subGroups.length > 0 && subgroupOpen && (
                         <div className="doc-subgroup">
                           <label className="doc-subgroup__check">
                             <input type="checkbox" checked={subs.length === 0}
@@ -1089,11 +1092,10 @@ export default function DocumentosPage() {
                   setForm(f => ({ ...f, dataPublicacao: date, scheduleTime: time }));
                 }}
                 placeholder="dd/mm/aaaa" />
-              {isFutureDate && (
-                <input className="doc-field__input" type="time"
-                  min={form.dataPublicacao === todayStr ? nowTimeStr : undefined}
-                  value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
-              )}
+              <input className="doc-field__input" type="time"
+                min={form.dataPublicacao === todayStr ? nowTimeStr : undefined}
+                value={form.scheduleTime} onChange={e => patchForm('scheduleTime', e.target.value)} />
+
             </div>
             {scheduleInPast && (
               <p className="doc-field__error">A data e hora de agendamento devem ser posteriores ao momento atual.</p>
