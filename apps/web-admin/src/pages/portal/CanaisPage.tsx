@@ -1845,6 +1845,12 @@ export default function CanaisPage() {
                 value={canalEditModal.labels[canalEditModal.locale] ?? ''} autoFocus
                 onChange={e => setCanalEditModal(m => m ? { ...m, labels: { ...m.labels, [m.locale]: e.target.value } } : m)} />
             </label>
+            {canalEditModal.locale !== PORTAL_CONFIG.languages[0] && (
+              <p className="canais-locked-note">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>lock</span>
+                Formato definido no idioma principal ({PORTAL_CONFIG.languages[0]}) — aqui só o nome do canal muda.
+              </p>
+            )}
             {!isFlatLayout && (
               <>
                 <div className="canais-edit-divider" />
@@ -1853,17 +1859,20 @@ export default function CanaisPage() {
                   value={canalEditModal.headerImageUrl}
                   onChange={v => setCanalEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
                   portalDbId={portalDbId}
+                  disabled={canalEditModal.locale !== PORTAL_CONFIG.languages[0]}
                 />
-                <label className="canal-apply-default">
+                <label className={`canal-apply-default${canalEditModal.locale !== PORTAL_CONFIG.languages[0] ? ' canal-apply-default--disabled' : ''}`}>
                   <input type="checkbox" checked={canalEditModal.applyHeaderToChildren}
+                    disabled={canalEditModal.locale !== PORTAL_CONFIG.languages[0]}
                     onChange={e => setCanalEditModal(m => m ? { ...m, applyHeaderToChildren: e.target.checked } : m)} />
                   Aplicar como padrão para todas as páginas filhas
                 </label>
               </>
             )}
             <div className="canais-edit-divider" />
-            <label className="canal-apply-default">
+            <label className={`canal-apply-default${canalEditModal.locale !== PORTAL_CONFIG.languages[0] ? ' canal-apply-default--disabled' : ''}`}>
               <input type="checkbox" checked={canalEditModal.showInFooter}
+                disabled={canalEditModal.locale !== PORTAL_CONFIG.languages[0]}
                 onChange={e => setCanalEditModal(m => m ? { ...m, showInFooter: e.target.checked } : m)} />
               <span>Exibir no footer <span style={{ fontWeight: 400, color: 'var(--color-gray-400)', fontSize: 'var(--text-xs)' }}>(Footer completo com mapa do site)</span></span>
             </label>
@@ -1878,14 +1887,15 @@ export default function CanaisPage() {
                   value={canalEditModal.pageType}
                   onChange={v => setCanalEditModal(m => m ? { ...m, pageType: v } : m)}
                   allowed={isFlatLayout ? FLAT_PAGE_TYPES : undefined}
+                  disabled={canalEditModal.locale !== PORTAL_CONFIG.languages[0]}
                 />
                 {canalEditModal.pageType === 'lista-agrupada' && (
                   <>
                     <div className="canais-edit-divider" />
                     <p className="ct-la-sub-title">Estilo de agrupamento</p>
-                    <div className="canais-agrupada-grid">
+                    <div className={`canais-agrupada-grid${canalEditModal.locale !== PORTAL_CONFIG.languages[0] ? ' canais-agrupada-grid--disabled' : ''}`}>
                       {(['accordion', 'secao'] as const).map(s => (
-                        <button key={s} type="button"
+                        <button key={s} type="button" disabled={canalEditModal.locale !== PORTAL_CONFIG.languages[0]}
                           className={`canais-agrupada-opt${canalEditModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
                           onClick={() => setCanalEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
                         >
@@ -1927,14 +1937,24 @@ export default function CanaisPage() {
           }
         >
           <div className="canais-edit-form">
-            <label className="canais-new-draft-check">
-              <input type="checkbox" checked={editModal.isExternalLink}
+            {(() => {
+              const isPrimary = editModal.locale === PORTAL_CONFIG.languages[0];
+              return (<>
+            <label className={`canais-new-draft-check${!isPrimary ? ' canal-apply-default--disabled' : ''}`}>
+              <input type="checkbox" checked={editModal.isExternalLink} disabled={!isPrimary}
                 onChange={e => setEditModal(m => m ? { ...m, isExternalLink: e.target.checked, externalUrl: '' } : m)} />
               <span>Link externo</span>
             </label>
 
             {PORTAL_CONFIG.languages.length > 1 && (
               <LangTabs active={editModal.locale} onChange={l => setEditModal(m => m ? { ...m, locale: l } : m)} />
+            )}
+
+            {!isPrimary && (
+              <p className="canais-locked-note">
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>lock</span>
+                Formato definido no idioma principal ({PORTAL_CONFIG.languages[0]}) — aqui só o nome da página muda.
+              </p>
             )}
 
             {editModal.isExternalLink ? (
@@ -1947,7 +1967,7 @@ export default function CanaisPage() {
                 </label>
                 <label className="canais-edit-form__label">
                   URL externa
-                  <input className="canais-edit-form__input" type="url" placeholder="https://..."
+                  <input className="canais-edit-form__input" type="url" placeholder="https://..." disabled={!isPrimary}
                     value={editModal.externalUrl}
                     onChange={e => setEditModal(m => m ? { ...m, externalUrl: e.target.value } : m)} />
                 </label>
@@ -1968,7 +1988,7 @@ export default function CanaisPage() {
                 </label>
                 <label className="canais-edit-form__label">
                   URL (slug)
-                  <input className="canais-edit-form__input" type="text" value={editModal.href}
+                  <input className="canais-edit-form__input" type="text" value={editModal.href} disabled={!isPrimary}
                     onChange={e => setEditModal(m => m ? { ...m, href: e.target.value } : m)} />
                 </label>
               </div>
@@ -1979,7 +1999,7 @@ export default function CanaisPage() {
               Tipo de página
               {!editModal.pageType && <span className="ct-required"> * — obrigatório antes de publicar conteúdo</span>}
             </p>
-            <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v, ..._laDefaults } : m)} />
+            <PageTypePicker value={editModal.pageType} onChange={v => setEditModal(m => m ? { ...m, pageType: v, ..._laDefaults } : m)} disabled={!isPrimary} />
 
             {!editModal.isExternalLink && (
               <>
@@ -1999,6 +2019,7 @@ export default function CanaisPage() {
                       onChange={v => setEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
                       portalDbId={portalDbId}
                       placeholderLabel="Clique para usar uma imagem própria nesta página"
+                      disabled={!isPrimary}
                     />
                   </>
                 ) : (
@@ -2006,6 +2027,7 @@ export default function CanaisPage() {
                     value={editModal.headerImageUrl}
                     onChange={v => setEditModal(m => m ? { ...m, headerImageUrl: v } : m)}
                     portalDbId={portalDbId}
+                    disabled={!isPrimary}
                   />
                 )}
               </>
@@ -2016,9 +2038,9 @@ export default function CanaisPage() {
               <div className="ct-la-flow">
                 {/* Style picker */}
                 <p className="ct-la-sub-title">Estilo de agrupamento</p>
-                <div className="canais-agrupada-grid">
+                <div className={`canais-agrupada-grid${!isPrimary ? ' canais-agrupada-grid--disabled' : ''}`}>
                   {(['accordion', 'secao'] as const).map(s => (
-                    <button key={s} type="button"
+                    <button key={s} type="button" disabled={!isPrimary}
                       className={`canais-agrupada-opt${editModal.listaAgrupadaStyle === s ? ' canais-agrupada-opt--active' : ''}`}
                       onClick={() => setEditModal(m => m ? { ...m, listaAgrupadaStyle: s } : m)}
                     >
@@ -2135,6 +2157,8 @@ export default function CanaisPage() {
                 </div>
               </>
             )}
+              </>);
+            })()}
           </div>
         </Modal>
       )}
@@ -2461,12 +2485,12 @@ export default function CanaisPage() {
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
-function PageTypePicker({ value, onChange, allowed }: { value: PageType | undefined; onChange: (v: PageType) => void; allowed?: PageType[] }) {
+function PageTypePicker({ value, onChange, allowed, disabled }: { value: PageType | undefined; onChange: (v: PageType) => void; allowed?: PageType[]; disabled?: boolean }) {
   const options = allowed ? PAGE_TYPES.filter(pt => allowed.includes(pt.id)) : PAGE_TYPES;
   return (
-    <div className="canais-page-types">
+    <div className={`canais-page-types${disabled ? ' canais-page-types--disabled' : ''}`}>
       {options.map(pt => (
-        <button key={pt.id} type="button"
+        <button key={pt.id} type="button" disabled={disabled}
           className={`canais-page-type${value === pt.id ? ' canais-page-type--active' : ''}`}
           onClick={() => onChange(pt.id)}
         >
@@ -2545,8 +2569,8 @@ async function uploadCanalHeaderImage(file: File, objectUrl: string, portalDbId:
   }
 }
 
-function HeaderImageEditor({ value, onChange, portalDbId, placeholderLabel }: {
-  value: string | null; onChange: (v: string | null) => void; portalDbId: string | null; placeholderLabel?: string;
+function HeaderImageEditor({ value, onChange, portalDbId, placeholderLabel, disabled }: {
+  value: string | null; onChange: (v: string | null) => void; portalDbId: string | null; placeholderLabel?: string; disabled?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -2560,20 +2584,20 @@ function HeaderImageEditor({ value, onChange, portalDbId, placeholderLabel }: {
     } finally { setUploading(false); }
   }
   if (value) return (
-    <div className="canal-header-img-preview">
+    <div className={`canal-header-img-preview${disabled ? ' canal-header-img-preview--disabled' : ''}`}>
       <img src={value} alt="Header" className="canal-header-img-preview__img" />
       <div className="canal-header-img-preview__actions">
         <label className="btn-action btn-action--enter canais-img-file-label">
           {uploading ? 'Enviando…' : 'Substituir'}
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading} />
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading || disabled} />
         </label>
-        <button className="btn-action btn-action--danger" type="button" onClick={() => onChange(null)}>Remover</button>
+        <button className="btn-action btn-action--danger" type="button" disabled={disabled} onClick={() => onChange(null)}>Remover</button>
       </div>
     </div>
   );
   return (
-    <label className="canal-header-img-empty canais-img-file-label">
-      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading} />
+    <label className={`canal-header-img-empty canais-img-file-label${disabled ? ' canal-header-img-empty--disabled' : ''}`}>
+      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading || disabled} />
       <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
       <span>{uploading ? 'Enviando…' : (placeholderLabel ?? 'Clique para adicionar imagem de header')}</span>
     </label>

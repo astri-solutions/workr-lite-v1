@@ -824,6 +824,26 @@ select.canais-edit-form__input,
 }
 .canal-apply-default input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--color-primary-500); cursor: pointer; flex-shrink: 0; }
 
+/* ── Locked-on-non-primary-locale note + disabled states ──────────
+   Structural fields (tipo de página, estilo de agrupamento, link
+   externo/URL, imagem do header, exibir no footer) never vary per
+   idioma — only the translated label does — so they're disabled and
+   dimmed whenever a non-primary LangTabs tab is active. */
+.canais-locked-note {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-gray-50, #F8F8F8);
+  border: 1px solid var(--color-gray-200);
+  font-family: var(--font-body); font-size: var(--text-xs); color: var(--color-gray-500);
+}
+.canais-page-types--disabled,
+.canais-agrupada-grid--disabled { opacity: 0.5; pointer-events: none; }
+.canal-apply-default--disabled { opacity: 0.5; }
+.canal-apply-default--disabled input[type="checkbox"] { cursor: not-allowed; }
+.canal-header-img-preview--disabled,
+.canal-header-img-empty--disabled { opacity: 0.5; pointer-events: none; }
+
 /* ── New canal modal ─────────────────────────────── */
 .canais-edit-form__label-group { display: flex; flex-direction: column; }
 .canais-new-type-row { display: flex; gap: var(--space-3); }
