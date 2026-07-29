@@ -75,6 +75,11 @@ interface FileEntry {
    * added via drop/pick or when replacing an existing entry's file; cleared
    * once persisted. */
   file?: File;
+  /** Links this entry to its per-locale siblings as ONE logical document
+   * (e.g. the pt-BR and EN files of the same "Apresentação de Resultados").
+   * Absent on legacy rows created before grouping existed — those are shown
+   * as their own single-locale document, same as before. */
+  groupId?: string;
 }
 
 const LOCALE_SHORT: Record<string, string> = { 'pt-BR': 'PT', 'en': 'EN', 'es': 'ES' };
@@ -129,6 +134,12 @@ function uid() {
   return `f${crypto.randomUUID()}`;
 }
 
+// Each dropped/picked file starts life as its own logical document (its own
+// groupId) — dropping several files together means "several different
+// documents", not "several language versions of the same one". Adding a
+// translated version of an EXISTING document instead happens per-row, via
+// the language chips in the table (see addOrReplaceLocale in
+// FileListEditor), which reuses that document's groupId.
 function makeEntries(files: File[], uploadedBy?: string, locale: string = 'pt-BR'): FileEntry[] {
   return files.map(f => ({
     id: uid(),
@@ -139,6 +150,7 @@ function makeEntries(files: File[], uploadedBy?: string, locale: string = 'pt-BR
     locale,
     file: f,
     uploadedBy,
+    groupId: uid(),
   }));
 }
 
@@ -153,78 +165,114 @@ interface FileListEditorProps {
   onPortugueseOnlyChange?: (v: boolean) => void;
 }
 
+// Key that groups an entry with its per-locale siblings as ONE logical
+// document. Falls back to the entry's own id for legacy rows created before
+// grouping existed — those are shown as their own single-locale document.
+function groupKeyOf(e: FileEntry): string {
+  return e.groupId ?? e.id;
+}
+
 function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPortugueseOnlyChange }: FileListEditorProps) {
   const [dropActive, setDropActive] = useState(false);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
-  // Edit-file modal state
+  // Edit modal state — renaming a document applies to every locale variant
+  // in its group at once (it's one logical document, not per-file).
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNome, setEditNome] = useState('');
-  const [editLocale, setEditLocale] = useState('pt-BR');
 
   // Publish confirm modal state
   const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
-  const confirmEntry = entries.find(e => e.id === confirmStatusId);
 
   // Delete confirm modal state
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const confirmDeleteEntry = entries.find(e => e.id === confirmDeleteId);
-  const editFileRef = useRef<HTMLInputElement>(null);
 
-  // Which rows are typing a custom "Tipo" not in DOC_TIPOS — guessType()
+  // Which groups are typing a custom "Tipo" not in DOC_TIPOS — guessType()
   // still suggests one of the known categories from the filename, but a
   // file that doesn't fit any of them (e.g. a new kind of document CVM
   // starts requiring) can freely become its own category instead of being
-  // forced into "Outros". A loaded entry whose tipo isn't a known code is
+  // forced into "Outros". A loaded group whose tipo isn't a known code is
   // already effectively custom (typed in a previous session), so treat it
   // the same way without requiring the user to re-pick "+ Novo tipo".
   const [customTipoIds, setCustomTipoIds] = useState<Set<string>>(new Set());
-  function isCustomTipo(entry: FileEntry) {
-    return customTipoIds.has(entry.id) || (!!entry.tipo && !DOC_TIPOS.some(t => t.value === entry.tipo));
+  function isCustomTipo(tipo: string, key: string) {
+    return customTipoIds.has(key) || (!!tipo && !DOC_TIPOS.some(t => t.value === tipo));
   }
 
-  function update(id: string, patch: Partial<FileEntry>) {
-    onChange(entries.map(e => e.id === id ? { ...e, ...patch } : e));
+  // One row per logical document — every per-locale FileEntry sharing a
+  // groupId is folded together here instead of listed as its own row.
+  const groupOrder: string[] = [];
+  const groupsMap = new Map<string, FileEntry[]>();
+  for (const e of entries) {
+    const k = groupKeyOf(e);
+    if (!groupsMap.has(k)) { groupsMap.set(k, []); groupOrder.push(k); }
+    groupsMap.get(k)!.push(e);
+  }
+  const primaryLocale = PORTAL_CONFIG.languages[0];
+  const groups = groupOrder.map(key => {
+    const list = groupsMap.get(key)!;
+    const primary = list.find(e => (e.locale ?? 'pt-BR') === primaryLocale) ?? list[0];
+    return { key, entries: list, primary };
+  });
+
+  function updateGroup(key: string, patch: Partial<Pick<FileEntry, 'nome' | 'tipo'>>) {
+    onChange(entries.map(e => groupKeyOf(e) === key ? { ...e, ...patch } : e));
   }
 
-  function remove(id: string) {
-    onChange(entries.filter(e => e.id !== id));
+  function removeGroup(key: string) {
+    onChange(entries.filter(e => groupKeyOf(e) !== key));
   }
 
-  function toggleStatus(id: string) {
-    onChange(entries.map(e => e.id === id ? { ...e, status: e.status === 'published' ? 'draft' : 'published' } : e));
+  function toggleGroupStatus(key: string) {
+    const nowPublished = groupsMap.get(key)?.[0]?.status === 'published';
+    onChange(entries.map(e => groupKeyOf(e) === key ? { ...e, status: nowPublished ? 'draft' : 'published' } : e));
   }
 
-  function openEdit(entry: FileEntry) {
-    setEditingId(entry.id);
-    setEditNome(entry.nome);
-    setEditLocale(entry.locale ?? 'pt-BR');
+  // Adds this file as the group's version for `locale` (creating a new
+  // per-locale entry that shares the group's nome/tipo/groupId) — or, if
+  // that locale already has a file, replaces it in place.
+  function addOrReplaceLocale(key: string, locale: string, file: File) {
+    const group = groupsMap.get(key) ?? [];
+    const existing = group.find(e => (e.locale ?? 'pt-BR') === locale);
+    if (existing) {
+      onChange(entries.map(e => e.id === existing.id
+        ? { ...e, fileName: file.name, file, tipo: e.tipo || guessType(file.name) }
+        : e));
+      return;
+    }
+    const primary = group.find(e => (e.locale ?? 'pt-BR') === primaryLocale) ?? group[0];
+    const newEntry: FileEntry = {
+      id: uid(),
+      nome: primary?.nome ?? file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
+      tipo: primary?.tipo ?? guessType(file.name),
+      fileName: file.name,
+      status: 'draft',
+      locale,
+      file,
+      uploadedBy: primary?.uploadedBy,
+      groupId: key,
+    };
+    onChange([...entries, newEntry]);
+  }
+
+  function removeLocale(key: string, locale: string) {
+    const group = groupsMap.get(key) ?? [];
+    if (group.length <= 1) { removeGroup(key); return; }
+    const target = group.find(e => (e.locale ?? 'pt-BR') === locale);
+    if (target) onChange(entries.filter(e => e.id !== target.id));
+  }
+
+  function openEdit(key: string) {
+    setEditingId(key);
+    setEditNome(groupsMap.get(key)?.[0]?.nome ?? '');
   }
 
   function saveEdit() {
     if (!editingId) return;
-    const original = entries.find(e => e.id === editingId);
-    const f = editFileRef.current?.files?.[0];
-    // Each file row belongs to a single idioma — it isn't a per-language
-    // content container like Documentos. Switching the idioma tab here
-    // without picking a new file would just relabel the existing PT file
-    // as EN/ES with no translated content, which the user could easily
-    // publish without noticing. Require an actual file for the new idioma.
-    if (!f && editLocale !== (original?.locale ?? 'pt-BR')) {
-      alert('Selecione um arquivo para este idioma antes de salvar — trocar apenas a aba não traduz o conteúdo do arquivo atual.');
-      return;
-    }
-    const patch: Partial<FileEntry> = { nome: editNome, locale: editLocale };
-    if (f) {
-      patch.fileName = f.name;
-      patch.tipo = guessType(f.name) || (original?.tipo ?? '');
-      patch.file = f;
-    }
-    update(editingId, patch);
+    updateGroup(editingId, { nome: editNome });
     setEditingId(null);
-    if (editFileRef.current) editFileRef.current.value = '';
   }
 
   function onDragStart(idx: number) { dragItem.current = idx; }
@@ -234,15 +282,17 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
     const from = dragItem.current;
     const to = dragOverItem.current;
     if (from === null || to === null || from === to) { dragItem.current = null; dragOverItem.current = null; return; }
-    const list = [...entries];
-    const [moved] = list.splice(from, 1);
-    list.splice(to, 0, moved);
-    onChange(list);
+    const order = [...groupOrder];
+    const [moved] = order.splice(from, 1);
+    order.splice(to, 0, moved);
+    onChange(order.flatMap(k => groupsMap.get(k) ?? []));
     dragItem.current = null;
     dragOverItem.current = null;
   }
 
-  const editingEntry = entries.find(e => e.id === editingId);
+  const confirmGroup = confirmStatusId ? groups.find(g => g.key === confirmStatusId) : undefined;
+  const confirmDeleteGroup = confirmDeleteId ? groups.find(g => g.key === confirmDeleteId) : undefined;
+  const showLocaleChips = !portugueseOnly && PORTAL_CONFIG.languages.length > 1;
 
   return (
     <div className="cdr2-editor">
@@ -286,12 +336,12 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry, idx) => {
-                const ext = fileExt(entry.fileName);
-                const langShort = LOCALE_SHORT[entry.locale ?? 'pt-BR'] ?? 'PT';
+              {groups.map((g, idx) => {
+                const { key, primary } = g;
+                const ext = fileExt(primary.fileName);
                 return (
                   <tr
-                    key={entry.id}
+                    key={key}
                     className={dragOverIdx === idx ? 'cdr2-file-item--drag-over' : ''}
                     draggable
                     onDragStart={() => onDragStart(idx)}
@@ -303,34 +353,34 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                       <span className="cdr2-drag-handle material-symbols-outlined">drag_indicator</span>
                     </td>
                     <td>
-                      <span className={`cdr2-file-tipo-icon material-symbols-outlined${entry.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
-                        {tipoIcon(entry.tipo)}
+                      <span className={`cdr2-file-tipo-icon material-symbols-outlined${primary.tipo ? ' cdr2-file-tipo-icon--set' : ''}`}>
+                        {tipoIcon(primary.tipo)}
                       </span>
                     </td>
                     <td className="table-cell--bold">
-                      <span className={!entry.nome ? 'cdr2-file-name-text--empty' : ''}>
-                        {entry.nome || 'Sem nome'}
+                      <span className={!primary.nome ? 'cdr2-file-name-text--empty' : ''}>
+                        {primary.nome || 'Sem nome'}
                       </span>
                       {portugueseOnly && <span className="cdr2-lang-badge cdr2-lang-badge--pt-only" style={{ marginLeft: 6 }}>Portuguese only</span>}
                     </td>
                     <td>
-                      {isCustomTipo(entry) ? (
+                      {isCustomTipo(primary.tipo, key) ? (
                         <div className="cdr2-type-custom">
                           <input
                             type="text"
                             className="cdr2-type-select cdr2-type-select--set"
-                            value={entry.tipo}
+                            value={primary.tipo}
                             placeholder="Nome do tipo"
-                            autoFocus={customTipoIds.has(entry.id)}
-                            onChange={e => update(entry.id, { tipo: e.target.value })}
+                            autoFocus={customTipoIds.has(key)}
+                            onChange={e => updateGroup(key, { tipo: e.target.value })}
                           />
                           <button
                             type="button"
                             className="cdr2-type-custom__revert"
                             title="Voltar para a lista de tipos"
                             onClick={() => {
-                              setCustomTipoIds(prev => { const n = new Set(prev); n.delete(entry.id); return n; });
-                              update(entry.id, { tipo: '' });
+                              setCustomTipoIds(prev => { const n = new Set(prev); n.delete(key); return n; });
+                              updateGroup(key, { tipo: '' });
                             }}
                           >
                             <span className="material-symbols-outlined">undo</span>
@@ -338,15 +388,15 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                         </div>
                       ) : (
                         <select
-                          className={`cdr2-type-select${entry.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
-                          value={entry.tipo}
+                          className={`cdr2-type-select${primary.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
+                          value={primary.tipo}
                           onChange={e => {
                             if (e.target.value === '__custom__') {
-                              setCustomTipoIds(prev => new Set(prev).add(entry.id));
-                              update(entry.id, { tipo: '' });
+                              setCustomTipoIds(prev => new Set(prev).add(key));
+                              updateGroup(key, { tipo: '' });
                               return;
                             }
-                            update(entry.id, { tipo: e.target.value });
+                            updateGroup(key, { tipo: e.target.value });
                           }}
                         >
                           <option value="">Tipo…</option>
@@ -358,33 +408,67 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                       )}
                     </td>
                     <td>
-                      <span className="cdr2-lang-badge" title={entry.locale ?? 'pt-BR'}>{langShort}</span>
+                      {showLocaleChips ? (
+                        <div className="cdr2-locale-chips">
+                          {PORTAL_CONFIG.languages.map(lang => {
+                            const has = g.entries.find(e => (e.locale ?? 'pt-BR') === lang);
+                            return has ? (
+                              <span key={lang} className="cdr2-lang-badge cdr2-lang-badge--filled" title={has.fileName}>
+                                {LOCALE_SHORT[lang] ?? lang}
+                                <button
+                                  type="button"
+                                  className="cdr2-lang-badge__remove"
+                                  title={`Remover versão em ${LOCALE_SHORT[lang] ?? lang}`}
+                                  onClick={() => removeLocale(key, lang)}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ) : (
+                              <label key={lang} className="cdr2-lang-badge cdr2-lang-badge--add" title={`Adicionar arquivo em ${LOCALE_SHORT[lang] ?? lang}`}>
+                                +{LOCALE_SHORT[lang] ?? lang}
+                                <input
+                                  type="file"
+                                  style={{ display: 'none' }}
+                                  onChange={e => {
+                                    const f = e.target.files?.[0];
+                                    if (f) addOrReplaceLocale(key, lang, f);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="cdr2-lang-badge" title={primary.locale ?? 'pt-BR'}>{LOCALE_SHORT[primary.locale ?? 'pt-BR'] ?? 'PT'}</span>
+                      )}
                     </td>
                     <td>
                       <span className={`cdr2-ext-badge${ext ? '' : ' cdr2-ext-badge--empty'}`}>{ext || '—'}</span>
                     </td>
-                    <td className="table-cell--muted">{entry.uploadedBy || '—'}</td>
+                    <td className="table-cell--muted">{primary.uploadedBy || '—'}</td>
                     <td>
                       <div className="cdr2-file-actions">
                         <button
                           type="button"
                           className="cdr2-edit-btn"
-                          onClick={() => openEdit(entry)}
-                          title="Editar arquivo"
+                          onClick={() => openEdit(key)}
+                          title="Renomear documento"
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
                         </button>
                         <button
                           type="button"
-                          className={`cdr2-status-btn${entry.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
-                          onClick={() => setConfirmStatusId(entry.id)}
-                          title={entry.status === 'published' ? 'Publicado' : 'Rascunho'}
+                          className={`cdr2-status-btn${primary.status === 'published' ? ' cdr2-status-btn--pub' : ''}`}
+                          onClick={() => setConfirmStatusId(key)}
+                          title={primary.status === 'published' ? 'Publicado' : 'Rascunho'}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>
-                            {entry.status === 'published' ? 'visibility' : 'visibility_off'}
+                            {primary.status === 'published' ? 'visibility' : 'visibility_off'}
                           </span>
                         </button>
-                        <button type="button" className="cdr2-remove-btn" onClick={() => setConfirmDeleteId(entry.id)} title="Remover">
+                        <button type="button" className="cdr2-remove-btn" onClick={() => setConfirmDeleteId(key)} title="Remover">
                           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
                         </button>
                       </div>
@@ -422,41 +506,28 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
             />
           </label>
 
-          {PORTAL_CONFIG.languages.length > 1 && (
+          {PORTAL_CONFIG.languages.length > 1 && portugueseOnly && (
             <div className="cdr-modal-form__label">
               <span>Idioma</span>
-              {portugueseOnly ? (
-                <div className="cdr2-edit-pt-only-row">
-                  <span className="cdr2-edit-pt-only-msg">
-                    <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
-                    Configurado como Apenas Português
-                  </span>
-                  {onPortugueseOnlyChange && (
-                    <button type="button" className="cdr2-edit-pt-only-switch" onClick={() => onPortugueseOnlyChange(false)}>
-                      Usar múltiplos idiomas
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <LangTabs active={editLocale as LocaleCode} onChange={v => setEditLocale(v)} />
-              )}
+              <div className="cdr2-edit-pt-only-row">
+                <span className="cdr2-edit-pt-only-msg">
+                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
+                  Configurado como Apenas Português
+                </span>
+                {onPortugueseOnlyChange && (
+                  <button type="button" className="cdr2-edit-pt-only-switch" onClick={() => onPortugueseOnlyChange(false)}>
+                    Usar múltiplos idiomas
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          <label className="cdr-modal-form__label">
-            {editLocale === (editingEntry?.locale ?? 'pt-BR') ? 'Substituir arquivo' : 'Adicionar arquivo'}
-            {editingEntry?.fileName && editLocale === (editingEntry?.locale ?? 'pt-BR') && (
-              <span className="cdr2-edit-current-file">
-                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>attach_file</span>
-                {editingEntry.fileName}
-              </span>
-            )}
-            <label className="cdr2-replace-file-btn">
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>upload</span>
-              Escolher novo arquivo
-              <input ref={editFileRef} type="file" style={{ display: 'none' }} />
-            </label>
-          </label>
+          {showLocaleChips && (
+            <p className="cdr2-edit-locale-hint">
+              Para adicionar ou trocar o arquivo de um idioma, use os botões de idioma na tabela.
+            </p>
+          )}
         </div>
       </Modal>
 
@@ -464,25 +535,25 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
       <Modal
         open={!!confirmStatusId}
         onClose={() => setConfirmStatusId(null)}
-        title={confirmEntry?.status === 'published' ? 'Despublicar documento' : 'Publicar documento'}
+        title={confirmGroup?.primary.status === 'published' ? 'Despublicar documento' : 'Publicar documento'}
         size="sm"
         footer={
           <div className="modal-footer">
             <button type="button" className="btn-outline" onClick={() => setConfirmStatusId(null)}>Cancelar</button>
             <button
               type="button"
-              className={confirmEntry?.status === 'published' ? 'btn-outline btn-outline--danger' : 'btn-primary'}
-              onClick={() => { if (confirmStatusId) { toggleStatus(confirmStatusId); setConfirmStatusId(null); } }}
+              className={confirmGroup?.primary.status === 'published' ? 'btn-outline btn-outline--danger' : 'btn-primary'}
+              onClick={() => { if (confirmStatusId) { toggleGroupStatus(confirmStatusId); setConfirmStatusId(null); } }}
             >
-              {confirmEntry?.status === 'published' ? 'Despublicar' : 'Publicar'}
+              {confirmGroup?.primary.status === 'published' ? 'Despublicar' : 'Publicar'}
             </button>
           </div>
         }
       >
         <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
-          {confirmEntry?.status === 'published'
-            ? <>O documento <strong>"{confirmEntry?.nome || 'sem nome'}"</strong> será removido da visualização pública imediatamente.</>
-            : <>O documento <strong>"{confirmEntry?.nome || 'sem nome'}"</strong> ficará visível publicamente no portal.</>
+          {confirmGroup?.primary.status === 'published'
+            ? <>O documento <strong>"{confirmGroup?.primary.nome || 'sem nome'}"</strong> será removido da visualização pública imediatamente, em todos os idiomas.</>
+            : <>O documento <strong>"{confirmGroup?.primary.nome || 'sem nome'}"</strong> ficará visível publicamente no portal, em todos os idiomas em que tiver arquivo.</>
           }
         </p>
       </Modal>
@@ -499,7 +570,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
             <button
               type="button"
               className="btn-outline btn-outline--danger"
-              onClick={() => { if (confirmDeleteId) { remove(confirmDeleteId); setConfirmDeleteId(null); } }}
+              onClick={() => { if (confirmDeleteId) { removeGroup(confirmDeleteId); setConfirmDeleteId(null); } }}
             >
               Remover
             </button>
@@ -507,7 +578,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
         }
       >
         <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
-          O documento <strong>"{confirmDeleteEntry?.nome || 'sem nome'}"</strong> será removido da lista. Esta ação não pode ser desfeita.
+          O documento <strong>"{confirmDeleteGroup?.primary.nome || 'sem nome'}"</strong> será removido da lista, em todos os idiomas. Esta ação não pode ser desfeita.
         </p>
       </Modal>
 
@@ -630,6 +701,7 @@ export default function CentralDeResultadosPage2() {
           filePath,
           externalLink: (r.external_link as string | null) ?? undefined,
           uploadedBy: (r.uploaded_by as string | null) ?? undefined,
+          groupId: (r.grupo_id as string | null) ?? undefined,
         };
         const periodoId = r.periodo_id as string;
         (grouped[periodoId] ??= []).push(entry);
@@ -823,17 +895,19 @@ export default function CentralDeResultadosPage2() {
             nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
             external_link: entry.externalLink ?? null, locale: entry.locale,
             status, ordem: idx, updated_at: new Date().toISOString(),
-            uploaded_by: entry.uploadedBy ?? null,
+            uploaded_by: entry.uploadedBy ?? null, grupo_id: entry.groupId ?? null,
           }, { onConflict: 'id' });
           if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
           continue;
         }
         const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
-          || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath;
+          || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath
+          || prevMatch.groupId !== entry.groupId;
         if (changed) {
           const { error } = await supabase.from('portal_resultado_arquivos').update({
             nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
             locale: entry.locale, status, ordem: idx, updated_at: new Date().toISOString(),
+            grupo_id: entry.groupId ?? null,
           }).eq('id', entry.id);
           if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(entry.nome); }
         } else {
