@@ -1,4 +1,5 @@
 import UserMenu from './UserMenu';
+import AlertsBell from './AlertsBell';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 
@@ -78,10 +79,7 @@ export default function AppTopbar({ onMobileMenuOpen, portalName, onBack }: AppT
             </svg>
           </span>
         </button>
-        <button className="admin-topbar__alert-btn" type="button" aria-label="Alertas">
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>notifications</span>
-          <span>Alertas</span>
-        </button>
+        {user?.role === 'super_admin' && <AlertsBell />}
         <div className="admin-topbar__separator" />
         <UserMenu theme={theme} onToggleTheme={toggleTheme} />
       </div>

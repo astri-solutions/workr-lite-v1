@@ -25,6 +25,7 @@ import type {
   EntityStatus,
   SyncResult,
   DiscoveredCategory,
+  CvmAlert,
 } from './cvm.types';
 
 interface EmpresaRow {
@@ -222,9 +223,55 @@ export const cvmService = {
     return (data?.routing as CvmRoutingRule[]) ?? [];
   },
 
-  /** Persist routing rules for one entity. */
+  /** Persist routing rules for one entity. A category that now has a real
+   *  rule no longer needs its cvm_alerts row — resolved right away instead
+   *  of waiting for the next sync to notice. */
   async updateRouting(portalId: string, empresaId: string, rules: CvmRoutingRule[]): Promise<void> {
     await _upsertSyncState(portalId, empresaId, { routing: rules });
+    if (!isSupabaseConfigured || !supabase) return;
+    const ids = rules.map(r => r.cvmCategoryId);
+    if (ids.length === 0) return;
+    await supabase.from('cvm_alerts')
+      .update({ resolved_at: new Date().toISOString() })
+      .eq('portal_id', portalId).eq('empresa_id', empresaId)
+      .in('cvm_category_id', ids)
+      .is('resolved_at', null);
+  },
+
+  /** Unresolved cvm_alerts — CVM categories found with no valid routing
+   *  page yet — for the topbar bell. Portal/empresa names are resolved
+   *  client-side since cvm_alerts only stores the ids. */
+  async listAlerts(): Promise<CvmAlert[]> {
+    if (!isSupabaseConfigured || !supabase) return [];
+    const { data: alerts } = await supabase
+      .from('cvm_alerts')
+      .select('id, portal_id, empresa_id, cvm_category_id, cvm_category_label, created_at')
+      .is('resolved_at', null)
+      .order('created_at', { ascending: false });
+    if (!alerts || alerts.length === 0) return [];
+
+    const portalIds = [...new Set(alerts.map(a => a.portal_id as string))];
+    const { data: portals } = await supabase.from('portals').select('id, cliente').in('id', portalIds);
+    const { data: configs } = await supabase.from('portal_config').select('portal_id, empresas').in('portal_id', portalIds);
+
+    const portalNomeById = new Map((portals ?? []).map(p => [p.id as string, p.cliente as string]));
+    const empresaNomeByKey = new Map<string, string>();
+    for (const cfg of configs ?? []) {
+      for (const e of (cfg.empresas ?? []) as { id: string; nome: string }[]) {
+        empresaNomeByKey.set(`${cfg.portal_id}:${e.id}`, e.nome);
+      }
+    }
+
+    return alerts.map(a => ({
+      id: a.id as string,
+      portalId: a.portal_id as string,
+      portalNome: portalNomeById.get(a.portal_id as string) ?? '—',
+      empresaId: a.empresa_id as string,
+      empresaNome: empresaNomeByKey.get(`${a.portal_id}:${a.empresa_id}`) ?? (a.empresa_id as string),
+      cvmCategoryId: a.cvm_category_id as string,
+      cvmCategoryLabel: a.cvm_category_label as string,
+      createdAt: a.created_at as string,
+    }));
   },
 
   /** Load the routable pages (canal tree nodes with pageType 'lista'/'lista-agrupada') for one portal. */

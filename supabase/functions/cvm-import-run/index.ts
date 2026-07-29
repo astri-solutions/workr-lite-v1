@@ -19,6 +19,13 @@
 // Dedupe: cvm_protocolo (CVM's filing protocol number) is unique per
 // (portal_id, cvm_protocolo) — re-running this for the same entity never
 // creates duplicate documents.
+//
+// Alerts: a category with no routing rule (or whose rule's target page no
+// longer exists) gets an unresolved row in cvm_alerts — that's what feeds
+// the bell dropdown in AppTopbar so an admin finds out a new page needs to
+// be mapped without having to remember to open Auto CVM and check. As soon
+// as a valid rule exists for that category (checked at the top of every
+// run, before matching any documents), the alert is resolved.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { unzipSync } from 'https://esm.sh/fflate@0.8.2';
@@ -160,6 +167,19 @@ async function fetchIpeYear(year: number): Promise<{ rows: IpeRow[]; error?: str
     });
   }
   return { rows };
+}
+
+// Shared across every empresa processed within a single run (manual
+// single-entity sync passes a fresh, empty cache; autoSyncAll passes one
+// cache reused for every empresa it iterates) so the same year's ZIP is
+// never downloaded from dados.cvm.gov.br more than once per invocation,
+// no matter how many companies are being checked.
+async function ensureIpeYearCached(year: number, cache: Map<number, IpeRow[]>, fetchErrors: string[]): Promise<void> {
+  if (cache.has(year)) return;
+  const { rows, error, notPublishedYet } = await fetchIpeYear(year);
+  if (notPublishedYet) { cache.set(year, []); return; } // not an error — CVM hasn't started this year's file yet
+  if (error) { fetchErrors.push(error); cache.set(year, []); return; }
+  cache.set(year, rows);
 }
 
 // ─── CVM category → internal taxonomy ─────────────────────────────────────
@@ -435,6 +455,265 @@ function ensureCategoryOnTree(canais: CanalNode[], targetId: string, categoryId:
   return { canais: result, changed };
 }
 
+interface EntitySyncResult {
+  entityId: string;
+  syncedAt: string;
+  documentsFound: number;
+  documentsImported: number;
+  errors: string[];
+  skippedDuplicate: number;
+}
+
+// The whole "sync one empresa against the CVM IPE dataset" flow — shared by
+// the single-entity request (Verificar agora / Importar histórico) and
+// autoSyncAll (the periodic cron that runs this for every autoCvm-enabled
+// empresa across every portal without an operator ever clicking anything).
+// `yearRowsCache` lets autoSyncAll download each year's CVM ZIP exactly once
+// per invocation no matter how many empresas share that year, instead of
+// once per empresa.
+async function runEntitySync(
+  admin: ReturnType<typeof createClient>,
+  portalId: string,
+  empresaId: string,
+  desdeDate: Date | null,
+  yearRowsCache: Map<number, IpeRow[]>,
+): Promise<{ ok: true; result: EntitySyncResult } | { ok: false; status: number; error: string }> {
+  const { data: cfg } = await admin.from('portal_config').select('empresas, canais, updated_at').eq('portal_id', portalId).maybeSingle();
+  const empresas = (cfg?.empresas ?? []) as EmpresaRow[];
+  const empresa = empresas.find(e => e.id === empresaId);
+  if (!empresa) {
+    return { ok: false, status: 404, error: 'Empresa não encontrada neste portal.' };
+  }
+  if (!empresa.autoCvm) {
+    return { ok: false, status: 400, error: 'Auto CVM não está ativado para esta empresa.' };
+  }
+
+  const { data: syncRow } = await admin.from('cvm_sync_state').select('routing, discovered_categories').eq('portal_id', portalId).eq('empresa_id', empresaId).maybeSingle();
+  const routing = (syncRow?.routing ?? []) as CvmRoutingRule[];
+  const routingByCategory = new Map(routing.map(r => [r.cvmCategoryId, r]));
+  const discoveredById = new Map<string, string>(
+    ((syncRow?.discovered_categories ?? []) as { id: string; label: string }[]).map(c => [c.id, c.label])
+  );
+
+  let canais = (cfg?.canais ?? []) as CanalNode[];
+
+  // A category whose rule now points at a real page (fixed since the alert
+  // was raised, or fixed since the last run) is no longer a problem — clear
+  // its alert before touching any document, so a routing-only fix (no new
+  // documents this run) still closes the bell notification right away.
+  const validRoutedIds = [...routingByCategory.entries()]
+    .filter(([, r]) => nodeExists(canais, r.targetId))
+    .map(([id]) => id);
+  if (validRoutedIds.length > 0) {
+    await admin.from('cvm_alerts')
+      .update({ resolved_at: new Date().toISOString() })
+      .eq('portal_id', portalId).eq('empresa_id', empresaId)
+      .in('cvm_category_id', validRoutedIds)
+      .is('resolved_at', null);
+  }
+
+  const cnpjDigits = empresa.cnpj ? onlyDigits(empresa.cnpj) : null;
+  const cvmCode = empresa.cvmCodigo?.trim() ? normalizeCvmCode(empresa.cvmCodigo) : null;
+
+  const now = new Date();
+  // Always include at least the previous year as a fallback — the current
+  // year's CVM file may not exist yet (they only publish it once the
+  // year's first filing lands), and the per-row date filter below already
+  // excludes anything before `desde`, so widening the range never leaks in
+  // documents outside the requested window.
+  const earliestYear = desdeDate ? Math.min(desdeDate.getFullYear(), now.getFullYear() - 1) : now.getFullYear() - 1;
+  const years = Array.from({ length: now.getFullYear() - earliestYear + 1 }, (_, i) => earliestYear + i);
+  const matches: IpeRow[] = [];
+  const fetchErrors: string[] = [];
+
+  for (const year of years) {
+    await ensureIpeYearCached(year, yearRowsCache, fetchErrors);
+    const rows = yearRowsCache.get(year) ?? [];
+    matches.push(...rows.filter(r => {
+      const isEntity = (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) || (cvmCode && normalizeCvmCode(r.codigoCvm) === cvmCode);
+      if (!isEntity) return false;
+      if (!desdeDate) return true;
+      const filedAt = parseCvmDate(r.dataEntrega) ?? parseCvmDate(r.dataReferencia);
+      return !!filedAt && new Date(filedAt) >= desdeDate;
+    }));
+  }
+
+  let canaisChanged = false;
+  let imported = 0;
+  let skippedDuplicate = 0;
+  let skippedUnrouted = 0;
+  let skippedNoMap = 0;
+  let skippedNoDate = 0;
+  let viewerPageOnly = 0;
+  let uploadFailed = 0;
+  const unroutedCategories = new Set<string>();
+  const unroutedCategoryMap = new Map<string, string>(); // id -> label, for cvm_alerts
+  let discoveredChanged = false;
+
+  for (const row of matches) {
+    const mapped = mapToCategoryId(row);
+    if (!mapped) {
+      // Only genuinely empty Categoria text falls through the slug
+      // fallback above — nothing meaningful to route.
+      skippedNoMap++;
+      continue;
+    }
+    if (!discoveredById.has(mapped.id)) { discoveredById.set(mapped.id, mapped.label); discoveredChanged = true; }
+    const rule = routingByCategory.get(mapped.id);
+    if (!rule) {
+      unroutedCategories.add(mapped.label);
+      unroutedCategoryMap.set(mapped.id, mapped.label);
+      skippedUnrouted++;
+      continue;
+    }
+    // A routed page that no longer exists (renamed/removed after the
+    // routing rule was configured) must not silently consume this
+    // document's dedupe key — treat it the same as unrouted so a fixed
+    // routing rule can still pick it up on the next sync.
+    if (!nodeExists(canais, rule.targetId)) {
+      unroutedCategories.add(`${mapped.label} (página roteada não existe mais — reconfigure em Auto CVM)`);
+      unroutedCategoryMap.set(mapped.id, mapped.label);
+      skippedUnrouted++;
+      continue;
+    }
+
+    const dataPublicacao = parseCvmDate(row.dataEntrega) ?? parseCvmDate(row.dataReferencia);
+    if (!dataPublicacao) { skippedNoDate++; continue; }
+
+    // CVM's own protocol number is the ideal dedupe key, but a small
+    // fraction of rows come without one — fall back to a composite key
+    // instead of silently dropping the document.
+    const dedupeKey = row.protocoloEntrega || `sem-protocolo:${onlyDigits(row.cnpjCompanhia)}:${mapped.id}:${row.dataEntrega}:${row.descricaoAssunto}`.slice(0, 250);
+
+    // The admin can route a discovered category into a specific existing
+    // group within a lista-agrupada page (rule.groupCategory) instead of
+    // just grouping by the raw CVM category text — honor that choice.
+    const groupLabel = rule.groupCategory || mapped.label;
+    const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, mapped.id, groupLabel);
+    if (changed) { canais = nextCanais; canaisChanged = true; }
+
+    // Prefer storing the real file (same as a manual upload in Documentos)
+    // over just linking out to the CVM — download it into our own storage
+    // whenever Link_Download actually points at a file rather than a
+    // viewer page, so it behaves identically to a document uploaded by
+    // hand: signed URLs, consistent icons, no dependency on CVM's uptime.
+    const downloaded = await downloadCvmFile(row.linkDownload);
+    let filePath: string | null = null;
+    let externalLink: string | null = row.linkDownload || null;
+    // Generated up front (rather than left to the DB default) so the
+    // storage object's filename can start with it — the anon-read RLS
+    // policy on storage.objects matches on `storage.filename(name) LIKE
+    // pd.id || '%'`, so a path not prefixed with this doc's own id would
+    // upload fine but 404/403 for every site visitor trying to open it.
+    const docId = crypto.randomUUID();
+    if (downloaded) {
+      const storagePath = `${portalId}/${docId}.${downloaded.ext}`;
+      const { error: uploadError } = await admin.storage
+        .from('portal-documents')
+        .upload(storagePath, downloaded.bytes, { upsert: true, contentType: downloaded.contentType });
+      if (!uploadError) {
+        filePath = storagePath;
+        externalLink = null;
+      } else {
+        uploadFailed++;
+      }
+    } else if (row.linkDownload) {
+      // downloadCvmFile already tried scraping the viewer page for the
+      // real document and following it — every CVM filing is a real
+      // document, so landing here means the scrape heuristic didn't
+      // recognize this page's layout, not that no file exists. Surfaced
+      // distinctly from a genuine upload failure so an admin isn't left
+      // guessing why a document still shows as a link.
+      viewerPageOnly++;
+    }
+
+    const { error: insertError } = await admin.from('portal_documents').insert({
+      id: docId,
+      portal_id: portalId,
+      entity_id: empresaId,
+      titulo: { 'pt-BR': row.descricaoAssunto || mapped.label },
+      tipo: mapped.label,
+      status: 'Publicado',
+      pagina_ids: [rule.targetId],
+      sub_group_ids: { [rule.targetId]: [groupLabel] },
+      idiomas: ['pt-BR'],
+      pt_only: true,
+      file_path: filePath,
+      external_link: externalLink,
+      from_cvm: true,
+      cvm_protocolo: dedupeKey,
+      data_publicacao: dataPublicacao,
+      publicado_por: 'Auto CVM',
+      ultimo_editor: 'Auto CVM',
+    });
+
+    if (insertError) {
+      if (insertError.code === '23505') skippedDuplicate++;
+      else fetchErrors.push(`Falha ao importar protocolo ${dedupeKey}: ${insertError.message}`);
+    } else {
+      imported++;
+    }
+  }
+
+  // Read-modify-write on the whole canais JSONB column races against a
+  // human editing Canais at the same time — an optimistic check against
+  // the updated_at snapshot taken before this run started ensures a
+  // concurrent manual edit is never silently clobbered. If it changed
+  // underneath us, skip writing (the next sync retries the promotion)
+  // rather than overwriting whatever the human just saved.
+  let canaisWriteConflict = false;
+  if (canaisChanged) {
+    const { data: updRows, error: updErr } = await admin
+      .from('portal_config')
+      .update({ canais })
+      .eq('portal_id', portalId)
+      .eq('updated_at', cfg?.updated_at ?? '')
+      .select('portal_id');
+    if (updErr || !updRows || updRows.length === 0) canaisWriteConflict = true;
+  }
+
+  const resultNow = new Date().toISOString();
+  const result = {
+    documentsFound: matches.length,
+    documentsImported: imported,
+    errors: [
+      ...fetchErrors,
+      // Not a problem — expected on every re-run, but silently absorbing
+      // it into "0 importados" reads as if the whole run failed.
+      ...(skippedDuplicate > 0 ? [`${skippedDuplicate} documento(s) já haviam sido importados anteriormente.`] : []),
+      ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) sem categoria informada pela CVM.`] : []),
+      ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
+      ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
+      ...(viewerPageOnly > 0 ? [`${viewerPageOnly} documento(s) importados como link externo — não foi possível localizar o arquivo real na página de visualização da CVM para essas categorias.`] : []),
+      ...(uploadFailed > 0 ? [`${uploadFailed} documento(s) tiveram o arquivo baixado mas falharam ao salvar no armazenamento — importados como link externo.`] : []),
+      ...(canaisWriteConflict ? [`A árvore de canais foi editada em paralelo — a promoção automática para lista agrupada não foi aplicada nesta sincronização. Rode novamente.`] : []),
+    ],
+  };
+
+  const discoveredCategories = [...discoveredById].map(([id, label]) => ({ id, label }));
+
+  await admin.from('cvm_sync_state').upsert({
+    portal_id: portalId,
+    empresa_id: empresaId,
+    ...(discoveredChanged ? { discovered_categories: discoveredCategories } : {}),
+    ultima_sync: resultNow,
+    last_sync_result: result,
+  }, { onConflict: 'portal_id,empresa_id' });
+
+  if (unroutedCategoryMap.size > 0) {
+    const alertRows = [...unroutedCategoryMap].map(([id, label]) => ({
+      portal_id: portalId,
+      empresa_id: empresaId,
+      cvm_category_id: id,
+      cvm_category_label: label,
+      resolved_at: null,
+    }));
+    await admin.from('cvm_alerts').upsert(alertRows, { onConflict: 'portal_id,empresa_id,cvm_category_id' });
+  }
+
+  return { ok: true, result: { entityId: empresaId, syncedAt: resultNow, ...result, skippedDuplicate } };
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const ch = corsHeaders(origin);
@@ -448,11 +727,11 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
 
-    // A pg_cron job calls this on a schedule (autoBackfillAll) so documents
-    // stuck as external_link get retried without an operator having to
-    // remember to click "Reprocessar links externos" per empresa — same
-    // service_role-key-as-trusted-system-call pattern as sync-template-all's
-    // golden-rule cron. This project's service_role key is the newer opaque
+    // A pg_cron job calls this on a schedule (autoBackfillAll / autoSyncAll)
+    // so both file-retry and "check for new CVM filings" happen without an
+    // operator having to remember to click anything — same service_role-
+    // key-as-trusted-system-call pattern as sync-template-all's golden-rule
+    // cron. This project's service_role key is the newer opaque
     // `sb_secret_...` format (not a JWT), so a bearer token equal to the
     // resolved key IS the trusted credential; a legacy JWT-format key with a
     // `role: "service_role"` claim is still accepted as a fallback.
@@ -467,7 +746,64 @@ Deno.serve(async (req) => {
       } catch { return false; }
     })();
 
-    const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly, autoBackfillAll } = await req.json() as { portalId?: string; empresaId?: string; desde?: string; backfillOnly?: boolean; reprocessRoutingOnly?: boolean; autoBackfillAll?: boolean };
+    const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly, autoBackfillAll, autoSyncAll } = await req.json() as {
+      portalId?: string; empresaId?: string; desde?: string;
+      backfillOnly?: boolean; reprocessRoutingOnly?: boolean; autoBackfillAll?: boolean; autoSyncAll?: boolean;
+    };
+
+    // ── Modo autoSyncAll: verificação periódica, sem operador nenhum envolvido ──
+    // Varre toda empresa com autoCvm ativado em todo portal e roda a mesma
+    // sincronização de "Verificar agora" (sem desde — só ano atual + anterior)
+    // para cada uma, importando automaticamente o que já tiver destino
+    // configurado e registrando um alerta (cvm_alerts) para quem não tiver.
+    // Só aceita chamada de sistema — nunca de um usuário comum — porque
+    // itera TODOS os portais de uma vez.
+    if (autoSyncAll) {
+      if (!isServiceRoleCall) {
+        return new Response(JSON.stringify({ error: 'Forbidden: system call required' }), { status: 403, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+      const admin = createClient(supabaseUrl, resolveServiceKey());
+      const { data: configs, error: cfgErr } = await admin.from('portal_config').select('portal_id, empresas');
+      if (cfgErr) {
+        return new Response(JSON.stringify({ error: `Falha ao listar portais: ${cfgErr.message}` }), { status: 500, headers: { ...ch, 'Content-Type': 'application/json' } });
+      }
+
+      const targets: { portalId: string; empresaId: string }[] = [];
+      for (const cfg of configs ?? []) {
+        const empresas = (cfg.empresas ?? []) as EmpresaRow[];
+        for (const e of empresas) {
+          if (e.autoCvm) targets.push({ portalId: cfg.portal_id as string, empresaId: e.id });
+        }
+      }
+
+      // Shared across every target so each year's CVM ZIP is fetched once
+      // for the whole run, not once per empresa.
+      const yearRowsCache = new Map<number, IpeRow[]>();
+      let totalImported = 0;
+      let entitiesWithNewAlerts = 0;
+      const perEntity: { portalId: string; empresaId: string; documentsImported: number; error?: string }[] = [];
+
+      for (const target of targets) {
+        const outcome = await runEntitySync(admin, target.portalId, target.empresaId, null, yearRowsCache);
+        if (!outcome.ok) {
+          perEntity.push({ ...target, documentsImported: 0, error: outcome.error });
+          continue;
+        }
+        totalImported += outcome.result.documentsImported;
+        if (outcome.result.errors.some(e => e.includes('sem destino configurado'))) entitiesWithNewAlerts++;
+        if (outcome.result.documentsImported > 0 || outcome.result.errors.length > 0) {
+          perEntity.push({ portalId: target.portalId, empresaId: target.empresaId, documentsImported: outcome.result.documentsImported });
+        }
+      }
+
+      return new Response(JSON.stringify({
+        syncedAt: new Date().toISOString(),
+        entitiesChecked: targets.length,
+        totalImported,
+        entitiesWithNewAlerts,
+        perEntity,
+      }), { status: 200, headers: { ...ch, 'Content-Type': 'application/json' } });
+    }
 
     // ── Modo autoBackfillAll: retry agendado, sem operador nenhum envolvido ──
     // Varre toda empresa com autoCvm ativado em todo portal e reaplica a
@@ -690,214 +1026,11 @@ Deno.serve(async (req) => {
     const desdeDate = desde ? new Date(`${desde}T00:00:00Z`) : null;
 
     const admin = createClient(supabaseUrl, resolveServiceKey());
-
-    const { data: cfg } = await admin.from('portal_config').select('empresas, canais, updated_at').eq('portal_id', portalId).maybeSingle();
-    const empresas = (cfg?.empresas ?? []) as EmpresaRow[];
-    const empresa = empresas.find(e => e.id === empresaId);
-    if (!empresa) {
-      return new Response(JSON.stringify({ error: 'Empresa não encontrada neste portal.' }), { status: 404, headers: { ...ch, 'Content-Type': 'application/json' } });
+    const outcome = await runEntitySync(admin, portalId, empresaId, desdeDate, new Map());
+    if (!outcome.ok) {
+      return new Response(JSON.stringify({ error: outcome.error }), { status: outcome.status, headers: { ...ch, 'Content-Type': 'application/json' } });
     }
-    if (!empresa.autoCvm) {
-      return new Response(JSON.stringify({ error: 'Auto CVM não está ativado para esta empresa.' }), { status: 400, headers: { ...ch, 'Content-Type': 'application/json' } });
-    }
-
-    const { data: syncRow } = await admin.from('cvm_sync_state').select('routing, discovered_categories').eq('portal_id', portalId).eq('empresa_id', empresaId).maybeSingle();
-    const routing = (syncRow?.routing ?? []) as CvmRoutingRule[];
-    const routingByCategory = new Map(routing.map(r => [r.cvmCategoryId, r]));
-    const discoveredById = new Map<string, string>(
-      ((syncRow?.discovered_categories ?? []) as { id: string; label: string }[]).map(c => [c.id, c.label])
-    );
-
-    const cnpjDigits = empresa.cnpj ? onlyDigits(empresa.cnpj) : null;
-    const cvmCode = empresa.cvmCodigo?.trim() ? normalizeCvmCode(empresa.cvmCodigo) : null;
-
-    const now = new Date();
-    // Always include at least the previous year as a fallback — the current
-    // year's CVM file may not exist yet (they only publish it once the
-    // year's first filing lands), and the per-row date filter below already
-    // excludes anything before `desde`, so widening the range never leaks in
-    // documents outside the requested window.
-    const earliestYear = desdeDate ? Math.min(desdeDate.getFullYear(), now.getFullYear() - 1) : now.getFullYear() - 1;
-    const years = Array.from({ length: now.getFullYear() - earliestYear + 1 }, (_, i) => earliestYear + i);
-    const matches: IpeRow[] = [];
-    const fetchErrors: string[] = [];
-
-    for (const year of years) {
-      const { rows, error, notPublishedYet } = await fetchIpeYear(year);
-      if (notPublishedYet) continue; // CVM hasn't started this year's file yet — not an error
-      if (error) { fetchErrors.push(error); continue; }
-      matches.push(...rows.filter(r => {
-        const isEntity = (cnpjDigits && onlyDigits(r.cnpjCompanhia) === cnpjDigits) || (cvmCode && normalizeCvmCode(r.codigoCvm) === cvmCode);
-        if (!isEntity) return false;
-        if (!desdeDate) return true;
-        const filedAt = parseCvmDate(r.dataEntrega) ?? parseCvmDate(r.dataReferencia);
-        return !!filedAt && new Date(filedAt) >= desdeDate;
-      }));
-    }
-
-    let canais = (cfg?.canais ?? []) as CanalNode[];
-    let canaisChanged = false;
-    let imported = 0;
-    let skippedDuplicate = 0;
-    let skippedUnrouted = 0;
-    let skippedNoMap = 0;
-    let skippedNoDate = 0;
-    let viewerPageOnly = 0;
-    let uploadFailed = 0;
-    const unroutedCategories = new Set<string>();
-    let discoveredChanged = false;
-
-    for (const row of matches) {
-      const mapped = mapToCategoryId(row);
-      if (!mapped) {
-        // Only genuinely empty Categoria text falls through the slug
-        // fallback above — nothing meaningful to route.
-        skippedNoMap++;
-        continue;
-      }
-      if (!discoveredById.has(mapped.id)) { discoveredById.set(mapped.id, mapped.label); discoveredChanged = true; }
-      const rule = routingByCategory.get(mapped.id);
-      if (!rule) {
-        unroutedCategories.add(mapped.label);
-        skippedUnrouted++;
-        continue;
-      }
-      // A routed page that no longer exists (renamed/removed after the
-      // routing rule was configured) must not silently consume this
-      // document's dedupe key — treat it the same as unrouted so a fixed
-      // routing rule can still pick it up on the next sync.
-      if (!nodeExists(canais, rule.targetId)) {
-        unroutedCategories.add(`${mapped.label} (página roteada não existe mais — reconfigure em Auto CVM)`);
-        skippedUnrouted++;
-        continue;
-      }
-
-      const dataPublicacao = parseCvmDate(row.dataEntrega) ?? parseCvmDate(row.dataReferencia);
-      if (!dataPublicacao) { skippedNoDate++; continue; }
-
-      // CVM's own protocol number is the ideal dedupe key, but a small
-      // fraction of rows come without one — fall back to a composite key
-      // instead of silently dropping the document.
-      const dedupeKey = row.protocoloEntrega || `sem-protocolo:${onlyDigits(row.cnpjCompanhia)}:${mapped.id}:${row.dataEntrega}:${row.descricaoAssunto}`.slice(0, 250);
-
-      // The admin can route a discovered category into a specific existing
-      // group within a lista-agrupada page (rule.groupCategory) instead of
-      // just grouping by the raw CVM category text — honor that choice.
-      const groupLabel = rule.groupCategory || mapped.label;
-      const { canais: nextCanais, changed } = ensureCategoryOnTree(canais, rule.targetId, mapped.id, groupLabel);
-      if (changed) { canais = nextCanais; canaisChanged = true; }
-
-      // Prefer storing the real file (same as a manual upload in Documentos)
-      // over just linking out to the CVM — download it into our own storage
-      // whenever Link_Download actually points at a file rather than a
-      // viewer page, so it behaves identically to a document uploaded by
-      // hand: signed URLs, consistent icons, no dependency on CVM's uptime.
-      const downloaded = await downloadCvmFile(row.linkDownload);
-      let filePath: string | null = null;
-      let externalLink: string | null = row.linkDownload || null;
-      // Generated up front (rather than left to the DB default) so the
-      // storage object's filename can start with it — the anon-read RLS
-      // policy on storage.objects matches on `storage.filename(name) LIKE
-      // pd.id || '%'`, so a path not prefixed with this doc's own id would
-      // upload fine but 404/403 for every site visitor trying to open it.
-      const docId = crypto.randomUUID();
-      if (downloaded) {
-        const storagePath = `${portalId}/${docId}.${downloaded.ext}`;
-        const { error: uploadError } = await admin.storage
-          .from('portal-documents')
-          .upload(storagePath, downloaded.bytes, { upsert: true, contentType: downloaded.contentType });
-        if (!uploadError) {
-          filePath = storagePath;
-          externalLink = null;
-        } else {
-          uploadFailed++;
-        }
-      } else if (row.linkDownload) {
-        // downloadCvmFile already tried scraping the viewer page for the
-        // real document and following it — every CVM filing is a real
-        // document, so landing here means the scrape heuristic didn't
-        // recognize this page's layout, not that no file exists. Surfaced
-        // distinctly from a genuine upload failure so an admin isn't left
-        // guessing why a document still shows as a link.
-        viewerPageOnly++;
-      }
-
-      const { error: insertError } = await admin.from('portal_documents').insert({
-        id: docId,
-        portal_id: portalId,
-        entity_id: empresaId,
-        titulo: { 'pt-BR': row.descricaoAssunto || mapped.label },
-        tipo: mapped.label,
-        status: 'Publicado',
-        pagina_ids: [rule.targetId],
-        sub_group_ids: { [rule.targetId]: [groupLabel] },
-        idiomas: ['pt-BR'],
-        pt_only: true,
-        file_path: filePath,
-        external_link: externalLink,
-        from_cvm: true,
-        cvm_protocolo: dedupeKey,
-        data_publicacao: dataPublicacao,
-        publicado_por: 'Auto CVM',
-        ultimo_editor: 'Auto CVM',
-      });
-
-      if (insertError) {
-        if (insertError.code === '23505') skippedDuplicate++;
-        else fetchErrors.push(`Falha ao importar protocolo ${dedupeKey}: ${insertError.message}`);
-      } else {
-        imported++;
-      }
-    }
-
-    // Read-modify-write on the whole canais JSONB column races against a
-    // human editing Canais at the same time — an optimistic check against
-    // the updated_at snapshot taken before this run started ensures a
-    // concurrent manual edit is never silently clobbered. If it changed
-    // underneath us, skip writing (the next sync retries the promotion)
-    // rather than overwriting whatever the human just saved.
-    let canaisWriteConflict = false;
-    if (canaisChanged) {
-      const { data: updRows, error: updErr } = await admin
-        .from('portal_config')
-        .update({ canais })
-        .eq('portal_id', portalId)
-        .eq('updated_at', cfg?.updated_at ?? '')
-        .select('portal_id');
-      if (updErr || !updRows || updRows.length === 0) canaisWriteConflict = true;
-    }
-
-    const resultNow = new Date().toISOString();
-    const result = {
-      documentsFound: matches.length,
-      documentsImported: imported,
-      errors: [
-        ...fetchErrors,
-        // Not a problem — expected on every re-run, but silently absorbing
-        // it into "0 importados" reads as if the whole run failed.
-        ...(skippedDuplicate > 0 ? [`${skippedDuplicate} documento(s) já haviam sido importados anteriormente.`] : []),
-        ...(skippedNoMap > 0 ? [`${skippedNoMap} documento(s) sem categoria informada pela CVM.`] : []),
-        ...(unroutedCategories.size > 0 ? [`${skippedUnrouted} documento(s) sem destino configurado nas categorias: ${[...unroutedCategories].join(', ')}. Configure o roteamento em Auto CVM.`] : []),
-        ...(skippedNoDate > 0 ? [`${skippedNoDate} documento(s) ignorados por data de entrega inválida.`] : []),
-        ...(viewerPageOnly > 0 ? [`${viewerPageOnly} documento(s) importados como link externo — não foi possível localizar o arquivo real na página de visualização da CVM para essas categorias.`] : []),
-        ...(uploadFailed > 0 ? [`${uploadFailed} documento(s) tiveram o arquivo baixado mas falharam ao salvar no armazenamento — importados como link externo.`] : []),
-        ...(canaisWriteConflict ? [`A árvore de canais foi editada em paralelo — a promoção automática para lista agrupada não foi aplicada nesta sincronização. Rode novamente.`] : []),
-      ],
-    };
-
-    const discoveredCategories = [...discoveredById].map(([id, label]) => ({ id, label }));
-
-    await admin.from('cvm_sync_state').upsert({
-      portal_id: portalId,
-      empresa_id: empresaId,
-      ...(discoveredChanged ? { discovered_categories: discoveredCategories } : {}),
-      ultima_sync: resultNow,
-      last_sync_result: result,
-    }, { onConflict: 'portal_id,empresa_id' });
-
-    return new Response(JSON.stringify({ entityId: empresaId, syncedAt: resultNow, ...result, skippedDuplicate }), {
-      status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify(outcome.result), { status: 200, headers: { ...ch, 'Content-Type': 'application/json' } });
 
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { ...ch, 'Content-Type': 'application/json' } });

@@ -75,3 +75,17 @@ export interface ImportHistoryResponse extends SyncResult {
   desde: string;
   syncedAt: string;
 }
+
+/** An unresolved cvm_alerts row — a CVM category with no valid routing rule
+ *  yet, surfaced to the bell dropdown in AppTopbar so a super_admin finds
+ *  out without having to open Auto CVM and check on their own. */
+export interface CvmAlert {
+  id: string;
+  portalId: string;
+  portalNome: string;
+  empresaId: string;
+  empresaNome: string;
+  cvmCategoryId: string;
+  cvmCategoryLabel: string;
+  createdAt: string;
+}
