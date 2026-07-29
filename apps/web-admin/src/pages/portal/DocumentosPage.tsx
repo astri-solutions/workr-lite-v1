@@ -356,9 +356,20 @@ export default function DocumentosPage() {
     const paginaIds = (raw.pagina_ids as string[]) ?? [];
     const subGroupIds = (raw.sub_group_ids as Record<string, string[]>) ?? {};
     const arquivos = (raw.arquivos as Record<string, DocFileEntry>) ?? {};
+    // Documents created before the per-locale `arquivos` map existed (every
+    // CVM import, and any manually-uploaded doc from before this refactor)
+    // only ever wrote the top-level file_path/external_link columns — never
+    // `arquivos`. Without this fallback, opening one of those for editing
+    // shows an empty upload area for the primary locale even though the
+    // real file is right there in `raw.file_path`/`raw.external_link`,
+    // which then blocks "Salvar e publicar" for supposedly missing a file
+    // that was never actually missing.
+    const legacyPrimaryEntry: DocFileEntry | undefined = (raw.file_path || raw.external_link)
+      ? { filePath: (raw.file_path as string | null) ?? undefined, externalLink: (raw.external_link as string | null) ?? undefined }
+      : undefined;
     const filesByLocale: Partial<Record<string, LocaleFileState>> = {};
     PORTAL_CONFIG.languages.forEach(l => {
-      const entry = arquivos[l];
+      const entry = arquivos[l] ?? (l === primaryLocale ? legacyPrimaryEntry : undefined);
       filesByLocale[l] = {
         file: null,
         isExternalLink: !!entry?.externalLink,
