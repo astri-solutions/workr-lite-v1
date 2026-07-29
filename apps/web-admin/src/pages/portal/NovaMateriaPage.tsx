@@ -43,14 +43,32 @@ interface AccordionItem { id: string; pergunta: string; resposta: string }
 interface TabItem { id: string; titulo: string; html: string }
 interface PessoaItem { id: string; nome: string; cargo: string; bio: string; imageUrl: string | null }
 
+// Per-locale rich text — `string` is only the legacy shape (every matéria
+// saved before locales were tracked here), migrated to the primary locale's
+// key the first time that field is edited in any locale. Fall back to the
+// primary locale so a language nobody has translated yet still shows
+// something instead of a blank block.
+type LocalizedHtml = Partial<Record<LocaleCode, string>>;
+
+function htmlFor(field: string | LocalizedHtml | undefined, locale: LocaleCode, primaryLocale: LocaleCode): string {
+  if (field == null) return '';
+  if (typeof field === 'string') return field;
+  return field[locale] ?? field[primaryLocale] ?? '';
+}
+
+function withLocalizedHtml(field: string | LocalizedHtml | undefined, locale: LocaleCode, primaryLocale: LocaleCode, value: string): LocalizedHtml {
+  const base: LocalizedHtml = field == null ? {} : typeof field === 'string' ? { [primaryLocale]: field } : { ...field };
+  return { ...base, [locale]: value };
+}
+
 interface ContentSection {
   id: string;
   type: SectionType;
   cards?: GaleriaCard[];
   // 'text', 'image-text', 'bg-image' primary text; 'two-col'/'three-col' col 1
-  html?: string;
-  html2?: string; // 'two-col'/'three-col' col 2
-  html3?: string; // 'three-col' col 3
+  html?: string | LocalizedHtml;
+  html2?: string | LocalizedHtml; // 'two-col'/'three-col' col 2
+  html3?: string | LocalizedHtml; // 'three-col' col 3
   imageUrl?: string | null; // 'image-text', 'bg-image', 'image', 'image-full'
   imageAlt?: string;
   timelineItems?: TimelineItem[]; // 'timeline'
@@ -1141,12 +1159,14 @@ function TabelaEditor({ rows, headers, onChange }: {
 }
 
 /* ── Section editor ───────────────────────────────────────── */
-function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }: {
+function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale }: {
   section: ContentSection;
   index: number;
   onRemove: () => void;
   onUpdateSection: (patch: Partial<ContentSection>) => void;
   portalDbId: string | null;
+  locale: LocaleCode;
+  primaryLocale: LocaleCode;
 }) {
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
@@ -1173,7 +1193,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
       </div>
       <div className="sec-editor__body">
         {section.type === 'text' && (
-          <RichTextEditor value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
+          <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
+            onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
         )}
 
         {(section.type === 'image-text' || section.type === 'text-image') && (
@@ -1184,7 +1205,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
             </p>
             <ImageUpload label="Imagem" ratio="4/3" value={section.imageUrl ?? null}
               onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
-            <RichTextEditor placeholder="Texto da seção..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
+            <RichTextEditor placeholder="Texto da seção..." value={htmlFor(section.html, locale, primaryLocale)}
+              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
           </div>
         )}
 
@@ -1192,7 +1214,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
           <div className="sec-bgimg">
             <ImageUpload label="Imagem de fundo" ratio="21/5" value={section.imageUrl ?? null}
               onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
-            <RichTextEditor placeholder="Texto de destaque sobre a imagem..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
+            <RichTextEditor placeholder="Texto de destaque sobre a imagem..." value={htmlFor(section.html, locale, primaryLocale)}
+              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
           </div>
         )}
 
@@ -1202,8 +1225,10 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
               No site, as colunas ficam lado a lado
             </p>
-            <RichTextEditor placeholder="Coluna 1..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
-            <RichTextEditor placeholder="Coluna 2..." value={section.html2 ?? ''} onChange={html2 => onUpdateSection({ html2 })} />
+            <RichTextEditor placeholder="Coluna 1..." value={htmlFor(section.html, locale, primaryLocale)}
+              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
+            <RichTextEditor placeholder="Coluna 2..." value={htmlFor(section.html2, locale, primaryLocale)}
+              onChange={html2 => onUpdateSection({ html2: withLocalizedHtml(section.html2, locale, primaryLocale, html2) })} />
           </div>
         )}
 
@@ -1213,9 +1238,12 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId }
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="3" width="6" height="18" rx="1"/><rect x="16" y="3" width="6" height="18" rx="1"/></svg>
               No site, as colunas ficam lado a lado
             </p>
-            <RichTextEditor placeholder="Coluna 1..." value={section.html ?? ''} onChange={html => onUpdateSection({ html })} />
-            <RichTextEditor placeholder="Coluna 2..." value={section.html2 ?? ''} onChange={html2 => onUpdateSection({ html2 })} />
-            <RichTextEditor placeholder="Coluna 3..." value={section.html3 ?? ''} onChange={html3 => onUpdateSection({ html3 })} />
+            <RichTextEditor placeholder="Coluna 1..." value={htmlFor(section.html, locale, primaryLocale)}
+              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
+            <RichTextEditor placeholder="Coluna 2..." value={htmlFor(section.html2, locale, primaryLocale)}
+              onChange={html2 => onUpdateSection({ html2: withLocalizedHtml(section.html2, locale, primaryLocale, html2) })} />
+            <RichTextEditor placeholder="Coluna 3..." value={htmlFor(section.html3, locale, primaryLocale)}
+              onChange={html3 => onUpdateSection({ html3: withLocalizedHtml(section.html3, locale, primaryLocale, html3) })} />
           </div>
         )}
 
@@ -1877,6 +1905,8 @@ export default function NovaMateriaPage() {
                     onRemove={() => removeSection(s.id)}
                     onUpdateSection={(patch) => updateSection(s.id, patch)}
                     portalDbId={portalDbId}
+                    locale={locale}
+                    primaryLocale={PORTAL_CONFIG.languages[0]}
                   />
                 ))}
                 <button
