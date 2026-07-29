@@ -1,5 +1,7 @@
 .docs-col-pub { width: 110px; min-width: 110px !important; }
 
+.up-form__check--incompatible { opacity: 0.5; }
+
 /* ─── Page ──────────────────────────────────────────── */
 .docs-page {
   display: flex;

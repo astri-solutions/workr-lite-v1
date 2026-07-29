@@ -1038,7 +1038,7 @@ export default function DocumentosPage() {
                   const subgroupOpen = subgroupsOpen[p.id] ?? true;
                   return (
                     <div key={p.id}>
-                      <label className="up-form__check" title={!compatible ? 'Esta página não é do tipo Lista — não aceita documentos' : undefined}>
+                      <label className={`up-form__check${!compatible ? ' up-form__check--incompatible' : ''}`} title={!compatible ? 'Esta página não é do tipo Lista — não aceita documentos' : undefined}>
                         <input type="checkbox" checked={checked} disabled={!compatible}
                           onChange={e => {
                             const ids = e.target.checked ? [...form.paginaIds, p.id] : form.paginaIds.filter(id => id !== p.id);
@@ -1057,17 +1057,15 @@ export default function DocumentosPage() {
                       </label>
                       {p.subGroups.length > 0 && subgroupOpen && (
                         <div className="doc-subgroup">
-                          <label className="doc-subgroup__check">
-                            <input type="checkbox" checked={subs.length === 0}
-                              onChange={() => patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: [] })} />
-                            Todos os grupos
-                          </label>
                           {p.subGroups.map(sg => (
                             <label key={sg} className="doc-subgroup__check">
                               <input type="checkbox" checked={subs.includes(sg)}
                                 onChange={e => {
                                   const next = e.target.checked ? [...subs, sg] : subs.filter(s => s !== sg);
                                   patchForm('subGroupIds', { ...form.subGroupIds, [p.id]: next });
+                                  if (e.target.checked && !checked) {
+                                    patchForm('paginaIds', [...form.paginaIds, p.id]);
+                                  }
                                 }} />
                               {sg}
                             </label>
