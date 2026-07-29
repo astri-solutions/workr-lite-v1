@@ -13,6 +13,10 @@ import { resolvePortalId } from '../../lib/portalDb';
 import '../admin/AdminPages.css';
 import './CentralDeResultadosPage.css';
 import './CentralDeResultadosPage2.css';
+// Shares the doc-upload/doc-source-toggle/doc-field__* classes with
+// Documentos — the document drawer here is intentionally styled the same
+// way (same upload/arquivo-vs-link pattern, same input/hint/error classes).
+import './DocumentosPage.css';
 
 const RESULTADOS_BUCKET = 'portal-documents';
 
@@ -80,6 +84,16 @@ interface FileEntry {
    * Absent on legacy rows created before grouping existed — those are shown
    * as their own single-locale document, same as before. */
   groupId?: string;
+  /** Per-document (not per-período) "Apenas Português" — mirrors Documentos:
+   * the document only shows a primary-locale file/link, same content for
+   * every idioma. Redundant across every locale entry in the group (all
+   * siblings carry the same value) for the same reason nome/tipo/status do. */
+  ptOnly?: boolean;
+  /** Shared across every locale entry in the group — the one thing that
+   * doesn't vary per idioma. Blank = publish now, past date = backdate,
+   * future date (+ scheduleTime) = schedule. */
+  dataPublicacao?: string;
+  scheduleTime?: string;
 }
 
 const LOCALE_SHORT: Record<string, string> = { 'pt-BR': 'PT', 'en': 'EN', 'es': 'ES' };
@@ -134,43 +148,23 @@ function uid() {
   return `f${crypto.randomUUID()}`;
 }
 
-// Each dropped/picked file starts life as its own logical document (its own
-// groupId) — dropping several files together means "several different
-// documents", not "several language versions of the same one". Adding a
-// translated version of an EXISTING document instead happens per-row, via
-// the language chips in the table (see addOrReplaceLocale in
-// FileListEditor), which reuses that document's groupId.
-function makeEntries(files: File[], uploadedBy?: string, locale: string = 'pt-BR'): FileEntry[] {
-  return files.map(f => ({
-    id: uid(),
-    nome: f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
-    tipo: guessType(f.name),
-    fileName: f.name,
-    status: 'draft' as const,
-    locale,
-    file: f,
-    uploadedBy,
-    groupId: uid(),
-  }));
-}
-
 // ─── FileList editor ─────────────────────────────────────────────────────────
 // Shared between the step-2 modal and the full-page quarter editor
 
 interface FileListEditorProps {
   entries: FileEntry[];
   onChange: (entries: FileEntry[]) => void;
-  onDropFiles: (files: File[]) => void;
-  portugueseOnly?: boolean;
-  onPortugueseOnlyChange?: (v: boolean) => void;
-  /** Set while a non-primary idioma tab (e.g. EN) is active and "Apenas
-   * Português" is off. Dropping a file here has no unambiguous target: it
-   * can't tell whether it's a translation of one of the documents already
-   * below or a brand new EN-only document, so the generic drop zone is
-   * replaced with a pointer to each row's own "+idioma" chip instead of
-   * silently creating a new, disconnected document. */
-  disabledForLocale?: string;
+  uploadedBy?: string;
 }
+
+interface DrawerLocaleFile {
+  file?: File;
+  fileName?: string;
+  existingPath?: string;
+  externalLink?: string;
+  isExternalLink: boolean;
+}
+function emptyDrawerFile(): DrawerLocaleFile { return { isExternalLink: false }; }
 
 // Key that groups an entry with its per-locale siblings as ONE logical
 // document. Falls back to the entry's own id for legacy rows created before
@@ -179,34 +173,17 @@ function groupKeyOf(e: FileEntry): string {
   return e.groupId ?? e.id;
 }
 
-function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPortugueseOnlyChange, disabledForLocale }: FileListEditorProps) {
-  const [dropActive, setDropActive] = useState(false);
-  const dragItem = useRef<number | null>(null);
-  const dragOverItem = useRef<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-
-  // Edit modal state — renaming a document applies to every locale variant
-  // in its group at once (it's one logical document, not per-file).
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editNome, setEditNome] = useState('');
-
-  // Publish confirm modal state
-  const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
-
-  // Delete confirm modal state
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-
-  // Which groups are typing a custom "Tipo" not in DOC_TIPOS — guessType()
-  // still suggests one of the known categories from the filename, but a
-  // file that doesn't fit any of them (e.g. a new kind of document CVM
-  // starts requiring) can freely become its own category instead of being
-  // forced into "Outros". A loaded group whose tipo isn't a known code is
-  // already effectively custom (typed in a previous session), so treat it
-  // the same way without requiring the user to re-pick "+ Novo tipo".
-  const [customTipoIds, setCustomTipoIds] = useState<Set<string>>(new Set());
-  function isCustomTipo(tipo: string, key: string) {
-    return customTipoIds.has(key) || (!!tipo && !DOC_TIPOS.some(t => t.value === tipo));
-  }
+// One document at a time, in a side panel — mirrors Documentos exactly
+// instead of the old "drop N files → N table rows with per-language +/×
+// chips" flow, which turned out confusing in practice (chips didn't read as
+// "add the translation of this document" and dropping directly onto the
+// table kept creating disconnected duplicate rows). Nome is per idioma (like
+// Documentos' títulos); tipo, status and the publish date/horário are
+// shared across every idioma of the same document — that's the one thing
+// that has to stay in sync between the pt-BR and EN versions.
+function FileListEditor({ entries, onChange, uploadedBy }: FileListEditorProps) {
+  const primaryLocale = PORTAL_CONFIG.languages[0];
+  const multiLang = PORTAL_CONFIG.languages.length > 1;
 
   // One row per logical document — every per-locale FileEntry sharing a
   // groupId is folded together here instead of listed as its own row.
@@ -217,71 +194,17 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
     if (!groupsMap.has(k)) { groupsMap.set(k, []); groupOrder.push(k); }
     groupsMap.get(k)!.push(e);
   }
-  const primaryLocale = PORTAL_CONFIG.languages[0];
   const groups = groupOrder.map(key => {
     const list = groupsMap.get(key)!;
     const primary = list.find(e => (e.locale ?? 'pt-BR') === primaryLocale) ?? list[0];
     return { key, entries: list, primary };
   });
 
-  function updateGroup(key: string, patch: Partial<Pick<FileEntry, 'nome' | 'tipo'>>) {
-    onChange(entries.map(e => groupKeyOf(e) === key ? { ...e, ...patch } : e));
-  }
-
-  function removeGroup(key: string) {
-    onChange(entries.filter(e => groupKeyOf(e) !== key));
-  }
-
-  function toggleGroupStatus(key: string) {
-    const nowPublished = groupsMap.get(key)?.[0]?.status === 'published';
-    onChange(entries.map(e => groupKeyOf(e) === key ? { ...e, status: nowPublished ? 'draft' : 'published' } : e));
-  }
-
-  // Adds this file as the group's version for `locale` (creating a new
-  // per-locale entry that shares the group's nome/tipo/groupId) — or, if
-  // that locale already has a file, replaces it in place.
-  function addOrReplaceLocale(key: string, locale: string, file: File) {
-    const group = groupsMap.get(key) ?? [];
-    const existing = group.find(e => (e.locale ?? 'pt-BR') === locale);
-    if (existing) {
-      onChange(entries.map(e => e.id === existing.id
-        ? { ...e, fileName: file.name, file, tipo: e.tipo || guessType(file.name) }
-        : e));
-      return;
-    }
-    const primary = group.find(e => (e.locale ?? 'pt-BR') === primaryLocale) ?? group[0];
-    const newEntry: FileEntry = {
-      id: uid(),
-      nome: primary?.nome ?? file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
-      tipo: primary?.tipo ?? guessType(file.name),
-      fileName: file.name,
-      status: 'draft',
-      locale,
-      file,
-      uploadedBy: primary?.uploadedBy,
-      groupId: key,
-    };
-    onChange([...entries, newEntry]);
-  }
-
-  function removeLocale(key: string, locale: string) {
-    const group = groupsMap.get(key) ?? [];
-    if (group.length <= 1) { removeGroup(key); return; }
-    const target = group.find(e => (e.locale ?? 'pt-BR') === locale);
-    if (target) onChange(entries.filter(e => e.id !== target.id));
-  }
-
-  function openEdit(key: string) {
-    setEditingId(key);
-    setEditNome(groupsMap.get(key)?.[0]?.nome ?? '');
-  }
-
-  function saveEdit() {
-    if (!editingId) return;
-    updateGroup(editingId, { nome: editNome });
-    setEditingId(null);
-  }
-
+  // Drag-reorder — operates on whole documents (groups), not individual
+  // per-locale rows, since only one row per document is ever shown.
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   function onDragStart(idx: number) { dragItem.current = idx; }
   function onDragEnter(idx: number) { dragOverItem.current = idx; setDragOverIdx(idx); }
   function onDragEnd() {
@@ -297,46 +220,184 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
     dragOverItem.current = null;
   }
 
+  function removeGroup(key: string) {
+    onChange(entries.filter(e => groupKeyOf(e) !== key));
+  }
+
+  function toggleGroupStatus(key: string) {
+    const nowPublished = groupsMap.get(key)?.[0]?.status === 'published';
+    onChange(entries.map(e => groupKeyOf(e) === key ? { ...e, status: nowPublished ? 'draft' : 'published' } : e));
+  }
+
+  // Publish/delete confirm modal state
+  const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const confirmGroup = confirmStatusId ? groups.find(g => g.key === confirmStatusId) : undefined;
   const confirmDeleteGroup = confirmDeleteId ? groups.find(g => g.key === confirmDeleteId) : undefined;
-  const showLocaleChips = !portugueseOnly && PORTAL_CONFIG.languages.length > 1;
+
+  // ── Document drawer (add/edit ONE document at a time) ──────────────────
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
+  const [docLocaleTab, setDocLocaleTab] = useState<LocaleCode>(primaryLocale);
+  const [docPtOnly, setDocPtOnly] = useState(false);
+  const [docTipo, setDocTipo] = useState('');
+  const [docCustomTipo, setDocCustomTipo] = useState(false);
+  const [docStatus, setDocStatus] = useState<'draft' | 'published'>('draft');
+  const [docNomeByLocale, setDocNomeByLocale] = useState<Record<string, string>>({});
+  const [docFilesByLocale, setDocFilesByLocale] = useState<Record<string, DrawerLocaleFile>>({});
+  const [docDataPublicacao, setDocDataPublicacao] = useState('');
+  const [docScheduleTime, setDocScheduleTime] = useState('');
+  const [docSaveError, setDocSaveError] = useState('');
+  const [docDragActive, setDocDragActive] = useState(false);
+  const [droppedExtraCount, setDroppedExtraCount] = useState(0);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
+
+  function resetDrawerState() {
+    setEditingGroupKey(null);
+    setDocLocaleTab(primaryLocale);
+    setDocPtOnly(false);
+    setDocTipo('');
+    setDocCustomTipo(false);
+    setDocStatus('draft');
+    setDocNomeByLocale({});
+    setDocFilesByLocale({});
+    setDocDataPublicacao('');
+    setDocScheduleTime('');
+    setDocSaveError('');
+    setDroppedExtraCount(0);
+  }
+
+  function openNewDocDrawer(files?: File[]) {
+    resetDrawerState();
+    const first = files?.[0];
+    if (first) {
+      const nome = first.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+      setDocNomeByLocale({ [primaryLocale]: nome });
+      const guess = guessType(first.name);
+      setDocTipo(guess);
+      setDocCustomTipo(!!guess && !DOC_TIPOS.some(t => t.value === guess));
+      setDocFilesByLocale({ [primaryLocale]: { file: first, fileName: first.name, isExternalLink: false } });
+      if (files.length > 1) setDroppedExtraCount(files.length - 1);
+    }
+    setDrawerOpen(true);
+  }
+
+  function openEditDocDrawer(key: string) {
+    const group = groupsMap.get(key) ?? [];
+    const primary = group.find(e => (e.locale ?? 'pt-BR') === primaryLocale) ?? group[0];
+    resetDrawerState();
+    setEditingGroupKey(key);
+    setDocTipo(primary?.tipo ?? '');
+    setDocCustomTipo(!!primary?.tipo && !DOC_TIPOS.some(t => t.value === primary.tipo));
+    setDocStatus(primary?.status ?? 'draft');
+    setDocPtOnly(!!primary?.ptOnly);
+    const nomes: Record<string, string> = {};
+    const files: Record<string, DrawerLocaleFile> = {};
+    for (const e of group) {
+      const loc = e.locale ?? 'pt-BR';
+      nomes[loc] = e.nome;
+      files[loc] = { fileName: e.fileName, existingPath: e.filePath, externalLink: e.externalLink, isExternalLink: !!e.externalLink };
+    }
+    setDocNomeByLocale(nomes);
+    setDocFilesByLocale(files);
+    setDocDataPublicacao(primary?.dataPublicacao ?? '');
+    setDocScheduleTime(primary?.scheduleTime ?? '');
+    setDrawerOpen(true);
+  }
+
+  function patchDocFile(locale: string, patch: Partial<DrawerLocaleFile>) {
+    setDocFilesByLocale(prev => ({ ...prev, [locale]: { ...(prev[locale] ?? emptyDrawerFile()), ...patch } }));
+  }
+  function getDocFile(locale: string): DrawerLocaleFile {
+    return docFilesByLocale[locale] ?? emptyDrawerFile();
+  }
+  function hasContent(f: DrawerLocaleFile): boolean {
+    return !!(f.file || f.existingPath || (f.isExternalLink && f.externalLink));
+  }
+
+  const activeLocale = docPtOnly ? primaryLocale : docLocaleTab;
+  const activeDocFile = getDocFile(activeLocale);
+
+  function handleDocFile(locale: string, f: File) {
+    patchDocFile(locale, { file: f, fileName: f.name, existingPath: undefined });
+    if (locale === primaryLocale && !docTipo) {
+      const guess = guessType(f.name);
+      if (guess) { setDocTipo(guess); setDocCustomTipo(false); }
+    }
+  }
+
+  const missingDocLocales = !docPtOnly && multiLang
+    ? PORTAL_CONFIG.languages.filter(l => l !== primaryLocale && !hasContent(getDocFile(l)))
+    : [];
+
+  function saveDocDrawer() {
+    const primaryNome = (docNomeByLocale[primaryLocale] ?? '').trim();
+    const primaryFile = getDocFile(primaryLocale);
+    if (!primaryNome) { setDocSaveError('Informe o nome do documento.'); return; }
+    if (!hasContent(primaryFile)) {
+      setDocSaveError(`Adicione um arquivo ou link para ${LOCALE_SHORT[primaryLocale] ?? primaryLocale}.`);
+      return;
+    }
+    const key = editingGroupKey ?? uid();
+    const existingGroup = editingGroupKey ? (groupsMap.get(editingGroupKey) ?? []) : [];
+    const locales = docPtOnly ? [primaryLocale] : PORTAL_CONFIG.languages;
+    const nextGroupEntries: FileEntry[] = [];
+    for (const loc of locales) {
+      const f = getDocFile(loc);
+      if (!hasContent(f)) continue; // a non-primary idioma left empty simply has no row yet
+      const existing = existingGroup.find(e => (e.locale ?? 'pt-BR') === loc);
+      nextGroupEntries.push({
+        id: existing?.id ?? uid(),
+        nome: (docNomeByLocale[loc] ?? '').trim() || primaryNome,
+        tipo: docTipo,
+        fileName: f.file?.name ?? f.fileName ?? (f.externalLink ?? f.existingPath?.split('/').pop() ?? ''),
+        status: docStatus,
+        locale: loc,
+        filePath: f.isExternalLink ? undefined : f.existingPath,
+        externalLink: f.isExternalLink ? f.externalLink : undefined,
+        uploadedBy: existing?.uploadedBy ?? uploadedBy,
+        file: f.file,
+        groupId: key,
+        ptOnly: docPtOnly,
+        dataPublicacao: docDataPublicacao || undefined,
+        scheduleTime: docScheduleTime || undefined,
+      });
+    }
+    const otherEntries = entries.filter(e => groupKeyOf(e) !== key);
+    onChange([...otherEntries, ...nextGroupEntries]);
+    setDrawerOpen(false);
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isFutureDate = !!docDataPublicacao && docDataPublicacao > todayStr;
 
   return (
     <div className="cdr2-editor">
-      {/* Drop zone */}
-      {disabledForLocale ? (
-        <div className="cdr2-dropzone cdr2-dropzone--disabled">
-          <span className="material-symbols-outlined cdr2-dropzone__icon">translate</span>
-          <p className="cdr2-dropzone__text">
-            Arrastar aqui cria um documento novo só em {LOCALE_SHORT[disabledForLocale] ?? disabledForLocale}, sem versão em {LOCALE_SHORT[primaryLocale] ?? primaryLocale}.
-          </p>
-          <p className="cdr2-dropzone__hint">
-            Para adicionar a versão em {LOCALE_SHORT[disabledForLocale] ?? disabledForLocale} de um documento já existente, use o botão "+{LOCALE_SHORT[disabledForLocale] ?? disabledForLocale}" na linha dele, abaixo.
-          </p>
-        </div>
-      ) : (
-        <div
-          className={`cdr2-dropzone${dropActive ? ' cdr2-dropzone--active' : ''}`}
-          onDragOver={e => { e.preventDefault(); setDropActive(true); }}
-          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropActive(false); }}
-          onDrop={e => { e.preventDefault(); setDropActive(false); onDropFiles(Array.from(e.dataTransfer.files)); }}
-        >
-          <span className="material-symbols-outlined cdr2-dropzone__icon">upload_file</span>
-          <p className="cdr2-dropzone__text">
-            Arraste arquivos aqui ou{' '}
-            <label className="cdr2-dropzone__link">
-              selecione do computador
-              <input
-                type="file"
-                multiple
-                style={{ display: 'none' }}
-                onChange={e => { if (e.target.files) onDropFiles(Array.from(e.target.files)); e.target.value = ''; }}
-              />
-            </label>
-          </p>
-          <p className="cdr2-dropzone__hint">PDF, Excel, MP3, MP4 e outros</p>
-        </div>
-      )}
+      {/* Drop zone — always opens the document drawer, one document at a time */}
+      <div
+        className={`cdr2-dropzone${docDragActive ? ' cdr2-dropzone--active' : ''}`}
+        onDragOver={e => { e.preventDefault(); setDocDragActive(true); }}
+        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDocDragActive(false); }}
+        onDrop={e => { e.preventDefault(); setDocDragActive(false); openNewDocDrawer(Array.from(e.dataTransfer.files)); }}
+      >
+        <span className="material-symbols-outlined cdr2-dropzone__icon">upload_file</span>
+        <p className="cdr2-dropzone__text">
+          Arraste um arquivo aqui ou{' '}
+          <label className="cdr2-dropzone__link">
+            selecione do computador
+            <input
+              type="file"
+              style={{ display: 'none' }}
+              onChange={e => { if (e.target.files?.length) openNewDocDrawer(Array.from(e.target.files)); e.target.value = ''; }}
+            />
+          </label>
+        </p>
+        <p className="cdr2-dropzone__hint">PDF, Excel, MP3, MP4 e outros — um documento por vez</p>
+      </div>
+      <button type="button" className="btn-outline cdr2-add-doc-btn" onClick={() => openNewDocDrawer()}>
+        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+        Adicionar documento
+      </button>
 
       {/* File list */}
       {entries.length > 0 && (
@@ -348,7 +409,7 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                 <th style={{ width: 28 }} />
                 <th>Nome</th>
                 <th style={{ width: 180 }}>Tipo de documento</th>
-                <th style={{ width: 60 }}>Idioma</th>
+                <th style={{ width: 90 }}>Idioma</th>
                 <th style={{ width: 56 }}>Ext.</th>
                 <th style={{ width: 150 }}>Publicado por</th>
                 <th style={{ width: 96 }} />
@@ -380,82 +441,18 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                       <span className={!primary.nome ? 'cdr2-file-name-text--empty' : ''}>
                         {primary.nome || 'Sem nome'}
                       </span>
-                      {portugueseOnly && <span className="cdr2-lang-badge cdr2-lang-badge--pt-only" style={{ marginLeft: 6 }}>Portuguese only</span>}
+                      {primary.ptOnly && <span className="cdr2-lang-badge cdr2-lang-badge--pt-only" style={{ marginLeft: 6 }}>Portuguese only</span>}
                     </td>
+                    <td className="table-cell--muted">{tipoLabel(primary.tipo) || '—'}</td>
                     <td>
-                      {isCustomTipo(primary.tipo, key) ? (
-                        <div className="cdr2-type-custom">
-                          <input
-                            type="text"
-                            className="cdr2-type-select cdr2-type-select--set"
-                            value={primary.tipo}
-                            placeholder="Nome do tipo"
-                            autoFocus={customTipoIds.has(key)}
-                            onChange={e => updateGroup(key, { tipo: e.target.value })}
-                          />
-                          <button
-                            type="button"
-                            className="cdr2-type-custom__revert"
-                            title="Voltar para a lista de tipos"
-                            onClick={() => {
-                              setCustomTipoIds(prev => { const n = new Set(prev); n.delete(key); return n; });
-                              updateGroup(key, { tipo: '' });
-                            }}
-                          >
-                            <span className="material-symbols-outlined">undo</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <select
-                          className={`cdr2-type-select${primary.tipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
-                          value={primary.tipo}
-                          onChange={e => {
-                            if (e.target.value === '__custom__') {
-                              setCustomTipoIds(prev => new Set(prev).add(key));
-                              updateGroup(key, { tipo: '' });
-                              return;
-                            }
-                            updateGroup(key, { tipo: e.target.value });
-                          }}
-                        >
-                          <option value="">Tipo…</option>
-                          {DOC_TIPOS.map(t => (
-                            <option key={t.value} value={t.value}>{t.label}</option>
-                          ))}
-                          <option value="__custom__">+ Novo tipo…</option>
-                        </select>
-                      )}
-                    </td>
-                    <td>
-                      {showLocaleChips ? (
+                      {multiLang && !primary.ptOnly ? (
                         <div className="cdr2-locale-chips">
                           {PORTAL_CONFIG.languages.map(lang => {
-                            const has = g.entries.find(e => (e.locale ?? 'pt-BR') === lang);
-                            return has ? (
-                              <span key={lang} className="cdr2-lang-badge cdr2-lang-badge--filled" title={has.fileName}>
+                            const has = g.entries.some(e => (e.locale ?? 'pt-BR') === lang);
+                            return (
+                              <span key={lang} className={`cdr2-lang-badge${has ? ' cdr2-lang-badge--filled' : ' cdr2-lang-badge--missing'}`}>
                                 {LOCALE_SHORT[lang] ?? lang}
-                                <button
-                                  type="button"
-                                  className="cdr2-lang-badge__remove"
-                                  title={`Remover versão em ${LOCALE_SHORT[lang] ?? lang}`}
-                                  onClick={() => removeLocale(key, lang)}
-                                >
-                                  ×
-                                </button>
                               </span>
-                            ) : (
-                              <label key={lang} className="cdr2-lang-badge cdr2-lang-badge--add" title={`Adicionar arquivo em ${LOCALE_SHORT[lang] ?? lang}`}>
-                                +{LOCALE_SHORT[lang] ?? lang}
-                                <input
-                                  type="file"
-                                  style={{ display: 'none' }}
-                                  onChange={e => {
-                                    const f = e.target.files?.[0];
-                                    if (f) addOrReplaceLocale(key, lang, f);
-                                    e.target.value = '';
-                                  }}
-                                />
-                              </label>
                             );
                           })}
                         </div>
@@ -472,8 +469,8 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
                         <button
                           type="button"
                           className="cdr2-edit-btn"
-                          onClick={() => openEdit(key)}
-                          title="Renomear documento"
+                          onClick={() => openEditDocDrawer(key)}
+                          title="Editar documento"
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
                         </button>
@@ -500,53 +497,190 @@ function FileListEditor({ entries, onChange, onDropFiles, portugueseOnly, onPort
         </div>
       )}
 
-      {/* ── Edit-file modal ── */}
+      {/* ── Document drawer ── */}
       <Modal
-        open={!!editingId}
-        onClose={() => setEditingId(null)}
-        title="Editar documento"
-        size="sm"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title={editingGroupKey ? 'Editar documento' : 'Novo documento'}
+        size="md"
+        variant="side"
         footer={
           <div className="modal-footer">
-            <button type="button" className="btn-outline" onClick={() => setEditingId(null)}>Cancelar</button>
-            <button type="button" className="btn-primary" onClick={saveEdit}>Salvar</button>
+            <button type="button" className="btn-outline" onClick={() => setDrawerOpen(false)}>Cancelar</button>
+            <button type="button" className="btn-primary" onClick={saveDocDrawer}>Salvar</button>
           </div>
         }
       >
         <div className="cdr-modal-form">
+          {droppedExtraCount > 0 && (
+            <p className="cdr2-edit-locale-hint">
+              Você soltou {droppedExtraCount + 1} arquivos — apenas o primeiro foi usado aqui. Adicione os demais um de cada vez, depois de salvar este.
+            </p>
+          )}
+
+          {multiLang && (
+            <label className="cdr2-pt-only-switch-row">
+              <span className="cdr2-pt-only-switch-label">
+                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>translate</span>
+                Apenas Português
+                <span className="cdr2-pt-only-switch-hint">O mesmo documento será exibido em todos os idiomas</span>
+              </span>
+              <button
+                type="button"
+                className={`cdr2-toggle${docPtOnly ? ' cdr2-toggle--on' : ''}`}
+                onClick={() => { setDocPtOnly(v => !v); setDocLocaleTab(primaryLocale); }}
+                aria-pressed={docPtOnly}
+              >
+                <span className="cdr2-toggle__knob" />
+              </button>
+            </label>
+          )}
+
+          {!docPtOnly && multiLang && (
+            <LangTabs active={docLocaleTab} onChange={setDocLocaleTab} />
+          )}
+
+          {missingDocLocales.length > 0 && (
+            <p className="cdr2-missing-locale-warning">
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>warning</span>
+              Ainda não foi adicionado arquivo para {missingDocLocales.map(l => LOCALE_SHORT[l] ?? l).join(', ')} — o documento não aparecerá para quem visita o site nesse(s) idioma(s).
+            </p>
+          )}
+
           <label className="cdr-modal-form__label">
             Nome do documento
             <input
               className="cdr-modal-form__input"
               type="text"
-              value={editNome}
-              onChange={e => setEditNome(e.target.value)}
+              value={docNomeByLocale[activeLocale] ?? ''}
+              onChange={e => setDocNomeByLocale(prev => ({ ...prev, [activeLocale]: e.target.value }))}
               placeholder="Ex: Apresentação de Resultados 2T25"
+              autoFocus
             />
           </label>
 
-          {PORTAL_CONFIG.languages.length > 1 && portugueseOnly && (
-            <div className="cdr-modal-form__label">
-              <span>Idioma</span>
-              <div className="cdr2-edit-pt-only-row">
-                <span className="cdr2-edit-pt-only-msg">
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
-                  Configurado como Apenas Português
-                </span>
-                {onPortugueseOnlyChange && (
-                  <button type="button" className="cdr2-edit-pt-only-switch" onClick={() => onPortugueseOnlyChange(false)}>
-                    Usar múltiplos idiomas
-                  </button>
-                )}
+          <label className="cdr-modal-form__label">
+            Tipo de documento
+            {docCustomTipo ? (
+              <div className="cdr2-type-custom">
+                <input
+                  type="text"
+                  className="cdr2-type-select cdr2-type-select--set"
+                  value={docTipo}
+                  placeholder="Nome do tipo"
+                  onChange={e => setDocTipo(e.target.value)}
+                />
+                <button type="button" className="cdr2-type-custom__revert" title="Voltar para a lista de tipos"
+                  onClick={() => { setDocCustomTipo(false); setDocTipo(''); }}>
+                  <span className="material-symbols-outlined">undo</span>
+                </button>
               </div>
+            ) : (
+              <select
+                className={`cdr2-type-select${docTipo ? ' cdr2-type-select--set' : ' cdr2-type-select--unset'}`}
+                value={docTipo}
+                onChange={e => {
+                  if (e.target.value === '__custom__') { setDocCustomTipo(true); setDocTipo(''); return; }
+                  setDocTipo(e.target.value);
+                }}
+              >
+                <option value="">Tipo…</option>
+                {DOC_TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                <option value="__custom__">+ Novo tipo…</option>
+              </select>
+            )}
+          </label>
+
+          {!docPtOnly && multiLang && (
+            <p className="cdr2-edit-locale-hint">
+              Arquivo/link específico para o idioma <strong>{docLocaleTab}</strong> — deixe vazio se este documento não estiver disponível neste idioma.
+            </p>
+          )}
+
+          <div className="doc-source-toggle">
+            <button type="button" className={`doc-source-toggle__btn${!activeDocFile.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchDocFile(activeLocale, { isExternalLink: false })}>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>upload_file</span>Arquivo
+            </button>
+            <button type="button" className={`doc-source-toggle__btn${activeDocFile.isExternalLink ? ' doc-source-toggle__btn--active' : ''}`}
+              onClick={() => patchDocFile(activeLocale, { isExternalLink: true, file: undefined, existingPath: undefined })}>
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>open_in_new</span>Link externo
+            </button>
+          </div>
+
+          {activeDocFile.isExternalLink ? (
+            <div className="doc-field">
+              <label className="doc-field__label">URL do documento{activeLocale === primaryLocale ? ' *' : ''}</label>
+              <input className="doc-field__input" type="url" placeholder="https://..."
+                value={activeDocFile.externalLink ?? ''}
+                onChange={e => patchDocFile(activeLocale, { externalLink: e.target.value })} />
+            </div>
+          ) : activeDocFile.existingPath && !activeDocFile.file ? (
+            <div className="doc-upload doc-upload--filled">
+              <div className="doc-upload__file">
+                <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
+                <div className="doc-upload__file-info">
+                  <span className="doc-upload__file-name">{activeDocFile.fileName ?? activeDocFile.existingPath.split('/').pop()}</span>
+                  <span className="doc-upload__file-size">Arquivo já enviado</span>
+                </div>
+                <button type="button" className="doc-upload__file-remove"
+                  onClick={() => patchDocFile(activeLocale, { existingPath: undefined, fileName: undefined })}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={`doc-upload${docDragActive ? ' doc-upload--active' : ''}${activeDocFile.file ? ' doc-upload--filled' : ''}`}
+              onDragOver={e => { e.preventDefault(); setDocDragActive(true); }}
+              onDragLeave={() => setDocDragActive(false)}
+              onDrop={e => { e.preventDefault(); setDocDragActive(false); const f = e.dataTransfer.files?.[0]; if (f) handleDocFile(activeLocale, f); }}
+              onClick={() => !activeDocFile.file && docFileInputRef.current?.click()}>
+              <input ref={docFileInputRef} type="file" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleDocFile(activeLocale, f); }} />
+              {activeDocFile.file ? (
+                <div className="doc-upload__file">
+                  <span className="material-symbols-outlined doc-upload__file-icon">picture_as_pdf</span>
+                  <div className="doc-upload__file-info">
+                    <span className="doc-upload__file-name">{activeDocFile.file.name}</span>
+                    <span className="doc-upload__file-size">{(activeDocFile.file.size / 1024).toFixed(0)} KB</span>
+                  </div>
+                  <button type="button" className="doc-upload__file-remove"
+                    onClick={e => { e.stopPropagation(); patchDocFile(activeLocale, { file: undefined }); }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined doc-upload__icon">upload_file</span>
+                  <p className="doc-upload__text">Arraste ou clique para enviar</p>
+                  <p className="doc-upload__hint">PDF, DOC, XLS, PPT, ZIP</p>
+                </>
+              )}
             </div>
           )}
 
-          {showLocaleChips && (
-            <p className="cdr2-edit-locale-hint">
-              Para adicionar ou trocar o arquivo de um idioma, use os botões de idioma na tabela.
-            </p>
-          )}
+          <div className="cdr2-step2-opt">
+            <span className="cdr2-step2-opt__label">
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
+              Data de publicação
+            </span>
+            <div className="cdr2-schedule-wrap">
+              <DatePicker value={docDataPublicacao} onChange={setDocDataPublicacao} placeholder="dd/mm/aaaa" />
+              {isFutureDate && (
+                <div className="cdr2-schedule-time-wrap">
+                  <input className="doc-field__input" type="time" value={docScheduleTime}
+                    onChange={e => setDocScheduleTime(e.target.value)} />
+                </div>
+              )}
+            </div>
+          </div>
+          <p className="doc-field__hint">
+            {isFutureDate
+              ? 'Uma data futura agenda a publicação nessa data/horário — vale para todos os idiomas deste documento.'
+              : 'Deixe em branco para publicar agora. Uma data anterior sobe o documento com a data real (posição cronológica).'}
+          </p>
+
+          {docSaveError && <p className="doc-field__error">{docSaveError}</p>}
         </div>
       </Modal>
 
@@ -721,6 +855,9 @@ export default function CentralDeResultadosPage2() {
           externalLink: (r.external_link as string | null) ?? undefined,
           uploadedBy: (r.uploaded_by as string | null) ?? undefined,
           groupId: (r.grupo_id as string | null) ?? undefined,
+          ptOnly: !!r.pt_only,
+          dataPublicacao: (r.data_publicacao as string | null)?.slice(0, 10) ?? undefined,
+          scheduleTime: r.schedule_at ? new Date(r.schedule_at as string).toTimeString().slice(0, 5) : undefined,
         };
         const periodoId = r.periodo_id as string;
         (grouped[periodoId] ??= []).push(entry);
@@ -740,19 +877,12 @@ export default function CentralDeResultadosPage2() {
   const [wYear, setWYear] = useState('');
   const [wEntries, setWEntries] = useState<FileEntry[]>([]);
   const [wExibirHome, setWExibirHome] = useState(false);
-  const [wScheduleDate, setWScheduleDate] = useState('');
-  const [wScheduleHour, setWScheduleHour] = useState('');
-  const [wScheduleMinute, setWScheduleMinute] = useState('');
-  const [wLocale, setWLocale] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
   const [pendingId, setPendingId] = useState('');
+  // Per-período "Apenas Português" — kept only for the pre-existing
+  // portal_resultado_periodos.pt_only column/legacy reads; document-level
+  // language handling (nome/tipo/arquivo per idioma) now lives entirely in
+  // FileListEditor's own document drawer.
   const [wPortugueseOnly, setWPortugueseOnly] = useState(false);
-
-  // With "Apenas Português" off, each idioma needs its own files — nothing
-  // stops publishing with a language left completely empty, so warn instead
-  // of letting it go unnoticed until a client checks the live site.
-  const wMissingLocales = !wPortugueseOnly
-    ? PORTAL_CONFIG.languages.filter(l => l !== PORTAL_CONFIG.languages[0] && !wEntries.some(e => (e.locale ?? 'pt-BR') === l))
-    : [];
 
   const [savingWizard, setSavingWizard] = useState(false);
 
@@ -776,8 +906,6 @@ export default function CentralDeResultadosPage2() {
     setWYear('');
     setWEntries([]);
     setWExibirHome(false);
-    setWScheduleDate(''); setWScheduleHour(''); setWScheduleMinute('');
-    setWLocale(PORTAL_CONFIG.languages[0]);
     setWPortugueseOnly(false);
     setWizardOpen('step1');
   }
@@ -902,7 +1030,22 @@ export default function CentralDeResultadosPage2() {
             continue;
           }
         }
-        const status = entry.status === 'published' ? 'Publicado' : 'Rascunho';
+        // Blank = publish now (no schedule), past date = backdate only,
+        // future date + horário = schedule (mirrors Documentos' unified
+        // "Data de publicação" field). Scheduling only actually applies to
+        // a document meant to go live — a "draft" status always wins.
+        const dataPublicacaoIso = entry.dataPublicacao ? new Date(`${entry.dataPublicacao}T12:00:00Z`).toISOString() : null;
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const isFutureDate = !!entry.dataPublicacao && entry.dataPublicacao > todayStr;
+        let scheduleAtIso: string | null = null;
+        let status = entry.status === 'published' ? 'Publicado' : 'Rascunho';
+        if (entry.status === 'published' && isFutureDate && entry.scheduleTime) {
+          const scheduled = new Date(`${entry.dataPublicacao}T${entry.scheduleTime}`);
+          if (!Number.isNaN(scheduled.getTime()) && scheduled.getTime() > Date.now()) {
+            scheduleAtIso = scheduled.toISOString();
+            status = 'Agendado';
+          }
+        }
         if (!prevMatch) {
           // upsert, not insert: if a previous call already wrote this id (e.g.
           // the user toggled publish before the initial drop's insert had
@@ -915,18 +1058,21 @@ export default function CentralDeResultadosPage2() {
             external_link: entry.externalLink ?? null, locale: entry.locale,
             status, ordem: idx, updated_at: new Date().toISOString(),
             uploaded_by: entry.uploadedBy ?? null, grupo_id: entry.groupId ?? null,
+            pt_only: !!entry.ptOnly, data_publicacao: dataPublicacaoIso, schedule_at: scheduleAtIso,
           }, { onConflict: 'id' });
           if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
           continue;
         }
         const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
           || prevMatch.status !== entry.status || prevMatch.locale !== entry.locale || prevMatch.filePath !== filePath
-          || prevMatch.groupId !== entry.groupId;
+          || prevMatch.groupId !== entry.groupId || prevMatch.ptOnly !== entry.ptOnly
+          || prevMatch.dataPublicacao !== entry.dataPublicacao || prevMatch.scheduleTime !== entry.scheduleTime;
         if (changed) {
           const { error } = await supabase.from('portal_resultado_arquivos').update({
             nome: entry.nome, tipo: entry.tipo, file_path: filePath ?? null,
             locale: entry.locale, status, ordem: idx, updated_at: new Date().toISOString(),
             grupo_id: entry.groupId ?? null,
+            pt_only: !!entry.ptOnly, data_publicacao: dataPublicacaoIso, schedule_at: scheduleAtIso,
           }).eq('id', entry.id);
           if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(entry.nome); }
         } else {
@@ -998,7 +1144,6 @@ export default function CentralDeResultadosPage2() {
                   setWEntity(editorQuarter?.entityId ?? activeEntity);
                   setWEntries(stagedDocs);
                   setPendingId(editingQuarterId);
-                  setWLocale(PORTAL_CONFIG.languages[0]);
                   setWPeriodType(p.quarter ? 'trimestral' : 'anual');
                   setWQuarter(p.quarter || '');
                   setWYear(p.year || editorQuarter?.period || '');
@@ -1041,8 +1186,7 @@ export default function CentralDeResultadosPage2() {
         <FileListEditor
           entries={stagedDocs}
           onChange={entries => setStagedDocs(entries)}
-          onDropFiles={files => setStagedDocs(prev => [...prev, ...makeEntries(files, userName)])}
-          portugueseOnly={editorQuarter?.portugueseOnly}
+          uploadedBy={userName}
         />
 
         <div className="cdr2-fullpage-footer">
@@ -1315,57 +1459,17 @@ export default function CentralDeResultadosPage2() {
             <span className="cdr2-wiz-entity-line__tipo">{ENTITIES.find(e => e.id === wEntity)?.tipo}</span>
           </p>
 
-          {/* Language tabs */}
-          {!wPortugueseOnly && PORTAL_CONFIG.languages.length > 1 && (
-            <LangTabs active={wLocale} onChange={setWLocale} />
-          )}
-
-          {/* Apenas Português switch — below tabmenu, only visible on primary locale */}
-          {PORTAL_CONFIG.languages.length > 1 && (wLocale === PORTAL_CONFIG.languages[0] || wPortugueseOnly) && (
-            <label className="cdr2-pt-only-switch-row">
-              <span className="cdr2-pt-only-switch-label">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>translate</span>
-                Apenas Português
-                <span className="cdr2-pt-only-switch-hint">O mesmo documento será exibido em todos os idiomas</span>
-              </span>
-              <button
-                type="button"
-                className={`cdr2-toggle${wPortugueseOnly ? ' cdr2-toggle--on' : ''}`}
-                onClick={() => { setWPortugueseOnly(v => !v); setWLocale(PORTAL_CONFIG.languages[0]); }}
-                aria-pressed={wPortugueseOnly}
-              >
-                <span className="cdr2-toggle__knob" />
-              </button>
-            </label>
-          )}
-
-          {wMissingLocales.length > 0 && (
-            <p className="cdr2-missing-locale-warning">
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>warning</span>
-              Ainda não foi adicionado arquivo para {wMissingLocales.map(l => LOCALE_SHORT[l] ?? l).join(', ')} — o período não aparecerá para quem visita o site nesse(s) idioma(s).
-            </p>
-          )}
-
-          {/* Drag & file list */}
-          <p className="cdr2-wizard-step">Arraste os arquivos abaixo ou adicione manualmente. Você pode inserir mais depois.</p>
+          {/* Drag & file list — each document (any idioma) is added/edited
+              one at a time in its own side panel; see FileListEditor. */}
+          <p className="cdr2-wizard-step">Adicione os documentos deste trimestre. Você pode inserir mais depois.</p>
           <FileListEditor
             entries={wEntries}
             onChange={setWEntries}
-            onDropFiles={files => setWEntries(prev => [...prev, ...makeEntries(files, userName, wLocale)])}
-            portugueseOnly={wPortugueseOnly}
-            onPortugueseOnlyChange={setWPortugueseOnly}
-            disabledForLocale={!wPortugueseOnly && wLocale !== PORTAL_CONFIG.languages[0] ? wLocale : undefined}
+            uploadedBy={userName}
           />
 
-          {/* Bottom options — only editable on primary locale */}
-          <div className={`cdr2-step2-opts${wLocale !== PORTAL_CONFIG.languages[0] ? ' cdr2-step2-opts--locked' : ''}`}>
-            {wLocale !== PORTAL_CONFIG.languages[0] && (
-              <p className="cdr2-opts-locked-note">
-                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>lock</span>
-                Configurações definidas no idioma principal ({PORTAL_CONFIG.languages[0]})
-              </p>
-            )}
-            {SHOW_HOME_OPTION && (
+          {SHOW_HOME_OPTION && (
+            <div className="cdr2-step2-opts">
               <label className="cdr2-step2-opt">
                 <span className="cdr2-step2-opt__label">
                   <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>home</span>
@@ -1374,55 +1478,14 @@ export default function CentralDeResultadosPage2() {
                 <button
                   type="button"
                   className={`cdr2-toggle${wExibirHome ? ' cdr2-toggle--on' : ''}`}
-                  onClick={() => wLocale === PORTAL_CONFIG.languages[0] && setWExibirHome(v => !v)}
+                  onClick={() => setWExibirHome(v => !v)}
                   aria-pressed={wExibirHome}
-                  style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1, cursor: wLocale !== PORTAL_CONFIG.languages[0] ? 'not-allowed' : 'pointer' }}
                 >
                   <span className="cdr2-toggle__knob" />
                 </button>
               </label>
-            )}
-            <label className="cdr2-step2-opt">
-              <span className="cdr2-step2-opt__label">
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>schedule</span>
-                Agendamento de publicação
-              </span>
-              <div className="cdr2-schedule-wrap" style={{ opacity: wLocale !== PORTAL_CONFIG.languages[0] ? 0.4 : 1 }}>
-                <DatePicker
-                  value={wScheduleDate}
-                  min={new Date().toISOString().slice(0, 10)}
-                  disabled={wLocale !== PORTAL_CONFIG.languages[0]}
-                  onChange={setWScheduleDate}
-                />
-                <div className="cdr2-schedule-time-wrap">
-                  <span className="cdr2-schedule-time-label">Horário</span>
-                  <select
-                    className="cdr2-schedule-select"
-                    value={wScheduleHour}
-                    disabled={wLocale !== PORTAL_CONFIG.languages[0]}
-                    onChange={e => setWScheduleHour(e.target.value)}
-                  >
-                    <option value="">--</option>
-                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(h => (
-                      <option key={h} value={h}>{h}</option>
-                    ))}
-                  </select>
-                  <span className="cdr2-schedule-time-sep">:</span>
-                  <select
-                    className="cdr2-schedule-select"
-                    value={wScheduleMinute}
-                    disabled={wLocale !== PORTAL_CONFIG.languages[0]}
-                    onChange={e => setWScheduleMinute(e.target.value)}
-                  >
-                    <option value="">--</option>
-                    {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </label>
-          </div>
+            </div>
+          )}
         </div>
       </Modal>
 

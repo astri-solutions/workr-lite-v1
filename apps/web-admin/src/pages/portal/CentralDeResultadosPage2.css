@@ -26,14 +26,9 @@
   background: var(--color-primary-50, #e8f5f7);
 }
 
-.cdr2-dropzone--disabled {
-  border-style: solid;
-  border-color: var(--color-gray-100);
-  background: var(--color-gray-50, #F8F8F8);
-}
-
-.cdr2-dropzone--disabled .cdr2-dropzone__icon {
-  color: var(--color-gray-300);
+.cdr2-add-doc-btn {
+  align-self: flex-start;
+  margin-top: var(--space-2);
 }
 
 .cdr2-dropzone__icon {
@@ -795,14 +790,16 @@
   border-color: var(--color-gray-400);
 }
 
-/* ── Edit modal — hint pointing at the per-locale chips ───── */
+/* ── Drawer hints ─────────────────────────────────── */
 .cdr2-edit-locale-hint {
   margin: 0;
   font-size: var(--text-xs);
   color: var(--color-gray-500);
 }
 
-/* ── Per-locale chips (one document, one file slot per idioma) ── */
+/* ── Per-locale badges (purely informational — which idiomas this
+   document has content for; no add/remove affordance here anymore, that
+   lives inside the document drawer) ── */
 .cdr2-locale-chips {
   display: flex;
   flex-wrap: wrap;
@@ -812,41 +809,12 @@
 .cdr2-lang-badge--filled {
   background: rgba(11, 91, 104, 0.1);
   color: var(--color-secondary-700, #0B5B68);
-  gap: 4px;
-  padding-right: 3px;
 }
 
-.cdr2-lang-badge__remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  border: none;
+.cdr2-lang-badge--missing {
   background: transparent;
-  color: inherit;
-  opacity: 0.6;
-  cursor: pointer;
-  font-size: 11px;
-  line-height: 1;
-  padding: 0;
-}
-
-.cdr2-lang-badge__remove:hover {
-  opacity: 1;
-}
-
-.cdr2-lang-badge--add {
-  cursor: pointer;
-  border: 1px dashed var(--color-gray-300);
-  background: transparent;
-  color: var(--color-gray-500);
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.cdr2-lang-badge--add:hover {
-  border-color: var(--color-primary-500);
-  color: var(--color-primary-500);
+  border: 1px dashed var(--color-gray-200);
+  color: var(--color-gray-400);
 }
 
 /* ── Locked options note ─────────────────────────── */
