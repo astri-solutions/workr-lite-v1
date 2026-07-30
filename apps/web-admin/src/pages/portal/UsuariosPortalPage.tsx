@@ -128,7 +128,10 @@ interface UserCardProps {
 }
 
 function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, onDelete, onResend, resending, resendMsg }: UserCardProps) {
-  const empresaNomes = user.empresaIds.length === 0
+  // Admin means full portal access — show "Todas" even for a legacy record
+  // saved with a specific empresaIds subset from before this was enforced,
+  // rather than the stale single-empresa chip it was invited with.
+  const empresaNomes = user.role === 'admin' || user.empresaIds.length === 0
     ? null
     : user.empresaIds.map(id => empresas.find(e => e.id === id)?.nome ?? id);
 
@@ -238,7 +241,11 @@ export default function UsuariosPortalPage() {
 
   function openEdit(u: PortalUser) {
     setEditing(u);
-    setForm({ nome: u.nome, email: u.email, role: u.role, empresaIds: u.empresaIds, allEmpresas: u.empresaIds.length === 0 });
+    // A legacy admin saved with a specific empresaIds subset (from before
+    // "Admin" started forcing all-empresas) still gets treated as all-access
+    // here — reopening the form and saving self-heals the stored record.
+    const allEmpresas = u.role === 'admin' || u.empresaIds.length === 0;
+    setForm({ nome: u.nome, email: u.email, role: u.role, empresaIds: allEmpresas ? [] : u.empresaIds, allEmpresas });
     setInviteError('');
     setModalOpen(true);
   }
@@ -515,14 +522,28 @@ export default function UsuariosPortalPage() {
               Perfil de acesso
               <div className="filter-wrap">
                 <select className="filter-select up-form__select" value={form.role}
-                  onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
+                  onChange={e => {
+                    const role = e.target.value as Role;
+                    // "Admin — acesso total ao portal" is the label right in
+                    // the dropdown — restricting an admin to specific
+                    // empresas contradicted that, and was exactly how a user
+                    // meant to see everything ended up stuck on whichever
+                    // single empresa existed when they were first invited.
+                    setForm(f => ({ ...f, role, allEmpresas: role === 'admin' ? true : f.allEmpresas, empresaIds: role === 'admin' ? [] : f.empresaIds }));
+                  }}>
                   <option value="editor">Editor — pode publicar e editar</option>
                   <option value="admin">Admin — acesso total ao portal</option>
                 </select>
                 <span className="material-symbols-outlined filter-wrap__icon">expand_more</span>
               </div>
             </label>
-            {empresas.length > 1 && (
+            {empresas.length > 1 && form.role === 'admin' && (
+              <div className="up-form__section">
+                <span className="up-form__section-label">Acesso às empresas</span>
+                <p className="up-form__hint">Admin tem acesso total ao portal — todas as {empresas.length} empresas, incluindo as que forem criadas depois.</p>
+              </div>
+            )}
+            {empresas.length > 1 && form.role !== 'admin' && (
               <div className="up-form__section">
                 <span className="up-form__section-label">Acesso às empresas</span>
                 <p className="up-form__hint">Marque "Todas as empresas" ou selecione apenas as empresas específicas às quais esse usuário terá acesso.</p>

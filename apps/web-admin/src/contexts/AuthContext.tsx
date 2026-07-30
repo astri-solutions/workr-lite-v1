@@ -233,7 +233,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Role do usuário no portal ativo (null para super_admin ou sem portal)
   const activePortal = user?.portais?.find(p => p.id === user.activePortalId);
   const portalRole: 'admin' | 'editor' | 'viewer' | null = activePortal?.role ?? null;
-  const allowedEmpresaIds: string[] | null = activePortal?.empresaIds ?? null;
+  // Admin means full portal access — null (no restriction) regardless of
+  // whatever empresaIds a legacy admin record still has stored, rather than
+  // silently scoping an "acesso total ao portal" user down to whichever
+  // single empresa existed when they were first invited.
+  const allowedEmpresaIds: string[] | null = portalRole === 'admin' ? null : (activePortal?.empresaIds ?? null);
 
   return (
     <AuthContext.Provider value={{ user, loading, portalRole, allowedEmpresaIds, login, logout, switchPortal, enterPortal }}>
