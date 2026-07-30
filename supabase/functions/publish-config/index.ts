@@ -177,6 +177,8 @@ function buildBlankPage(title: string, parentLabel: string | null): string {
     <meta name="description" content="${title}" />
     <title>${title}</title>
     <link rel="stylesheet" href="/styles/main.scss" />
+    <script src="/scripts/theme-data.js"></script>
+    <script src="/scripts/theme-critical.js"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
@@ -800,6 +802,18 @@ Deno.serve(async (req) => {
     queueWrite(filePath, encoded);
     bannerAssetWrites.forEach(w => queueWrite(w.path, w.base64));
 
+    // scripts/theme-data.js — colors/fonts as a plain classic-script global
+    // (`window.__WL_THEME__`), read synchronously by scripts/theme-critical.js
+    // (a blocking <script> right after the compiled stylesheet in every page's
+    // <head>) so the brand colors/fonts apply before first paint instead of
+    // waiting for the deferred `type="module"` bundle at the end of <body> —
+    // that gap was exactly the "flash of default colors/fonts" the client kept
+    // reporting after every publish. theme.js's runtime injection stays as-is
+    // (still needed for preview overrides and any post-load changes); this
+    // just removes the visible flash on the very first paint.
+    const themeDataJs = `window.__WL_THEME__ = ${JSON.stringify({ colors, fonts })};\n`;
+    queueWrite('public/scripts/theme-data.js', btoa(unescape(encodeURIComponent(themeDataJs))));
+
     // Old banner/splash asset files (previous hash, or pre-hash naming) left
     // behind by a slide's replaced image are now orphans at a different
     // path — remove them so the repo doesn't accumulate stale copies.
@@ -823,7 +837,7 @@ Deno.serve(async (req) => {
     // to the template repo but never synced to already-provisioned portals).
     // scripts/site.config.js is the one exception — that's the per-portal
     // file this function itself generates above, never the template's copy.
-    const TEMPLATE_EXCLUDE = new Set(['scripts/site.config.js']);
+    const TEMPLATE_EXCLUDE = new Set(['scripts/site.config.js', 'public/scripts/theme-data.js']);
     try {
       const tplRefRes = await ghFetch(`/repos/${githubOrg}/cliente-workr-lite/git/ref/heads/main`);
       if (tplRefRes.ok) {
@@ -834,7 +848,7 @@ Deno.serve(async (req) => {
         const tplTreeData = await tplTreeRes.json() as { tree: { path: string; type: string; sha: string }[] };
         const templateBlobs = tplTreeData.tree.filter(t =>
           t.type === 'blob'
-          && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js')
+          && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js')
           && !TEMPLATE_EXCLUDE.has(t.path)
         );
         for (const tf of templateBlobs) {

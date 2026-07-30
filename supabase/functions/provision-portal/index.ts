@@ -533,6 +533,13 @@ Deno.serve(async (req) => {
 
     queueWrite('scripts/site.config.js', encoded);
 
+    // scripts/theme-data.js — see publish-config's copy of this comment:
+    // read synchronously by scripts/theme-critical.js (blocking <script> in
+    // every page's <head>) so a freshly-provisioned portal already renders
+    // its real brand colors/fonts on the very first paint, no default flash.
+    const themeDataJs = `window.__WL_THEME__ = ${JSON.stringify({ colors, fonts: fonts ?? { display: 'Plus Jakarta Sans', body: 'Inter' } })};\n`;
+    queueWrite('public/scripts/theme-data.js', btoa(unescape(encodeURIComponent(themeDataJs))));
+
     // Static assets live under public/ — Vite only copies public/ into the
     // built site, so pushing to the repo root would 404 on the live site.
     if (logo?.b64) {

@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     // against this same snapshot, so the whole run reflects one consistent
     // version of the system rather than a moving target if the template
     // changed mid-run.
-    const TEMPLATE_EXCLUDE = new Set(['scripts/site.config.js']);
+    const TEMPLATE_EXCLUDE = new Set(['scripts/site.config.js', 'public/scripts/theme-data.js']);
     const tplRefRes = await gh(`/repos/${githubOrg}/cliente-workr-lite/git/ref/heads/main`);
     if (!tplRefRes.ok) {
       return new Response(JSON.stringify({ error: 'Não foi possível ler o repositório template cliente-workr-lite.' }), { status: 502, headers: { ...ch, 'Content-Type': 'application/json' } });
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
     const tplTreeData = await (await gh(`/repos/${githubOrg}/cliente-workr-lite/git/trees/${tplCommitData.tree.sha}?recursive=1`)).json() as { tree: GitTreeEntry[] };
     const templateFiles = tplTreeData.tree.filter(t =>
       t.type === 'blob'
-      && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js')
+      && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js')
       && !TEMPLATE_EXCLUDE.has(t.path)
     );
     if (templateFiles.length === 0) {
