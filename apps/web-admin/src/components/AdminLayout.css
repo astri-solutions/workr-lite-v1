@@ -217,11 +217,33 @@
   transform: translateX(23px);
 }
 
+/* Switching back TO light: the sun spins once. Switching TO dark: the
+   moon flips to its mirrored side instead of just fading in. Only the
+   glyph that's becoming active animates — the other one already has its
+   own static transform rule above, which still applies once this
+   animation finishes (the keyframe's final state matches it). */
+@keyframes theme-sun-spin {
+  from { transform: rotate(-360deg); }
+  to   { transform: rotate(0deg); }
+}
+@keyframes theme-moon-flip {
+  from { transform: rotate(-14deg) scaleX(1); }
+  50%  { transform: rotate(-14deg) scaleX(0); }
+  to   { transform: rotate(-14deg) scaleX(-1); }
+}
+.admin-topbar__theme-toggle:not([aria-checked="true"]) .admin-topbar__theme-icon--sun {
+  animation: theme-sun-spin 0.45s ease;
+}
+.admin-topbar__theme-toggle[aria-checked="true"] .admin-topbar__theme-icon--moon {
+  animation: theme-moon-flip 0.45s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-topbar__theme-toggle,
   .admin-topbar__theme-icon,
   .admin-topbar__theme-knob {
     transition: none;
+    animation: none;
   }
 }
 
