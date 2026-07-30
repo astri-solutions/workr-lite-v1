@@ -1265,7 +1265,9 @@ export default function CanaisPage() {
               </div>
 
               {!collapsed && canal.children.length === 0 && canal.pageType === 'lista-agrupada' && (
-                <div className="ct-tr ct-tr--empty">
+                <div className="ct-tr ct-tr--empty"
+                  onDragOver={e => handleCanalDragOver(e, canal.pageType)}
+                  onDrop={e => handleCanalDrop(e, canal.id, canal.label, canal.pageType)}>
                   {normalizeMarcadores(canal.listaAgrupadaCategories).length > 0 ? (
                     <div className="ct-la-cats">
                       {normalizeMarcadores(canal.listaAgrupadaCategories).map(cat => (
