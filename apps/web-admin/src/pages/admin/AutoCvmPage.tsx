@@ -131,6 +131,24 @@ function RoutingSection({ portalId, empresaId, initialRouting, discoveredCategor
     setSaving(true);
     try {
       await cvmService.updateRouting(portalId, empresaId, rules);
+      // Saving a routing rule only writes cvm_sync_state — it never touches
+      // any document. Two separate gaps meant "salvar destino" alone never
+      // reflected on the site:
+      //  - a CVM filing under a category with NO route yet is skipped
+      //    entirely at import time (cvm-import-run's skippedUnrouted path)
+      //    — it's never inserted, so nothing exists yet to show. Only a
+      //    fresh sync, run AFTER the route exists, actually imports it.
+      //  - a document already imported under a DIFFERENT destination keeps
+      //    its old pagina_ids/sub_group_ids forever — insert-only, never
+      //    re-touched by a later sync — until reprocessRouting retags it.
+      // Running both right after save (not waiting for the next unrelated
+      // sync) covers a brand-new category and a re-routed one alike.
+      // Sequential, not parallel — both can write portal_config.canais
+      // under an optimistic lock, and running them at once risks one
+      // losing that race for no benefit (this already isn't on any UI
+      // critical path the user is blocked staring at).
+      await cvmService.syncNow(portalId, empresaId).catch(() => null);
+      await cvmService.reprocessRouting(portalId, empresaId).catch(() => null);
       setSaved(true);
     } finally {
       setSaving(false);

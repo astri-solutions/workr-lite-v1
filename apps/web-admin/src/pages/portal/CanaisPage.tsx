@@ -488,7 +488,7 @@ export default function CanaisPage() {
     sourcePageId: string;
     sourceLabel: string;
     destPageId: string;
-    destLabel: string;
+    destPageLabel: string;
     destIsGrouped: boolean;
   }
   const [pendingDrop, setPendingDrop] = useState<PendingCategoriaDrop | null>(null);
@@ -507,7 +507,7 @@ export default function CanaisPage() {
     e.dataTransfer.dropEffect = 'move';
   }
 
-  function handleCanalDrop(e: DragEvent, destPageId: string, destLabel: string, destPageType?: PageType) {
+  function handleCanalDrop(e: DragEvent, destPageId: string, destPageLabel: string, destPageType?: PageType) {
     if (destPageType !== 'lista' && destPageType !== 'lista-agrupada') return;
     const raw = e.dataTransfer.getData('application/json');
     if (!raw) return;
@@ -516,7 +516,7 @@ export default function CanaisPage() {
       const { sourcePageId, sourceLabel } = JSON.parse(raw) as { sourcePageId: string; sourceLabel: string };
       if (!sourcePageId || !sourceLabel || sourcePageId === destPageId) return;
       setDropError('');
-      setPendingDrop({ sourcePageId, sourceLabel, destPageId, destLabel, destIsGrouped: destPageType === 'lista-agrupada' });
+      setPendingDrop({ sourcePageId, sourceLabel, destPageId, destPageLabel, destIsGrouped: destPageType === 'lista-agrupada' });
     } catch { /* ignore malformed payload */ }
   }
 
@@ -525,12 +525,18 @@ export default function CanaisPage() {
     setDropTransferring(true);
     setDropError('');
     try {
+      // The marker at the destination keeps the SOURCE category's own name
+      // (e.g. "Documentos Societários") — the destination is just a page to
+      // file it under, not a rename target. Passing the destination page's
+      // own label here instead was the bug: every dragged category ended up
+      // renamed to whatever page it landed on, so distinct categories
+      // dropped on the same page all collapsed into one group.
       const result = await transferCategoria({
         portalDbId,
         sourcePageId: pendingDrop.sourcePageId,
         sourceLabel: pendingDrop.sourceLabel,
         destPageId: pendingDrop.destPageId,
-        destLabel: pendingDrop.destLabel,
+        destLabel: pendingDrop.sourceLabel,
         destIsGrouped: pendingDrop.destIsGrouped,
         activePortalKey: activePortalId,
       });
@@ -548,7 +554,7 @@ export default function CanaisPage() {
         userEmail: user?.email ?? '',
         action: 'alterou',
         category: 'documento',
-        entity: `Categoria "${pendingDrop.sourceLabel}" → "${pendingDrop.destLabel}" (${result.moved} documento(s), ${result.routingUpdated} regra(s) de Auto CVM)`,
+        entity: `Categoria "${pendingDrop.sourceLabel}" → página "${pendingDrop.destPageLabel}" (${result.moved} documento(s), ${result.routingUpdated} regra(s) de Auto CVM)`,
       });
       setPendingDrop(null);
     } finally {
@@ -1503,7 +1509,7 @@ export default function CanaisPage() {
           <div className="ct-confirm-delete">
             <span className="material-symbols-outlined ct-confirm-delete__icon">drive_file_move</span>
             <p className="ct-confirm-delete__msg">
-              Mover a categoria <strong>"{pendingDrop.sourceLabel}"</strong> para <strong>"{pendingDrop.destLabel}"</strong>?
+              Mover a categoria <strong>"{pendingDrop.sourceLabel}"</strong> para a página <strong>"{pendingDrop.destPageLabel}"</strong>?
             </p>
             <p className="ct-confirm-delete__warn">
               Todos os documentos já publicados nesta categoria serão movidos junto, e as regras de Auto CVM que apontavam para ela serão atualizadas automaticamente.
