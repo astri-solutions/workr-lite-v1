@@ -1159,7 +1159,7 @@ function TabelaEditor({ rows, headers, onChange }: {
 }
 
 /* ── Section editor ───────────────────────────────────────── */
-function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale }: {
+function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale, isFlatShow }: {
   section: ContentSection;
   index: number;
   onRemove: () => void;
@@ -1167,6 +1167,7 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
   portalDbId: string | null;
   locale: LocaleCode;
   primaryLocale: LocaleCode;
+  isFlatShow: boolean;
 }) {
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
@@ -1178,9 +1179,20 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
               botão de limpar, e não um valor padrão fixo. */}
           <span className="sec-editor__colors-label" title="Cor de fundo da seção">Fundo</span>
           <ColorPickerPopover value={section.bgColor || '#ffffff'} onChange={bgColor => onUpdateSection({ bgColor })} />
-          <span className="sec-editor__colors-label" title="Cor padrão do texto da seção — trechos com cor própria (aplicada no editor de texto abaixo) não são afetados">Texto</span>
-          <ColorPickerPopover value={section.textColor || '#141414'} onChange={textColor => onUpdateSection({ textColor })} />
-          {(section.bgColor || section.textColor) && (
+          {/* Num bloco de texto simples, a cor do texto já é definida
+              trecho a trecho na própria barra de ferramentas do editor
+              logo abaixo — duplicar esse controle aqui em cima, como
+              "cor padrão da seção", só confundia (dois lugares para a
+              mesma coisa). Os outros tipos de bloco continuam com o
+              controle aqui, já que muitos não têm um editor de texto
+              próprio com essa opção. */}
+          {section.type !== 'text' && (
+            <>
+              <span className="sec-editor__colors-label" title="Cor padrão do texto da seção — trechos com cor própria (aplicada no editor de texto abaixo) não são afetados">Texto</span>
+              <ColorPickerPopover value={section.textColor || '#141414'} onChange={textColor => onUpdateSection({ textColor })} />
+            </>
+          )}
+          {(section.bgColor || (section.type !== 'text' && section.textColor)) && (
             <button type="button" className="sec-editor__del" title="Voltar às cores do tema"
               onClick={() => onUpdateSection({ bgColor: '', textColor: '' })}>
               <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_color_reset</span>
@@ -1193,8 +1205,19 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
       </div>
       <div className="sec-editor__body">
         {section.type === 'text' && (
-          <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
-            onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
+          <>
+            {/* Only on Tabs/Sidebar layouts, where "Bloco de texto" is the
+                single, simplified block type authors have — Banner layout
+                already offers image-text/text-image/bg-image for pairing
+                text with an image, so a plain text block there stays
+                text-only, unchanged. */}
+            {isFlatShow && (
+              <ImageUpload label="Imagem (opcional)" ratio="16/9" value={section.imageUrl ?? null}
+                onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            )}
+            <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
+              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
+          </>
         )}
 
         {(section.type === 'image-text' || section.type === 'text-image') && (
@@ -1907,6 +1930,7 @@ export default function NovaMateriaPage() {
                     portalDbId={portalDbId}
                     locale={locale}
                     primaryLocale={PORTAL_CONFIG.languages[0]}
+                    isFlatShow={isFlatShow}
                   />
                 ))}
                 <button
