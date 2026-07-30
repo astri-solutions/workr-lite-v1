@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cvmService } from '../services/cvm.service';
-import type { CvmAlert } from '../services/cvm.types';
+import { listPendingReactivationAlerts } from '../services/portalAlerts.service';
+import { useAuth } from '../contexts/AuthContext';
+import { resolvePortalId } from '../lib/portalDb';
 import './AlertsBell.css';
 
-// Auto CVM categories with no valid routing page yet — polled from
-// cvm_alerts so a super_admin finds out without opening Auto CVM and
-// scrolling through "Destinos de importação" on their own. Portal client
-// users never see this feature, so nothing is fetched for them.
+// One shared bell for both roles, each reading its own alert source:
+// super_admin sees Auto CVM categories with no destination page yet
+// (cvm_alerts, system-wide); a portal (client_user) editor sees their own
+// portal's content flagged pending_reactivation (a canal page that was
+// deleted and needs to be reactivated) — there was previously no signal
+// at all for that second case outside of noticing it by chance in Central
+// de Resultados.
 const POLL_INTERVAL_MS = 5 * 60 * 1000;
 
+interface GenericAlert { id: string; title: string; sub: string }
+
 export default function AlertsBell() {
-  const [alerts, setAlerts] = useState<CvmAlert[]>([]);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const [alerts, setAlerts] = useState<GenericAlert[]>([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -19,13 +28,23 @@ export default function AlertsBell() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const rows = await cvmService.listAlerts();
+      if (isSuperAdmin) {
+        const rows = await cvmService.listAlerts();
+        if (!cancelled) setAlerts(rows.map(a => ({
+          id: a.id,
+          title: `${a.cvmCategoryLabel} sem página de destino`,
+          sub: `${a.empresaNome} · ${a.portalNome}`,
+        })));
+        return;
+      }
+      const portalDbId = user?.activePortalId ? await resolvePortalId(user.activePortalId) : null;
+      const rows = await listPendingReactivationAlerts(portalDbId);
       if (!cancelled) setAlerts(rows);
     }
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => { cancelled = true; clearInterval(interval); };
-  }, []);
+  }, [isSuperAdmin, user?.activePortalId]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -35,9 +54,9 @@ export default function AlertsBell() {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
 
-  function goToAutoCvm() {
+  function goToDestination() {
     setOpen(false);
-    navigate('/admin/auto-cvm');
+    navigate(isSuperAdmin ? '/admin/auto-cvm' : '/portal/central-de-resultados');
   }
 
   return (
@@ -63,17 +82,17 @@ export default function AlertsBell() {
             <>
               <ul className="alerts-bell__list">
                 {alerts.map(a => (
-                  <li key={a.id} className="alerts-bell__item" onClick={goToAutoCvm}>
+                  <li key={a.id} className="alerts-bell__item" onClick={goToDestination}>
                     <span className="material-symbols-outlined alerts-bell__item-icon">report</span>
                     <span className="alerts-bell__item-text">
-                      <strong>{a.cvmCategoryLabel}</strong> sem página de destino
-                      <span className="alerts-bell__item-sub">{a.empresaNome} · {a.portalNome}</span>
+                      <strong>{a.title}</strong>
+                      <span className="alerts-bell__item-sub">{a.sub}</span>
                     </span>
                   </li>
                 ))}
               </ul>
-              <button type="button" className="alerts-bell__cta" onClick={goToAutoCvm}>
-                Configurar em Auto CVM
+              <button type="button" className="alerts-bell__cta" onClick={goToDestination}>
+                {isSuperAdmin ? 'Configurar em Auto CVM' : 'Ver em Central de Resultados'}
               </button>
             </>
           )}
