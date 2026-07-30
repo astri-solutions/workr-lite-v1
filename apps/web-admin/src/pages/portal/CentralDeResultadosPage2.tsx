@@ -155,6 +155,11 @@ interface FileListEditorProps {
   entries: FileEntry[];
   onChange: (entries: FileEntry[]) => void;
   uploadedBy?: string;
+  /** Opens the "Novo documento" drawer immediately on mount when there are
+   * no documents yet — used by the "criar trimestre" wizard so the very
+   * next thing the admin sees after choosing the período is the drawer
+   * itself, instead of an empty dropzone they have to click through first. */
+  autoOpenOnEmpty?: boolean;
 }
 
 interface DrawerLocaleFile {
@@ -181,7 +186,7 @@ function groupKeyOf(e: FileEntry): string {
 // Documentos' títulos); tipo, status and the publish date/horário are
 // shared across every idioma of the same document — that's the one thing
 // that has to stay in sync between the pt-BR and EN versions.
-function FileListEditor({ entries, onChange, uploadedBy }: FileListEditorProps) {
+function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty }: FileListEditorProps) {
   const primaryLocale = PORTAL_CONFIG.languages[0];
   const multiLang = PORTAL_CONFIG.languages.length > 1;
 
@@ -281,6 +286,16 @@ function FileListEditor({ entries, onChange, uploadedBy }: FileListEditorProps) 
     }
     setDrawerOpen(true);
   }
+
+  // "Criar trimestre" lands here with zero documents — the drawer opening
+  // itself, instead of an empty dropzone the admin has to click through
+  // first, matches the fact that a brand-new período always needs at least
+  // one document before there's anything to save.
+  useEffect(() => {
+    if (autoOpenOnEmpty && entries.length === 0) openNewDocDrawer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   function openEditDocDrawer(key: string) {
     const group = groupsMap.get(key) ?? [];
@@ -1466,6 +1481,7 @@ export default function CentralDeResultadosPage2() {
             entries={wEntries}
             onChange={setWEntries}
             uploadedBy={userName}
+            autoOpenOnEmpty
           />
 
           {SHOW_HOME_OPTION && (
