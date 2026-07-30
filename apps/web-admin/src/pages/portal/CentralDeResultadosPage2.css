@@ -797,6 +797,21 @@
   color: var(--color-gray-500);
 }
 
+.cdr2-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cdr2-field-lock-icon {
+  color: var(--color-gray-400);
+}
+
+.cdr-modal-form__input--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* ── Per-locale badges (purely informational — which idiomas this
    document has content for; no add/remove affordance here anymore, that
    lives inside the document drawer) ── */

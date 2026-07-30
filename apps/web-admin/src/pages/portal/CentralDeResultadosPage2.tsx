@@ -566,11 +566,16 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty }: File
           )}
 
           <label className="cdr-modal-form__label">
-            Nome do documento
+            <span className="cdr2-field-label-row">
+              Nome do documento
+              {activeLocale !== primaryLocale && (
+                <span className="material-symbols-outlined cdr2-field-lock-icon" style={{ fontSize: '13px' }}>lock</span>
+              )}
+            </span>
             <input
-              className="cdr-modal-form__input"
+              className={`cdr-modal-form__input${activeLocale !== primaryLocale ? ' cdr-modal-form__input--disabled' : ''}`}
               type="text"
-              value={activeLocale === primaryLocale ? (docNomeByLocale[primaryLocale] ?? '') : (docNomeByLocale[primaryLocale] ?? '')}
+              value={docNomeByLocale[primaryLocale] ?? ''}
               onChange={e => setDocNomeByLocale(prev => ({ ...prev, [primaryLocale]: e.target.value }))}
               placeholder="Ex: Apresentação de Resultados 2T25"
               disabled={activeLocale !== primaryLocale}
