@@ -58,6 +58,12 @@ export default function EmpresasPage() {
       }
       return resolved;
     });
+    // Documentos/Central de Resultados read this same localStorage cache
+    // once on mount — usePortalState's own update() already writes it
+    // synchronously, but a tab that's already open on one of those pages
+    // (no navigation/remount to trigger a re-read) would otherwise miss a
+    // brand-new empresa until manually refreshed.
+    window.dispatchEvent(new CustomEvent('workr:empresas-updated', { detail: { portalId: activePortalId } }));
   }, [setEmpresasRaw, activePortalId, storageKey]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

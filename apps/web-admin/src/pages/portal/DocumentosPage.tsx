@@ -256,23 +256,30 @@ export default function DocumentosPage() {
     const portalKey = user?.activePortalId;
     if (!portalKey) return;
     resolvePortalId(portalKey).then(id => setPortalDbId(id));
-    try {
-      const raw = localStorage.getItem(`portal_empresas_${portalKey}`);
-      const items: Array<{ id: string; nome?: string; name?: string; tipo?: string }> = raw ? JSON.parse(raw) : [];
-      // A user restricted to specific empresas (portal_users.empresas) must
-      // never even see the others in this selector — RLS blocks the actual
-      // data underneath, but leaving every empresa selectable here just
-      // shows an editor a picker that quietly does nothing for most options.
-      const restricted = items
-        .filter(e => allowedEmpresaIds === null || allowedEmpresaIds.includes(e.id));
-      const loaded: Entity[] = restricted.map(e => ({
-        id: e.id,
-        name: e.nome ?? e.name ?? e.id,
-        tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
-      }));
-      setEntities(loaded);
-      if (loaded.length > 0) setActiveEntity(loaded[0].id);
-    } catch { setEntities([]); }
+    function loadEmpresas() {
+      try {
+        const raw = localStorage.getItem(`portal_empresas_${portalKey}`);
+        const items: Array<{ id: string; nome?: string; name?: string; tipo?: string }> = raw ? JSON.parse(raw) : [];
+        // A user restricted to specific empresas (portal_users.empresas) must
+        // never even see the others in this selector — RLS blocks the actual
+        // data underneath, but leaving every empresa selectable here just
+        // shows an editor a picker that quietly does nothing for most options.
+        const restricted = items
+          .filter(e => allowedEmpresaIds === null || allowedEmpresaIds.includes(e.id));
+        const loaded: Entity[] = restricted.map(e => ({
+          id: e.id,
+          name: e.nome ?? e.name ?? e.id,
+          tipo: (e.tipo === 'FUNDO' ? 'FUNDO' : 'EMPRESA') as 'EMPRESA' | 'FUNDO',
+        }));
+        setEntities(loaded);
+        setActiveEntity(prev => (loaded.some(e => e.id === prev) ? prev : (loaded[0]?.id ?? '')));
+      } catch { setEntities([]); }
+    }
+    loadEmpresas();
+    // A newly-added empresa (Empresas → Adicionar) should show up here
+    // without requiring a hard refresh if this tab is already open.
+    window.addEventListener('workr:empresas-updated', loadEmpresas);
+    return () => window.removeEventListener('workr:empresas-updated', loadEmpresas);
   }, [user?.activePortalId, allowedEmpresaIds]);
 
   const [search, setSearch] = useState('');
