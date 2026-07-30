@@ -268,10 +268,13 @@
   background-color: var(--color-gray-200);
 }
 
-/* On narrow screens, Alertas + tema movem para o dropdown da conta
-   (ver .um-mobile-only em UserMenu.css) — aqui somem do topbar. */
+/* Theme toggle moves to the dropdown on narrow screens (ver .um-mobile-only
+   em UserMenu.css) — only that one disappears from the topbar here. Alertas
+   used to move there too via a dead placeholder button with no badge/list
+   of its own, which just meant it showed in both places at once on some
+   widths; the real bell (with its actual unread badge) now always stays in
+   the topbar instead. */
 @media (max-width: 720px) {
-  .admin-topbar__alert-btn,
   .admin-topbar__theme-toggle,
   .admin-topbar__right > .admin-topbar__separator {
     display: none;

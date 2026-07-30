@@ -135,11 +135,6 @@ export default function UserMenu({ theme, onToggleTheme }: UserMenuProps) {
               </button>
             )}
 
-            <button className="user-menu__item um-mobile-only" type="button" role="menuitem">
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>notifications</span>
-              Alertas
-            </button>
-
             {onToggleTheme && <div className="user-menu__divider um-mobile-only" />}
 
             <button className="user-menu__item" type="button" role="menuitem"
