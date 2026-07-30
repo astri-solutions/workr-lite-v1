@@ -1159,7 +1159,7 @@ function TabelaEditor({ rows, headers, onChange }: {
 }
 
 /* ── Section editor ───────────────────────────────────────── */
-function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale, isFlatShow }: {
+function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale }: {
   section: ContentSection;
   index: number;
   onRemove: () => void;
@@ -1167,7 +1167,6 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
   portalDbId: string | null;
   locale: LocaleCode;
   primaryLocale: LocaleCode;
-  isFlatShow: boolean;
 }) {
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
@@ -1205,19 +1204,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
       </div>
       <div className="sec-editor__body">
         {section.type === 'text' && (
-          <>
-            {/* Only on Tabs/Sidebar layouts, where "Bloco de texto" is the
-                single, simplified block type authors have — Banner layout
-                already offers image-text/text-image/bg-image for pairing
-                text with an image, so a plain text block there stays
-                text-only, unchanged. */}
-            {isFlatShow && (
-              <ImageUpload label="Imagem (opcional)" ratio="16/9" value={section.imageUrl ?? null}
-                onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
-            )}
-            <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
-              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
-          </>
+          <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
+            onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
         )}
 
         {(section.type === 'image-text' || section.type === 'text-image') && (
@@ -1636,11 +1624,7 @@ export default function NovaMateriaPage() {
     markDirty();
   }
 
-  // Flat layouts' simplified Show has exactly one block type available —
-  // skip the WordPress-style picker overlay entirely (nothing to actually
-  // pick) and add the text section directly.
   function openAddSection() {
-    if (isFlatShow) { addSection('text'); return; }
     setPickerOpen(true);
   }
 
@@ -1930,7 +1914,6 @@ export default function NovaMateriaPage() {
                     portalDbId={portalDbId}
                     locale={locale}
                     primaryLocale={PORTAL_CONFIG.languages[0]}
-                    isFlatShow={isFlatShow}
                   />
                 ))}
                 <button
@@ -2148,7 +2131,7 @@ export default function NovaMateriaPage() {
               <div className="nm-bp-grid">
                 {SECTION_DEFS
                   .filter(def => isGaleria ? def.type === 'galeria' : def.type !== 'galeria')
-                  .filter(def => !isFlatShow || def.type === 'text')
+                  .filter(def => !isFlatShow || def.type === 'text' || def.type === 'image')
                   .filter(def => pickerCat === 'all' || def.cat === pickerCat)
                   .filter(def => !pickerSearch || def.label.toLowerCase().includes(pickerSearch.toLowerCase()) || def.desc.toLowerCase().includes(pickerSearch.toLowerCase()))
                   .map(def => (
