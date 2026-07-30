@@ -37,14 +37,36 @@ const QUICK_LINKS = [
   )},
 ];
 
-const RECENT_ACTIVITY: { action: string; detail: string; time: string; type: string }[] = [];
+interface RecentActivity { id: string; action: string; detail: string; time: string; type: string }
 
 const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
-  doc: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>description</span>,
-  edit: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit_note</span>,
-  msg: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>mail</span>,
-  channel: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>list</span>,
+  documento: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>description</span>,
+  materia: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit_note</span>,
+  usuario: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>person</span>,
+  configuracao: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>settings</span>,
+  midia: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>image</span>,
+  layout: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>palette</span>,
+  cvm: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>sync</span>,
+  backup: <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>backup</span>,
 };
+
+const ACTION_LABEL: Record<string, string> = {
+  publicou: 'Publicou', agendou: 'Agendou', editou: 'Editou', removeu: 'Removeu',
+  adicionou: 'Adicionou', pausou: 'Pausou', ativou: 'Ativou', sincronizou: 'Sincronizou',
+  importou: 'Importou', enviou: 'Enviou', convidou: 'Convidou', alterou: 'Alterou',
+  gerou: 'Gerou', fez_upload: 'Fez upload de',
+};
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
+}
 
 interface SiteInfo {
   empresa: string;
@@ -119,6 +141,7 @@ export default function DashboardPage() {
   // so they always showed 0 regardless of real usage. Interações still
   // caches to localStorage via usePortalState, so it's left as-is.
   const [dbCounts, setDbCounts] = useState({ docCount: 0, materiaCount: 0 });
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 
   useEffect(() => {
     const portalKey = user?.activePortalId;
@@ -126,14 +149,23 @@ export default function DashboardPage() {
     let cancelled = false;
     resolvePortalId(portalKey).then(async portalDbId => {
       if (cancelled || !portalDbId || !supabase) return;
-      const [docsRes, materiasRes] = await Promise.all([
+      const [docsRes, materiasRes, activityRes] = await Promise.all([
         supabase.from('portal_documents').select('id', { count: 'exact', head: true })
           .eq('portal_id', portalDbId).eq('status', 'Publicado'),
         supabase.from('portal_materias').select('id', { count: 'exact', head: true })
           .eq('portal_id', portalDbId).eq('status', 'publicado'),
+        supabase.from('portal_activity_log').select('*')
+          .eq('portal_id', portalDbId).order('created_at', { ascending: false }).limit(6),
       ]);
       if (cancelled) return;
       setDbCounts({ docCount: docsRes.count ?? 0, materiaCount: materiasRes.count ?? 0 });
+      setRecentActivity((activityRes.data ?? []).map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        action: `${ACTION_LABEL[r.action as string] ?? (r.action as string)} ${(r.entity as string) ?? ''}`.trim(),
+        detail: (r.detail as string) ?? '',
+        time: timeAgo(r.created_at as string),
+        type: (r.category as string) ?? 'configuracao',
+      })));
     });
     return () => { cancelled = true; };
   }, [user?.activePortalId]);
@@ -200,10 +232,10 @@ export default function DashboardPage() {
         <div className="dash-block">
           <h2 className="dash-block__title">Atividade recente</h2>
           <div className="dash-activity">
-            {RECENT_ACTIVITY.length === 0 ? (
+            {recentActivity.length === 0 ? (
               <p className="dash-activity-empty">Nenhuma atividade recente.</p>
-            ) : RECENT_ACTIVITY.map((a, i) => (
-              <div key={i} className="dash-activity-item">
+            ) : recentActivity.map(a => (
+              <div key={a.id} className="dash-activity-item">
                 <span className="dash-activity-item__icon">{ACTIVITY_ICONS[a.type]}</span>
                 <div className="dash-activity-item__body">
                   <span className="dash-activity-item__action">{a.action}</span>

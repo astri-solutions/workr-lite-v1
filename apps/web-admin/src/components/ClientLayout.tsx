@@ -18,10 +18,17 @@ const SECTIONS: NavSection[] = [
     label: 'Gestão',
     items: [
       {
+        to: '/portal/dashboard',
+        label: 'Home',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
+        ),
+      },
+      {
         to: '/portal/empresas',
         label: 'Empresas',
         icon: (
-          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>home</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>corporate_fare</span>
         ),
       },
       {
