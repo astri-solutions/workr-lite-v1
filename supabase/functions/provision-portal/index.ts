@@ -699,6 +699,31 @@ Deno.serve(async (req) => {
             // still deploy on the next push.
             vercelError = `Projeto criado, mas deploy inicial falhou: ${dBody?.error?.message ?? `HTTP ${deployRes.status}`}`;
           }
+
+          // `${vd.name}.vercel.app` is NOT reliably the real production
+          // domain — Vercel silently shortens the auto-generated .vercel.app
+          // alias for longer project names (its own length rule, separate
+          // from the project name itself, which Vercel accepts unshortened).
+          // A portal named "workr-portal-lhpb-servicos-administrativos" kept
+          // showing that full name in the admin panel while the live site
+          // actually only resolved at "...-administ.vercel.app" — look up
+          // the project's real domains and prefer the short public one
+          // (skips the git-branch alias and the team-scoped alias, which are
+          // always longer / less clean than the plain one when it exists).
+          try {
+            const domainsRes = await fetch(`https://api.vercel.com/v9/projects/${vd.id}/domains`, {
+              headers: { 'Authorization': `Bearer ${vercelToken}` },
+            });
+            if (domainsRes.ok) {
+              const domainsBody = await domainsRes.json() as { domains?: { name: string }[] };
+              const names = (domainsBody.domains ?? []).map(d => d.name).filter(n => n.endsWith('.vercel.app'));
+              const canonical = names
+                .filter(n => !n.includes('-git-') && !n.includes('-projects-'))
+                .sort((a, b) => a.length - b.length)[0]
+                ?? names.sort((a, b) => a.length - b.length)[0];
+              if (canonical) vercelUrl = `https://${canonical}`;
+            }
+          } catch { /* keep the ${vd.name}.vercel.app guess */ }
         } else {
           const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
           vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
