@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, Fragment, useEffect } from 'react';
+import { useState, useCallback, useRef, Fragment, useEffect, type DragEvent } from 'react';
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
@@ -15,6 +15,8 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
+import { transferCategoria } from '../../lib/categoriaTransfer';
+import { logActivity } from '../../lib/activityLog';
 import '../admin/AdminPages.css';
 import './CanaisPage.css';
 
@@ -475,6 +477,84 @@ export default function CanaisPage() {
     }).catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePortalId, canaisKey]);
+
+  // Arrastar uma categoria/marcador da árvore de Canais para outro canal:
+  // reusa a mesma lógica de "Transferir categoria" de Documentos (mover
+  // documentos + reescrever o marcador), estendida em transferCategoria()
+  // para também atualizar as regras de roteamento do Auto CVM que apontavam
+  // para o par (página, categoria) antigo. Matérias não têm campo de
+  // categoria/marcador (só page_id), então não participam desta transferência.
+  interface PendingCategoriaDrop {
+    sourcePageId: string;
+    sourceLabel: string;
+    destPageId: string;
+    destLabel: string;
+    destIsGrouped: boolean;
+  }
+  const [pendingDrop, setPendingDrop] = useState<PendingCategoriaDrop | null>(null);
+  const [dropTransferring, setDropTransferring] = useState(false);
+  const [dropError, setDropError] = useState('');
+
+  function handleMarkerDragStart(e: DragEvent, sourcePageId: string, sourceLabel: string) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/json', JSON.stringify({ sourcePageId, sourceLabel }));
+  }
+
+  function handleCanalDragOver(e: DragEvent, destPageType?: PageType) {
+    if (destPageType !== 'lista' && destPageType !== 'lista-agrupada') return;
+    if (!e.dataTransfer.types.includes('application/json')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }
+
+  function handleCanalDrop(e: DragEvent, destPageId: string, destLabel: string, destPageType?: PageType) {
+    if (destPageType !== 'lista' && destPageType !== 'lista-agrupada') return;
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw) return;
+    e.preventDefault();
+    try {
+      const { sourcePageId, sourceLabel } = JSON.parse(raw) as { sourcePageId: string; sourceLabel: string };
+      if (!sourcePageId || !sourceLabel || sourcePageId === destPageId) return;
+      setDropError('');
+      setPendingDrop({ sourcePageId, sourceLabel, destPageId, destLabel, destIsGrouped: destPageType === 'lista-agrupada' });
+    } catch { /* ignore malformed payload */ }
+  }
+
+  async function confirmCategoriaDrop() {
+    if (!pendingDrop || !portalDbId) return;
+    setDropTransferring(true);
+    setDropError('');
+    try {
+      const result = await transferCategoria({
+        portalDbId,
+        sourcePageId: pendingDrop.sourcePageId,
+        sourceLabel: pendingDrop.sourceLabel,
+        destPageId: pendingDrop.destPageId,
+        destLabel: pendingDrop.destLabel,
+        destIsGrouped: pendingDrop.destIsGrouped,
+        activePortalKey: activePortalId,
+      });
+      if (result.error) { setDropError(result.error); return; }
+      if (activePortalId) {
+        const data = await fetchPortalConfig(activePortalId);
+        if (Array.isArray(data?.canais)) {
+          setCanais(data.canais as Canal[]);
+          setSavedOrderKey(orderKey(data.canais as Canal[]));
+        }
+      }
+      logActivity({
+        portalId: portalDbId,
+        userName: user?.name ?? user?.email ?? '',
+        userEmail: user?.email ?? '',
+        action: 'alterou',
+        category: 'documento',
+        entity: `Categoria "${pendingDrop.sourceLabel}" → "${pendingDrop.destLabel}" (${result.moved} documento(s), ${result.routingUpdated} regra(s) de Auto CVM)`,
+      });
+      setPendingDrop(null);
+    } finally {
+      setDropTransferring(false);
+    }
+  }
 
   // Modals
   const [editModal, setEditModal] = useState<EditState | null>(null);
@@ -1128,7 +1208,9 @@ export default function CanaisPage() {
           return (
             <div key={canal.id} className={['ct-canal-group', movedClass].filter(Boolean).join(' ')}>
               {/* L1 — Canal */}
-              <div className={['ct-grid', 'ct-tr', 'ct-tr--l1', !canal.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
+              <div className={['ct-grid', 'ct-tr', 'ct-tr--l1', !canal.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}
+                onDragOver={e => handleCanalDragOver(e, canal.pageType)}
+                onDrop={e => handleCanalDrop(e, canal.id, canal.label, canal.pageType)}>
                 <span className="table-cell--bold ct-tree-name" data-level={0}>
                   <button className="ct-collapse-btn" type="button" onClick={() => toggleCanalCollapsed(canal.id)}
                     aria-label={collapsed ? 'Expandir' : 'Recolher'}>
@@ -1187,7 +1269,9 @@ export default function CanaisPage() {
                   {normalizeMarcadores(canal.listaAgrupadaCategories).length > 0 ? (
                     <div className="ct-la-cats">
                       {normalizeMarcadores(canal.listaAgrupadaCategories).map(cat => (
-                        <span key={cat.id} className="ct-la-cat-chip ct-la-cat-chip--sm">{cat.label}</span>
+                        <span key={cat.id} className="ct-la-cat-chip ct-la-cat-chip--sm" draggable
+                          onDragStart={e => handleMarkerDragStart(e, canal.id, cat.label)}
+                          title="Arraste para outro canal para transferir esta categoria">{cat.label}</span>
                       ))}
                     </div>
                   ) : (
@@ -1209,7 +1293,9 @@ export default function CanaisPage() {
                     const subCollapsed = collapsedSubs.has(sub.id);
                     return (
                     <Fragment key={sub.id}>
-                      <div className={['ct-grid', 'ct-tr', 'ct-tr--l2', !sub.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
+                      <div className={['ct-grid', 'ct-tr', 'ct-tr--l2', !sub.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}
+                        onDragOver={e => handleCanalDragOver(e, sub.pageType)}
+                        onDrop={e => handleCanalDrop(e, sub.id, sub.label, sub.pageType)}>
                         <span className="ct-tree-name" data-level={1}>
                           {subHasChildren && (
                             <button className="ct-collapse-btn" type="button" onClick={() => toggleSubCollapsed(sub.id)}
@@ -1266,7 +1352,9 @@ export default function CanaisPage() {
                       {!subCollapsed && subHasChildren && (
                         <div className="ct-l3-group">
                           {(sub.children ?? []).map((ss, ssi) => (
-                            <div key={ss.id} className={['ct-grid', 'ct-tr', 'ct-tr--l3', !ss.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}>
+                            <div key={ss.id} className={['ct-grid', 'ct-tr', 'ct-tr--l3', !ss.enabled ? 'ct-tr--off' : ''].filter(Boolean).join(' ')}
+                              onDragOver={e => handleCanalDragOver(e, ss.pageType)}
+                              onDrop={e => handleCanalDrop(e, ss.id, ss.label, ss.pageType)}>
                               <span className="ct-tree-name" data-level={2}>{ss.label}</span>
                               <span>
                                 <span className={`badge ${ss.enabled ? 'badge--success' : 'badge--gray'}`}>
@@ -1395,6 +1483,30 @@ export default function CanaisPage() {
                 Esta é a página Central de Resultados. {confirmDelete.resultadosPublicadosCount} trimestre{confirmDelete.resultadosPublicadosCount !== 1 ? 's' : ''} publicado{confirmDelete.resultadosPublicadosCount !== 1 ? 's' : ''} {confirmDelete.resultadosPublicadosCount !== 1 ? 'ficarão' : 'ficará'} como rascunho e {confirmDelete.resultadosPublicadosCount !== 1 ? 'serão reativados' : 'será reativado'} automaticamente quando uma nova página Central de Resultados for criada.
               </p>
             )}
+          </div>
+        </Modal>
+      )}
+
+      {pendingDrop && (
+        <Modal open onClose={() => !dropTransferring && setPendingDrop(null)} title="Transferir categoria" size="sm"
+          footer={
+            <div className="modal-footer">
+              <button className="btn-outline" type="button" disabled={dropTransferring} onClick={() => setPendingDrop(null)}>Cancelar</button>
+              <button className="btn-primary" type="button" disabled={dropTransferring} onClick={confirmCategoriaDrop}>
+                {dropTransferring ? 'Transferindo...' : 'Transferir'}
+              </button>
+            </div>
+          }
+        >
+          <div className="ct-confirm-delete">
+            <span className="material-symbols-outlined ct-confirm-delete__icon">drive_file_move</span>
+            <p className="ct-confirm-delete__msg">
+              Mover a categoria <strong>"{pendingDrop.sourceLabel}"</strong> para <strong>"{pendingDrop.destLabel}"</strong>?
+            </p>
+            <p className="ct-confirm-delete__warn">
+              Todos os documentos já publicados nesta categoria serão movidos junto, e as regras de Auto CVM que apontavam para ela serão atualizadas automaticamente.
+            </p>
+            {dropError && <p className="ct-confirm-delete__warn" style={{ color: '#dc2626' }}>{dropError}</p>}
           </div>
         </Modal>
       )}

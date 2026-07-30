@@ -1226,6 +1226,13 @@ select.canais-edit-form__input,
   font-size: var(--text-xs) !important;
   padding: 4px 12px !important;
 }
+.ct-la-cats > .ct-la-cat-chip--sm[draggable="true"] {
+  cursor: grab;
+}
+.ct-la-cats > .ct-la-cat-chip--sm[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.7;
+}
 .ct-la-active-emp {
   padding: var(--space-4);
   background: var(--color-gray-50);

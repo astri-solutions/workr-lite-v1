@@ -14,8 +14,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
 import { loadPortalCanais, buildDestPages as buildBasePages, type DestPage as BaseDestPage } from '../../utils/destPages';
-import { normalizeMarcadores, genMarcadorId, type Marcador, type PageType } from '../../components/ChannelEditor';
+import { normalizeMarcadores } from '../../components/ChannelEditor';
 import { logActivity } from '../../lib/activityLog';
+import { transferCategoria } from '../../lib/categoriaTransfer';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -129,21 +130,6 @@ function buildDestPages(canais: Parameters<typeof buildBasePages>[0]): DestPage[
     // still stores the plain label string here, same as before.
     subGroups: p.pageType === 'lista-agrupada' ? normalizeMarcadores(p.listaAgrupadaCategories).map(m => m.label) : [],
   }));
-}
-
-// Minimal shape for walking/mutating the raw portal_config.canais tree from
-// this page — "Transferir categoria" is the only thing here that writes to
-// it (every other read goes through the cached BaseDestPage/DestPage list).
-interface CanaisNode {
-  id?: string;
-  label: string;
-  pageType?: PageType;
-  listaAgrupadaCategories?: Marcador[];
-  children?: CanaisNode[];
-}
-
-function marcadorLbl(m: string | Marcador): string {
-  return typeof m === 'string' ? m : m.label;
 }
 
 // One file/link slot per locale — independent of every other locale's slot,
@@ -664,90 +650,28 @@ export default function DocumentosPage() {
     if (!transferSourcePageId || !transferSourceLabel || !transferDestPageId) return;
     const destLabel = transferDestPageId === transferSourcePageId ? '' : transferDestLabel.trim();
     const destPage = destPages.find(p => p.id === transferDestPageId);
-    if (destPage?.pageType === 'lista-agrupada' && !destLabel) {
-      setTransferError('Escolha ou digite a categoria de destino.');
-      return;
-    }
     setTransferring(true);
     setTransferError('');
     try {
-      const { data: rows, error: fetchErr } = await supabase
-        .from('portal_documents')
-        .select('id, pagina_ids, sub_group_ids')
-        .eq('portal_id', portalDbId)
-        .contains('pagina_ids', [transferSourcePageId]);
-      if (fetchErr) { setTransferError(`Falha ao buscar documentos: ${fetchErr.message}`); return; }
-
-      const targets = (rows ?? []).filter(r => {
-        const subGroups = (r.sub_group_ids as Record<string, string[]> | null)?.[transferSourcePageId] ?? [];
-        return subGroups.includes(transferSourceLabel);
+      const result = await transferCategoria({
+        portalDbId,
+        sourcePageId: transferSourcePageId,
+        sourceLabel: transferSourceLabel,
+        destPageId: transferDestPageId,
+        destLabel,
+        destIsGrouped: destPage?.pageType === 'lista-agrupada',
+        activePortalKey: user?.activePortalId,
       });
-
-      let moved = 0;
-      for (const row of targets) {
-        const paginaIds = new Set((row.pagina_ids as string[]) ?? []);
-        paginaIds.delete(transferSourcePageId);
-        paginaIds.add(transferDestPageId);
-        const subGroupIds = { ...((row.sub_group_ids as Record<string, string[]>) ?? {}) };
-        delete subGroupIds[transferSourcePageId];
-        if (destPage?.pageType === 'lista-agrupada') {
-          subGroupIds[transferDestPageId] = [destLabel];
-        } else {
-          delete subGroupIds[transferDestPageId];
-        }
-        const { error } = await supabase.from('portal_documents')
-          .update({ pagina_ids: [...paginaIds], sub_group_ids: subGroupIds, updated_at: new Date().toISOString() })
-          .eq('id', row.id as string);
-        if (!error) moved++;
-      }
-
-      // Move the marker itself in portal_config.canais: drop it from the
-      // source page's listaAgrupadaCategories, and — for a lista-agrupada
-      // destination — append it there if it isn't already present (a
-      // fresh marker gets its own stable id; reusing an existing
-      // destination marker just needs the label match, no id lookup).
-      const { data: cfg } = await supabase.from('portal_config').select('canais, updated_at').eq('portal_id', portalDbId).maybeSingle();
-      const canais = (cfg?.canais ?? []) as CanaisNode[];
-      let changed = false;
-      function walk(node: CanaisNode): CanaisNode {
-        let next = node;
-        if (node.id === transferSourcePageId) {
-          const cats = (node.listaAgrupadaCategories ?? []).filter(c => marcadorLbl(c) !== transferSourceLabel);
-          if (cats.length !== (node.listaAgrupadaCategories ?? []).length) { changed = true; next = { ...node, listaAgrupadaCategories: cats }; }
-        }
-        if (node.id === transferDestPageId && destPage?.pageType === 'lista-agrupada') {
-          const cats = next.listaAgrupadaCategories ?? [];
-          if (!cats.some(c => marcadorLbl(c) === destLabel)) {
-            changed = true;
-            next = { ...next, pageType: 'lista-agrupada', listaAgrupadaCategories: [...cats, { id: genMarcadorId(), label: destLabel }] };
-          }
-        }
-        if (next.children) next = { ...next, children: next.children.map(walk) };
-        return next;
-      }
-      const nextCanais = canais.map(walk);
-      if (changed) {
-        const { data: updRows } = await supabase.from('portal_config')
-          .update({ canais: nextCanais })
-          .eq('portal_id', portalDbId)
-          .eq('updated_at', cfg?.updated_at ?? '')
-          .select('portal_id');
-        if (updRows && updRows.length > 0) {
-          localStorage.setItem(`portal_canais_${user?.activePortalId}`, JSON.stringify(nextCanais));
-        } else {
-          setTransferError('A árvore de canais foi editada em paralelo — os documentos foram movidos, mas a categoria em Canais precisa ser ajustada manualmente.');
-        }
-      }
-
+      if (result.error) { setTransferError(result.error); return; }
       await loadDocs();
-      setTransferDoneCount(moved);
+      setTransferDoneCount(result.moved);
       logActivity({
         portalId: portalDbId,
         userName: user?.name ?? user?.email ?? '',
         userEmail: user?.email ?? '',
         action: 'alterou',
         category: 'documento',
-        entity: `${moved} documento(s): "${transferSourceLabel}" → "${destLabel || destPage?.label}"`,
+        entity: `${result.moved} documento(s): "${transferSourceLabel}" → "${destLabel || destPage?.label}"`,
       });
     } finally {
       setTransferring(false);
