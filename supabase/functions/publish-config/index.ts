@@ -86,8 +86,22 @@ interface FooterCfg {
 // navegação, endereço, contato e redes sociais — ou seja, quase tudo que a
 // tela de Rodapé permite editar era descartado no publish. 'reduzido' é o
 // único modelo que corresponde ao 'simple'.
-function footerVariant(model: string | undefined): string {
+//
+// Sidebar/tabmenu são sites CVM enxutos (ver FLAT_PAGE_TYPES em
+// CanaisPage.tsx) — o rodapé completo/compacto (logo, colunas de navegação,
+// endereço/contato, redes sociais) só faz sentido no layout Banner. A tela
+// de Rodapé (FooterPage.tsx) já força a PRÉVIA para 'reduzido' fora do
+// Banner, mas isso nunca chegava ao que era de fato publicado — o
+// site.config.js gerado aqui salvava o `model` escolhido (ex: 'completo')
+// sem checar o layout, e footer.js do site só lê esse valor puro. Forçar
+// aqui é o que garante que o que publica bate com o que a prévia mostra.
+function footerVariant(model: string | undefined, layout: string | undefined): string {
+  if (layout !== 'banner') return 'simple';
   return model === 'reduzido' ? 'simple' : 'full';
+}
+function effectiveFooterModel(model: string | undefined, layout: string | undefined): string {
+  if (layout !== 'banner') return 'reduzido';
+  return model ?? 'completo';
 }
 interface Marcador { id: string; label: string; labels?: Record<string, string>; }
 interface SubCanalCfg { id?: string; label: string; labels?: Record<string, string>; href: string; enabled: boolean; pageType?: string; listaAgrupadaStyle?: string; listaAgrupadaCategories?: (string | Marcador)[]; children?: SubCanalCfg[]; headerImage?: string; isExternalLink?: boolean; externalUrl?: string; }
@@ -476,8 +490,8 @@ ${buildEmpresasSection(opts.empresas, opts.nome)}
   restrictedNav: [],
 
   footer: {
-    variant: ${JSON.stringify(footerVariant(f?.model))},
-    model: ${JSON.stringify(f?.model ?? 'completo')},
+    variant: ${JSON.stringify(footerVariant(f?.model, opts.layout))},
+    model: ${JSON.stringify(effectiveFooterModel(f?.model, opts.layout))},
     email: ${email},
     content: ${JSON.stringify(footerContent)},
     social: { linkedin: ${linkedin}, instagram: ${instagram}, facebook: ${facebook} },
