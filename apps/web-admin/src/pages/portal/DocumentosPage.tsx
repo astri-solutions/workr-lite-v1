@@ -69,6 +69,11 @@ function localeShortLabel(lang: string): string {
 // typed before content can target it).
 const COMPATIBLE_DOC_TYPES = ['lista', 'lista-agrupada'] as (string | undefined)[];
 
+// Temporarily hidden per request — the field/state/auto-guess logic all
+// stay intact (still written to `tipo` on save), just not shown in the
+// form, so re-enabling later is a one-line flip back to true.
+const SHOW_TIPO_FIELD = false;
+
 function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
@@ -1138,6 +1143,7 @@ export default function DocumentosPage() {
             </div>
           )}
 
+          {SHOW_TIPO_FIELD && (
           <div className="doc-field">
             <label className="doc-field__label">Tipo de documento</label>
             {isCustomTipo ? (
@@ -1179,6 +1185,7 @@ export default function DocumentosPage() {
               </div>
             )}
           </div>
+          )}
 
           <div className="up-form__section">
             <span className="up-form__section-label">Página de destino</span>
