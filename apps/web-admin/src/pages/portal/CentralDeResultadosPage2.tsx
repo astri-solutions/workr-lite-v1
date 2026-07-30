@@ -363,7 +363,10 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty }: File
       const existing = existingGroup.find(e => (e.locale ?? 'pt-BR') === loc);
       nextGroupEntries.push({
         id: existing?.id ?? uid(),
-        nome: (docNomeByLocale[loc] ?? '').trim() || primaryNome,
+        // Always the primary locale's name — nome is just an internal
+        // organizational label (the site identifies a document by tipo,
+        // not nome), so it's shared across every idioma, not translated.
+        nome: primaryNome,
         tipo: docTipo,
         fileName: f.file?.name ?? f.fileName ?? (f.externalLink ?? f.existingPath?.split('/').pop() ?? ''),
         status: docStatus,
@@ -567,11 +570,17 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty }: File
             <input
               className="cdr-modal-form__input"
               type="text"
-              value={docNomeByLocale[activeLocale] ?? ''}
-              onChange={e => setDocNomeByLocale(prev => ({ ...prev, [activeLocale]: e.target.value }))}
+              value={activeLocale === primaryLocale ? (docNomeByLocale[primaryLocale] ?? '') : (docNomeByLocale[primaryLocale] ?? '')}
+              onChange={e => setDocNomeByLocale(prev => ({ ...prev, [primaryLocale]: e.target.value }))}
               placeholder="Ex: Apresentação de Resultados 2T25"
-              autoFocus
+              disabled={activeLocale !== primaryLocale}
+              autoFocus={activeLocale === primaryLocale}
             />
+            {activeLocale !== primaryLocale && (
+              <span className="cdr2-edit-locale-hint">
+                O nome é só um marcador interno — o site identifica o documento pelo tipo, não pelo nome — por isso ele é o mesmo em todos os idiomas.
+              </span>
+            )}
           </label>
 
           <label className="cdr-modal-form__label">
