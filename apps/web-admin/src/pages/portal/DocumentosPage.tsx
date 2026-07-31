@@ -16,7 +16,6 @@ import { resolvePortalId } from '../../lib/portalDb';
 import { loadPortalCanais, buildDestPages as buildBasePages, type DestPage as BaseDestPage } from '../../utils/destPages';
 import { normalizeMarcadores } from '../../components/ChannelEditor';
 import { logActivity } from '../../lib/activityLog';
-import { transferCategoria } from '../../lib/categoriaTransfer';
 import '../admin/AdminPages.css';
 import './DocumentosPage.css';
 
@@ -272,15 +271,6 @@ export default function DocumentosPage() {
   const [docFilters, setDocFilters] = useState<Record<string, string>>({ tipo: '', ano: '', status: '' });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [transferSourcePageId, setTransferSourcePageId] = useState('');
-  const [transferSourceLabel, setTransferSourceLabel] = useState('');
-  const [transferDestPageId, setTransferDestPageId] = useState('');
-  const [transferDestLabel, setTransferDestLabel] = useState('');
-  const [transferDestCustom, setTransferDestCustom] = useState(false);
-  const [transferring, setTransferring] = useState(false);
-  const [transferError, setTransferError] = useState('');
-  const [transferDoneCount, setTransferDoneCount] = useState<number | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishSuccessSchedule, setPublishSuccessSchedule] = useState<string | null>(null);
   const [rawDocs, setRawDocs] = useState<Record<string, unknown>[]>([]);
@@ -627,57 +617,6 @@ export default function DocumentosPage() {
     });
   }
 
-  function openTransferModal() {
-    setTransferSourcePageId('');
-    setTransferSourceLabel('');
-    setTransferDestPageId('');
-    setTransferDestLabel('');
-    setTransferDestCustom(false);
-    setTransferError('');
-    setTransferDoneCount(null);
-    setTransferModalOpen(true);
-  }
-
-  // Moves every document tagged with one categoria/marcador on a page over
-  // to a different page (and, when the destination is itself lista-agrupada,
-  // a destination marker — existing or brand new). Matching is by LABEL
-  // text, not marker id: portal_documents.sub_group_ids and Auto CVM's own
-  // writes (cvm-import-run's ensureCategoryOnTree) already tag documents by
-  // the marker's label, not its id, so this stays consistent with how a
-  // document is actually associated with a categoria today.
-  async function handleTransferCategoria() {
-    if (!supabase || !portalDbId) return;
-    if (!transferSourcePageId || !transferSourceLabel || !transferDestPageId) return;
-    const destLabel = transferDestPageId === transferSourcePageId ? '' : transferDestLabel.trim();
-    const destPage = destPages.find(p => p.id === transferDestPageId);
-    setTransferring(true);
-    setTransferError('');
-    try {
-      const result = await transferCategoria({
-        portalDbId,
-        sourcePageId: transferSourcePageId,
-        sourceLabel: transferSourceLabel,
-        destPageId: transferDestPageId,
-        destLabel,
-        destIsGrouped: destPage?.pageType === 'lista-agrupada',
-        activePortalKey: user?.activePortalId,
-      });
-      if (result.error) { setTransferError(result.error); return; }
-      await loadDocs();
-      setTransferDoneCount(result.moved);
-      logActivity({
-        portalId: portalDbId,
-        userName: user?.name ?? user?.email ?? '',
-        userEmail: user?.email ?? '',
-        action: 'alterou',
-        category: 'documento',
-        entity: `${result.moved} documento(s): "${transferSourceLabel}" → "${destLabel || destPage?.label}"`,
-      });
-    } finally {
-      setTransferring(false);
-    }
-  }
-
   async function openStoragePath(path: string) {
     if (!supabase) return;
     const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(path, 60);
@@ -786,10 +725,6 @@ export default function DocumentosPage() {
           <FilterBar groups={DOC_FILTERS} value={docFilters} onChange={(k, v) => setDocFilters(f => ({ ...f, [k]: v }))} />
         </div>
         <div className="toolbar__actions">
-          <button type="button" className="btn-outline" onClick={openTransferModal}>
-            <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>drive_file_move</span>
-            Transferir categoria
-          </button>
           <button type="button" className="btn-toolbar" disabled={selected.size === 0}
             onClick={() => handleBulkStatus('Rascunho')}>Despublicar</button>
           <button type="button" className="btn-toolbar btn-toolbar--success" disabled={selected.size === 0}
@@ -1209,95 +1144,6 @@ export default function DocumentosPage() {
         <p className="docs-delete-msg">
           Tem certeza que deseja excluir <strong>{selected.size} documento{selected.size !== 1 ? 's' : ''}</strong>? Esta ação não pode ser desfeita.
         </p>
-      </Modal>
-
-      <Modal open={transferModalOpen} onClose={() => setTransferModalOpen(false)} title="Transferir categoria" size="sm"
-        footer={
-          <div className="modal-footer">
-            <button type="button" className="btn-outline" onClick={() => setTransferModalOpen(false)}>
-              {transferDoneCount !== null ? 'Fechar' : 'Cancelar'}
-            </button>
-            {transferDoneCount === null && (
-              <button type="button" className="btn-primary" disabled={transferring
-                || !transferSourcePageId || !transferSourceLabel || !transferDestPageId
-                || (transferSourcePageId === transferDestPageId && transferSourceLabel === transferDestLabel)}
-                onClick={handleTransferCategoria}>
-                {transferring ? 'Transferindo…' : 'Transferir'}
-              </button>
-            )}
-          </div>
-        }>
-        {transferDoneCount !== null ? (
-          <p className="docs-delete-msg">
-            {transferDoneCount} documento{transferDoneCount !== 1 ? 's' : ''} transferido{transferDoneCount !== 1 ? 's' : ''} com sucesso.
-          </p>
-        ) : (
-          <div className="cdr-modal-form">
-            <p className="doc-field__hint" style={{ margin: 0 }}>
-              Move todos os documentos de uma categoria para outra página/categoria — a categoria de origem some da página atual se ficar vazia.
-            </p>
-            <label className="doc-field">
-              <span className="doc-field__label">Página de origem</span>
-              <select className="doc-field__input" value={transferSourcePageId}
-                onChange={e => { setTransferSourcePageId(e.target.value); setTransferSourceLabel(''); }}>
-                <option value="">Selecione…</option>
-                {destPages.filter(p => p.pageType === 'lista-agrupada' && p.subGroups.length > 0).map(p => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-            </label>
-            {transferSourcePageId && (
-              <label className="doc-field">
-                <span className="doc-field__label">Categoria de origem</span>
-                <select className="doc-field__input" value={transferSourceLabel}
-                  onChange={e => setTransferSourceLabel(e.target.value)}>
-                  <option value="">Selecione…</option>
-                  {(destPages.find(p => p.id === transferSourcePageId)?.subGroups ?? []).map(label => (
-                    <option key={label} value={label}>{label}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="doc-field">
-              <span className="doc-field__label">Página de destino</span>
-              <select className="doc-field__input" value={transferDestPageId}
-                onChange={e => { setTransferDestPageId(e.target.value); setTransferDestLabel(''); setTransferDestCustom(false); }}>
-                <option value="">Selecione…</option>
-                {destPages.filter(p => !!p.pageType && COMPATIBLE_DOC_TYPES.includes(p.pageType)).map(p => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-            </label>
-            {transferDestPageId && destPages.find(p => p.id === transferDestPageId)?.pageType === 'lista-agrupada' && (
-              <label className="doc-field">
-                <span className="doc-field__label">Categoria de destino</span>
-                {transferDestCustom ? (
-                  <div className="cdr2-type-custom">
-                    <input className="doc-field__input" type="text" placeholder="Nome da nova categoria"
-                      value={transferDestLabel} onChange={e => setTransferDestLabel(e.target.value)} autoFocus />
-                    <button type="button" className="cdr2-type-custom__revert" title="Voltar para a lista"
-                      onClick={() => { setTransferDestCustom(false); setTransferDestLabel(''); }}>
-                      <span className="material-symbols-outlined">undo</span>
-                    </button>
-                  </div>
-                ) : (
-                  <select className="doc-field__input" value={transferDestLabel}
-                    onChange={e => {
-                      if (e.target.value === '__custom__') { setTransferDestCustom(true); setTransferDestLabel(''); return; }
-                      setTransferDestLabel(e.target.value);
-                    }}>
-                    <option value="">Selecione…</option>
-                    {(destPages.find(p => p.id === transferDestPageId)?.subGroups ?? []).map(label => (
-                      <option key={label} value={label}>{label}</option>
-                    ))}
-                    <option value="__custom__">+ Nova categoria…</option>
-                  </select>
-                )}
-              </label>
-            )}
-            {transferError && <p className="doc-field__error">{transferError}</p>}
-          </div>
-        )}
       </Modal>
 
       <PublishSuccessModal

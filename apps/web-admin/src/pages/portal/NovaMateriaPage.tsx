@@ -1159,7 +1159,7 @@ function TabelaEditor({ rows, headers, onChange }: {
 }
 
 /* ── Section editor ───────────────────────────────────────── */
-function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale }: {
+function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, locale, primaryLocale, isFlatShow }: {
   section: ContentSection;
   index: number;
   onRemove: () => void;
@@ -1167,45 +1167,60 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
   portalDbId: string | null;
   locale: LocaleCode;
   primaryLocale: LocaleCode;
+  isFlatShow: boolean;
 }) {
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
       <div className="sec-editor__head">
         <span className="sec-editor__num">{index + 1}</span>
         <span className="sec-editor__label">{SECTION_LABEL[section.type]}</span>
-        <div className="sec-editor__colors">
-          {/* Sem cor definida a seção herda o tema do portal — por isso o
-              botão de limpar, e não um valor padrão fixo. */}
-          <span className="sec-editor__colors-label" title="Cor de fundo da seção">Fundo</span>
-          <ColorPickerPopover value={section.bgColor || '#ffffff'} onChange={bgColor => onUpdateSection({ bgColor })} />
-          {/* Num bloco de texto simples, a cor do texto já é definida
-              trecho a trecho na própria barra de ferramentas do editor
-              logo abaixo — duplicar esse controle aqui em cima, como
-              "cor padrão da seção", só confundia (dois lugares para a
-              mesma coisa). Os outros tipos de bloco continuam com o
-              controle aqui, já que muitos não têm um editor de texto
-              próprio com essa opção. */}
-          {section.type !== 'text' && (
-            <>
-              <span className="sec-editor__colors-label" title="Cor padrão do texto da seção — trechos com cor própria (aplicada no editor de texto abaixo) não são afetados">Texto</span>
-              <ColorPickerPopover value={section.textColor || '#141414'} onChange={textColor => onUpdateSection({ textColor })} />
-            </>
-          )}
-          {(section.bgColor || (section.type !== 'text' && section.textColor)) && (
-            <button type="button" className="sec-editor__del" title="Voltar às cores do tema"
-              onClick={() => onUpdateSection({ bgColor: '', textColor: '' })}>
-              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_color_reset</span>
-            </button>
-          )}
-        </div>
+        {/* Um bloco de Imagem pura não tem fundo/texto — é só a imagem, sem
+            nenhum container que essas cores afetariam. */}
+        {section.type !== 'image' && (
+          <div className="sec-editor__colors">
+            {/* Sem cor definida a seção herda o tema do portal — por isso o
+                botão de limpar, e não um valor padrão fixo. */}
+            <span className="sec-editor__colors-label" title="Cor de fundo da seção">Fundo</span>
+            <ColorPickerPopover value={section.bgColor || '#ffffff'} onChange={bgColor => onUpdateSection({ bgColor })} />
+            {/* Num bloco de texto simples, a cor do texto já é definida
+                trecho a trecho na própria barra de ferramentas do editor
+                logo abaixo — duplicar esse controle aqui em cima, como
+                "cor padrão da seção", só confundia (dois lugares para a
+                mesma coisa). Os outros tipos de bloco continuam com o
+                controle aqui, já que muitos não têm um editor de texto
+                próprio com essa opção. */}
+            {section.type !== 'text' && (
+              <>
+                <span className="sec-editor__colors-label" title="Cor padrão do texto da seção — trechos com cor própria (aplicada no editor de texto abaixo) não são afetados">Texto</span>
+                <ColorPickerPopover value={section.textColor || '#141414'} onChange={textColor => onUpdateSection({ textColor })} />
+              </>
+            )}
+            {(section.bgColor || (section.type !== 'text' && section.textColor)) && (
+              <button type="button" className="sec-editor__del" title="Voltar às cores do tema"
+                onClick={() => onUpdateSection({ bgColor: '', textColor: '' })}>
+                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>format_color_reset</span>
+              </button>
+            )}
+          </div>
+        )}
         <button type="button" className="sec-editor__del" onClick={onRemove} title="Remover">
           <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
         </button>
       </div>
       <div className="sec-editor__body">
         {section.type === 'text' && (
-          <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
-            onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
+          <>
+            <RichTextEditor value={htmlFor(section.html, locale, primaryLocale)}
+              onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
+            {/* Only on Tabs/Sidebar layouts, where "Bloco de texto" is the
+                only block type authors have — an image stacked below the
+                text, not a separate block, since these portals don't offer
+                the Banner layout's dedicated image-text/text-image pairing. */}
+            {isFlatShow && (
+              <ImageUpload label="Imagem (opcional, abaixo do texto)" ratio="16/9" value={section.imageUrl ?? null}
+                onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            )}
+          </>
         )}
 
         {(section.type === 'image-text' || section.type === 'text-image') && (
@@ -1560,6 +1575,9 @@ export default function NovaMateriaPage() {
     return d.hasPublishedMateria;
   }
   const canPublish = title.trim().length > 0 && page.length > 0 && !pageOccupied;
+  // A rascunho só precisa de um título — a página de destino só passa a ser
+  // obrigatória quando o autor tenta de fato publicar.
+  const canSaveDraft = title.trim().length > 0;
   const STATUS_FROM_STORED: Record<string, PublishStatus> = { publicado: 'published', rascunho: 'draft', agendado: 'scheduled' };
   const [status, setStatus] = useState<PublishStatus>(editing ? (STATUS_FROM_STORED[editing.status] ?? 'draft') : 'draft');
   // Reopening a scheduled matéria has to show the schedule it already has,
@@ -1624,7 +1642,11 @@ export default function NovaMateriaPage() {
     markDirty();
   }
 
+  // Flat layouts' simplified Show has exactly one block type available —
+  // skip the WordPress-style picker overlay entirely (nothing to actually
+  // pick) and add the text section directly.
   function openAddSection() {
+    if (isFlatShow) { addSection('text'); return; }
     setPickerOpen(true);
   }
 
@@ -1660,58 +1682,63 @@ export default function NovaMateriaPage() {
   }
 
   async function handlePublish(newStatus: PublishStatus) {
-    if (page) {
-      const dest = destinos.find(d => d.id === page);
-      const today = new Date().toLocaleDateString('pt-BR');
-      const m = {
-        id: editing?.id ?? Math.random().toString(36).slice(2),
-        titulo: title || 'Sem título',
-        subtitulo: subtitle,
-        pageId: page,
-        pageLabel: dest?.label ?? page,
-        pageType: (isGaleria ? 'galeria' : isTabela ? 'tabela' : isHtml ? 'html' : isTimeline ? 'timeline' : 'show') as MateriaPageType,
-        pageSlugType: dest?.pageType,
-        status: newStatus === 'published' ? 'publicado' as const : newStatus === 'scheduled' ? 'agendado' as const : 'rascunho' as const,
-        data: today,
-        autor: user?.name ?? user?.email ?? 'Usuário',
-        ultimaEdicao: today,
-        ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
-        // Built from the local date+time the admin picked; toISOString()
-        // converts to UTC so the cron fires at the intended local moment
-        // rather than three hours off. Only meaningful when scheduling —
-        // a draft or an immediate publish clears it.
-        scheduleAt: newStatus === 'scheduled' ? scheduleAtIso : null,
-        // Galeria/timeline are saved wrapped as a single-item block array
-        // (not the bare cards/items) so the site's existing renderBlock()
-        // in materias.js — built for sections inside a 'show' page — can
-        // render them identically without a separate code path, whether
-        // they're the whole matéria or just one section among others.
-        content: isGaleria ? [{ id: 'galeria', type: 'galeria', cards: galeriaCards }]
-          : isTabela ? { headers: tabelaHeaders, rows: tabelaRows }
-          : isHtml ? htmlContent
-          : isTimeline ? [{ id: 'timeline', type: 'timeline', timelineItems, timelineOrientation }]
-          : sections,
-      };
-      const portalKey = user?.activePortalId ?? undefined;
-      persistMateria(m, portalKey);
-      if (portalKey) {
-        const portalDbId = await resolvePortalId(portalKey);
-        if (portalDbId) {
-          await syncMateriaToSupabase(m, portalDbId);
-          // Scheduled counts as published for the page itself: the cron only
-          // flips the matéria's status in Supabase, it can't create the page
-          // or push the site. So the destination page has to be live and
-          // deployed now — it just shows "Em construção" until the scheduled
-          // moment, when the matéria starts being returned by the query the
-          // site already makes on every load.
-          if ((m.status === 'publicado' || m.status === 'agendado') && m.pageSlugType === 'show') {
-            await activatePageInSupabase(m.pageId, portalDbId);
-          }
+    // "Salvar rascunho" only requires a título (canSaveDraft) — the page
+    // picker can still be empty here, unlike Publicar (canPublish, which
+    // gates the button that reaches this with newStatus !== 'draft'). An
+    // unassigned draft still needs to persist SOMETHING, so pageId/pageLabel
+    // fall back to '' instead of skipping the save outright — same
+    // placeholder CanaisPage already writes when a page gets deleted out
+    // from under a matéria that was previously linked to it.
+    const dest = page ? destinos.find(d => d.id === page) : undefined;
+    const today = new Date().toLocaleDateString('pt-BR');
+    const m = {
+      id: editing?.id ?? Math.random().toString(36).slice(2),
+      titulo: title || 'Sem título',
+      subtitulo: subtitle,
+      pageId: page || '',
+      pageLabel: dest?.label ?? page ?? '',
+      pageType: (isGaleria ? 'galeria' : isTabela ? 'tabela' : isHtml ? 'html' : isTimeline ? 'timeline' : 'show') as MateriaPageType,
+      pageSlugType: dest?.pageType,
+      status: newStatus === 'published' ? 'publicado' as const : newStatus === 'scheduled' ? 'agendado' as const : 'rascunho' as const,
+      data: today,
+      autor: user?.name ?? user?.email ?? 'Usuário',
+      ultimaEdicao: today,
+      ultimoEditor: user?.name ?? user?.email ?? 'Usuário',
+      // Built from the local date+time the admin picked; toISOString()
+      // converts to UTC so the cron fires at the intended local moment
+      // rather than three hours off. Only meaningful when scheduling —
+      // a draft or an immediate publish clears it.
+      scheduleAt: newStatus === 'scheduled' ? scheduleAtIso : null,
+      // Galeria/timeline are saved wrapped as a single-item block array
+      // (not the bare cards/items) so the site's existing renderBlock()
+      // in materias.js — built for sections inside a 'show' page — can
+      // render them identically without a separate code path, whether
+      // they're the whole matéria or just one section among others.
+      content: isGaleria ? [{ id: 'galeria', type: 'galeria', cards: galeriaCards }]
+        : isTabela ? { headers: tabelaHeaders, rows: tabelaRows }
+        : isHtml ? htmlContent
+        : isTimeline ? [{ id: 'timeline', type: 'timeline', timelineItems, timelineOrientation }]
+        : sections,
+    };
+    const portalKey = user?.activePortalId ?? undefined;
+    persistMateria(m, portalKey);
+    if (page && portalKey) {
+      const portalDbId = await resolvePortalId(portalKey);
+      if (portalDbId) {
+        await syncMateriaToSupabase(m, portalDbId);
+        // Scheduled counts as published for the page itself: the cron only
+        // flips the matéria's status in Supabase, it can't create the page
+        // or push the site. So the destination page has to be live and
+        // deployed now — it just shows "Em construção" until the scheduled
+        // moment, when the matéria starts being returned by the query the
+        // site already makes on every load.
+        if ((m.status === 'publicado' || m.status === 'agendado') && m.pageSlugType === 'show') {
+          await activatePageInSupabase(m.pageId, portalDbId);
         }
       }
-      // Match the sidebar's global publish button's real-site effect.
-      if (newStatus === 'published' || newStatus === 'scheduled') await publish();
     }
+    // Match the sidebar's global publish button's real-site effect.
+    if (newStatus === 'published' || newStatus === 'scheduled') await publish();
 
     // Status/dirty only flip once the save above has actually finished —
     // setting them synchronously at the top of this function made the
@@ -1759,9 +1786,8 @@ export default function NovaMateriaPage() {
         <div className="nm-topbar-actions">
           {!canPublish && !pageOccupied && (
             <span className="nm-validation-hint">
-              {!title.trim() && !page ? 'Título e página são obrigatórios' :
-               !title.trim() ? 'Título obrigatório' :
-               'Selecione a página de destino'}
+              {!title.trim() ? 'Título obrigatório' :
+               'Selecione uma página para publicar'}
             </span>
           )}
           {editing ? (
@@ -1769,7 +1795,7 @@ export default function NovaMateriaPage() {
               <button
                 type="button"
                 className="btn-outline"
-                disabled={!canPublish}
+                disabled={!canSaveDraft}
                 onClick={() => handlePublish('draft')}
               >
                 Salvar rascunho
@@ -1784,7 +1810,7 @@ export default function NovaMateriaPage() {
               <button
                 type="button"
                 className="btn-outline"
-                disabled={!canPublish}
+                disabled={!canSaveDraft}
                 onClick={() => handlePublish('draft')}
               >
                 {saved && status === 'draft' ? 'Salvo!' : 'Salvar como Rascunho'}
@@ -1914,6 +1940,7 @@ export default function NovaMateriaPage() {
                     portalDbId={portalDbId}
                     locale={locale}
                     primaryLocale={PORTAL_CONFIG.languages[0]}
+                    isFlatShow={isFlatShow}
                   />
                 ))}
                 <button
@@ -2131,7 +2158,7 @@ export default function NovaMateriaPage() {
               <div className="nm-bp-grid">
                 {SECTION_DEFS
                   .filter(def => isGaleria ? def.type === 'galeria' : def.type !== 'galeria')
-                  .filter(def => !isFlatShow || def.type === 'text' || def.type === 'image')
+                  .filter(def => !isFlatShow || def.type === 'text')
                   .filter(def => pickerCat === 'all' || def.cat === pickerCat)
                   .filter(def => !pickerSearch || def.label.toLowerCase().includes(pickerSearch.toLowerCase()) || def.desc.toLowerCase().includes(pickerSearch.toLowerCase()))
                   .map(def => (
