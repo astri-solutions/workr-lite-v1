@@ -973,13 +973,24 @@ export default function CentralDeResultadosPage2() {
     const isExisting = quarters.some(q => q.id === pendingId);
     if (!isExisting) {
       const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
-      setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const, portugueseOnly: wPortugueseOnly }, ...prev]);
       if (portalDbId && supabase) {
-        await supabase.from('portal_resultado_periodos').insert({
+        const { error } = await supabase.from('portal_resultado_periodos').insert({
           id: pendingId, portal_id: portalDbId, entity_id: wEntity, period,
           exibir_home: wExibirHome, status: 'Rascunho', pt_only: wPortugueseOnly, updated_at: new Date().toISOString(),
         });
+        // The optimistic setQuarters() below used to run unconditionally —
+        // an insert failure (duplicate período for this empresa, invalid
+        // entity_id, RLS) was completely silent: the wizard closed like it
+        // worked, the new trimestre showed up in the list for the rest of
+        // this session, and then vanished on the next reload since it was
+        // never actually in the database. Surface it and stop instead.
+        if (error) {
+          setSavingWizard(false);
+          alert(`Não foi possível criar o trimestre: ${error.message}`);
+          return;
+        }
       }
+      setQuarters(prev => [{ id: pendingId, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const, portugueseOnly: wPortugueseOnly }, ...prev]);
     } else {
       // Reopening the wizard on an existing período (the "Adicionar
       // resultado" shortcut from the full-page editor) can still flip
