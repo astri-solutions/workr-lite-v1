@@ -974,16 +974,28 @@ export default function CentralDeResultadosPage2() {
     if (!isExisting) {
       const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
       if (portalDbId && supabase) {
-        const { error } = await supabase.from('portal_resultado_periodos').insert({
-          id: pendingId, portal_id: portalDbId, entity_id: wEntity, period,
-          exibir_home: wExibirHome, status: 'Rascunho', pt_only: wPortugueseOnly, updated_at: new Date().toISOString(),
-        });
+        let error: { message: string } | null = null;
+        try {
+          ({ error } = await supabase.from('portal_resultado_periodos').insert({
+            id: pendingId, portal_id: portalDbId, entity_id: wEntity, period,
+            exibir_home: wExibirHome, status: 'Rascunho', pt_only: wPortugueseOnly, updated_at: new Date().toISOString(),
+          }));
+        } catch (e) {
+          // supabase-js normally resolves with { error } even on RLS/DB
+          // failures, but a network blip or an expired session mid-request
+          // can reject the promise instead — uncaught, that exception used
+          // to propagate straight out of this async onClick handler with no
+          // UI feedback at all: the modal had already visually "committed"
+          // (spinner running), so it just silently vanished with nothing
+          // created, no alert, nothing to tell the admin what happened.
+          error = { message: e instanceof Error ? e.message : 'Erro de conexão inesperado.' };
+        }
         // The optimistic setQuarters() below used to run unconditionally —
-        // an insert failure (duplicate período for this empresa, invalid
-        // entity_id, RLS) was completely silent: the wizard closed like it
-        // worked, the new trimestre showed up in the list for the rest of
-        // this session, and then vanished on the next reload since it was
-        // never actually in the database. Surface it and stop instead.
+        // an insert failure (duplicate período para essa empresa, entity_id
+        // invalido, RLS) era completamente silencioso: o wizard fechava como
+        // se tivesse funcionado, o novo trimestre aparecia na lista pelo
+        // resto da sessão, e sumia no proximo reload por nunca ter ido pro
+        // banco de fato. Surface it and stop instead.
         if (error) {
           setSavingWizard(false);
           alert(`Não foi possível criar o trimestre: ${error.message}`);
