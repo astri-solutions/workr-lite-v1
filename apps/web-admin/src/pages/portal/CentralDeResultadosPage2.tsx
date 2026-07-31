@@ -963,6 +963,15 @@ export default function CentralDeResultadosPage2() {
     const periodOk = wPeriodType === 'anual' ? !!wYear : !!(wQuarter && wYear);
     if (!periodOk) return;
     const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
+    // Nothing else stopped the same período+empresa from being created twice
+    // — the id is always fresh (Date.now()-based), so two "1T25" cards for
+    // the same empresa could coexist with no error, splitting documents
+    // between whichever one someone happened to open next.
+    const duplicate = quarters.find(q => q.entityId === wEntity && q.period === period);
+    if (duplicate) {
+      alert(`Já existe um período ${period} para essa empresa. Abra o trimestre existente para adicionar documentos a ele.`);
+      return;
+    }
     const id = `${period.toLowerCase()}-${wEntity}-${Date.now()}`;
     setPendingId(id);
     setWizardOpen('step2');
