@@ -84,7 +84,7 @@ function getPortalInfo(activePortalId?: string): { url?: string; sites: SiteInfo
     const portal = portals.find(p => p.id === activePortalId) ?? portals[0];
     if (!portal) return { sites: [] };
     const layout = (localStorage.getItem(PORTAL_LAYOUT_KEY) ?? 'sidebar') as string;
-    const LAYOUT_LABEL: Record<string, string> = { sidebar: 'Menu lateral', tabmenu: 'Tabs de conteúdo', banner: 'Banner' };
+    const LAYOUT_LABEL: Record<string, string> = { sidebar: 'Sidebar', tabmenu: 'Tabmenu', banner: 'Banner Full' };
     const url = portal.vercelUrl ?? (portal.sites?.[0]?.link ? `https://${portal.sites[0].link}` : undefined);
     const sites: SiteInfo[] = (portal.sites ?? [{ link: portal.vercelUrl } ]).map(s => ({
       empresa: portal.cliente ?? '–',

@@ -16,7 +16,7 @@ import './PersonalizarPages.css';
 const TIPOS = [
   {
     id: 'sidebar',
-    label: 'Menu lateral',
+    label: 'Sidebar',
     desc: 'Navegação na barra lateral com conteúdo central. Ideal para portais com muito conteúdo.',
     thumb: (
       <svg width="100%" height="90" viewBox="0 0 200 90" fill="none">
@@ -38,7 +38,7 @@ const TIPOS = [
   },
   {
     id: 'tabmenu',
-    label: 'Tabs de conteúdo',
+    label: 'Tabmenu',
     desc: 'Navegação por abas horizontais com conteúdo organizado por seção.',
     thumb: (
       <svg width="100%" height="90" viewBox="0 0 200 90" fill="none">
@@ -59,7 +59,7 @@ const TIPOS = [
   },
   {
     id: 'banner',
-    label: 'Banner com menu',
+    label: 'Banner Full',
     desc: 'Banner de destaque no topo com navegação no header. Impactante e moderno.',
     thumb: (
       <svg width="100%" height="90" viewBox="0 0 200 90" fill="none">

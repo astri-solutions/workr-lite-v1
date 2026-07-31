@@ -160,6 +160,11 @@ interface FileListEditorProps {
    * next thing the admin sees after choosing the período is the drawer
    * itself, instead of an empty dropzone they have to click through first. */
   autoOpenOnEmpty?: boolean;
+  /** Fires whenever the internal "Novo/Editar documento" drawer opens or
+   * closes — the "criar trimestre" wizard uses this to hide its own
+   * "Adicionar documentos" side panel while this one is open, so only one
+   * side panel ever shows at a time instead of stacking two. */
+  onDocDrawerOpenChange?: (open: boolean) => void;
 }
 
 interface DrawerLocaleFile {
@@ -186,7 +191,7 @@ function groupKeyOf(e: FileEntry): string {
 // Documentos' títulos); tipo, status and the publish date/horário are
 // shared across every idioma of the same document — that's the one thing
 // that has to stay in sync between the pt-BR and EN versions.
-function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty }: FileListEditorProps) {
+function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty, onDocDrawerOpenChange }: FileListEditorProps) {
   const primaryLocale = PORTAL_CONFIG.languages[0];
   const multiLang = PORTAL_CONFIG.languages.length > 1;
 
@@ -242,6 +247,7 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty }: File
 
   // ── Document drawer (add/edit ONE document at a time) ──────────────────
   const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => { onDocDrawerOpenChange?.(drawerOpen); }, [drawerOpen, onDocDrawerOpenChange]);
   const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
   const [docLocaleTab, setDocLocaleTab] = useState<LocaleCode>(primaryLocale);
   const [docPtOnly, setDocPtOnly] = useState(false);
@@ -909,6 +915,11 @@ export default function CentralDeResultadosPage2() {
   // ── Novo trimestre wizard ──────────────────────────────────
   type WizardStep = 'step1' | 'step2' | null;
   const [wizardOpen, setWizardOpen] = useState<WizardStep>(null);
+  // Hides the "Adicionar documentos" side panel while the nested "Novo
+  // documento" drawer (rendered by FileListEditor below) is open — both are
+  // side panels, so having both open at once stacked two panels instead of
+  // showing just the one the admin is actually using.
+  const [wizardDocDrawerOpen, setWizardDocDrawerOpen] = useState(false);
   const [wEntity, setWEntity] = useState('');
   const [wPeriodType, setWPeriodType] = useState<'trimestral' | 'anual'>('trimestral');
   const [wQuarter, setWQuarter] = useState('');
@@ -1147,6 +1158,10 @@ export default function CentralDeResultadosPage2() {
     if (existing) existing.quarters.push(q);
     else byYear.push({ year, quarters: [q] });
   }
+  // Groups were built in whatever order currentQuarters happened to arrive
+  // in (creation order) — the newest year should always lead, matching the
+  // "Todos os anos" filter dropdown above, which already sorts this way.
+  byYear.sort((a, b) => +b.year - +a.year);
 
   // ── Full-page quarter editor ─────────────────────────────────────────────
   // Re-seeds stagedDocs from the last-persisted state every time a DIFFERENT
@@ -1457,7 +1472,7 @@ export default function CentralDeResultadosPage2() {
 
       {/* ── Wizard step 2: Arquivos ── */}
       <Modal
-        open={wizardOpen === 'step2'}
+        open={wizardOpen === 'step2' && !wizardDocDrawerOpen}
         onClose={() => wizardSave(false)}
         title={`${wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`} — Adicionar documentos`}
         size="xl"
@@ -1509,6 +1524,7 @@ export default function CentralDeResultadosPage2() {
             onChange={setWEntries}
             uploadedBy={userName}
             autoOpenOnEmpty
+            onDocDrawerOpenChange={setWizardDocDrawerOpen}
           />
 
           {SHOW_HOME_OPTION && (

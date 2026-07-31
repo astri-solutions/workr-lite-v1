@@ -668,6 +668,7 @@ export default function CentralDeResultadosPage() {
               if (existing) existing.quarters.push(q);
               else byYear.push({ year, quarters: [q] });
             }
+            byYear.sort((a, b) => +b.year - +a.year);
             return byYear.map(group => (
               <div key={group.year} className="cdr-year-group">
                 <div className="cdr-year-label">{group.year}</div>

@@ -2380,7 +2380,7 @@ export default function CanaisPage() {
             {isFlatLayout && (
               <p className="ct-wizard-hint">
                 <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>info</span>
-                No layout {portalLayout === 'sidebar' ? 'sidebar' : 'tabs'}, cada canal é uma página direta. Você escolherá o tipo de conteúdo no próximo passo.
+                No layout {portalLayout === 'sidebar' ? 'Sidebar' : 'Tabmenu'}, cada canal é uma página direta. Você escolherá o tipo de conteúdo no próximo passo.
               </p>
             )}
             {!isFlatLayout && (
@@ -2683,6 +2683,18 @@ async function uploadCanalHeaderImage(file: File, objectUrl: string, portalDbId:
     const path = `${portalDbId}/header/canal-${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
     const { error } = await supabase.storage.from('portal-media').upload(path, file, { upsert: true, contentType: file.type || 'image/webp' });
     if (error) return objectUrl;
+    // Same gap as matéria images: uploaded straight to the bucket with no
+    // portal_media row, so it never showed up in Biblioteca de Mídia.
+    supabase.from('portal_media').insert({
+      id: crypto.randomUUID(),
+      portal_id: portalDbId,
+      name: file.name || 'header.webp',
+      type: 'image',
+      size_bytes: file.size,
+      file_path: path,
+    }).then(({ error: insertError }) => {
+      if (insertError) console.error('portal_media insert failed for header image', insertError);
+    });
     return supabase.storage.from('portal-media').getPublicUrl(path).data.publicUrl;
   } catch {
     return objectUrl;

@@ -56,7 +56,7 @@ function getSteps(tipo: string) {
 const TIPOS = [
   {
     id: 'sidebar',
-    label: 'Menu lateral',
+    label: 'Sidebar',
     desc: 'Navegação na barra lateral com conteúdo central.',
     thumb: (
       <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -78,7 +78,7 @@ const TIPOS = [
   },
   {
     id: 'tabmenu',
-    label: 'Tabs de conteúdo',
+    label: 'Tabmenu',
     desc: 'Navegação por abas horizontais com conteúdo organizado por seção.',
     thumb: (
       <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -99,7 +99,7 @@ const TIPOS = [
   },
   {
     id: 'banner',
-    label: 'Banner com menu',
+    label: 'Banner Full',
     desc: 'Banner de destaque no topo com navegação no header.',
     thumb: (
       <svg width="100%" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -790,6 +790,23 @@ async function uploadMateriaImage(file: File, objectUrl: string, portalDbId: str
     const path = `${portalDbId}/materias/${kind}-${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
     const { error } = await supabase.storage.from('portal-media').upload(path, file, { upsert: true, contentType: file.type || 'image/webp' });
     if (error) return objectUrl;
+    // Every other upload point (Documentos, Logotipo/Favicon/Banner/Splash
+    // at publish time) ends up registered in portal_media so Biblioteca de
+    // Mídia can actually list it — matéria/gallery/timeline/pessoa images
+    // uploaded here were the one gap: they landed in the same bucket but
+    // never got a row, so they were invisible to that page. Best-effort,
+    // non-blocking: a failed insert still leaves the image usable in the
+    // matéria, it just won't show up in the library.
+    supabase.from('portal_media').insert({
+      id: crypto.randomUUID(),
+      portal_id: portalDbId,
+      name: file.name || `${kind}.webp`,
+      type: 'image',
+      size_bytes: file.size,
+      file_path: path,
+    }).then(({ error: insertError }) => {
+      if (insertError) console.error('portal_media insert failed for matéria image', insertError);
+    });
     return supabase.storage.from('portal-media').getPublicUrl(path).data.publicUrl;
   } catch {
     return objectUrl;

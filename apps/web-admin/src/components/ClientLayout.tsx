@@ -100,6 +100,13 @@ const SECTIONS: NavSection[] = [
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>menu</span>
         ),
       },
+      {
+        to: '/portal/calendario',
+        label: 'Calendário de Eventos',
+        icon: (
+          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>event</span>
+        ),
+      },
     ],
   },
   {
@@ -339,6 +346,11 @@ function ClientLayoutInner() {
     ...section,
     items: section.items.filter(item => {
       if (item.to === '/portal/banner') return portalLayout !== 'sidebar';
+      // Calendário de Eventos ships as a fixed static page (calendario-eventos.html,
+      // in DEFAULT_CANAIS but not DEFAULT_CANAIS_FLAT) — Banner Full is the only
+      // layout that gets it by default, so it's the only one that needs a way
+      // to edit its content from the CMS nav.
+      if (item.to === '/portal/calendario') return portalLayout === 'banner';
       return true;
     }),
   }));

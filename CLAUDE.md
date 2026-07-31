@@ -167,10 +167,12 @@ When migrating from Vercel/Supabase to a dedicated server:
 - `workr-lite-v1` admin panel will move to `admin.astri.solutions` or similar
 
 ### Layout types and mutability
-| Layout | `header.variant` | Client can change? |
-|---|---|---|
-| `sidebar` | `sidebar` | Yes — via Personalização → Layout |
-| `tabmenu` | `tabmenu` | Yes — via Personalização → Layout |
-| `banner` | `banner` | No — fixed at creation |
+Display name shown to users vs. the internal `layout`/`header.variant` value stored in `portal_config`/`site.config.js` (never renamed — only the UI label changed):
+
+| Display name (UI) | Internal value | `header.variant` | Client can change? |
+|---|---|---|---|
+| Sidebar | `sidebar` | `sidebar` | Yes — via Personalização → Layout |
+| Tabmenu (previously "Tabs de conteúdo") | `tabmenu` | `tabmenu` | Yes — via Personalização → Layout |
+| Banner Full (previously "Banner com menu"/"Banner") | `banner` | `banner` | No — fixed at creation |
 
 Sidebar and tabmenu share the same HTML template (same repo). The `header.variant` in `site.config.js` switches the rendering. When a client changes their layout via the CMS and clicks "Publicar", the updated variant is pushed to GitHub and Vercel redeploys automatically.
