@@ -89,11 +89,17 @@ export default function Modal({
     <div
       className={`modal-overlay${variant === 'side' ? ' modal-overlay--side' : ''}${closing ? ' modal-overlay--closing' : ''}`}
       onMouseDown={hidden ? undefined : onClose}
-      // `visibility: visible` here is the override that lets a NESTED modal
-      // (rendered inside `children`, e.g. the document drawer inside the
-      // wizard) stay visible even though this ancestor may itself be
-      // `visibility: hidden` — see the `hidden` prop doc above.
-      style={{ visibility: hidden ? 'hidden' : 'visible', pointerEvents: hidden ? 'none' : undefined }}
+      // `visibility: visible` / `pointerEvents: 'auto'` here are the
+      // overrides that let a NESTED modal (rendered inside `children`, e.g.
+      // the document drawer inside the wizard) stay visible AND clickable
+      // even though this ancestor may itself be `visibility: hidden` /
+      // `pointerEvents: 'none'` — see the `hidden` prop doc above. Leaving
+      // either one as `undefined` instead of an explicit 'auto' does NOT
+      // override the ancestor (both properties inherit), so the upload
+      // dropzone and "Tipo de documento" select inside the nested drawer
+      // were unclickable — inheriting `pointer-events: none` from the
+      // hidden wizard modal wrapping them.
+      style={{ visibility: hidden ? 'hidden' : 'visible', pointerEvents: hidden ? 'none' : 'auto' }}
       aria-hidden={hidden || undefined}
     >
       <div
