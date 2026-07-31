@@ -199,11 +199,26 @@ const SECTIONS: NavSection[] = [
         ),
       },
       {
-        to: '/portal/splash',
         label: 'Splash',
         icon: (
           <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>campaign</span>
         ),
+        children: [
+          {
+            to: '/portal/splash',
+            label: 'Editar',
+            icon: (
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>
+            ),
+          },
+          {
+            to: '/portal/splash/templates',
+            label: 'Templates',
+            icon: (
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>grid_view</span>
+            ),
+          },
+        ],
       },
       {
         to: '/portal/banner',

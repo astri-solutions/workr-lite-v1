@@ -3,6 +3,7 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import UnsavedModal from '../../components/UnsavedModal';
+import Modal from '../../components/Modal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
@@ -16,15 +17,15 @@ import './SplashPage.css';
 
 export const SPLASH_KEY = 'portal_splash';
 
-type SplashSize = 'sm' | 'md' | 'lg';
+export type SplashSize = 'sm' | 'md' | 'lg';
 
-interface SplashBtn {
+export interface SplashBtn {
   label: string;
   url: string;
   variant: 'primary' | 'outline';
 }
 
-interface SplashConfig {
+export interface SplashConfig {
   enabled: boolean;
   size: SplashSize;
   imageUrl: string | null;
@@ -34,6 +35,20 @@ interface SplashConfig {
   legenda: string;
   buttons: SplashBtn[];
 }
+
+export interface SplashTemplate {
+  id: string;
+  nome: string;
+  // Everything but `enabled` and `imageUrl` — a saved template is reusable
+  // text/button content, not "turn the splash on" or someone else's image.
+  config: Omit<SplashConfig, 'enabled' | 'imageUrl'>;
+}
+
+// sessionStorage handoff from SplashTemplatesPage → SplashPage: "apply this
+// template's content to whatever I'm editing now." A query param would work
+// too, but this avoids threading template data through the URL/router for
+// what's a one-shot, same-tab action.
+export const SPLASH_APPLY_TEMPLATE_KEY = 'workr_splash_apply_template';
 
 const SIZE_OPTIONS: { id: SplashSize; label: string; desc: string; thumb: React.ReactNode }[] = [
   {
@@ -105,7 +120,7 @@ function emptyBtn(): SplashBtn {
   return { label: '', url: '', variant: 'primary' };
 }
 
-const DEFAULT_SPLASH: SplashConfig = {
+export const DEFAULT_SPLASH: SplashConfig = {
   enabled: false,
   size: 'md',
   imageUrl: null,
@@ -132,6 +147,39 @@ export default function SplashPage() {
     if (hydrated) setConfig({ ...DEFAULT_SPLASH, ...persisted });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
+
+  // "Usar este modelo" in Templates stashes the chosen content here and
+  // navigates here — applied once, after hydration (so it isn't immediately
+  // clobbered by the persisted-value sync above), then cleared so a normal
+  // page reload doesn't reapply it.
+  useEffect(() => {
+    if (!hydrated) return;
+    const raw = sessionStorage.getItem(SPLASH_APPLY_TEMPLATE_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(SPLASH_APPLY_TEMPLATE_KEY);
+    try {
+      const tplConfig = JSON.parse(raw) as SplashTemplate['config'];
+      setConfig(c => ({ ...c, ...tplConfig, enabled: true }));
+    } catch { /* ignore malformed handoff */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
+  const [templates, setTemplates] = usePortalState<SplashTemplate[]>('portal_splash_templates', 'splash_templates', []);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState('');
+
+  function saveAsTemplate() {
+    const nome = saveTemplateName.trim();
+    if (!nome) return;
+    const tpl: SplashTemplate = {
+      id: Math.random().toString(36).slice(2),
+      nome,
+      config: { size: config.size, titulo: config.titulo, texto: config.texto, conteudo: config.conteudo, legenda: config.legenda, buttons: config.buttons },
+    };
+    setTemplates([...templates, tpl]);
+    setSaveTemplateOpen(false);
+    setSaveTemplateName('');
+  }
 
   // Compared against the SAME { ...DEFAULT_SPLASH, ...persisted } shape
   // config was seeded with — comparing straight to `persisted` falsely
@@ -186,6 +234,10 @@ export default function SplashPage() {
             <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
               Pré-visualizar
+            </button>
+            <button type="button" className="btn-outline" onClick={() => setSaveTemplateOpen(true)}>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>bookmark_add</span>
+              Salvar como modelo
             </button>
             <button type="button" className="btn-outline" onClick={handleSave} disabled={!isDirty && saved}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
@@ -456,6 +508,28 @@ export default function SplashPage() {
         </div>
       )}
       <UnsavedModal open={blocker.state === 'blocked'} onStay={() => blocker.reset?.()} onLeave={() => blocker.proceed?.()} />
+
+      {saveTemplateOpen && (
+        <Modal open onClose={() => setSaveTemplateOpen(false)} title="Salvar como modelo" size="sm"
+          footer={
+            <div className="modal-footer">
+              <button type="button" className="btn-outline" onClick={() => setSaveTemplateOpen(false)}>Cancelar</button>
+              <button type="button" className="btn-primary" disabled={!saveTemplateName.trim()} onClick={saveAsTemplate}>Salvar</button>
+            </div>
+          }
+        >
+          <div className="cdr-modal-form">
+            <p className="doc-field__hint" style={{ margin: 0 }}>
+              Salva o título, textos e botões atuais como um modelo reutilizável em Splash → Templates. Ativação e imagem de header não são salvas no modelo.
+            </p>
+            <label className="doc-field">
+              <span className="doc-field__label">Nome do modelo</span>
+              <input className="doc-field__input" type="text" placeholder="Ex: Fato Relevante"
+                value={saveTemplateName} onChange={e => setSaveTemplateName(e.target.value)} autoFocus />
+            </label>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
