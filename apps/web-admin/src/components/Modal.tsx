@@ -16,6 +16,21 @@ interface ModalProps {
   // header/body/footer structure and the same onClose/footer contract either
   // way, purely a different shell.
   variant?: 'center' | 'side';
+  // Visually hides this modal via `visibility` (never opacity/display, and
+  // never by touching `open`/mounted state) — a modal that nests another
+  // one in its `children` (e.g. the "novo trimestre" wizard nesting its own
+  // document drawer) used to toggle `open` to hide itself while the nested
+  // one was up, but this component unmounts its whole subtree (children
+  // included) EXIT_DURATION_MS after `open` goes false — 220ms, far less
+  // than it takes to fill out a form — destroying the nested modal (and its
+  // state) out from under the user mid-edit. `visibility: hidden` keeps
+  // this modal (and everything inside it, including a nested modal) fully
+  // mounted, and — unlike opacity/display — a descendant CAN override an
+  // ancestor's `visibility: hidden` with its own `visibility: visible`,
+  // which is exactly what every Modal's own overlay does below, so a
+  // nested modal still renders normally even though its hidden parent
+  // wraps it.
+  hidden?: boolean;
 }
 
 export default function Modal({
@@ -27,6 +42,7 @@ export default function Modal({
   footer,
   size = 'md',
   variant = 'side',
+  hidden = false,
 }: ModalProps) {
   // Keeps the modal mounted for EXIT_DURATION_MS after `open` goes false, so
   // the slide/fade-out actually plays instead of the element just vanishing.
@@ -51,8 +67,11 @@ export default function Modal({
 
   // Lock body scroll and close on Escape — held for the whole mounted
   // lifetime (including the closing animation), not just while `open`.
+  // Skipped entirely while `hidden`: a modal nesting another one in its
+  // `children` (see below) stays mounted-but-hidden behind the nested one,
+  // and its own Escape/body-lock must not fight with the nested modal's.
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || hidden) return;
     document.body.style.overflow = 'hidden';
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -62,14 +81,20 @@ export default function Modal({
       document.body.style.overflow = '';
       document.removeEventListener('keydown', onKey);
     };
-  }, [mounted, onClose]);
+  }, [mounted, hidden, onClose]);
 
   if (!mounted) return null;
 
   return (
     <div
       className={`modal-overlay${variant === 'side' ? ' modal-overlay--side' : ''}${closing ? ' modal-overlay--closing' : ''}`}
-      onMouseDown={onClose}
+      onMouseDown={hidden ? undefined : onClose}
+      // `visibility: visible` here is the override that lets a NESTED modal
+      // (rendered inside `children`, e.g. the document drawer inside the
+      // wizard) stay visible even though this ancestor may itself be
+      // `visibility: hidden` — see the `hidden` prop doc above.
+      style={{ visibility: hidden ? 'hidden' : 'visible', pointerEvents: hidden ? 'none' : undefined }}
+      aria-hidden={hidden || undefined}
     >
       <div
         className={`modal modal--${size}${variant === 'side' ? ' modal--side' : ''}${closing ? ' modal--closing' : ''}`}

@@ -1495,7 +1495,8 @@ export default function CentralDeResultadosPage2() {
 
       {/* ── Wizard step 2: Arquivos ── */}
       <Modal
-        open={wizardOpen === 'step2' && !wizardDocDrawerOpen}
+        open={wizardOpen === 'step2'}
+        hidden={wizardDocDrawerOpen}
         onClose={() => wizardSave(false)}
         title={`${wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`} — Adicionar documentos`}
         size="xl"
