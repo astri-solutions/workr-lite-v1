@@ -862,7 +862,8 @@ Deno.serve(async (req) => {
         const tplTreeData = await tplTreeRes.json() as { tree: { path: string; type: string; sha: string }[] };
         const templateBlobs = tplTreeData.tree.filter(t =>
           t.type === 'blob'
-          && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js')
+          && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js'
+              || t.path === 'vercel.json' || t.path === 'public/robots.txt')
           && !TEMPLATE_EXCLUDE.has(t.path)
         );
         for (const tf of templateBlobs) {

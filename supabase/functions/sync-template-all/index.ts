@@ -140,7 +140,8 @@ Deno.serve(async (req) => {
     const tplTreeData = await (await gh(`/repos/${githubOrg}/cliente-workr-lite/git/trees/${tplCommitData.tree.sha}?recursive=1`)).json() as { tree: GitTreeEntry[] };
     const templateFiles = tplTreeData.tree.filter(t =>
       t.type === 'blob'
-      && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js')
+      && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js'
+          || t.path === 'vercel.json' || t.path === 'public/robots.txt')
       && !TEMPLATE_EXCLUDE.has(t.path)
     );
     if (templateFiles.length === 0) {

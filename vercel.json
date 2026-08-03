@@ -2,5 +2,11 @@
   "buildCommand": "cd apps/web-admin && npm install && npm run build",
   "outputDirectory": "apps/web-admin/dist",
   "installCommand": "echo 'skip root install'",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }]
+    }
+  ]
 }
