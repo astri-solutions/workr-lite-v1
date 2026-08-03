@@ -56,14 +56,13 @@ workr-lite-v1/
 | BG Light | `#F4F4F4` | Page background |
 | BG Lighter | `#FAFAFA` | Input background |
 
-## Auth (hardcoded for now)
+## Auth
 
-| Email | Password | Role |
-|---|---|---|
-| `admin@astri.solutions` | `workr2025` | `super_admin` → `/admin/portais` |
-| `cliente@demo.com` | `demo2025` | `client_user` → `/portal` |
+Real Supabase Auth (`supabase.auth.signInWithPassword`) — not hardcoded credentials. `role` comes from the user's `app_metadata.role` (`super_admin` → `/admin/portais`, `client_user`/`editor`/`viewer` → `/portal`). Never document real passwords here; if you need a login for local testing, create/reset a user via the Supabase Dashboard (Authentication → Users) instead.
 
-Session persisted in `localStorage` (key: `workr_auth`).
+Current super admin: `projetos@astri.solutions`.
+
+A `workr_auth` cache in `localStorage` mirrors the session (role, active portal, etc.) for fast reads across the app, but the source of truth is the Supabase session itself.
 
 ## Routes
 
