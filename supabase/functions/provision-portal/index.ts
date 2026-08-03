@@ -429,7 +429,18 @@ Deno.serve(async (req) => {
     const vercelToken  = Deno.env.get('VERCEL_TOKEN');
     const githubOrg    = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
     const templateRepo = 'cliente-workr-lite';
-    const repoName     = `workr-portal-${subdomain}`;
+    // subdomain comes from the wizard's slugify() (or a manually-typed "url"
+    // override) — neither trims whitespace or strips a leading/trailing "-",
+    // so a client name with a stray trailing space (e.g. "Astride ") slips
+    // through as "astride-". That trailing hyphen is invalid in a DNS label,
+    // so Vercel's own default domain for the project silently drops it
+    // ("workr-portal-astride.vercel.app") while the repo name and the
+    // vercel_url we compute below keep it — the CMS then links to a URL that
+    // never matches the real, working domain. Sanitizing once here, before
+    // it's used to name the GitHub repo AND the Vercel project, keeps both
+    // in sync with whatever Vercel actually ends up serving.
+    const cleanSubdomain = subdomain.trim().toLowerCase().replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+    const repoName     = `workr-portal-${cleanSubdomain}`;
     const gh           = (url: string, init?: RequestInit) =>
       fetch(`https://api.github.com${url}`, { ...init, headers: { ...ghHeaders(githubToken!), ...(init?.headers ?? {}) } });
 
@@ -485,7 +496,7 @@ Deno.serve(async (req) => {
       const { data: earlyRow, error: earlyErr } = await adminClient.from('portals').upsert({
         portal_key: _portalId,
         cliente: nome,
-        subdomain,
+        subdomain: cleanSubdomain,
         github_repo: repoName,
         vercel_url: `https://${repoName}.vercel.app`,
         empresa_status: 'Ativa',
