@@ -403,7 +403,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, nomeFantasia, cnpj, cvmCode, autoCvm, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite } = await req.json() as {
+    const { portalId: _portalId, nome, nomeFantasia, cnpj, cvmCode, autoCvm, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite, hostingProvider } = await req.json() as {
       portalId: string;
       nome: string;
       nomeFantasia?: string;
@@ -423,10 +423,18 @@ Deno.serve(async (req) => {
       seo?: { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string };
       emailContato?: string;
       tipoSite?: string;
+      // 'vercel' (default, production today) or 'cloudflare' (parallel test
+      // path — Cloudflare Pages, migration in progress). Never inferred from
+      // anything else, so every existing caller that doesn't send this field
+      // keeps provisioning on Vercel exactly as before.
+      hostingProvider?: 'vercel' | 'cloudflare';
     };
+    const useCloudflare = hostingProvider === 'cloudflare';
 
-    const githubToken  = Deno.env.get('GITHUB_TOKEN');
-    const vercelToken  = Deno.env.get('VERCEL_TOKEN');
+    const githubToken     = Deno.env.get('GITHUB_TOKEN');
+    const vercelToken     = Deno.env.get('VERCEL_TOKEN');
+    const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
+    const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
     const githubOrg    = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
     const templateRepo = 'cliente-workr-lite';
     // subdomain comes from the wizard's slugify() (or a manually-typed "url"
@@ -660,14 +668,66 @@ Deno.serve(async (req) => {
     let   vercelUrl = `https://${repoName}.vercel.app`;
     let   vercelCreated = false;
     let   vercelError: string | undefined;
+    let   cloudflareUrl: string | undefined;
+    let   cloudflareCreated = false;
+    let   cloudflareError: string | undefined;
 
-    // ── Step 5: create Vercel project (optional) ──────────────────────────
-    // Wrapped in its own try/catch: a Vercel API hiccup (network error,
-    // unexpected response shape, timeout) must degrade to `vercelError`
-    // like the "no token" case below, never 500 the whole provision call —
-    // the GitHub repo + portal DB row above already succeeded and must not
-    // be thrown away because of a problem in this optional last step.
-    if (vercelToken) {
+    // ── Step 5: create the hosting project (optional) ──────────────────────
+    // Wrapped in its own try/catch: a hosting API hiccup (network error,
+    // unexpected response shape, timeout) must degrade to `*Error` like the
+    // "no token" case below, never 500 the whole provision call — the
+    // GitHub repo + portal DB row above already succeeded and must not be
+    // thrown away because of a problem in this optional last step.
+    //
+    // Cloudflare Pages is the parallel migration path (see hostingProvider):
+    // requires the Cloudflare Pages GitHub App already installed on the org
+    // with access to all repos (one-time manual dashboard step, same
+    // category of dependency Vercel's own GitHub App has) — without it, the
+    // API call below fails with a Cloudflare "git installation" error and
+    // this degrades to cloudflareError exactly like a missing token would.
+    if (useCloudflare) {
+      if (cloudflareToken && cloudflareAccountId) {
+        try {
+          const cfRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: repoName,
+              production_branch: 'main',
+              source: { type: 'github', config: { owner: githubOrg, repo_name: repoName, production_branch: 'main', deployments_enabled: true } },
+              build_config: { build_command: 'npm run build', destination_dir: 'dist' },
+            }),
+          });
+          if (cfRes.ok) {
+            const cfBody = await cfRes.json() as { result: { name: string; subdomain: string } };
+            cloudflareUrl = `https://${cfBody.result.subdomain}`;
+            cloudflareCreated = true;
+
+            // Commits were pushed before the Pages project existed, so Cloudflare
+            // never saw them — trigger an explicit deployment from main now,
+            // same reason the Vercel path below does the same thing.
+            const cfDeployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${repoName}/deployments`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${cloudflareToken}` },
+            });
+            if (!cfDeployRes.ok) {
+              const dBody = await cfDeployRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+              // Project exists (cloudflareCreated stays true) — only the initial
+              // deploy trigger failed; Cloudflare's own GitHub integration will
+              // still deploy on the next push.
+              cloudflareError = `Projeto criado, mas deploy inicial falhou: ${dBody?.errors?.[0]?.message ?? `HTTP ${cfDeployRes.status}`}`;
+            }
+          } else {
+            const cfBody = await cfRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+            cloudflareError = cfBody?.errors?.[0]?.message ?? `HTTP ${cfRes.status}`;
+          }
+        } catch (e) {
+          cloudflareError = `Falha ao criar projeto Cloudflare Pages: ${String((e as Error)?.message ?? e)}`;
+        }
+      } else {
+        cloudflareError = 'CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID não configurados';
+      }
+    } else if (vercelToken) {
       try {
         const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
           method: 'POST',
@@ -755,9 +815,13 @@ Deno.serve(async (req) => {
         resolveServiceKey(),
       );
 
-      // Update vercel_url now that we know the final Vercel project URL
+      // Update with the final URL from whichever platform actually hosts this
+      // portal — the other platform's columns are left untouched (still their
+      // defaults), never overwritten with a guess for a platform that wasn't used.
       const { data: portalRow, error: portalUpdateError } = await adminClient.from('portals')
-        .update({ vercel_url: vercelUrl, vercel_created: vercelCreated })
+        .update(useCloudflare
+          ? { hosting_provider: 'cloudflare', cloudflare_url: cloudflareUrl ?? null, cloudflare_created: cloudflareCreated }
+          : { hosting_provider: 'vercel', vercel_url: vercelUrl, vercel_created: vercelCreated })
         .eq('portal_key', _portalId)
         .select('id')
         .maybeSingle();
@@ -767,10 +831,11 @@ Deno.serve(async (req) => {
       if (!pid) configUpsertError = configUpsertError ?? 'portal UUID não resolvido — portal_config não foi criado';
 
       // Create/upsert portal_sites row (the live site entry shown in admin panel)
+      const liveUrl = useCloudflare ? cloudflareUrl : vercelUrl;
       if (pid) {
         const { error: siteErr } = await adminClient.from('portal_sites').upsert({
           portal_id: pid,
-          link: vercelUrl ? vercelUrl.replace(/^https?:\/\//, '') : `${repoName}.vercel.app`,
+          link: liveUrl ? liveUrl.replace(/^https?:\/\//, '') : `${repoName}.${useCloudflare ? 'pages.dev' : 'vercel.app'}`,
           status: 'Ativo',
           ip: null,
           tipo: tipoSite ?? 'RI',
@@ -813,7 +878,7 @@ Deno.serve(async (req) => {
       }
     } catch (e) { configUpsertError = configUpsertError ?? String(e); }
 
-    return new Response(JSON.stringify({ repoName, repoUrl, vercelUrl, vercelCreated, vercelError, portalUuid, siteUpsertError, configUpsertError, portalUpsertError, assetErrors: assetErrors.length ? assetErrors : undefined }), {
+    return new Response(JSON.stringify({ repoName, repoUrl, hostingProvider: useCloudflare ? 'cloudflare' : 'vercel', vercelUrl, vercelCreated, vercelError, cloudflareUrl, cloudflareCreated, cloudflareError, portalUuid, siteUpsertError, configUpsertError, portalUpsertError, assetErrors: assetErrors.length ? assetErrors : undefined }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
 

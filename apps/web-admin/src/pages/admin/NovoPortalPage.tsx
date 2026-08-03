@@ -1434,6 +1434,12 @@ export default function NovoPortalPage() {
                       emailContato: form.emailContato,
                       ...(form.logoFile    ? { logo:    await fileToBase64(form.logoFile)    } : {}),
                       ...(form.faviconFile ? { favicon: await fileToBase64(form.faviconFile) } : {}),
+                      // Cloudflare Pages migration test path — no UI toggle on
+                      // purpose, so the wizard's normal flow (and every real
+                      // client portal) is untouched. Flip on only via
+                      // localStorage.setItem('workr_test_cloudflare', '1') in
+                      // the browser console while validating the migration.
+                      ...(localStorage.getItem('workr_test_cloudflare') === '1' ? { hostingProvider: 'cloudflare' } : {}),
                     }),
                   }
                 );
