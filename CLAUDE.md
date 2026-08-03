@@ -176,3 +176,5 @@ Display name shown to users vs. the internal `layout`/`header.variant` value sto
 | Banner Full (previously "Banner com menu"/"Banner") | `banner` | `banner` | No — fixed at creation |
 
 Sidebar and tabmenu share the same HTML template (same repo). The `header.variant` in `site.config.js` switches the rendering. When a client changes their layout via the CMS and clicks "Publicar", the updated variant is pushed to GitHub and Vercel redeploys automatically.
+
+<!-- private-repo deploy test: 1785756847 -->
