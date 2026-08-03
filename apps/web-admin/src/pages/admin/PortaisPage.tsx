@@ -644,6 +644,9 @@ export default function PortaisPage() {
                         {site.status}
                       </span>
                       <span className={`badge ${TIPO_BADGE[site.tipo]}`}>{site.tipo}</span>
+                      {portal.hostingProvider === 'cloudflare' && (
+                        <span className="badge" title="Provisionado via Cloudflare Pages (migração em teste)">Cloudflare</span>
+                      )}
                       <a
                         className="portal-site-row__link"
                         href={`https://${site.link}`}
