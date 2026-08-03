@@ -393,9 +393,14 @@ export default function PortaisPage() {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (token) {
-          const vercelProjectName = portal.vercelUrl
+          const isCloudflare = portal.hostingProvider === 'cloudflare';
+          const vercelProjectName = isCloudflare ? undefined : (portal.vercelUrl
             ? portal.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
-            : portal.subdomain ?? portal.githubRepo?.replace(/^portal-/, '');
+            : portal.subdomain ?? portal.githubRepo?.replace(/^portal-/, ''));
+          // The Cloudflare Pages project is always named after the repo
+          // (provision-portal creates it with name: repoName) — no separate
+          // slug/alias to derive like the Vercel side sometimes has.
+          const cloudflareProjectName = isCloudflare ? portal.githubRepo : undefined;
           const res = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
             {
@@ -408,6 +413,7 @@ export default function PortaisPage() {
               body: JSON.stringify({
                 repoName: portal.githubRepo ?? undefined,
                 vercelProjectName: vercelProjectName ?? undefined,
+                cloudflareProjectName: cloudflareProjectName ?? undefined,
                 portalId: portal.id,
               }),
             }
@@ -734,7 +740,7 @@ export default function PortaisPage() {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ fontSize: '14px', color: 'var(--color-gray-700)', margin: 0 }}>
-              Esta ação é <strong>irreversível</strong>. O portal <strong>{deletePortalTarget.cliente}</strong>, seu repositório GitHub e projeto Vercel serão excluídos permanentemente.
+              Esta ação é <strong>irreversível</strong>. O portal <strong>{deletePortalTarget.cliente}</strong>, seu repositório GitHub e projeto {deletePortalTarget.hostingProvider === 'cloudflare' ? 'Cloudflare Pages' : 'Vercel'} serão excluídos permanentemente.
             </p>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--color-gray-700)' }}>
               Digite <strong>{deletePortalTarget.cliente}</strong> para confirmar

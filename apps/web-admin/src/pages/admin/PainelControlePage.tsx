@@ -21,6 +21,9 @@ interface SiteData {
   githubRepo?: string;
   vercelUrl?: string;
   vercelCreated?: boolean;
+  hostingProvider?: 'vercel' | 'cloudflare';
+  cloudflareUrl?: string;
+  cloudflareCreated?: boolean;
   subdomain?: string;
   suporteNome?: string;
   suporteEmail?: string;
@@ -216,6 +219,12 @@ export default function PainelControlePage() {
 
   useEffect(() => {
     if (!site || !isSupabaseConfigured || !supabase) return;
+    // get-site-status only knows how to query the Vercel API — for a
+    // Cloudflare-hosted portal it would call Vercel with a project name that
+    // either matches nothing (silent no-op) or, worse, some unrelated Vercel
+    // project. Skip it here; the card just shows "—" until this endpoint
+    // also supports Cloudflare Pages deploy status.
+    if (site.hostingProvider === 'cloudflare') return;
     const projectName = site.vercelUrl
       ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
       : site.githubRepo;
