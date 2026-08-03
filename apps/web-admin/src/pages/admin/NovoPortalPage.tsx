@@ -220,6 +220,23 @@ const TIPO_SITE_OPTIONS = [
   { value: 'fundo', label: 'Fundo' },
 ];
 
+// portal_sites.tipo has a CHECK constraint on the exact capitalized strings
+// ('RI', 'Institucional', 'Fundo', 'Landing Page') — the select above uses
+// lowercase option values for its own styling/i18n reasons, so anything that
+// writes tipoSite to the database must go through this first, or picking
+// "Institucional"/"Fundo"/"Landing Page" 400s on the check constraint (only
+// "RI" happened to match by accident, via the `|| 'RI'` fallback masking it
+// whenever the field was left untouched).
+const TIPO_SITE_DB_VALUE: Record<string, 'RI' | 'Institucional' | 'Fundo' | 'Landing Page'> = {
+  ri: 'RI',
+  institucional: 'Institucional',
+  landing: 'Landing Page',
+  fundo: 'Fundo',
+};
+function tipoSiteDbValue(tipoSite: string): 'RI' | 'Institucional' | 'Fundo' | 'Landing Page' {
+  return TIPO_SITE_DB_VALUE[tipoSite] ?? 'RI';
+}
+
 function StepIdentificacao({
   nome, nomeFantasia, url, cnpj, cvmCode, autoCvm, tipoSite,
   onNome, onNomeFantasia, onCnpj, onCvmCode, onAutoCvm, onTipoSite,
@@ -1311,7 +1328,7 @@ export default function NovoPortalPage() {
               link: form.url ? `workr-portal-${form.url}.vercel.app` : `workr-portal-${slugify(form.nome)}.vercel.app`,
               status: 'Ativo' as const,
               ip: '',
-              tipo: (form.tipoSite as 'RI' | 'Institucional' | 'Fundo' | 'Landing Page') || 'RI',
+              tipo: tipoSiteDbValue(form.tipoSite),
             }],
           };
           localStorage.setItem('workr_portais', JSON.stringify([...existing, newPortal]));
@@ -1415,7 +1432,7 @@ export default function NovoPortalPage() {
                       cnpj: form.cnpj,
                       cvmCode: form.cvmCode,
                       autoCvm: form.autoCvm,
-                      tipoSite: form.tipoSite,
+                      tipoSite: tipoSiteDbValue(form.tipoSite),
                       subdomain,
                       layout: form.tipo,
                       colors: { primary: form.corPrimaria, secondary: form.corSecundaria, tertiary: form.corTerciaria },
@@ -1445,11 +1462,14 @@ export default function NovoPortalPage() {
                 );
                 if (provRes.ok) {
                   const provData = await provRes.json() as {
-                    repoName: string; repoUrl: string; vercelUrl: string;
-                    vercelCreated: boolean; vercelError?: string; portalUuid?: string;
+                    repoName: string; repoUrl: string; hostingProvider?: 'vercel' | 'cloudflare';
+                    vercelUrl: string; vercelCreated: boolean; vercelError?: string;
+                    cloudflareUrl?: string; cloudflareCreated?: boolean; cloudflareError?: string;
+                    portalUuid?: string;
                     portalUpsertError?: string; configUpsertError?: string; siteUpsertError?: string;
                     assetErrors?: string[];
                   };
+                  const isCloudflare = provData.hostingProvider === 'cloudflare';
                   if (provData.portalUpsertError) warnings.push(`Registro do portal no banco: ${provData.portalUpsertError}`);
                   if (provData.configUpsertError) warnings.push(`Configuração inicial no banco: ${provData.configUpsertError}`);
                   if (provData.assetErrors?.length) warnings.push(`Upload de assets: ${provData.assetErrors.join('; ')}`);
@@ -1462,8 +1482,12 @@ export default function NovoPortalPage() {
                     portais[idx].vercelUrl = provData.vercelUrl;
                     portais[idx].vercelCreated = provData.vercelCreated;
                     if (provData.portalUuid) { portais[idx].supabaseId = provData.portalUuid; provisionedUuid = provData.portalUuid; }
-                    // Update site.link to the actual Vercel URL (Vercel generates its own slug)
-                    const siteLink = (provData.vercelUrl ?? `https://${provData.repoName}.vercel.app`).replace(/^https?:\/\//, '');
+                    // The live URL comes from whichever platform actually hosts this
+                    // portal — using vercelUrl unconditionally here previously showed
+                    // (and saved) a fake vercel.app link for a portal provisioned on
+                    // Cloudflare Pages instead.
+                    const liveUrl = isCloudflare ? provData.cloudflareUrl : provData.vercelUrl;
+                    const siteLink = (liveUrl ?? `https://${provData.repoName}.${isCloudflare ? 'pages.dev' : 'vercel.app'}`).replace(/^https?:\/\//, '');
                     if (portais[idx].sites?.length > 0) {
                       portais[idx].sites[0].link = siteLink;
                     }
@@ -1506,13 +1530,17 @@ export default function NovoPortalPage() {
                         link: siteLink,
                         status: 'Ativo',
                         ip: null,
-                        tipo: form.tipoSite || 'RI',
+                        tipo: tipoSiteDbValue(form.tipoSite),
                       }, { onConflict: 'portal_id' }).then(({ error }) => {
                         if (error) console.error('portal_sites upsert fallback failed:', error.message);
                       });
                     }
                   }
-                  if (!provData.vercelCreated) {
+                  if (isCloudflare) {
+                    if (!provData.cloudflareCreated) {
+                      warnings.push(`Projeto Cloudflare Pages não criado: ${provData.cloudflareError ?? 'erro desconhecido'}`);
+                    }
+                  } else if (!provData.vercelCreated) {
                     warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
                   }
                 } else {
