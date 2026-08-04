@@ -1479,8 +1479,13 @@ export default function NovoPortalPage() {
                   const idx = portais.findIndex((p: { id: string }) => p.id === newPortal.id);
                   if (idx !== -1) {
                     portais[idx].githubRepo = provData.repoName;
-                    portais[idx].vercelUrl = provData.vercelUrl;
-                    portais[idx].vercelCreated = provData.vercelCreated;
+                    // Never store a guessed .vercel.app URL for a portal that was
+                    // actually provisioned on Cloudflare — every screen that renders
+                    // a portal's live link falls back to vercelUrl when it's set,
+                    // so a leftover guess here would keep pointing at a Vercel
+                    // project that was never created for this portal.
+                    portais[idx].vercelUrl = isCloudflare ? undefined : provData.vercelUrl;
+                    portais[idx].vercelCreated = isCloudflare ? undefined : provData.vercelCreated;
                     if (provData.portalUuid) { portais[idx].supabaseId = provData.portalUuid; provisionedUuid = provData.portalUuid; }
                     // The live URL comes from whichever platform actually hosts this
                     // portal — using vercelUrl unconditionally here previously showed
