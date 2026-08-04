@@ -1208,6 +1208,25 @@ export default function CentralDeResultadosPage2() {
   const editorQuarter = editingQuarterId ? quarters.find(q => q.id === editingQuarterId) : null;
   const editorPublished = stagedDocs.filter(d => d.status === 'published').length;
 
+  // The document drawer's own "Salvar" only writes to this staged, in-memory
+  // list — nothing reaches Supabase until "Salvar trimestre"/"Salvar e
+  // fechar" is clicked (updateQuarterDocs does the actual diff+persist). A
+  // document added/edited/toggled in the drawer and then discarded via
+  // "Voltar"/"Cancelar" silently vanished with zero warning, reading as a
+  // bug ("I added it, it's gone") rather than the unsaved-exit it was.
+  function docsSignature(list: FileEntry[]): string {
+    return list
+      .map(e => [e.id, e.status, e.nome, e.tipo, e.locale, e.filePath ?? '', e.externalLink ?? '', e.groupId ?? '', !!e.file].join('|'))
+      .sort()
+      .join(';');
+  }
+  const hasUnsavedQuarterChanges = !!editingQuarterId
+    && docsSignature(stagedDocs) !== docsSignature(docs[editingQuarterId] ?? []);
+  function closeQuarterEditor() {
+    if (hasUnsavedQuarterChanges && !window.confirm('Você tem documentos não salvos neste trimestre. Sair sem salvar?')) return;
+    setEditingQuarterId(null);
+  }
+
   // ── Main return (always) ──────────────────────────────────────────────────
   return (
     <div className="page cdr-page">
@@ -1217,7 +1236,7 @@ export default function CentralDeResultadosPage2() {
           description={<>Editar documentos do trimestre · <strong>{ENTITIES.find(e => e.id === editorQuarter?.entityId)?.name}</strong></>}
           action={
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>
+              <button type="button" className="btn-outline" onClick={closeQuarterEditor}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                 Voltar
               </button>
@@ -1275,7 +1294,7 @@ export default function CentralDeResultadosPage2() {
         />
 
         <div className="cdr2-fullpage-footer">
-          <button type="button" className="btn-outline" onClick={() => setEditingQuarterId(null)}>Cancelar</button>
+          <button type="button" className="btn-outline" onClick={closeQuarterEditor}>Cancelar</button>
           <button type="button" className="btn-primary" onClick={async () => { if (!editingQuarterId) return; await updateQuarterDocs(editingQuarterId, stagedDocs); handleSaveQuarter(editingQuarterId); }}>Salvar trimestre</button>
         </div>
       </>) : (<>
