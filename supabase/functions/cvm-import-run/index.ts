@@ -756,18 +756,22 @@ Deno.serve(async (req) => {
     // key-as-trusted-system-call pattern as sync-template-all's golden-rule
     // cron. This project's service_role key is the newer opaque
     // `sb_secret_...` format (not a JWT), so a bearer token equal to the
-    // resolved key IS the trusted credential; a legacy JWT-format key with a
-    // `role: "service_role"` claim is still accepted as a fallback.
+    // resolved key IS the trusted credential.
+    //
+    // SECURITY: there used to be a fallback here that base64-decoded the
+    // bearer token as a JWT payload and trusted a `role: "service_role"`
+    // claim found inside it — without ever verifying a signature. Since this
+    // function has verify_jwt: false at the gateway (required so the opaque
+    // sb_secret_ key isn't rejected as "not a JWT"), that fallback was the
+    // ONLY check standing in the way of autoSyncAll/autoBackfillAll — a
+    // trivially forged, unsigned token like `header.eyJyb2xlIjoic2Vydmlj…
+    // ZV9yb2xlIn0.anything` decodes to {"role":"service_role"} and passed,
+    // letting anyone on the internet trigger a full cross-portal CVM sync at
+    // will. Removed: the exact-match check below already covers a legacy
+    // JWT-format service key too (it's just a string compare, format
+    // doesn't matter), so nothing legitimate was lost.
     const bearerToken = authHeader.replace(/^Bearer\s+/i, '');
-    const isServiceRoleCall = bearerToken === resolveServiceKey() || (() => {
-      try {
-        const segment = bearerToken.split('.')[1];
-        if (!segment) return false;
-        const base64 = segment.replace(/-/g, '+').replace(/_/g, '/').padEnd(segment.length + ((4 - (segment.length % 4)) % 4), '=');
-        const payload = JSON.parse(atob(base64));
-        return payload?.role === 'service_role';
-      } catch { return false; }
-    })();
+    const isServiceRoleCall = bearerToken === resolveServiceKey();
 
     const { portalId, empresaId, desde, backfillOnly, reprocessRoutingOnly, autoBackfillAll, autoSyncAll } = await req.json() as {
       portalId?: string; empresaId?: string; desde?: string;

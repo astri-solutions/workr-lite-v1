@@ -163,6 +163,33 @@ Deno.serve(async (req) => {
       const { error: delUserError } = await adminCall(supabaseUrl, c => c.auth.admin.deleteUser(target.user_id as string));
       if (!delUserError) accountDeleted = true;
       else accountDeleteError = delUserError.message;
+    } else {
+      // SECURITY: the portal_users row is gone, but that alone does NOT
+      // revoke access — several tables' RLS policies (portal_mailing_contatos,
+      // portal_materias, portal_quarters, portal_results, portal_config,
+      // cvm_sync_state) trust app_metadata.portalIds on the user's own JWT
+      // and never re-check portal_users membership. Without this step, a
+      // user removed from Portal A but still active on Portal B keeps full
+      // read/write access to Portal A's mailing list, matérias, resultados
+      // etc. forever — "remover usuário" only looked like it worked. Prune
+      // the removed portal's id out of portalIds so any *new* session token
+      // (next login, or next refresh once the current one expires) actually
+      // reflects the access change. An already-issued, still-valid access
+      // token keeps the stale claim until it naturally expires — this can't
+      // retroactively invalidate a token already in the user's hands, only
+      // stop it from being reissued.
+      const { data: getResult, error: getErr } = await adminCall(supabaseUrl, c => c.auth.admin.getUserById(target.user_id as string));
+      const existingUser = (getResult as { user?: { app_metadata?: Record<string, unknown> } } | null)?.user;
+      if (!getErr && existingUser) {
+        const existingMeta = existingUser.app_metadata ?? {};
+        const existingIds: string[] = Array.isArray(existingMeta.portalIds) ? existingMeta.portalIds as string[] : [];
+        const prunedIds = existingIds.filter(id => id !== target.portal_id);
+        if (prunedIds.length !== existingIds.length) {
+          await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(target.user_id as string, {
+            app_metadata: { ...existingMeta, portalIds: prunedIds },
+          })).catch(() => { /* best-effort — portal_users delete already happened, don't fail the whole request over this */ });
+        }
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, accountDeleted, accountDeleteError }), {

@@ -72,23 +72,21 @@ Deno.serve(async (req) => {
     // from Vault, never hardcoded in the cron job's SQL). This project has
     // migrated to Supabase's newer opaque `sb_secret_...` key format for its
     // service_role key — NOT a three-part JWT — so a bearer token equal to
-    // that resolved key IS the trusted service-role credential; there is no
-    // `role` claim to decode out of it (attempting to, e.g. via
-    // `token.split('.')[1]`, silently produced `undefined` for this opaque
-    // format, and every cron-triggered call fell through to the user-JWT
-    // path and failed with 401). A legacy long-lived JWT-format service key
-    // (`role: "service_role"` claim, base64url-encoded) is still accepted as
-    // a fallback for projects that haven't migrated.
+    // that resolved key IS the trusted service-role credential.
+    //
+    // SECURITY: this used to also accept a legacy JWT-format service key by
+    // base64-decoding the bearer token and trusting a `role: "service_role"`
+    // claim found inside it, without ever verifying a signature. This
+    // function has verify_jwt: true at the gateway today, which already
+    // rejects an unsigned/forged token before it reaches this code — but
+    // that decode-and-trust fallback was still dead weight sitting one
+    // gateway-setting flip away from being exploitable exactly like
+    // cvm-import-run's identical pattern was (see that function's fix).
+    // Removed for the same reason: the exact-match check below already
+    // covers a legacy JWT-format service key too (it's just a string
+    // compare, format doesn't matter), so nothing legitimate was lost.
     const bearerToken = authHeader.replace(/^Bearer\s+/i, '');
-    const isServiceRoleCall = bearerToken === resolveServiceKey() || (() => {
-      try {
-        const segment = bearerToken.split('.')[1];
-        if (!segment) return false;
-        const base64 = segment.replace(/-/g, '+').replace(/_/g, '/').padEnd(segment.length + ((4 - (segment.length % 4)) % 4), '=');
-        const payload = JSON.parse(atob(base64));
-        return payload?.role === 'service_role';
-      } catch { return false; }
-    })();
+    const isServiceRoleCall = bearerToken === resolveServiceKey();
 
     if (!isServiceRoleCall) {
       const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } });
