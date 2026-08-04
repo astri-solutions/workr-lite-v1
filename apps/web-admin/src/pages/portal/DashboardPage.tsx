@@ -111,23 +111,30 @@ export default function DashboardPage() {
     if (!isSupabaseConfigured || !supabase || !user?.activePortalId) return;
     supabase
       .from('portals')
-      .select('vercel_url, suporte_nome, suporte_email')
+      .select('vercel_url, hosting_provider, cloudflare_url, suporte_nome, suporte_email')
       .eq('portal_key', user.activePortalId)
       .single()
       .then(({ data }) => {
         if (data?.suporte_nome && data?.suporte_email) {
           setSuporte({ nome: data.suporte_nome as string, email: data.suporte_email as string });
         }
-        if (data?.vercel_url) {
-          setPortalUrl(data.vercel_url as string);
+        // Prefer the URL from whichever platform actually hosts this portal --
+        // a Cloudflare-migrated portal has vercel_url = null, so falling back
+        // to vercel_url unconditionally left "Ver portal" disabled even though
+        // portal_sites.link (and cloudflare_url) already had the real domain.
+        const liveUrl = data?.hosting_provider === 'cloudflare'
+          ? (data?.cloudflare_url as string | undefined)
+          : (data?.vercel_url as string | undefined);
+        if (liveUrl) {
+          setPortalUrl(liveUrl);
           // Sync back to localStorage so other pages get the correct URL too
           try {
             const raw = localStorage.getItem('workr_portais');
             if (raw) {
               const portals = JSON.parse(raw);
               const idx = portals.findIndex((p: { id: string }) => p.id === user.activePortalId);
-              if (idx !== -1 && portals[idx].vercelUrl !== data.vercel_url) {
-                portals[idx].vercelUrl = data.vercel_url;
+              if (idx !== -1 && portals[idx].vercelUrl !== liveUrl) {
+                portals[idx].vercelUrl = liveUrl;
                 localStorage.setItem('workr_portais', JSON.stringify(portals));
               }
             }
