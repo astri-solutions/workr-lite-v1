@@ -1010,7 +1010,7 @@ export default function PainelControlePage() {
           </div>
 
           {deleteGhWarn && (
-            <p className="painel-danger-error" style={{ background: '#fff8e1', borderColor: '#f59e0b', color: '#92400e', whiteSpace: 'pre-line' }}>{deleteGhWarn}</p>
+            <p className="painel-danger-error" style={{ background: 'var(--color-warning-100)', borderColor: 'var(--color-warning-500)', color: 'var(--color-warning-700)', whiteSpace: 'pre-line' }}>{deleteGhWarn}</p>
           )}
           {deleteError && (
             <p className="painel-danger-error" style={{ whiteSpace: 'pre-line' }}>{deleteError}</p>

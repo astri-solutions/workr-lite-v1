@@ -6,6 +6,7 @@ import './AdminPages.css';
 import './PortaisPage.css';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import SearchInput from '../../components/SearchInput';
 import { fetchPortais, deletePortal, updateEmpresaStatus, updateEmpresaData, type Portal, type SiteTipo } from '../../lib/portalsApi';
 import { syncTemplateService, type SyncTemplateResponse } from '../../services/syncTemplate.service';
 
@@ -518,15 +519,13 @@ export default function PortaisPage() {
         </div>
       </div>
 
-      <div className="portais-search-wrap">
-        <span className="material-symbols-outlined portais-search-icon" style={{ fontSize: '16px' }}>search</span>
-        <input
-          className="portais-search"
-          type="search"
-          placeholder="Buscar por cliente ou domínio…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="toolbar">
+        <div className="toolbar__filters">
+          <SearchInput value={search} onChange={setSearch} placeholder="Buscar por cliente ou domínio…" />
+        </div>
+        <div className="toolbar__actions">
+          <span className="toolbar__count">{filtered.length} portal{filtered.length !== 1 ? 'is' : ''}</span>
+        </div>
       </div>
 
       <div className="portais-list">
@@ -608,7 +607,7 @@ export default function PortaisPage() {
                   <div className="portal-site-row portal-site-row--pending">
                     <div className="portal-site-row__left">
                       <span className="badge badge--warning">Configurando</span>
-                      <span style={{ fontSize: '13px', color: '#6F6F6F' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>
                         {portal.vercelUrl
                           ? portal.vercelUrl.replace(/^https?:\/\//, '')
                           : portal.githubRepo ?? 'Aguardando provisionamento'}

@@ -1424,7 +1424,7 @@ export default function CanaisPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setConfirmDelete(null)}>Cancelar</button>
-              <button className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} type="button" onClick={doDelete}>Excluir</button>
+              <button className="btn-danger" type="button" onClick={doDelete}>Excluir</button>
             </div>
           }
         >
@@ -1514,7 +1514,7 @@ export default function CanaisPage() {
             <p className="ct-confirm-delete__warn">
               Todos os documentos já publicados nesta categoria serão movidos junto, e as regras de Auto CVM que apontavam para ela serão atualizadas automaticamente.
             </p>
-            {dropError && <p className="ct-confirm-delete__warn" style={{ color: '#dc2626' }}>{dropError}</p>}
+            {dropError && <p className="ct-confirm-delete__warn" style={{ color: 'var(--color-error-600)' }}>{dropError}</p>}
           </div>
         </Modal>
       )}

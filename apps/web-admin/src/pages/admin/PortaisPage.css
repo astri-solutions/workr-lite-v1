@@ -1,42 +1,3 @@
-/* ─── Search ─────────────────────────────────────────── */
-.portais-search-wrap {
-  position: relative;
-  margin-bottom: var(--space-5);
-}
-
-.portais-search-icon {
-  position: absolute;
-  left: var(--space-4);
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-gray-400);
-  pointer-events: none;
-}
-
-.portais-search {
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 24px);
-  background: var(--color-white);
-  border: 1.5px solid var(--color-gray-200);
-  border-radius: var(--radius-xl);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-gray-900);
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  min-height: 44px;
-}
-
-.portais-search::placeholder {
-  color: var(--color-gray-400);
-}
-
-.portais-search:focus {
-  border-color: var(--color-primary-400);
-  box-shadow: 0 0 0 3px rgba(11, 91, 104, 0.08);
-}
-
 /* ─── Cards list ──────────────────────────────────────── */
 .portais-list {
   display: flex;
@@ -593,8 +554,6 @@
 }
 
 @media (max-width: 720px) {
-  .portais-search-wrap { margin-bottom: var(--space-4); }
-  .portais-search { min-height: 40px; }
   .portal-card__header { flex-wrap: wrap; gap: var(--space-3); }
   .portal-card__actions { width: 100%; justify-content: flex-end; }
   .portal-site-row { flex-wrap: wrap; gap: var(--space-2); }

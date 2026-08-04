@@ -498,7 +498,7 @@ export default function UsuariosPortalPage() {
           )
         }
       >
-        {inviteError && <p style={{ color: '#dc2626', fontSize: '13px', marginBottom: '8px' }}>{inviteError}</p>}
+        {inviteError && <p style={{ color: 'var(--color-error-600)', fontSize: '13px', marginBottom: '8px' }}>{inviteError}</p>}
         {invited ? (
           <div className="up-invited">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00D865" strokeWidth="2">

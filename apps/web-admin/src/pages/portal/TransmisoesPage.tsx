@@ -225,7 +225,9 @@ export default function TransmisoesPage() {
           <div className="toolbar__filters">
             <SearchInput value={search} onChange={v => { setSearch(v); setListPage(1); }} placeholder="Pesquisar por nome..." />
           </div>
-          <span className="toolbar__count">{filtered.length} transmiss{filtered.length !== 1 ? 'ões' : 'ão'}</span>
+          <div className="toolbar__actions">
+            <span className="toolbar__count">{filtered.length} transmiss{filtered.length !== 1 ? 'ões' : 'ão'}</span>
+          </div>
         </div>
 
         <div className="table-wrapper">

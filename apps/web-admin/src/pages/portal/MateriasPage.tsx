@@ -279,6 +279,9 @@ export default function MateriasPage() {
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar matéria..." />
           <FilterBar groups={matFilters} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
+        <div className="toolbar__actions">
+          <span className="toolbar__count">{filtered.length} matéria{filtered.length !== 1 ? 's' : ''}</span>
+        </div>
       </div>
 
       <div className="table-wrapper">

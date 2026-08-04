@@ -130,7 +130,7 @@ export default function SplashTemplatesPage() {
             <p>Excluir o modelo <strong>"{confirmDelete.nome}"</strong>?</p>
             <div className="modal-footer">
               <button type="button" className="btn-outline" onClick={() => setConfirmDelete(null)}>Cancelar</button>
-              <button type="button" className="btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }}
+              <button type="button" className="btn-danger"
                 onClick={() => deleteTemplate(confirmDelete.id)}>Excluir</button>
             </div>
           </div>
