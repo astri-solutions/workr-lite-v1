@@ -507,7 +507,13 @@ Deno.serve(async (req) => {
         cliente: nome,
         subdomain: cleanSubdomain,
         github_repo: repoName,
-        vercel_url: `https://${repoName}.vercel.app`,
+        // Never guess a .vercel.app URL for a portal being provisioned on
+        // Cloudflare — every place in the admin/CMS that renders a portal's
+        // live link falls back to vercel_url when it's non-null, so a
+        // leftover guess here would keep pointing "Ver portal"/painel links
+        // at a Vercel project that was never created for this portal, even
+        // after step 6 below writes the real cloudflare_url.
+        vercel_url: useCloudflare ? null : `https://${repoName}.vercel.app`,
         empresa_status: 'Ativa',
         ...(cnpj ? { cnpj } : {}),
       }, { onConflict: 'portal_key' }).select('id').maybeSingle();

@@ -443,8 +443,8 @@ export default function PainelControlePage() {
           </div>
           <div>
             <div className="painel-header__title">
-              <a className="painel-header__link" href={site.vercelUrl ?? `https://${site.link}`} target="_blank" rel="noreferrer">
-                {site.vercelUrl ? site.vercelUrl.replace(/^https?:\/\//, '') : site.link}
+              <a className="painel-header__link" href={(site.hostingProvider === 'cloudflare' ? site.cloudflareUrl : site.vercelUrl) ?? `https://${site.link}`} target="_blank" rel="noreferrer">
+                {(site.hostingProvider === 'cloudflare' ? site.cloudflareUrl : site.vercelUrl)?.replace(/^https?:\/\//, '') ?? site.link}
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
