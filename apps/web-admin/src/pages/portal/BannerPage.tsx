@@ -306,7 +306,10 @@ export default function BannerPage() {
           {active.imagem ? (
             <div className="banner-img-preview">
               <img src={previewSrc(active) ?? ''} alt="Banner" className="banner-img-preview__img" />
-              <button type="button" className="banner-img-preview__remove" onClick={() => updateImage(null)}>Remover imagem</button>
+              <div className="banner-img-preview__actions">
+                <button type="button" className="banner-img-preview__replace" onClick={() => fileRef.current?.click()}>Substituir imagem</button>
+                <button type="button" className="banner-img-preview__remove" onClick={() => updateImage(null)}>Remover imagem</button>
+              </div>
             </div>
           ) : (
             <button type="button" className="logo-dropzone" onClick={() => fileRef.current?.click()}>
@@ -364,56 +367,61 @@ export default function BannerPage() {
         </div>
       </div>
 
-      <div className="pers-section banner-shortcuts">
-        <div className="banner-shortcuts__header">
-          <div>
-            <h2 className="pers-section__title" style={{ margin: 0 }}>Atalhos</h2>
-            <p className="banner-field__hint" style={{ margin: '4px 0 0' }}>
-              Escolha até {MAX_SHORTCUTS} páginas para exibir como atalhos no banner da home. Deixe vazio para usar o menu completo do portal.
-            </p>
+      {/* Atalhos no hero só existem no template Banner + Navbar (header nav +
+          hero banner) — sidebar/tabmenu usam home-side-bar.html/home-v2.html,
+          que não têm essa faixa de atalhos abaixo do banner. */}
+      {PORTAL_CONFIG.model === 'banner' && (
+        <div className="pers-section banner-shortcuts">
+          <div className="banner-shortcuts__header">
+            <div>
+              <h2 className="pers-section__title" style={{ margin: 0 }}>Atalhos</h2>
+              <p className="banner-field__hint" style={{ margin: '4px 0 0' }}>
+                Escolha até {MAX_SHORTCUTS} páginas para exibir como atalhos no banner da home. Deixe vazio para usar o menu completo do portal.
+              </p>
+            </div>
+            <button type="button" className="banner-add-btn" onClick={addShortcut} disabled={shortcuts.length >= MAX_SHORTCUTS}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Adicionar atalho
+            </button>
           </div>
-          <button type="button" className="banner-add-btn" onClick={addShortcut} disabled={shortcuts.length >= MAX_SHORTCUTS}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Adicionar atalho
-          </button>
-        </div>
 
-        {shortcuts.length === 0 ? (
-          <p className="banner-shortcuts__empty">Nenhum atalho configurado — o site usará o menu completo.</p>
-        ) : (
-          <div className="banner-shortcuts__list">
-            {shortcuts.map((s, i) => (
-              <div key={s.id} className="banner-shortcut-row">
-                <span className="banner-shortcut-row__num">{i + 1}</span>
-                <select
-                  className="filter-select banner-shortcut-row__select"
-                  value={s.pageId}
-                  onChange={e => updateShortcut(s.id, { pageId: e.target.value })}
-                >
-                  <option value="">Selecionar página...</option>
-                  {destinos.map(d => (
-                    <option key={d.id} value={d.id}>{d.parentLabel ? `${d.parentLabel} › ${d.label}` : d.label}</option>
-                  ))}
-                </select>
-                <input
-                  className="nm-field--sm banner-shortcut-row__label"
-                  type="text"
-                  placeholder="Rótulo (opcional)"
-                  value={s.label}
-                  onChange={e => updateShortcut(s.id, { label: e.target.value })}
-                />
-                <button type="button" className="banner-slide-item__remove" onClick={() => removeShortcut(s.id)} title="Remover atalho">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          {shortcuts.length === 0 ? (
+            <p className="banner-shortcuts__empty">Nenhum atalho configurado — o site usará o menu completo.</p>
+          ) : (
+            <div className="banner-shortcuts__list">
+              {shortcuts.map((s, i) => (
+                <div key={s.id} className="banner-shortcut-row">
+                  <span className="banner-shortcut-row__num">{i + 1}</span>
+                  <select
+                    className="filter-select banner-shortcut-row__select"
+                    value={s.pageId}
+                    onChange={e => updateShortcut(s.id, { pageId: e.target.value })}
+                  >
+                    <option value="">Selecionar página...</option>
+                    {destinos.map(d => (
+                      <option key={d.id} value={d.id}>{d.parentLabel ? `${d.parentLabel} › ${d.label}` : d.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    className="nm-field--sm banner-shortcut-row__label"
+                    type="text"
+                    placeholder="Rótulo (opcional)"
+                    value={s.label}
+                    onChange={e => updateShortcut(s.id, { label: e.target.value })}
+                  />
+                  <button type="button" className="banner-slide-item__remove" onClick={() => removeShortcut(s.id)} title="Remover atalho">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <UnsavedModal
         open={blocker.state === 'blocked'}

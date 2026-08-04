@@ -1586,7 +1586,17 @@ export default function NovoPortalPage() {
                       // senha" link would be misleading for someone who
                       // already has one. Only a genuinely new e-mail gets
                       // the real invite link (that branch always e-mails).
-                      empresas: [`principal-${newPortal.id}`],
+                      //
+                      // null (not [`principal-${id}`]) — admin means
+                      // unrestricted access to every empresa, including ones
+                      // created later, everywhere else this is read
+                      // (UsuariosPortalPage, the RLS policy on
+                      // portal_documents/portal_resultado_*). Scoping this
+                      // to just the "principal" empresa at invite time left
+                      // every portal's first admin unable to touch any
+                      // empresa added afterwards — RLS rejected the insert
+                      // with a bare 403 the moment they tried.
+                      empresas: null,
                       redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
                     }),
                   }
