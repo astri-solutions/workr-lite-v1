@@ -551,6 +551,24 @@ async function runEntitySync(
   const unroutedCategoryMap = new Map<string, string>(); // id -> label, for cvm_alerts
   let discoveredChanged = false;
 
+  // Every filing already imported gets re-fetched from CVM's IPE dataset on
+  // every run (autoSyncAll's cron included) — without this pre-check, a
+  // duplicate only got caught AFTER downloadCvmFile()+storage.upload() ran
+  // for it, at the .insert() unique-constraint violation below. The file
+  // upload happened regardless, orphaned under a brand-new random docId
+  // that no portal_documents row ever pointed at, so it was never surfaced
+  // as a duplicate. Across repeated cron runs this silently multiplied
+  // storage usage by ~200x for portals with any CVM history depth — this
+  // pre-check is what actually prevents the download/upload from happening
+  // at all for anything already on file.
+  const { data: existingDocs } = await admin
+    .from('portal_documents')
+    .select('cvm_protocolo')
+    .eq('portal_id', portalId)
+    .eq('entity_id', empresaId)
+    .eq('from_cvm', true);
+  const existingProtocolos = new Set((existingDocs ?? []).map(d => d.cvm_protocolo as string));
+
   for (const row of matches) {
     const mapped = mapToCategoryId(row);
     if (!mapped) {
@@ -585,6 +603,10 @@ async function runEntitySync(
     // fraction of rows come without one — fall back to a composite key
     // instead of silently dropping the document.
     const dedupeKey = row.protocoloEntrega || `sem-protocolo:${onlyDigits(row.cnpjCompanhia)}:${mapped.id}:${row.dataEntrega}:${row.descricaoAssunto}`.slice(0, 250);
+
+    // Skip already-imported filings BEFORE touching CVM's download endpoint
+    // or Storage — see the comment on existingProtocolos above.
+    if (existingProtocolos.has(dedupeKey)) { skippedDuplicate++; continue; }
 
     // The admin can route a discovered category into a specific existing
     // group within a lista-agrupada page (rule.groupCategory) instead of
