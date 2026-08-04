@@ -12,6 +12,9 @@ export interface PortalSiteInfo {
   githubRepo?: string;
   vercelUrl?: string;
   vercelCreated?: boolean;
+  hostingProvider?: 'vercel' | 'cloudflare';
+  cloudflareUrl?: string;
+  cloudflareCreated?: boolean;
   subdomain?: string;
   suporteNome?: string;
   suporteEmail?: string;

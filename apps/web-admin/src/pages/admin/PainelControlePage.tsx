@@ -194,6 +194,9 @@ export default function PainelControlePage() {
         githubRepo: info.githubRepo,
         vercelUrl: info.vercelUrl,
         vercelCreated: info.vercelCreated,
+        hostingProvider: info.hostingProvider,
+        cloudflareUrl: info.cloudflareUrl,
+        cloudflareCreated: info.cloudflareCreated,
         subdomain: info.subdomain,
         suporteNome: info.suporteNome,
         suporteEmail: info.suporteEmail,
@@ -299,6 +302,7 @@ export default function PainelControlePage() {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (token) {
+          const isCloudflare = site.hostingProvider === 'cloudflare';
           const vercelProjectName = site.vercelUrl
             ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
             : site.subdomain ?? site.githubRepo?.replace(/^portal-/, '');
@@ -313,7 +317,9 @@ export default function PainelControlePage() {
               },
               body: JSON.stringify({
                 repoName: site.githubRepo ?? undefined,
-                vercelProjectName: vercelProjectName ?? undefined,
+                ...(isCloudflare
+                  ? { cloudflareProjectName: site.githubRepo ?? undefined }
+                  : { vercelProjectName: vercelProjectName ?? undefined }),
                 portalId: site.portalId,
               }),
             }
