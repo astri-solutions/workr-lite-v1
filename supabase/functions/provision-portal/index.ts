@@ -725,12 +725,19 @@ Deno.serve(async (req) => {
               cloudflareError = `Projeto criado, mas deploy inicial falhou: ${dBody?.errors?.[0]?.message ?? `HTTP ${cfDeployRes.status}`}`;
             }
 
-            // Custom subdomain under workr.dev.br (whole zone lives on
-            // Cloudflare, so this call alone provisions the DNS record too —
-            // no separate Route53/registrar step needed, unlike the earlier
-            // astri.solutions plan). Best-effort: a failure here still
-            // leaves the portal reachable at the *.pages.dev fallback
-            // (cloudflareUrl keeps that value), it just skips the pretty URL.
+            // Custom subdomain under workr.dev.br. Two SEPARATE Cloudflare
+            // API calls are both required — confirmed by direct diagnostic
+            // against the live API, since this cost real debugging time:
+            // adding a "custom domain" to a Pages project (the /domains call
+            // below) only registers the hostname with Pages for TLS/routing
+            // purposes and starts an HTTP-based validation challenge — it
+            // does NOT create any DNS record, even though the whole zone
+            // lives on Cloudflare. Without the explicit DNS record created
+            // here too, the custom domain sits in Pages' "Active" list
+            // forever while the hostname itself is a bare NXDOMAIN. Best-
+            // effort: a failure in either call still leaves the portal
+            // reachable at the *.pages.dev fallback (cloudflareUrl keeps
+            // that value), it just skips the pretty URL.
             const customDomain = `${cleanSubdomain}.workr.dev.br`;
             try {
               const domainRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${repoName}/domains`, {
@@ -739,7 +746,36 @@ Deno.serve(async (req) => {
                 body: JSON.stringify({ name: customDomain }),
               });
               if (domainRes.ok) {
-                cloudflareUrl = `https://${customDomain}`;
+                // Resolve the workr.dev.br zone id, then create the actual
+                // CNAME record pointing the new subdomain at this project's
+                // own *.pages.dev domain (same pattern as the root
+                // workr.dev.br -> workr-lite-v1.pages.dev record) — proxied,
+                // so Cloudflare terminates TLS for it same as the root.
+                const zoneRes = await fetch('https://api.cloudflare.com/client/v4/zones?name=workr.dev.br', {
+                  headers: { 'Authorization': `Bearer ${cloudflareToken}` },
+                });
+                const zoneBody = await zoneRes.json().catch(() => ({})) as { result?: { id: string }[] };
+                const zoneId = zoneBody.result?.[0]?.id;
+                if (zoneId) {
+                  const dnsRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      type: 'CNAME',
+                      name: cleanSubdomain,
+                      content: `${cfBody.result.subdomain}`,
+                      proxied: true,
+                    }),
+                  });
+                  if (dnsRes.ok) {
+                    cloudflareUrl = `https://${customDomain}`;
+                  } else {
+                    const dnsBody = await dnsRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+                    cloudflareError = `Domínio customizado criado no Pages, mas registro DNS falhou: ${dnsBody?.errors?.[0]?.message ?? `HTTP ${dnsRes.status}`}`;
+                  }
+                } else {
+                  cloudflareError = 'Domínio customizado criado no Pages, mas não foi possível resolver a zona workr.dev.br para criar o registro DNS.';
+                }
               } else {
                 const domainBody = await domainRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
                 cloudflareError = `Projeto criado, mas domínio customizado falhou: ${domainBody?.errors?.[0]?.message ?? `HTTP ${domainRes.status}`}`;
