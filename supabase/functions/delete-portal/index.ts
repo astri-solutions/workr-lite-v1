@@ -16,6 +16,7 @@ function resolveServiceKey(): string {
 
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
@@ -69,17 +70,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, vercelProjectName, portalId } = await req.json() as {
+    const { repoName, vercelProjectName, cloudflareProjectName, portalId } = await req.json() as {
       repoName?: string;
       vercelProjectName?: string;
+      // Cloudflare Pages project name (== repoName in practice, since
+      // provision-portal names the Pages project after the repo) — kept as
+      // its own field rather than reusing repoName so the caller stays
+      // explicit about which platform actually hosts this portal.
+      cloudflareProjectName?: string;
       portalId?: string; // UUID or portal_key — we resolve either
     };
 
-    const githubToken = Deno.env.get('GITHUB_TOKEN');
-    const vercelToken = Deno.env.get('VERCEL_TOKEN');
+    const githubToken     = Deno.env.get('GITHUB_TOKEN');
+    const vercelToken     = Deno.env.get('VERCEL_TOKEN');
+    const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
+    const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
     const githubOrg   = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
 
-    const results: { github?: string; vercel?: string; db?: string } = {};
+    const results: { github?: string; vercel?: string; cloudflare?: string; db?: string } = {};
 
     // ── Delete GitHub repo ────────────────────────────────────────────────────
     if (repoName && githubToken) {
@@ -116,6 +124,20 @@ Deno.serve(async (req) => {
       results.vercel = (vRes.status === 204 || vRes.ok || vRes.status === 404) ? 'deleted' : `error:${vRes.status}`;
     } else if (vercelProjectName && !vercelToken) {
       results.vercel = 'error:no_token';
+    }
+
+    // ── Delete Cloudflare Pages project ─────────────────────────────────────────
+    if (cloudflareProjectName && cloudflareToken && cloudflareAccountId) {
+      const cfRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${encodeURIComponent(cloudflareProjectName)}`,
+        {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${cloudflareToken}` },
+        }
+      );
+      results.cloudflare = (cfRes.status === 204 || cfRes.ok || cfRes.status === 404) ? 'deleted' : `error:${cfRes.status}`;
+    } else if (cloudflareProjectName && (!cloudflareToken || !cloudflareAccountId)) {
+      results.cloudflare = 'error:no_token';
     }
 
     // ── Delete all database records (service role — bypasses RLS) ─────────────

@@ -1,12 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { sendUserInvite, sendPortalAccessGranted } from '../_shared/postmark.ts';
 
-// Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
-// legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
-// verification against auth.admin.* calls with "unrecognized JWT kid <nil>
-// for algorithm ES256". SUPABASE_SECRET_KEYS (also auto-injected, JSON map)
-// holds the new opaque sb_secret_... key that sidesteps this entirely.
-// Falls back to the legacy key if the new one is not configured yet.
 function resolveServiceKey(): string {
   try {
     const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
@@ -15,12 +9,6 @@ function resolveServiceKey(): string {
   return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 }
 
-// The GoTrue Admin API (auth.admin.*) has been observed intermittently
-// rejecting whichever of the two candidate service keys resolveServiceKey()
-// picked first, with this same "unrecognized JWT kid" error — while the
-// other candidate works fine for that same call moments later. Rather than
-// surface that raw auth error to the user, adminCall() below tries every
-// candidate key in order and only gives up if all of them fail.
 function serviceKeyCandidates(): string[] {
   const out: string[] = [];
   try {
@@ -42,11 +30,6 @@ async function adminCall<T>(
 ): Promise<{ data: T; error: { message: string } | null }> {
   const candidates = serviceKeyCandidates();
   let last: { data: T; error: { message: string } | null } | null = null;
-  // The failure is not always "the wrong key" — GoTrue has been observed
-  // rejecting the SAME candidate key moments before accepting it again, which
-  // points to a transient JWKS-cache hiccup on their side rather than a
-  // deterministic bad key. A short backoff-and-retry across rounds rides
-  // that out instead of giving up after a single pass through the candidates.
   for (let attempt = 0; attempt < 3; attempt++) {
     for (const key of candidates) {
       const result = await run(createClient(supabaseUrl, key));
@@ -60,6 +43,7 @@ async function adminCall<T>(
 
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
@@ -73,11 +57,6 @@ function corsHeaders(origin: string | null) {
   };
 }
 
-// A failed listUsers() must never be treated the same as "no matching user
-// found" — that exact confusion (transient error silently read as "email is
-// new") is what produced a duplicate/ghost account for an already-existing
-// user in a real past incident. Paginated so accounts beyond the first 1000
-// are never invisible to the existing-user check either.
 async function listAllUsers(supabaseUrl: string) {
   const perPage = 1000;
   const all: { id: string; email?: string; app_metadata?: Record<string, unknown> }[] = [];
@@ -144,12 +123,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve portal UUID: portalId may already be the UUID, or we look up by portalKey
     let dbUuid: string | null = null;
     const lookupKey = portalKey ?? portalId;
     if (lookupKey) {
       try {
-        // First try treating portalId directly as the UUID (when provisioner returned it)
         if (portalId && /^[0-9a-f-]{36}$/.test(portalId)) {
           dbUuid = portalId;
         } else {
@@ -163,15 +140,12 @@ Deno.serve(async (req) => {
       } catch { /* non-fatal */ }
     }
 
-    // Authorization: super_admin can always invite.
-    // client_user can invite only if they are an admin of the target portal.
     if (callerRole !== 'super_admin') {
       if (callerRole !== 'client_user' || !dbUuid) {
         return new Response(JSON.stringify({ error: 'Forbidden' }), {
           status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
-      // Verify the caller has admin role in portal_users for this portal
       const { data: callerEntry } = await adminClient
         .from('portal_users')
         .select('role')
@@ -183,15 +157,8 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
-      // Portal admins can invite editor/viewer AND other admins of their own portal.
     }
 
-    // Helper: upsert portal_users record. Conflict target is (portal_id,
-    // email) — not (portal_id,user_id) — because email is the durable
-    // identity here: if the existing-user lookup below ever fails open and
-    // a second auth account gets created for an email already present in
-    // this portal, this constraint (and this onConflict target) turns that
-    // into an update instead of a second row.
     async function upsertPortalUser(uid: string) {
       if (!dbUuid) return { error: null };
       const { error } = await adminClient.from('portal_users').upsert({
@@ -207,10 +174,6 @@ Deno.serve(async (req) => {
 
     let userId: string | null = null;
 
-    // Check if user already exists before generating invite link. A failed
-    // lookup must abort here — falling through to "treat as new user" is
-    // exactly how a duplicate/ghost account gets created for an email that
-    // already has a real one.
     const { users: existingUsers, error: listErr } = await listAllUsers(supabaseUrl);
     if (listErr || !existingUsers) {
       return new Response(JSON.stringify({ error: `Falha ao verificar usuários existentes: ${listErr?.message ?? 'erro desconhecido'}` }), {
@@ -223,10 +186,6 @@ Deno.serve(async (req) => {
       userId = existingUser.id;
       const existingIds: string[] = (existingUser.app_metadata?.portalIds as string[] | undefined) ?? [];
       const newId = dbUuid ?? portalId;
-      // Whether this call actually grants access to a portal this email
-      // didn't already have — an admin merely editing an existing member's
-      // role/empresas hits this same branch and must NOT re-fire the "you
-      // were granted access" alert every time.
       const isNewPortalForUser = !!newId && !existingIds.includes(newId);
       const merged = isNewPortalForUser ? [...existingIds, newId!] : existingIds;
       const { error: updErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(existingUser.id, {
@@ -244,11 +203,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // An email that already has an account never needs an activation
-      // link again — there's no signup step left. Whenever this grants
-      // access to a portal the user didn't already have (or an admin
-      // explicitly asks to resend), send the plain "you now have access"
-      // alert instead of an invite/recovery link.
       if (isNewPortalForUser || resend) {
         let portalNome2: string | undefined;
         if (dbUuid) {
@@ -272,7 +226,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // New user — generate invite link (creates auth record, no Supabase email sent)
     const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
     const { data: linkData, error: linkError } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
       type: 'invite',
@@ -288,7 +241,6 @@ Deno.serve(async (req) => {
 
     userId = linkData.user.id;
 
-    // Set app_metadata + portal_users
     const appMeta: Record<string, unknown> = { role: 'client_user' };
     if (portalId) appMeta.portalIds = dbUuid ? [dbUuid] : [portalId];
     const { error: newUserUpdErr } = await adminCall(supabaseUrl, c => c.auth.admin.updateUserById(userId!, { app_metadata: appMeta }));
@@ -304,14 +256,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve portal name for email
     let portalNome: string | undefined;
     if (dbUuid) {
       const { data: pRow } = await adminClient.from('portals').select('cliente').eq('id', dbUuid).maybeSingle();
       portalNome = pRow?.cliente as string | undefined;
     }
 
-    // Send invite email via Postmark (bypasses Supabase rate limit)
     const postmarkToken = Deno.env.get('POSTMARK_TOKEN');
     if (postmarkToken) {
       try {
@@ -322,13 +272,11 @@ Deno.serve(async (req) => {
           inviteLink: linkData.properties.action_link,
         });
       } catch (emailErr) {
-        // Email failed but user + portal_users were created — return warning
         return new Response(JSON.stringify({ id: userId, emailError: String(emailErr) }), {
           status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
     } else {
-      // No Postmark configured — fall back to Supabase invite email (may hit rate limit)
       await adminCall(supabaseUrl, c => c.auth.admin.inviteUserByEmail(email, {
         data: { name: nome ?? '' },
         redirectTo: inviteRedirectTo,

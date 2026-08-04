@@ -16,6 +16,7 @@ function resolveServiceKey(): string {
 
 const ALLOWED_ORIGINS = [
   'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
@@ -63,7 +64,7 @@ function findCanalHref(canais: CanalCfg[] | undefined, id: string): string | und
   return undefined;
 }
 
-// ── site.config.js builder ───────────────────────────────────────────────────
+// ── site.config.js builder ─────────────────────────────────────────────────────────────
 function headerVariant(layout: string): string {
   if (layout === 'sidebar') return 'sidebar';
   if (layout === 'tabmenu') return 'tabmenu';
@@ -672,7 +673,7 @@ Deno.serve(async (req) => {
     let   cloudflareCreated = false;
     let   cloudflareError: string | undefined;
 
-    // ── Step 5: create the hosting project (optional) ──────────────────────
+    // ── Step 5: create the hosting project (optional) ──────────────────────────
     // Wrapped in its own try/catch: a hosting API hiccup (network error,
     // unexpected response shape, timeout) must degrade to `*Error` like the
     // "no token" case below, never 500 the whole provision call — the
@@ -716,6 +717,29 @@ Deno.serve(async (req) => {
               // deploy trigger failed; Cloudflare's own GitHub integration will
               // still deploy on the next push.
               cloudflareError = `Projeto criado, mas deploy inicial falhou: ${dBody?.errors?.[0]?.message ?? `HTTP ${cfDeployRes.status}`}`;
+            }
+
+            // Custom subdomain under workr.dev.br (whole zone lives on
+            // Cloudflare, so this call alone provisions the DNS record too —
+            // no separate Route53/registrar step needed, unlike the earlier
+            // astri.solutions plan). Best-effort: a failure here still
+            // leaves the portal reachable at the *.pages.dev fallback
+            // (cloudflareUrl keeps that value), it just skips the pretty URL.
+            const customDomain = `${cleanSubdomain}.workr.dev.br`;
+            try {
+              const domainRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${repoName}/domains`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: customDomain }),
+              });
+              if (domainRes.ok) {
+                cloudflareUrl = `https://${customDomain}`;
+              } else {
+                const domainBody = await domainRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+                cloudflareError = `Projeto criado, mas domínio customizado falhou: ${domainBody?.errors?.[0]?.message ?? `HTTP ${domainRes.status}`}`;
+              }
+            } catch (e) {
+              cloudflareError = `Projeto criado, mas domínio customizado falhou: ${String((e as Error)?.message ?? e)}`;
             }
           } else {
             const cfBody = await cfRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
