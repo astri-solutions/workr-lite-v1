@@ -1884,11 +1884,20 @@ export default function NovaMateriaPage() {
         {/* Center: content editor */}
         <main className="nm-main">
           <div key={locale} className="lang-fade nm-content-wrap">
-            {/* The page's own name (from Canais) is its heading — there's no
-                separate in-content title/subtitle to fill in here. Body
-                content comes entirely from the blocks/layout elements below;
-                the field in the top bar is just this matéria's name in the
-                Matérias listing. */}
+            {/* The page's own name (from Canais) is its heading on the live
+                site — this field doesn't change what's published there, it's
+                still just this matéria's name in the Matérias listing (same
+                `title` state as the compact input in the top bar). But
+                buried as small text in the top bar it read as an
+                afterthought; a large title ahead of the first content block
+                gives editors the "this is what I'm writing" anchor they
+                expect, matching how the rest of the editor is laid out. */}
+            <input
+              className="nm-title-input-large"
+              value={title}
+              onChange={e => { setTitle(e.target.value); markDirty(); }}
+              placeholder="Título da matéria..."
+            />
             {selectedDestino?.headerImageUrl && (
               <div className="nm-global">
                 <div className="nm-header-inherited" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-2)' }}>

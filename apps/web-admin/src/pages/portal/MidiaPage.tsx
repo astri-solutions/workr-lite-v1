@@ -189,6 +189,12 @@ export default function MidiaPage() {
   const { user } = useAuth();
   const [portalDbId, setPortalDbId] = useState<string | null>(null);
   const [files, setFiles] = useState<MediaFile[]>(INITIAL);
+  // loadFiles used to discard `error` entirely — a blocked/failed query
+  // (RLS, expired session, network blip) left `files` at its initial empty
+  // array, rendering the exact same "Nenhum arquivo encontrado" placeholder
+  // as a portal that genuinely has zero media. Surfacing it distinguishes
+  // "empty" from "broke" instead of silently looking like the former.
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({ tipo: '' });
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -215,17 +221,23 @@ export default function MidiaPage() {
   useEffect(() => {
     const portalKey = user?.activePortalId;
     if (!portalKey) return;
-    resolvePortalId(portalKey).then(id => setPortalDbId(id));
+    resolvePortalId(portalKey).then(setPortalDbId).catch(() => setPortalDbId(null));
   }, [user?.activePortalId]);
 
   const loadFiles = useCallback(async () => {
     if (!portalDbId || !isSupabaseConfigured || !supabase) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('portal_media')
       .select('*')
       .eq('portal_id', portalDbId)
       .order('created_at', { ascending: false });
-    if (data) setFiles((data as Record<string, unknown>[]).map(dbToMedia));
+    if (error) {
+      console.error('portal_media load failed', error);
+      setLoadError(`Não foi possível carregar a biblioteca de mídia: ${error.message}`);
+      return;
+    }
+    setLoadError('');
+    setFiles((data ?? []).map(dbToMedia));
   }, [portalDbId]);
 
   useEffect(() => { loadFiles(); }, [loadFiles]);
@@ -436,6 +448,12 @@ export default function MidiaPage() {
       />
 
       <input ref={inputRef} type="file" multiple style={{ display: 'none' }} />
+
+      {loadError && (
+        <div className="save-error-banner" role="alert">
+          {loadError}
+        </div>
+      )}
 
       <div className="toolbar">
         <div className="toolbar__filters">

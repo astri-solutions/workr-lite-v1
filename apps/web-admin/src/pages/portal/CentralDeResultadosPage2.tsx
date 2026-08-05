@@ -587,11 +587,11 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty, onDocD
               disabled={activeLocale !== primaryLocale}
               autoFocus={activeLocale === primaryLocale}
             />
-            {activeLocale !== primaryLocale && (
-              <span className="cdr2-edit-locale-hint">
-                O nome é só um marcador interno — o site identifica o documento pelo tipo, não pelo nome — por isso ele é o mesmo em todos os idiomas.
-              </span>
-            )}
+            <span className="cdr2-edit-locale-hint">
+              {activeLocale !== primaryLocale
+                ? 'O nome é só um marcador interno — o site identifica o documento pelo tipo, não pelo nome — por isso ele é o mesmo em todos os idiomas.'
+                : 'Serve só para identificar o documento aqui no painel. No site, o nome exibido é o tipo selecionado abaixo — não este texto.'}
+            </span>
           </label>
 
           <label className="cdr-modal-form__label">
@@ -959,7 +959,14 @@ export default function CentralDeResultadosPage2() {
     setWizardOpen('step1');
   }
 
-  function wizardAdvance() {
+  // Trimestre recém-criado, aguardando a pergunta "abrir agora ou voltar pra
+  // lista?" — criar e popular de documentos são duas intenções distintas;
+  // encadear as duas automaticamente (abrindo a gaveta de "novo documento" na
+  // hora) tirava do admin o controle de quando quer de fato adicionar
+  // conteúdo, especialmente ao criar vários trimestres em sequência.
+  const [justCreatedId, setJustCreatedId] = useState<string | null>(null);
+
+  async function wizardAdvance() {
     const periodOk = wPeriodType === 'anual' ? !!wYear : !!(wQuarter && wYear);
     if (!periodOk) return;
     const period = wPeriodType === 'anual' ? wYear : `${wQuarter}${wYear.slice(-2)}`;
@@ -973,8 +980,29 @@ export default function CentralDeResultadosPage2() {
       return;
     }
     const id = `${period.toLowerCase()}-${wEntity}-${Date.now()}`;
-    setPendingId(id);
-    setWizardOpen('step2');
+    setSavingWizard(true);
+    if (portalDbId && supabase) {
+      let error: { message: string } | null = null;
+      try {
+        ({ error } = await supabase.from('portal_resultado_periodos').insert({
+          id, portal_id: portalDbId, entity_id: wEntity, period,
+          exibir_home: wExibirHome, status: 'Rascunho', pt_only: wPortugueseOnly, updated_at: new Date().toISOString(),
+        }));
+      } catch (e) {
+        error = { message: e instanceof Error ? e.message : 'Erro de conexão inesperado.' };
+      }
+      if (error) {
+        setSavingWizard(false);
+        alert(`Não foi possível criar o trimestre: ${error.message}`);
+        return;
+      }
+    }
+    setQuarters(prev => [{ id, entityId: wEntity, period, exibirHome: wExibirHome, status: 'draft' as const, portugueseOnly: wPortugueseOnly }, ...prev]);
+    setSavingWizard(false);
+    setWizardOpen(null);
+    // Volta para a lista de trimestres e oferece abrir o recém-criado — em
+    // vez de já cair direto na gaveta de "novo documento".
+    setJustCreatedId(id);
   }
 
   async function wizardSave(openEditor = false) {
@@ -1107,7 +1135,7 @@ export default function CentralDeResultadosPage2() {
           const { error: uploadError } = await supabase.storage.from(RESULTADOS_BUCKET).upload(filePath, entry.file, { upsert: true });
           if (uploadError) {
             console.error('portal_resultado_arquivos upload failed', uploadError);
-            failed.push(entry.nome);
+            failed.push(`${entry.nome} (${uploadError.message})`);
             continue;
           }
         }
@@ -1141,7 +1169,7 @@ export default function CentralDeResultadosPage2() {
             uploaded_by: entry.uploadedBy ?? null, grupo_id: entry.groupId ?? null,
             pt_only: !!entry.ptOnly, data_publicacao: dataPublicacaoIso, schedule_at: scheduleAtIso,
           }, { onConflict: 'id' });
-          if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(entry.nome); }
+          if (error) { console.error('portal_resultado_arquivos upsert failed', error); failed.push(`${entry.nome} (${error.message})`); }
           continue;
         }
         const changed = entry.file || prevMatch.nome !== entry.nome || prevMatch.tipo !== entry.tipo
@@ -1155,7 +1183,7 @@ export default function CentralDeResultadosPage2() {
             grupo_id: entry.groupId ?? null,
             pt_only: !!entry.ptOnly, data_publicacao: dataPublicacaoIso, schedule_at: scheduleAtIso,
           }).eq('id', entry.id);
-          if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(entry.nome); }
+          if (error) { console.error('portal_resultado_arquivos update failed', error); failed.push(`${entry.nome} (${error.message})`); }
         } else {
           await supabase.from('portal_resultado_arquivos').update({ ordem: idx }).eq('id', entry.id);
         }
@@ -1163,12 +1191,15 @@ export default function CentralDeResultadosPage2() {
         // A single entry throwing (network blip, unexpected shape) must not
         // abort the rest of the batch — each file is independent.
         console.error('portal_resultado_arquivos entry failed', e);
-        failed.push(entry.nome);
+        failed.push(`${entry.nome} (${e instanceof Error ? e.message : 'erro desconhecido'})`);
       }
     }
 
     if (failed.length > 0) {
-      alert(`Não foi possível salvar: ${failed.join(', ')}. Tente novamente.`);
+      // Include the real reason per document, not just its name — a bare
+      // "Não foi possível salvar: X, Y" gave no way to diagnose *why* short
+      // of reproducing it with devtools open every time.
+      alert(`Não foi possível salvar:\n${failed.join('\n')}\n\nTente novamente.`);
     }
   }
 
@@ -1464,10 +1495,12 @@ export default function CentralDeResultadosPage2() {
               type="button"
               className="btn-primary"
               onClick={wizardAdvance}
-              disabled={wPeriodType === 'trimestral' ? (!wQuarter || !wYear) : !wYear}
+              disabled={savingWizard || (wPeriodType === 'trimestral' ? (!wQuarter || !wYear) : !wYear)}
             >
-              Avançar
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                {savingWizard ? 'progress_activity' : 'check'}
+              </span>
+              {savingWizard ? 'Criando…' : 'Criar trimestre'}
             </button>
           </div>
         }
@@ -1622,6 +1655,34 @@ export default function CentralDeResultadosPage2() {
       >
         <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
           Publicar tornará o trimestre e seus documentos visíveis no portal. Você pode alterar isso depois.
+        </p>
+      </Modal>
+
+      {/* ── Trimestre criado: voltar pra lista ou já abrir pra adicionar documentos ── */}
+      <Modal
+        open={!!justCreatedId}
+        onClose={() => setJustCreatedId(null)}
+        title="Trimestre criado"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setJustCreatedId(null)}>
+              Voltar para a lista
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => { if (justCreatedId) setEditingQuarterId(justCreatedId); setJustCreatedId(null); }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
+              Abrir trimestre
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
+          O trimestre <strong>{quarters.find(q => q.id === justCreatedId)?.period}</strong> foi criado como rascunho.
+          Você pode adicionar documentos agora ou voltar depois pela lista de trimestres.
         </p>
       </Modal>
 
