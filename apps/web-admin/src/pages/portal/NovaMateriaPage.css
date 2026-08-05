@@ -66,6 +66,27 @@
   color: var(--color-gray-300);
 }
 
+/* Same `title` state as .nm-title-input above — this is the large,
+   visible anchor before the first content block; the top-bar input stays
+   as the compact reference visible while scrolled past this one. */
+.nm-title-input-large {
+  width: 100%;
+  border: none;
+  border-bottom: 1.5px solid var(--color-gray-100);
+  outline: none;
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-gray-900);
+  background: transparent;
+  padding: 0 0 var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.nm-title-input-large::placeholder {
+  color: var(--color-gray-300);
+}
+
 .nm-topbar-actions {
   display: flex;
   align-items: center;

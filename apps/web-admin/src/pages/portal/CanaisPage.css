@@ -1244,7 +1244,14 @@ select.canais-edit-form__input,
 }
 
 /* ── Mobile ─────────────────────────────────────── */
-@media (max-width: 720px) {
+/* 720px covered phones, but left a gap at tablet widths (768–1024px,
+   iPad portrait/landscape and similar): the six fixed-width .ct-grid
+   columns (130+170+130+140+300 = 870px of fixed width alone) don't fit
+   there either, so Nome still got squeezed into multi-line wrapping and
+   the Editar/Publicar buttons in the 300px Ações column got shoved past
+   the visible area with no visual indication they were still there. Same
+   reflow, just triggered wide enough to actually cover tablets. */
+@media (max-width: 1024px) {
   .canais-edit-row { grid-template-columns: 1fr; }
   .canais-page-types { grid-template-columns: 1fr 1fr; }
   .ct-pt-grid { grid-template-columns: repeat(2, 1fr); }
