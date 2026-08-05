@@ -177,7 +177,7 @@ export default function UsuariosPage() {
           nome: data.nome,
           role: data.perfil,
           portaisConfig,
-          redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+          redirectTo: 'https://workr.dev.br/definir-senha',
         }),
       });
       const json = await res.json().catch(() => ({})) as { error?: string; portalLinkErrors?: string[] };

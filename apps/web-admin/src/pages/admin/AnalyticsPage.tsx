@@ -255,7 +255,7 @@ export default function AnalyticsPage() {
 
   const portalSite = loadPortalSite(siteId ?? '');
   const site = portalSite ? { id: portalSite.siteId, link: portalSite.link, cliente: portalSite.cliente } : undefined;
-  // Analytics data is illustrative — real data will come from Vercel Analytics API in a future integration
+  // Analytics data is illustrative — real data will come from Cloudflare Web Analytics API in a future integration
   const analytics = ANALYTICS_DB['s1'];
 
   useEffect(() => {

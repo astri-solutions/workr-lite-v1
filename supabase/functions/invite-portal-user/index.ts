@@ -59,7 +59,8 @@ async function adminCall<T>(
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
+  'https://workr-lite-v1.pages.dev',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
@@ -273,7 +274,7 @@ Deno.serve(async (req) => {
     }
 
     // New user — generate invite link (creates auth record, no Supabase email sent)
-    const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
+    const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr.dev.br'}/definir-senha`;
     const { data: linkData, error: linkError } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
       type: 'invite',
       email,

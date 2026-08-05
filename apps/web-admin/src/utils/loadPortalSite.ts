@@ -10,8 +10,8 @@ export interface PortalSiteInfo {
   status: 'Ativo' | 'Suspenso';
   criadoEm: string;
   githubRepo?: string;
-  vercelUrl?: string;
-  vercelCreated?: boolean;
+  cloudflareUrl?: string;
+  cloudflareCreated?: boolean;
   subdomain?: string;
   suporteNome?: string;
   suporteEmail?: string;
@@ -24,7 +24,7 @@ export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
     const raw = localStorage.getItem('workr_portais');
     const portals: Array<{
       id: string; cliente: string; criadoEm: string;
-      githubRepo?: string; vercelUrl?: string; vercelCreated?: boolean; subdomain?: string;
+      githubRepo?: string; cloudflareUrl?: string; cloudflareCreated?: boolean; subdomain?: string;
       sites: Array<{ id: string; link: string; status: string; ip?: string }>;
     }> = raw ? JSON.parse(raw) : [];
     for (const portal of portals) {
@@ -40,8 +40,8 @@ export function loadPortalSite(siteId: string): PortalSiteInfo | undefined {
           status: (s.status as 'Ativo' | 'Suspenso') ?? 'Ativo',
           criadoEm: portal.criadoEm,
           githubRepo: portal.githubRepo,
-          vercelUrl: portal.vercelUrl,
-          vercelCreated: portal.vercelCreated,
+          cloudflareUrl: portal.cloudflareUrl,
+          cloudflareCreated: portal.cloudflareCreated,
           subdomain: portal.subdomain,
         };
       }

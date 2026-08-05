@@ -15,7 +15,8 @@ function resolveServiceKey(): string {
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
+  'https://workr-lite-v1.pages.dev',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
@@ -69,17 +70,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, vercelProjectName, portalId } = await req.json() as {
+    // cloudflareProjectName is the current field; vercelProjectName is
+    // accepted too so an un-redeployed admin panel build still deletes the
+    // right project during the rollout window.
+    const { repoName, cloudflareProjectName, vercelProjectName, portalId } = await req.json() as {
       repoName?: string;
+      cloudflareProjectName?: string;
       vercelProjectName?: string;
       portalId?: string; // UUID or portal_key — we resolve either
     };
+    const cfProjectName = cloudflareProjectName ?? vercelProjectName;
 
-    const githubToken = Deno.env.get('GITHUB_TOKEN');
-    const vercelToken = Deno.env.get('VERCEL_TOKEN');
-    const githubOrg   = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
+    const githubToken         = Deno.env.get('GITHUB_TOKEN');
+    const cloudflareToken     = Deno.env.get('CLOUDFLARE_API_TOKEN');
+    const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+    const githubOrg           = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
 
-    const results: { github?: string; vercel?: string; db?: string } = {};
+    const results: { github?: string; cloudflare?: string; db?: string } = {};
 
     // ── Delete GitHub repo ────────────────────────────────────────────────────
     if (repoName && githubToken) {
@@ -104,18 +111,21 @@ Deno.serve(async (req) => {
       results.github = 'error:no_token';
     }
 
-    // ── Delete Vercel project ─────────────────────────────────────────────────
-    if (vercelProjectName && vercelToken) {
-      const vRes = await fetch(
-        `https://api.vercel.com/v9/projects/${encodeURIComponent(vercelProjectName)}`,
+    // ── Delete Cloudflare Pages project (also drops its pages.dev domain and
+    //    any custom domains attached to it — the DNS CNAME record in the
+    //    workr.dev.br zone itself is NOT deleted, same gap as provisioning
+    //    not creating it automatically; remove that record by hand too) ──
+    if (cfProjectName && cloudflareToken && cloudflareAccountId) {
+      const cfRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${encodeURIComponent(cfProjectName)}`,
         {
           method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${vercelToken}` },
+          headers: { 'Authorization': `Bearer ${cloudflareToken}` },
         }
       );
-      results.vercel = (vRes.status === 204 || vRes.ok || vRes.status === 404) ? 'deleted' : `error:${vRes.status}`;
-    } else if (vercelProjectName && !vercelToken) {
-      results.vercel = 'error:no_token';
+      results.cloudflare = (cfRes.ok || cfRes.status === 404) ? 'deleted' : `error:${cfRes.status}`;
+    } else if (cfProjectName && (!cloudflareToken || !cloudflareAccountId)) {
+      results.cloudflare = 'error:no_token';
     }
 
     // ── Delete all database records (service role — bypasses RLS) ─────────────

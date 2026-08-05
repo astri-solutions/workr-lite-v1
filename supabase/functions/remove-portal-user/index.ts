@@ -58,7 +58,8 @@ async function adminCall<T>(
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
+  'https://workr-lite-v1.pages.dev',
   'http://localhost:5173',
   'http://localhost:4173',
 ];

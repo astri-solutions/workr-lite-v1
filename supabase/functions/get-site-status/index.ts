@@ -14,7 +14,8 @@ function resolveServiceKey(): string {
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
+  'https://workr.dev.br',
+  'https://workr-lite-v1.pages.dev',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
@@ -29,10 +30,10 @@ function corsHeaders(origin: string | null) {
   };
 }
 
-// disco/cpu/memória/inodes/versão do PHP não têm equivalente honesto na
-// Vercel (hosting serverless, sem esse tipo de métrica) — em vez de inventar
-// valores, este endpoint só devolve o que a API da Vercel realmente informa:
-// estado do último deploy e verificação de domínio/SSL.
+// disco/cpu/memória/inodes/versão do PHP não têm equivalente honesto no
+// Cloudflare Pages (hosting serverless, sem esse tipo de métrica) — em vez
+// de inventar valores, este endpoint só devolve o que a API do Cloudflare
+// realmente informa: estado do último deploy e verificação do domínio.
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const ch = corsHeaders(origin);
@@ -77,27 +78,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    const vercelToken = Deno.env.get('VERCEL_TOKEN');
-    if (!vercelToken) {
-      return new Response(JSON.stringify({ error: 'VERCEL_TOKEN não configurado' }), {
+    const cloudflareToken     = Deno.env.get('CLOUDFLARE_API_TOKEN');
+    const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+    if (!cloudflareToken || !cloudflareAccountId) {
+      return new Response(JSON.stringify({ error: 'CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID não configurados' }), {
         status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
-    const vHeaders = { 'Authorization': `Bearer ${vercelToken}` };
+    const cfHeaders = { 'Authorization': `Bearer ${cloudflareToken}` };
 
     let deployState: string | null = null;
     let deployCreatedAt: string | null = null;
     try {
       const depRes = await fetch(
-        `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectName)}&limit=1&target=production`,
-        { headers: vHeaders }
+        `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${encodeURIComponent(projectName)}/deployments?per_page=1`,
+        { headers: cfHeaders }
       );
       if (depRes.ok) {
-        const depJson = await depRes.json() as { deployments?: { state: string; created: number }[] };
-        const d = depJson.deployments?.[0];
+        const depJson = await depRes.json() as {
+          result?: { latest_stage?: { status?: string }; created_on?: string; environment?: string }[];
+        };
+        const d = depJson.result?.find(x => x.environment === 'production') ?? depJson.result?.[0];
         if (d) {
-          deployState = d.state;
-          deployCreatedAt = new Date(d.created).toISOString();
+          deployState = d.latest_stage?.status ?? null;
+          deployCreatedAt = d.created_on ?? null;
         }
       }
     } catch { /* non-fatal */ }
@@ -105,13 +109,13 @@ Deno.serve(async (req) => {
     let domainVerified: boolean | null = null;
     try {
       const domRes = await fetch(
-        `https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}/domains`,
-        { headers: vHeaders }
+        `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${encodeURIComponent(projectName)}/domains`,
+        { headers: cfHeaders }
       );
       if (domRes.ok) {
-        const domJson = await domRes.json() as { domains?: { verified: boolean }[] };
-        if (domJson.domains && domJson.domains.length > 0) {
-          domainVerified = domJson.domains.every(d => d.verified);
+        const domJson = await domRes.json() as { result?: { status: string }[] };
+        if (domJson.result && domJson.result.length > 0) {
+          domainVerified = domJson.result.every(d => d.status === 'active');
         }
       }
     } catch { /* non-fatal */ }

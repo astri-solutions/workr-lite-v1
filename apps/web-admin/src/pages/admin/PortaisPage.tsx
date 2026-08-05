@@ -276,7 +276,7 @@ export default function PortaisPage() {
 
   // Portais still showing "Configurando" (no portal_sites row yet) used to
   // only flip to "Ativo" when someone manually opened "Painel de controle" —
-  // an optimistic write that never actually checked whether the Vercel
+  // an optimistic write that never actually checked whether the Cloudflare Pages
   // deployment was real. This polls the real deploy state instead (same
   // get-site-status function the painel's own "Saúde do site" card uses) and
   // creates the row itself the moment the deploy is READY, so the badge
@@ -287,16 +287,17 @@ export default function PortaisPage() {
 
   async function checkPendingSitesOnce(): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
-    const pending = portaisRef.current.filter(p => p.sites.length === 0 && (p.vercelUrl || p.githubRepo));
+    const pending = portaisRef.current.filter(p => p.sites.length === 0 && (p.cloudflareUrl || p.githubRepo));
     if (pending.length === 0) return false;
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) return true;
     let stillPending = false;
     for (const portal of pending) {
-      const projectName = portal.vercelUrl
-        ? portal.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
-        : portal.subdomain ?? portal.githubRepo?.replace(/^portal-/, '');
+      // The Cloudflare Pages project name is the repo name itself
+      // (provision-portal names both the same) — never parsed out of the
+      // public workr.dev.br URL, which doesn't encode it at all.
+      const projectName = portal.githubRepo ?? (portal.subdomain ? `workr-portal-${portal.subdomain}` : undefined);
       if (!projectName) { stillPending = true; continue; }
       try {
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-site-status`, {
@@ -309,10 +310,11 @@ export default function PortaisPage() {
           body: JSON.stringify({ projectName }),
         });
         const json = await res.json().catch(() => ({})) as { deployState?: string | null };
-        if (!res.ok || json.deployState !== 'READY') { stillPending = true; continue; }
-        const link = portal.vercelUrl
-          ? portal.vercelUrl.replace(/^https?:\/\//, '')
-          : `${portal.githubRepo ?? portal.id}.vercel.app`;
+        // Cloudflare Pages stage status, not Vercel's READY/ERROR vocabulary.
+        if (!res.ok || json.deployState !== 'success') { stillPending = true; continue; }
+        const link = portal.cloudflareUrl
+          ? portal.cloudflareUrl.replace(/^https?:\/\//, '')
+          : `${portal.subdomain ?? portal.githubRepo ?? portal.id}.workr.dev.br`;
         const { data: newSite } = await supabase
           .from('portal_sites')
           .upsert({ portal_id: portal.dbId ?? portal.id, link, status: 'Ativo', ip: '', tipo: 'RI' }, { onConflict: 'portal_id' })
@@ -393,9 +395,7 @@ export default function PortaisPage() {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (token) {
-          const vercelProjectName = portal.vercelUrl
-            ? portal.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
-            : portal.subdomain ?? portal.githubRepo?.replace(/^portal-/, '');
+          const cloudflareProjectName = portal.githubRepo ?? (portal.subdomain ? `workr-portal-${portal.subdomain}` : undefined);
           const res = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
             {
@@ -407,7 +407,7 @@ export default function PortaisPage() {
               },
               body: JSON.stringify({
                 repoName: portal.githubRepo ?? undefined,
-                vercelProjectName: vercelProjectName ?? undefined,
+                cloudflareProjectName: cloudflareProjectName ?? undefined,
                 portalId: portal.id,
               }),
             }
@@ -603,8 +603,8 @@ export default function PortaisPage() {
                     <div className="portal-site-row__left">
                       <span className="badge badge--warning">Configurando</span>
                       <span style={{ fontSize: '13px', color: '#6F6F6F' }}>
-                        {portal.vercelUrl
-                          ? portal.vercelUrl.replace(/^https?:\/\//, '')
+                        {portal.cloudflareUrl
+                          ? portal.cloudflareUrl.replace(/^https?:\/\//, '')
                           : portal.githubRepo ?? 'Aguardando provisionamento'}
                       </span>
                     </div>
@@ -614,9 +614,9 @@ export default function PortaisPage() {
                         type="button"
                         onClick={async () => {
                           if (!isSupabaseConfigured || !supabase) return;
-                          const link = portal.vercelUrl
-                            ? portal.vercelUrl.replace(/^https?:\/\//, '')
-                            : `${portal.githubRepo ?? portal.id}.vercel.app`;
+                          const link = portal.cloudflareUrl
+                            ? portal.cloudflareUrl.replace(/^https?:\/\//, '')
+                            : `${portal.subdomain ?? portal.githubRepo ?? portal.id}.workr.dev.br`;
                           const { data: newSite } = await supabase
                             .from('portal_sites')
                             .upsert({
@@ -731,7 +731,7 @@ export default function PortaisPage() {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <p style={{ fontSize: '14px', color: 'var(--color-gray-700)', margin: 0 }}>
-              Esta ação é <strong>irreversível</strong>. O portal <strong>{deletePortalTarget.cliente}</strong>, seu repositório GitHub e projeto Vercel serão excluídos permanentemente.
+              Esta ação é <strong>irreversível</strong>. O portal <strong>{deletePortalTarget.cliente}</strong>, seu repositório GitHub e projeto Cloudflare Pages serão excluídos permanentemente.
             </p>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--color-gray-700)' }}>
               Digite <strong>{deletePortalTarget.cliente}</strong> para confirmar

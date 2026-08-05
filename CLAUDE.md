@@ -4,7 +4,7 @@ Multi-tenant CMS for Investor Relations (RI) websites, branded as **Astri / Work
 
 ## Git workflow
 
-**Commit always directly to `main`.** Do not create feature branches. Push every change straight to `main` so Vercel deploys immediately without PRs.
+**Commit always directly to `main`.** Do not create feature branches. Push every change straight to `main` so Cloudflare Pages deploys immediately without PRs.
 
 ```bash
 git add -A
@@ -32,7 +32,7 @@ workr-lite-v1/
 │       ├── index.html
 │       ├── vite.config.ts
 │       └── package.json
-└── vercel.json             # Vercel deployment config
+└── vercel.json             # Legacy Vercel config — deploy migrated to Cloudflare Pages (see Deployment below); no longer used, kept only as historical reference
 ```
 
 ## Stack
@@ -41,7 +41,7 @@ workr-lite-v1/
 - **Backend**: Go (planned — not yet implemented)
 - **CSS**: Custom CSS (no Tailwind, no component library)
 - **Fonts**: Plus Jakarta Sans (headings) + Inter (body) via Google Fonts
-- **Deploy**: Vercel (configured via root `vercel.json`) — deploys automatically on push to `main`
+- **Deploy**: Cloudflare Pages — deploys automatically on push to `main` (build command/output dir configured in the Cloudflare dashboard, not in-repo)
 
 ## Brand
 
@@ -106,11 +106,11 @@ Session persisted in `localStorage` (key: `workr_auth`).
 
 ## Regra de ouro: correções e melhorias de sistema alcançam todo portal já criado
 
-Cada portal é um site independente (repo próprio, projeto Vercel próprio, conteúdo próprio) — mas o **sistema** (o código que faz o site funcionar: `scripts/`, `styles/`, `vite.config.js` em `cliente-workr-lite`, e todas as Supabase Edge Functions) é um só, compartilhado por todos. Uma correção de bug, uma melhoria de performance, uma função de edge corrigida — **nunca** deve valer só para o próximo portal criado ou só para quem clicar "Publicar" de novo. Todo portal já existente precisa acabar rodando a versão corrigida do sistema, sem que isso jamais reescreva `site.config.js` ou qualquer conteúdo (canais, matérias, cores, banners, documentos) daquele portal específico.
+Cada portal é um site independente (repo próprio, projeto Cloudflare Pages próprio, conteúdo próprio) — mas o **sistema** (o código que faz o site funcionar: `scripts/`, `styles/`, `vite.config.js` em `cliente-workr-lite`, e todas as Supabase Edge Functions) é um só, compartilhado por todos. Uma correção de bug, uma melhoria de performance, uma função de edge corrigida — **nunca** deve valer só para o próximo portal criado ou só para quem clicar "Publicar" de novo. Todo portal já existente precisa acabar rodando a versão corrigida do sistema, sem que isso jamais reescreva `site.config.js` ou qualquer conteúdo (canais, matérias, cores, banners, documentos) daquele portal específico.
 
 Isso já vale hoje para duas camadas:
 - **Edge Functions** (`supabase/functions/*`): compartilhadas por definição — corrigir e reployar uma função já corrige o comportamento para todos os portais, imediatamente, sem tocar em nada por portal.
-- **Admin panel** (`apps/web-admin`): um só app, um só deploy Vercel — toda correção alcança todo usuário (admin ou cliente) no próximo carregamento da página.
+- **Admin panel** (`apps/web-admin`): um só app, um só deploy Cloudflare Pages — toda correção alcança todo usuário (admin ou cliente) no próximo carregamento da página.
 
 A camada que **não** se autopropaga sozinha é o template do site do cliente (`cliente-workr-lite`: `scripts/`, `styles/`, `vite.config.js`, os `home-*.html`). Hoje esses arquivos só chegam a um portal já provisionado quando alguém clica "Publicar" naquele portal específico (o self-heal do `publish-config` resincroniza esses arquivos a cada publish) — um portal cujo cliente nunca mais publica fica preso na versão antiga do template para sempre, mesmo depois de bugs corrigidos.
 
@@ -136,30 +136,35 @@ npm run dev
 
 ## Deployment
 
-Vercel auto-deploys on every push to `main`. No manual steps needed.
+Cloudflare Pages auto-deploys on every push to `main`. No manual steps needed.
+
+**Migrated from Vercel to Cloudflare Pages** (Aug 2026) — every project (admin panel + every client portal) now deploys via Cloudflare Pages, not Vercel. `vercel.json` is dead/unused, kept only as a historical artifact. If you find code, comments, or docs still mentioning Vercel outside of this note, that's drift — fix it the same way this migration did.
 
 ## Infrastructure decisions (test phase vs. production)
 
 ### Current setup (test/staging)
-- **Admin panel** (`workr-lite-v1`): deployed on Vercel, URL `workr-lite-v1.vercel.app`
-- **Each client portal**: gets its own GitHub repo (`astri-solutions/workr-portal-{subdomain}`) generated from `cliente-workr-lite` template, and its own Vercel **project** (`workr-portal-{subdomain}.vercel.app`)
-- **Why separate Vercel projects**: `cliente-workr-lite` is a static HTML site — it cannot share a domain/project with the admin SPA (React) without complex routing workarounds. Separate projects give each portal an independent deploy pipeline.
-- **Subpath approach** (`workr-lite-v1.vercel.app/ri-gravit-studios`) was considered but rejected: the admin SPA at root and static HTML at subpaths conflict in Vercel's routing model.
-- Vercel project creation is automatic during portal provisioning, but **requires `VERCEL_TOKEN` secret** to be set in Supabase Edge Function secrets. Without it, the repo is created but Vercel deployment must be set up manually.
+- **Admin panel** (`workr-lite-v1`): deployed on Cloudflare Pages, custom domain `workr.dev.br` (CNAME → `workr-lite-v1.pages.dev`, the project's own Pages domain)
+- **Each client portal**: gets its own GitHub repo (`astri-solutions/workr-portal-{subdomain}`) generated from `cliente-workr-lite` template, and its own Cloudflare Pages **project** (`workr-portal-{subdomain}`, reachable at `workr-portal-{subdomain}.pages.dev`) — publicly addressed via the friendly subdomain `{subdomain}.workr.dev.br` (CNAME in the `workr.dev.br` zone → the project's `.pages.dev` domain). The Cloudflare Pages project name is always identical to the GitHub repo name (`portals.github_repo`) — never parse it out of a URL.
+- **Why separate Pages projects**: `cliente-workr-lite` is a static HTML site — it cannot share a domain/project with the admin SPA (React) without complex routing workarounds. Separate projects give each portal an independent deploy pipeline.
+- Cloudflare Pages project creation is automatic during portal provisioning (`provision-portal`, via the Cloudflare API v4), but **requires `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` secrets** to be set in Supabase Edge Function secrets. Without them, the repo is created but the Pages project must be set up manually.
+- **Known gap — DNS CNAME creation is NOT automated yet.** `provision-portal` creates the GitHub repo and the Cloudflare Pages project (+ attempts to attach the `{subdomain}.workr.dev.br` custom domain to that project), but it does **not** create the DNS CNAME record itself in the `workr.dev.br` zone — that still needs the zone ID and a token scoped for `DNS:Edit`, neither of which the function has today. Until that's wired up, add the CNAME record (`{subdomain}` → `workr-portal-{subdomain}.pages.dev`, proxied) by hand in Cloudflare DNS after provisioning a new portal — same as every existing portal's record was created.
 
 ### Secrets required for full automation
 | Secret | Where | Purpose |
 |---|---|---|
 | `GITHUB_TOKEN` | Supabase Edge Function secrets | Create/write repos in `astri-solutions` org |
-| `VERCEL_TOKEN` | Supabase Edge Function secrets | Create Vercel project per portal |
+| `CLOUDFLARE_API_TOKEN` | Supabase Edge Function secrets | Create/delete Cloudflare Pages project + attach custom domain per portal |
+| `CLOUDFLARE_ACCOUNT_ID` | Supabase Edge Function secrets | The Cloudflare account the Pages projects live under |
 | `GITHUB_ORG` | Supabase Edge Function secrets | Org name (default: `astri-solutions`) |
 | `PREVIEW_TOKEN_SECRET` | Supabase Edge Function secrets | Signs/verifies preview links (`mint-preview-token`/`preview-content`) — missing hard-fails preview with a 500 |
 | `OPS_ALERT_EMAIL` | Supabase Edge Function secrets | Recipient for ops alerts (`_shared/postmark.ts`) — missing just silently disables alerts, non-fatal |
 
+`VERCEL_TOKEN` may still exist as a leftover secret — no code reads it anymore; safe to remove once confirmed unused elsewhere.
+
 ### Future production setup (dedicated server + real domains)
-When migrating from Vercel/Supabase to a dedicated server:
+When migrating from Cloudflare Pages/Supabase to a dedicated server:
 - Each client portal gets its own subdomain on the client's domain (e.g., `ri.gravitstudios.com.br`)
-- The static HTML site is served directly by nginx/caddy, no Vercel
+- The static HTML site is served directly by nginx/caddy, no Cloudflare Pages
 - `provision-portal` Edge Function will need to be replaced by a Go backend service
 - `publish-config` will push to the client's own repo (or a server-side file system) instead of GitHub Contents API
 - The `scripts/site.config.js` pattern stays the same — only the delivery mechanism changes
@@ -173,4 +178,4 @@ When migrating from Vercel/Supabase to a dedicated server:
 | `tabmenu` | `tabmenu` | Yes — via Personalização → Layout |
 | `banner` | `banner` | No — fixed at creation |
 
-Sidebar and tabmenu share the same HTML template (same repo). The `header.variant` in `site.config.js` switches the rendering. When a client changes their layout via the CMS and clicks "Publicar", the updated variant is pushed to GitHub and Vercel redeploys automatically.
+Sidebar and tabmenu share the same HTML template (same repo). The `header.variant` in `site.config.js` switches the rendering. When a client changes their layout via the CMS and clicks "Publicar", the updated variant is pushed to GitHub and Cloudflare Pages redeploys automatically.

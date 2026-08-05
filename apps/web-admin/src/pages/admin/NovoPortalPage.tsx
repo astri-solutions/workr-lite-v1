@@ -251,7 +251,7 @@ function StepIdentificacao({
 
         <div className="np-field">
           <label className="np-label">Domínio do projeto</label>
-          <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Vercel.</p>
+          <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Cloudflare Pages.</p>
           <div className={`np-domain-readonly${!url ? ' np-domain-readonly--empty' : ''}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
@@ -1305,7 +1305,7 @@ export default function NovoPortalPage() {
             },
             sites: [{
               id: `s${Date.now()}`,
-              link: form.url ? `workr-portal-${form.url}.vercel.app` : `workr-portal-${slugify(form.nome)}.vercel.app`,
+              link: `${form.url || slugify(form.nome)}.workr.dev.br`,
               status: 'Ativo' as const,
               ip: '',
               tipo: (form.tipoSite as 'RI' | 'Institucional' | 'Fundo' | 'Landing Page') || 'RI',
@@ -1387,7 +1387,7 @@ export default function NovoPortalPage() {
           const warnings: string[] = [];
           let provisionedUuid: string | undefined;
 
-          // Provisiona repositório GitHub + projeto Vercel
+          // Provisiona repositório GitHub + projeto Cloudflare Pages
           // Strip any accidental 'workr-portal-' prefix — the edge function always prepends it
           const rawSlug = form.url || slugify(form.nome);
           const subdomain = rawSlug.replace(/^workr-portal-/, '');
@@ -1436,8 +1436,8 @@ export default function NovoPortalPage() {
                 );
                 if (provRes.ok) {
                   const provData = await provRes.json() as {
-                    repoName: string; repoUrl: string; vercelUrl: string;
-                    vercelCreated: boolean; vercelError?: string; portalUuid?: string;
+                    repoName: string; repoUrl: string; cloudflareUrl: string;
+                    cloudflareCreated: boolean; cloudflareError?: string; portalUuid?: string;
                     portalUpsertError?: string; configUpsertError?: string; siteUpsertError?: string;
                     assetErrors?: string[];
                   };
@@ -1450,11 +1450,11 @@ export default function NovoPortalPage() {
                   const idx = portais.findIndex((p: { id: string }) => p.id === newPortal.id);
                   if (idx !== -1) {
                     portais[idx].githubRepo = provData.repoName;
-                    portais[idx].vercelUrl = provData.vercelUrl;
-                    portais[idx].vercelCreated = provData.vercelCreated;
+                    portais[idx].cloudflareUrl = provData.cloudflareUrl;
+                    portais[idx].cloudflareCreated = provData.cloudflareCreated;
                     if (provData.portalUuid) { portais[idx].supabaseId = provData.portalUuid; provisionedUuid = provData.portalUuid; }
-                    // Update site.link to the actual Vercel URL (Vercel generates its own slug)
-                    const siteLink = (provData.vercelUrl ?? `https://${provData.repoName}.vercel.app`).replace(/^https?:\/\//, '');
+                    // Update site.link to the actual public URL (workr.dev.br subdomain)
+                    const siteLink = (provData.cloudflareUrl ?? `https://${provData.repoName}.pages.dev`).replace(/^https?:\/\//, '');
                     if (portais[idx].sites?.length > 0) {
                       portais[idx].sites[0].link = siteLink;
                     }
@@ -1503,8 +1503,8 @@ export default function NovoPortalPage() {
                       });
                     }
                   }
-                  if (!provData.vercelCreated) {
-                    warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
+                  if (!provData.cloudflareCreated) {
+                    warnings.push(`Projeto Cloudflare Pages não criado: ${provData.cloudflareError ?? 'erro desconhecido'}`);
                   }
                 } else {
                   const errBody = await provRes.json().catch(() => ({})) as { error?: string };
@@ -1545,7 +1545,7 @@ export default function NovoPortalPage() {
                       // already has one. Only a genuinely new e-mail gets
                       // the real invite link (that branch always e-mails).
                       empresas: [`principal-${newPortal.id}`],
-                      redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+                      redirectTo: 'https://workr.dev.br/definir-senha',
                     }),
                   }
                 );
