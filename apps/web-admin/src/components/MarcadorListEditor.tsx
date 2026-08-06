@@ -24,12 +24,22 @@ export default function MarcadorListEditor({
   emptyHint = 'Pressione Enter ou clique em "Adicionar" para incluir um item.',
 }: Props) {
   const [input, setInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   function labelFor(m: Marcador): string {
     return locale === fallbackLocale ? m.label : (m.labels?.[locale] ?? '');
   }
 
+  // Two groups with the same visible name are indistinguishable in the
+  // accordion/seção on the live site (and in this very list) — nothing
+  // stopped it before, so "Teste" got added twice with no warning at all.
+  function isDuplicate(label: string, skipIndex?: number): boolean {
+    const normalized = label.trim().toLowerCase();
+    return groups.some((m, i) => i !== skipIndex && labelFor(m).trim().toLowerCase() === normalized);
+  }
+
   function renameAt(i: number, value: string) {
+    setError(isDuplicate(value, i) ? `Já existe um grupo chamado "${value.trim()}".` : null);
     onChange(groups.map((m, j) => {
       if (j !== i) return m;
       return locale === fallbackLocale
@@ -41,6 +51,11 @@ export default function MarcadorListEditor({
   function add() {
     const label = input.trim();
     if (!label) return;
+    if (isDuplicate(label)) {
+      setError(`Já existe um grupo chamado "${label}".`);
+      return;
+    }
+    setError(null);
     onChange([...groups, { id: genMarcadorId(), label, labels: { [locale]: label } }]);
     setInput('');
   }
@@ -65,11 +80,12 @@ export default function MarcadorListEditor({
           type="text"
           placeholder={placeholder}
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={e => { setInput(e.target.value); setError(null); }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
         />
         <button className="btn-outline" type="button" disabled={!input.trim()} onClick={add}>{addLabel}</button>
       </div>
+      {error && <p className="mk-editor__error">{error}</p>}
 
       {groups.length > 0 ? (
         <div className="mk-editor__list">
