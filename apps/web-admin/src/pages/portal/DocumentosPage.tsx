@@ -78,6 +78,19 @@ function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() ?? 'pdf';
 }
 
+// This is a document repository, not the media library — an image dropped
+// here used to upload fine (Storage doesn't care) and just quietly failed
+// to look right anywhere, or in some cases hit an RLS/bucket rejection that
+// surfaced as an opaque "Falha ao enviar o arquivo" with no indication WHY.
+// The `accept` attribute on the file <input> already limited the native
+// picker to this same list, but that attribute is cosmetic-only for
+// drag-and-drop — nothing stopped an image dropped straight onto the zone.
+const ALLOWED_DOC_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip'];
+
+function isAllowedDocFile(file: File): boolean {
+  return ALLOWED_DOC_EXTENSIONS.includes(fileExt(file.name));
+}
+
 // Common CVM/IR document categories — shown as suggestions in the "Tipo"
 // combobox, but never the only option: "+ Novo tipo" lets a portal record
 // any category this list doesn't cover yet.
@@ -352,6 +365,11 @@ export default function DocumentosPage() {
   }
 
   function handleFile(locale: string, file: File) {
+    if (!isAllowedDocFile(file)) {
+      setSaveError(`"${file.name}" não é um tipo de documento aceito — envie PDF, DOC, XLS, PPT ou ZIP. Imagens vão na Biblioteca de Mídia.`);
+      return;
+    }
+    setSaveError('');
     const existing = getLocaleFile(form, locale);
     if (existing.existingPath) queueStorageDelete(existing.existingPath);
     patchLocaleFile(locale, { file, existingPath: undefined });
