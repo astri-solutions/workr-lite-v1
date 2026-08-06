@@ -439,7 +439,15 @@ export default function CanaisPage() {
   // deletes a canal and then navigates away without publishing sees the
   // deletion "stuck" in the CMS but not on the actual site, with no warning
   // that anything was still pending.
-  const blocker = useUnsavedChanges(hasPendingDraft);
+  // `hasPendingDraft` is a portal-wide flag set by ANY page's publish flow
+  // (Logotipo, Banner, Cores...), not specific to the canal tree — guarding
+  // navigation on it fired the "unsaved changes" warning here even when
+  // Canais itself had nothing unpublished (e.g. after saving a draft on a
+  // different page and just passing through this one). Track this page's
+  // own dirty state instead: true from the first tree edit, cleared once
+  // "Publicar" actually succeeds.
+  const [treeDirty, setTreeDirty] = useState(false);
+  const blocker = useUnsavedChanges(treeDirty);
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
@@ -657,6 +665,7 @@ export default function CanaisPage() {
           .catch(err => { console.error(err); setSaveError(String(err?.message ?? err)); });
       }
       notifyDraft();
+      setTreeDirty(true);
       return next;
     });
   }, [canaisKey, activePortalId, notifyDraft]);
@@ -691,6 +700,7 @@ export default function CanaisPage() {
     }
     setSavedOrderKey(orderKey(canais));
     await publish();
+    setTreeDirty(false);
   }
 
   // ── Canal actions ──────────────────────────────────────────────────────
