@@ -62,6 +62,35 @@ function withLocalizedHtml(field: string | LocalizedHtml | undefined, locale: Lo
   return { ...base, [locale]: value };
 }
 
+// Per-locale section image — same idea as LocalizedHtml above. Uploading an
+// image the first time sets it only under the locale it was uploaded in
+// (usually the primary locale); every other locale that hasn't uploaded its
+// own falls back to that one, so a portal with 3 languages doesn't force 3
+// separate uploads for the same picture. Uploading again from a *different*
+// locale tab overrides just that locale, leaving the others (and the
+// fallback for any locale still untouched) alone.
+type LocalizedImage = Partial<Record<LocaleCode, string>>;
+
+function imageFor(field: string | LocalizedImage | null | undefined, locale: LocaleCode, primaryLocale: LocaleCode): string | null {
+  if (field == null) return null;
+  if (typeof field === 'string') return field;
+  return field[locale] ?? field[primaryLocale] ?? null;
+}
+
+function withLocalizedImage(field: string | LocalizedImage | null | undefined, locale: LocaleCode, primaryLocale: LocaleCode, value: string | null): LocalizedImage {
+  const base: LocalizedImage = field == null ? {} : typeof field === 'string' ? { [primaryLocale]: field } : { ...field };
+  if (value == null) delete base[locale];
+  else base[locale] = value;
+  return base;
+}
+
+// True once this locale has its own uploaded image, distinct from the
+// fallback it would otherwise inherit — drives the "imagem compartilhada"
+// hint so authors understand why replacing it here doesn't touch other tabs.
+function isImageOverridden(field: string | LocalizedImage | null | undefined, locale: LocaleCode): boolean {
+  return typeof field === 'object' && field != null && locale in field;
+}
+
 interface ContentSection {
   id: string;
   type: SectionType;
@@ -70,7 +99,7 @@ interface ContentSection {
   html?: string | LocalizedHtml;
   html2?: string | LocalizedHtml; // 'two-col'/'three-col' col 2
   html3?: string | LocalizedHtml; // 'three-col' col 3
-  imageUrl?: string | null; // 'image-text', 'bg-image', 'image', 'image-full'
+  imageUrl?: string | LocalizedImage | null; // 'image-text', 'bg-image', 'image', 'image-full'
   imageAlt?: string;
   timelineItems?: TimelineItem[]; // 'timeline'
   timelineOrientation?: 'vertical' | 'horizontal'; // 'timeline'
@@ -607,8 +636,8 @@ function RichTextEditor({ value, onChange, placeholder = 'Escreva aqui...' }: { 
 }
 
 /* ── Image upload placeholder ─────────────────────────────── */
-function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portalDbId }: {
-  label?: string; ratio?: string; value: string | null; onChange: (url: string | null) => void; portalDbId: string | null;
+function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portalDbId, sharedNote }: {
+  label?: string; ratio?: string; value: string | null; onChange: (url: string | null) => void; portalDbId: string | null; sharedNote?: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -649,6 +678,7 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portal
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
               {uploading ? 'Enviando…' : 'Alterar imagem'}
             </button>
+            {sharedNote && <span className="img-upload__shared-note">{sharedNote}</span>}
           </>
         ) : (
           <>
@@ -675,14 +705,26 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portal
 }
 
 /* ── Inline image editor (container-width image) ──────────── */
-function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
-  value: string | null; alt: string; onChange: (url: string | null) => void; onAltChange: (alt: string) => void; portalDbId: string | null;
+function ImageEditor({ value, alt, onChange, onAltChange, portalDbId, sharedNote }: {
+  value: string | null; alt: string; onChange: (url: string | null) => void; onAltChange: (alt: string) => void; portalDbId: string | null; sharedNote?: string;
 }) {
   const [file, setFile] = useState<{ name: string; url: string; w: number; h: number } | null>(
     value ? { name: '', url: value, w: 0, h: 0 } : null,
   );
   const [pickerOpen, setPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // `value` can change from under us without a re-mount — switching to a
+  // locale tab that still falls back to another locale's image (or has its
+  // own override) resolves to a different URL. Only resync when it actually
+  // diverges from what we already show, so the upload flow below (which
+  // updates `file` optimistically with real width/height before `value`
+  // catches up) doesn't get its dimensions clobbered by this effect.
+  useEffect(() => {
+    if (value !== (file?.url ?? null)) {
+      setFile(value ? { name: '', url: value, w: 0, h: 0 } : null);
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleFile(f: File) {
     const result = await processImage(f, 'article-image');
@@ -783,6 +825,7 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
             </button>
           </div>
         </div>
+        {sharedNote && <span className="img-editor__shared-note">{sharedNote}</span>}
         <div className="img-editor__alt-wrap">
           <label className="img-editor__alt-label">Alt text</label>
           <input
@@ -1257,6 +1300,11 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
   primaryLocale: LocaleCode;
   isFlatShow: boolean;
 }) {
+  const sectionImageUrl = imageFor(section.imageUrl, locale, primaryLocale);
+  const sectionImageShared = sectionImageUrl != null && locale !== primaryLocale && !isImageOverridden(section.imageUrl, locale);
+  const sectionImageNote = sectionImageShared ? 'Mesma imagem usada nos demais idiomas — envie outra aqui para usar só neste.' : undefined;
+  const updateSectionImage = (imageUrl: string | null) => onUpdateSection({ imageUrl: withLocalizedImage(section.imageUrl, locale, primaryLocale, imageUrl) });
+
   return (
     <div className="sec-editor" id={`sec-${section.id}`}>
       <div className="sec-editor__head">
@@ -1305,8 +1353,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
                 text, not a separate block, since these portals don't offer
                 the Banner layout's dedicated image-text/text-image pairing. */}
             {isFlatShow && (
-              <ImageUpload label="Imagem (opcional, abaixo do texto)" ratio="16/9" value={section.imageUrl ?? null}
-                onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+              <ImageUpload label="Imagem (opcional, abaixo do texto)" ratio="16/9" value={sectionImageUrl}
+                onChange={updateSectionImage} portalDbId={portalDbId} sharedNote={sectionImageNote} />
             )}
           </>
         )}
@@ -1317,8 +1365,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
               No site, {section.type === 'image-text' ? 'a imagem fica à esquerda e o texto à direita' : 'o texto fica à esquerda e a imagem à direita'}
             </p>
-            <ImageUpload label="Imagem" ratio="4/3" value={section.imageUrl ?? null}
-              onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            <ImageUpload label="Imagem" ratio="4/3" value={sectionImageUrl}
+              onChange={updateSectionImage} portalDbId={portalDbId} sharedNote={sectionImageNote} />
             <RichTextEditor placeholder="Texto da seção..." value={htmlFor(section.html, locale, primaryLocale)}
               onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
           </div>
@@ -1326,8 +1374,8 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
 
         {section.type === 'bg-image' && (
           <div className="sec-bgimg">
-            <ImageUpload label="Imagem de fundo" ratio="21/5" value={section.imageUrl ?? null}
-              onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            <ImageUpload label="Imagem de fundo" ratio="21/5" value={sectionImageUrl}
+              onChange={updateSectionImage} portalDbId={portalDbId} sharedNote={sectionImageNote} />
             <RichTextEditor placeholder="Texto de destaque sobre a imagem..." value={htmlFor(section.html, locale, primaryLocale)}
               onChange={html => onUpdateSection({ html: withLocalizedHtml(section.html, locale, primaryLocale, html) })} />
           </div>
@@ -1363,17 +1411,17 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
 
         {section.type === 'image' && (
           <div className="sec-image-container">
-            <ImageEditor value={section.imageUrl ?? null} alt={section.imageAlt ?? ''}
-              onChange={imageUrl => onUpdateSection({ imageUrl })}
+            <ImageEditor value={sectionImageUrl} alt={section.imageAlt ?? ''}
+              onChange={updateSectionImage}
               onAltChange={imageAlt => onUpdateSection({ imageAlt })}
-              portalDbId={portalDbId} />
+              portalDbId={portalDbId} sharedNote={sectionImageNote} />
           </div>
         )}
 
         {section.type === 'image-full' && (
           <div className="sec-image-full">
-            <ImageUpload label="Imagem full width" ratio="21/6" value={section.imageUrl ?? null}
-              onChange={imageUrl => onUpdateSection({ imageUrl })} portalDbId={portalDbId} />
+            <ImageUpload label="Imagem full width" ratio="21/6" value={sectionImageUrl}
+              onChange={updateSectionImage} portalDbId={portalDbId} sharedNote={sectionImageNote} />
           </div>
         )}
 
