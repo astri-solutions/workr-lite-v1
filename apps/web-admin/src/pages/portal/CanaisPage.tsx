@@ -699,7 +699,19 @@ export default function CanaisPage() {
       }
     }
     setSavedOrderKey(orderKey(canais));
-    await publish();
+    // publish() returning false (edge function error, missing session, etc.)
+    // used to be silently swallowed here — the tree still looked "published"
+    // in Supabase, but the live site never actually got the new config, and
+    // nothing told the admin it failed. hasPendingDraft (read by the
+    // Publicar button below) also only clears on a true success, so leaving
+    // treeDirty/saveError untouched on failure keeps both correctly showing
+    // "this still needs to be published" instead of quietly resetting.
+    const ok = await publish();
+    if (!ok) {
+      setSaveError('Falha ao publicar no site. Tente novamente em alguns instantes.');
+      return;
+    }
+    setSaveError(null);
     setTreeDirty(false);
   }
 
