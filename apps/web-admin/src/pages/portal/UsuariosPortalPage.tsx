@@ -306,7 +306,7 @@ export default function UsuariosPortalPage() {
             portalId: user?.activePortalId,
             role: form.role,
             empresas: empIds,
-            redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+            redirectTo: 'https://workr.dev.br/definir-senha',
           }),
         }
       );
@@ -346,7 +346,7 @@ export default function UsuariosPortalPage() {
           nome: u.nome,
           portalId: user?.activePortalId,
           resend: true,
-          redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+          redirectTo: 'https://workr.dev.br/definir-senha',
         }),
       });
       const body = await res.json().catch(() => ({})) as { error?: string; emailError?: string };

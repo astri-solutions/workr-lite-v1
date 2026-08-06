@@ -111,7 +111,7 @@ export async function sendPortalAccessGranted(opts: {
   const portal = opts.portalNome ? ` ao portal <strong>${opts.portalNome}</strong>` : ' a um novo portal';
   const roleLabel: Record<string, string> = { admin: 'administrador', editor: 'editor', viewer: 'visualizador' };
   const roleText = opts.role && roleLabel[opts.role] ? ` como <strong>${roleLabel[opts.role]}</strong>` : '';
-  const login = opts.loginUrl ?? 'https://workr-lite-v1.vercel.app/login';
+  const login = opts.loginUrl ?? 'https://workr.dev.br/login';
 
   await sendPostmark({
     From: from(),

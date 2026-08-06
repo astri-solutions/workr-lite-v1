@@ -1597,7 +1597,7 @@ export default function NovoPortalPage() {
                       // empresa added afterwards — RLS rejected the insert
                       // with a bare 403 the moment they tried.
                       empresas: null,
-                      redirectTo: 'https://workr-lite-v1.vercel.app/definir-senha',
+                      redirectTo: 'https://workr.dev.br/definir-senha',
                     }),
                   }
                 );

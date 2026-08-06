@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr-lite-v1.vercel.app'}/definir-senha`;
+    const inviteRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr.dev.br'}/definir-senha`;
     const { data: linkData, error: linkError } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
       type: 'invite',
       email,
