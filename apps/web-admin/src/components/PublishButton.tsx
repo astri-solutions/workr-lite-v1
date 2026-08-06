@@ -75,7 +75,7 @@ function PreviewLink() {
 }
 
 export default function PublishButton({ disabled, onClick }: Props) {
-  const { publish, publishing, publishStatus } = usePublish();
+  const { publish, publishing, publishStatus, publishError } = usePublish();
   const handleClick = onClick ?? publish;
 
   if (publishStatus === 'ok') {
@@ -96,12 +96,17 @@ export default function PublishButton({ disabled, onClick }: Props) {
     return (
       <>
         {PREVIEW_ENABLED && <PreviewLink />}
-        <button className="btn-primary btn-primary--err" type="button" onClick={handleClick}>
+        {/* publishError explains WHY — without it this was just a red
+            button with no indication of what went wrong (session expired?
+            network error? publish-config rejected the payload?), which
+            read as "publiquei e nada aconteceu" rather than a real error. */}
+        <button className="btn-primary btn-primary--err" type="button" onClick={handleClick} title={publishError ?? undefined}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
           Tentar novamente
         </button>
+        {publishError && <span className="publish-btn-error">{publishError}</span>}
       </>
     );
   }
