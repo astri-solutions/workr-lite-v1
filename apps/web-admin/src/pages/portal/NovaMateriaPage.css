@@ -67,8 +67,8 @@
 }
 
 /* Same `title` state as .nm-title-input above — this is the large,
-   visible anchor before the first content block; the top-bar input stays
-   as the compact reference visible while scrolled past this one. */
+   visible anchor before the first content block; the top-bar span below
+   just echoes it (read-only) while scrolled past this one. */
 .nm-title-input-large {
   width: 100%;
   border: none;
@@ -84,6 +84,21 @@
 }
 
 .nm-title-input-large::placeholder {
+  color: var(--color-gray-300);
+}
+
+/* The top-bar echo of the title — read-only (editing lives in
+   .nm-title-input-large above), so it needs its own overflow/cursor
+   handling instead of reusing an <input>'s built-in ones. */
+.nm-title-input--readonly {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  cursor: default;
+}
+
+.nm-title-input--readonly.nm-title-input--empty {
   color: var(--color-gray-300);
 }
 

@@ -1634,6 +1634,7 @@ export default function NovaMateriaPage() {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [contentType, setContentType] = useState(isGaleria && !editing ? 'Notícia' : '');
   const [dirty, setDirty] = useState(false);
 
@@ -1739,10 +1740,26 @@ export default function NovaMateriaPage() {
     };
     const portalKey = user?.activePortalId ?? undefined;
     persistMateria(m, portalKey);
-    if (page && portalKey) {
+    setSaveError('');
+    // Synced to Supabase regardless of whether a página was picked yet —
+    // MateriasPage lists exclusively from portal_materias, never from this
+    // module's localStorage cache, so gating this on `page` (as this used
+    // to) meant an unassigned draft saved fine locally, showed "Salvo!",
+    // and then simply never appeared in Matérias — indistinguishable from
+    // the save silently doing nothing.
+    if (portalKey) {
       const portalDbId = await resolvePortalId(portalKey);
       if (portalDbId) {
-        await syncMateriaToSupabase(m, portalDbId);
+        const { error } = await syncMateriaToSupabase(m, portalDbId);
+        if (error) {
+          // Saved to the local cache, but MateriasPage lists exclusively
+          // from Supabase — a swallowed error here used to leave the
+          // button reading "Salvo!" while the matéria never actually
+          // appeared in the list. Surface it and stop instead of
+          // pretending this succeeded.
+          setSaveError(`Não foi possível salvar no banco: ${error}. A matéria NÃO aparecerá na lista até isso ser resolvido.`);
+          return;
+        }
         // Scheduled counts as published for the page itself: the cron only
         // flips the matéria's status in Supabase, it can't create the page
         // or push the site. So the destination page has to be live and
@@ -1752,6 +1769,9 @@ export default function NovaMateriaPage() {
         if ((m.status === 'publicado' || m.status === 'agendado') && m.pageSlugType === 'show') {
           await activatePageInSupabase(m.pageId, portalDbId);
         }
+      } else {
+        setSaveError('Não foi possível resolver o portal atual — a matéria foi salva só localmente e NÃO aparecerá na lista. Recarregue a página e tente novamente.');
+        return;
       }
     }
     // Match the sidebar's global publish button's real-site effect.
@@ -1793,12 +1813,13 @@ export default function NovaMateriaPage() {
           Matérias
         </button>
 
-        <input
-          className="nm-title-input"
-          value={title}
-          onChange={(e) => { setTitle(e.target.value); markDirty(); }}
-          placeholder={editing ? '' : 'Título da matéria...'}
-        />
+        {/* Editing happens once, in the large title field above the first
+            content block — this just echoes it here (read-only) so the
+            matéria's name stays visible in the top bar while scrolled past
+            that field, without duplicating an editable input. */}
+        <span className={`nm-title-input nm-title-input--readonly${title ? '' : ' nm-title-input--empty'}`}>
+          {title || 'Título da matéria...'}
+        </span>
 
         <div className="nm-topbar-actions">
           {!canPublish && !pageOccupied && (
@@ -1840,6 +1861,12 @@ export default function NovaMateriaPage() {
           )}
         </div>
       </div>
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          {saveError}
+        </div>
+      )}
 
       {/* ── Locale tab bar ── */}
       <LangTabs active={locale} onChange={setLocale} />
