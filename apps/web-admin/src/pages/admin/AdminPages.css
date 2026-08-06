@@ -167,6 +167,12 @@
   letter-spacing: 0.01em;
 }
 .btn-outline:hover { border-color: var(--color-primary-400); color: var(--color-primary-600-text); background: var(--color-primary-50, #e8f5f7); }
+/* Without this, a disabled .btn-outline (e.g. "Salvar rascunho" before a
+   título is filled in) looks pixel-identical to an enabled one — clicking
+   it does nothing and there's no visual cue why, reading as a broken
+   button instead of a validation gate. */
+.btn-outline:disabled { cursor: not-allowed; opacity: 0.5; }
+.btn-outline:disabled:hover { border-color: var(--color-gray-300); color: var(--color-gray-700); background: var(--color-white); }
 
 .btn-outline--danger {
   border-color: var(--color-error-400);

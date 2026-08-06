@@ -1951,7 +1951,7 @@ export default function NovaMateriaPage() {
                 disabled={!canSaveDraft}
                 onClick={() => handlePublish('draft')}
               >
-                Salvar rascunho
+                {saved && status === 'draft' ? 'Salvo!' : 'Salvar rascunho'}
               </button>
               <PublishButton
                 disabled={!dirty || !canPublish}
