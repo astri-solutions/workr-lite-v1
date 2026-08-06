@@ -34,6 +34,23 @@
   border-radius: var(--radius-lg);
 }
 
+/* `.data-table` sets `width: 100%` (AdminPages.css), which here means
+   100% of `.table-wrap`'s own box — not of the table's actual (wider)
+   content. On mobile that box is the full page width, so the table
+   stretched to it while its columns only needed their min-widths,
+   leaving a blank strip after the last column that still scrolled as
+   if it were part of the table (nothing there, just the wrapper's own
+   background). `max-content` makes the table exactly as wide as its
+   columns need, so the scrollable area ends right where the content
+   does; `min-width: 100%` keeps it filling the row when it doesn't
+   need to scroll at all. */
+@media (max-width: 720px) {
+  .table-wrap .data-table {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
 /* ─── Empty cell ─────────────────────────────────────── */
 .log-empty {
   text-align: center;
