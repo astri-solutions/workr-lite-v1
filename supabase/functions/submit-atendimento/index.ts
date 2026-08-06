@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     // the CMS addresses the active portal everywhere else.
     const { data: portal } = await adminClient
       .from('portals')
-      .select('cliente, suporte_email')
+      .select('id, cliente, suporte_email')
       .eq('portal_key', portalId)
       .maybeSingle();
 
@@ -135,6 +135,34 @@ Deno.serve(async (req) => {
       } catch { /* one bad path shouldn't drop the whole ticket */ }
     }
 
+    // Persist the ticket itself — before this, a support request only ever
+    // existed as an e-mail (below) plus a per-portal jsonb blob nobody but
+    // that portal's own users could see. This is what the Super Admin
+    // Atendimento inbox reads from; the row is written with the service
+    // role, so it lands regardless of which super_admin (if any) is
+    // currently assigned as this portal's suporte_user_id — RLS on the
+    // table itself is what scopes visibility to that one assignee.
+    let ticketId: string | undefined;
+    if (portal?.id) {
+      const { data: ticketRow, error: insertErr } = await adminClient
+        .from('portal_atendimentos')
+        .insert({
+          portal_id: portal.id,
+          user_id: user.id,
+          requester_nome: (user.user_metadata?.name as string | undefined) ?? null,
+          requester_email: user.email ?? null,
+          assunto,
+          prioridade: prioridade ?? 'media',
+          titulo: titulo.trim(),
+          mensagem: mensagem.trim(),
+          anexos: anexos ?? [],
+        })
+        .select('id')
+        .single();
+      if (insertErr) console.error('portal_atendimentos insert failed', insertErr);
+      ticketId = ticketRow?.id as string | undefined;
+    }
+
     await sendFormSubmission({
       portalNome,
       formTitulo: `Atendimento — ${assuntoLabel}`,
@@ -151,7 +179,7 @@ Deno.serve(async (req) => {
       replyToEmail: user.email ?? undefined,
     });
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, id: ticketId }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
   } catch (e) {

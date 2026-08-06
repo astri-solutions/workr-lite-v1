@@ -22,6 +22,11 @@ const SECTIONS: NavSection[] = [
         label: 'Contas',
         icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>,
       },
+      {
+        to: '/admin/atendimento',
+        label: 'Atendimento',
+        icon: <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>support_agent</span>,
+      },
     ],
   },
 ];
