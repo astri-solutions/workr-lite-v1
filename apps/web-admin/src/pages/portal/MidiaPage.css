@@ -381,6 +381,14 @@
   user-select: none;
 }
 
+/* ─── List view rows (click opens the same detail panel as a grid card) ── */
+.midia-list-row {
+  cursor: pointer;
+}
+.midia-list-row--active {
+  background: var(--color-primary-50, #e8f5f7);
+}
+
 /* ─── List view chips ────────────────────────────────── */
 .midia-list-chips {
   display: flex;

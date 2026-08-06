@@ -430,6 +430,127 @@ export default function MidiaPage() {
 
   const canUpload = uploadTab === 'computer' ? !!pendingFile : !!pendingUrl.trim();
 
+  // Shared between grid and list view — clicking a card OR a list row opens
+  // the same detail/edit panel (previously list view had no way to open it
+  // at all: rows had no onClick, only the Substituir/Excluir buttons).
+  const detailPanel = selectedFile && (
+    <>
+      {/* On phones this becomes a fixed side panel over the content (see
+          .midia-detail-backdrop/.midia-detail__close in MidiaPage.css);
+          on desktop/tablet those two are invisible and it stays the inline
+          panel it always was. */}
+      <div className="midia-detail-backdrop" onClick={() => setSelectedId(null)} />
+      <div className="midia-detail">
+        <button
+          type="button"
+          className="midia-detail__close"
+          aria-label="Fechar"
+          onClick={() => setSelectedId(null)}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+        </button>
+        <div className="midia-detail__preview">
+          {selectedFile.type === 'image' && selectedFile.previewUrl ? (
+            <img className="midia-detail__img" src={selectedFile.previewUrl} alt={selectedFile.name} />
+          ) : (
+            <DocThumb type={selectedFile.type} size="lg" />
+          )}
+        </div>
+
+        <div className="midia-detail__meta">
+          <p className="midia-detail__meta-row"><strong>Upload feito em:</strong> {selectedFile.uploadedAt}</p>
+          <p className="midia-detail__meta-row"><strong>Enviado por:</strong> {selectedFile.uploadedBy}</p>
+          <p className="midia-detail__meta-row"><strong>Nome do arquivo:</strong> {selectedFile.name}</p>
+          <p className="midia-detail__meta-row"><strong>Tipo do arquivo:</strong> {TYPE_LABEL[selectedFile.type]}</p>
+          <p className="midia-detail__meta-row"><strong>Tamanho do arquivo:</strong> {selectedFile.size}</p>
+          {selectedFile.dimensions && (
+            <p className="midia-detail__meta-row"><strong>Dimensões:</strong> {selectedFile.dimensions}</p>
+          )}
+        </div>
+
+        <div className="midia-detail__divider" />
+
+        <div className="midia-detail__form">
+          {selectedFile.type === 'image' && (
+            <div className="midia-detail__form-field">
+              <label className="midia-detail__form-label">Texto alternativo</label>
+              <textarea
+                className="midia-detail__form-textarea"
+                rows={2}
+                value={selectedFile.alt ?? ''}
+                onChange={e => patchFile(selectedFile.id, 'alt', e.target.value)}
+                placeholder="Descreva a imagem para acessibilidade…"
+              />
+            </div>
+          )}
+          <div className="midia-detail__form-field">
+            <label className="midia-detail__form-label">Título</label>
+            <input
+              className="midia-detail__form-input"
+              type="text"
+              value={selectedFile.titulo ?? selectedFile.name.replace(/\.[^.]+$/, '')}
+              onChange={e => patchFile(selectedFile.id, 'titulo', e.target.value)}
+            />
+          </div>
+          <div className="midia-detail__form-field">
+            <label className="midia-detail__form-label">Legenda</label>
+            <textarea
+              className="midia-detail__form-textarea"
+              rows={2}
+              value={selectedFile.legenda ?? ''}
+              onChange={e => patchFile(selectedFile.id, 'legenda', e.target.value)}
+            />
+          </div>
+          <div className="midia-detail__form-field">
+            <label className="midia-detail__form-label">Descrição</label>
+            <textarea
+              className="midia-detail__form-textarea"
+              rows={3}
+              value={selectedFile.descricao ?? ''}
+              onChange={e => patchFile(selectedFile.id, 'descricao', e.target.value)}
+            />
+          </div>
+          <div className="midia-detail__form-field">
+            <label className="midia-detail__form-label">URL do arquivo</label>
+            <input
+              className="midia-detail__form-input midia-detail__form-input--readonly"
+              type="text"
+              readOnly
+              value={selectedFile.url ?? ''}
+            />
+            <button
+              type="button"
+              className="midia-detail__copy-btn"
+              disabled={!selectedFile.url}
+              onClick={() => {
+                if (!selectedFile.url) return;
+                navigator.clipboard.writeText(selectedFile.url).catch(() => {});
+                setCopiedUrl(true);
+                setTimeout(() => setCopiedUrl(false), 2000);
+              }}
+            >
+              {copiedUrl ? 'Copiado!' : 'Copiar URL'}
+            </button>
+          </div>
+        </div>
+
+        <div className="midia-detail__divider" />
+
+        {selectedFile.slot ? (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', lineHeight: 1.5 }}>
+            Gerenciado automaticamente pelo CMS. Para substituir ou remover, use a página de origem (Logotipo/Favicon/Banner) e clique em Publicar.
+          </p>
+        ) : (
+          <div className="midia-detail__links">
+            <button type="button" className="midia-detail__link" onClick={() => openReplaceModal(selectedFile.id)}>Substituir arquivo</button>
+            <span className="midia-detail__link-sep">|</span>
+            <button type="button" className="midia-detail__link midia-detail__link--danger" onClick={() => deleteFile(selectedFile.id)}>Excluir permanentemente</button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="page">
       <StickyPageHeader
@@ -547,134 +668,22 @@ export default function MidiaPage() {
             ))}
           </div>
 
-          {/* Detail panel — on phones this becomes a fixed side panel over
-              the grid (see .midia-detail-backdrop/.midia-detail__close in
-              MidiaPage.css); on desktop/tablet those two are invisible and
-              it stays the inline panel it always was. */}
-          {selectedFile && (
-            <div className="midia-detail-backdrop" onClick={() => setSelectedId(null)} />
-          )}
-          {selectedFile && (
-            <div className="midia-detail">
-              <button
-                type="button"
-                className="midia-detail__close"
-                aria-label="Fechar"
-                onClick={() => setSelectedId(null)}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
-              </button>
-              <div className="midia-detail__preview">
-                {selectedFile.type === 'image' && selectedFile.previewUrl ? (
-                  <img className="midia-detail__img" src={selectedFile.previewUrl} alt={selectedFile.name} />
-                ) : (
-                  <DocThumb type={selectedFile.type} size="lg" />
-                )}
-              </div>
-
-              <div className="midia-detail__meta">
-                <p className="midia-detail__meta-row"><strong>Upload feito em:</strong> {selectedFile.uploadedAt}</p>
-                <p className="midia-detail__meta-row"><strong>Enviado por:</strong> {selectedFile.uploadedBy}</p>
-                <p className="midia-detail__meta-row"><strong>Nome do arquivo:</strong> {selectedFile.name}</p>
-                <p className="midia-detail__meta-row"><strong>Tipo do arquivo:</strong> {TYPE_LABEL[selectedFile.type]}</p>
-                <p className="midia-detail__meta-row"><strong>Tamanho do arquivo:</strong> {selectedFile.size}</p>
-                {selectedFile.dimensions && (
-                  <p className="midia-detail__meta-row"><strong>Dimensões:</strong> {selectedFile.dimensions}</p>
-                )}
-              </div>
-
-              <div className="midia-detail__divider" />
-
-              <div className="midia-detail__form">
-                {selectedFile.type === 'image' && (
-                  <div className="midia-detail__form-field">
-                    <label className="midia-detail__form-label">Texto alternativo</label>
-                    <textarea
-                      className="midia-detail__form-textarea"
-                      rows={2}
-                      value={selectedFile.alt ?? ''}
-                      onChange={e => patchFile(selectedFile.id, 'alt', e.target.value)}
-                      placeholder="Descreva a imagem para acessibilidade…"
-                    />
-                  </div>
-                )}
-                <div className="midia-detail__form-field">
-                  <label className="midia-detail__form-label">Título</label>
-                  <input
-                    className="midia-detail__form-input"
-                    type="text"
-                    value={selectedFile.titulo ?? selectedFile.name.replace(/\.[^.]+$/, '')}
-                    onChange={e => patchFile(selectedFile.id, 'titulo', e.target.value)}
-                  />
-                </div>
-                <div className="midia-detail__form-field">
-                  <label className="midia-detail__form-label">Legenda</label>
-                  <textarea
-                    className="midia-detail__form-textarea"
-                    rows={2}
-                    value={selectedFile.legenda ?? ''}
-                    onChange={e => patchFile(selectedFile.id, 'legenda', e.target.value)}
-                  />
-                </div>
-                <div className="midia-detail__form-field">
-                  <label className="midia-detail__form-label">Descrição</label>
-                  <textarea
-                    className="midia-detail__form-textarea"
-                    rows={3}
-                    value={selectedFile.descricao ?? ''}
-                    onChange={e => patchFile(selectedFile.id, 'descricao', e.target.value)}
-                  />
-                </div>
-                <div className="midia-detail__form-field">
-                  <label className="midia-detail__form-label">URL do arquivo</label>
-                  <input
-                    className="midia-detail__form-input midia-detail__form-input--readonly"
-                    type="text"
-                    readOnly
-                    value={selectedFile.url ?? ''}
-                  />
-                  <button
-                    type="button"
-                    className="midia-detail__copy-btn"
-                    disabled={!selectedFile.url}
-                    onClick={() => {
-                      if (!selectedFile.url) return;
-                      navigator.clipboard.writeText(selectedFile.url).catch(() => {});
-                      setCopiedUrl(true);
-                      setTimeout(() => setCopiedUrl(false), 2000);
-                    }}
-                  >
-                    {copiedUrl ? 'Copiado!' : 'Copiar URL'}
-                  </button>
-                </div>
-              </div>
-
-              <div className="midia-detail__divider" />
-
-              {selectedFile.slot ? (
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', lineHeight: 1.5 }}>
-                  Gerenciado automaticamente pelo CMS. Para substituir ou remover, use a página de origem (Logotipo/Favicon/Banner) e clique em Publicar.
-                </p>
-              ) : (
-                <div className="midia-detail__links">
-                  <button type="button" className="midia-detail__link" onClick={() => openReplaceModal(selectedFile.id)}>Substituir arquivo</button>
-                  <span className="midia-detail__link-sep">|</span>
-                  <button type="button" className="midia-detail__link midia-detail__link--danger" onClick={() => deleteFile(selectedFile.id)}>Excluir permanentemente</button>
-                </div>
-              )}
-            </div>
-          )}
+          {detailPanel}
         </div>
       ) : (
         /* ── LIST VIEW ── */
-        /* Plain .table-wrapper, not the `--responsive` modifier: that
-           modifier hides the table outright at ≤720px in favor of an
-           `.rcard-list` card fallback (used by DocumentosPage/
+        /* Same shared workspace/detail-panel wrapper as grid view — a row
+           click opens the same edit panel a card click does (previously
+           list-view rows had no onClick at all, only the Substituir/
+           Excluir buttons). Plain .table-wrapper, not the `--responsive`
+           modifier: that modifier hides the table outright at ≤720px in
+           favor of an `.rcard-list` card fallback (used by DocumentosPage/
            CalendarioPage) — Biblioteca de Mídia has no such fallback for
            list mode, so with the modifier the table (and every file in
            it) simply vanished on narrower screens. Plain `.table-wrapper`
            keeps the normal horizontal-scroll behavior instead. */
-        <div className="table-wrapper">
+        <div className={`midia-workspace${selectedFile ? ' midia-workspace--with-panel' : ''}`}>
+        <div className="table-wrapper" style={{ flex: 1, minWidth: 0 }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -689,7 +698,11 @@ export default function MidiaPage() {
             </thead>
             <tbody>
               {filtered.map(f => (
-                <tr key={f.id}>
+                <tr
+                  key={f.id}
+                  className={`midia-list-row${selectedId === f.id ? ' midia-list-row--active' : ''}`}
+                  onClick={() => setSelectedId(prev => prev === f.id ? null : f.id)}
+                >
                   <td className="midia-col-thumb">
                     {f.type === 'image' && f.previewUrl ? (
                       <img className="midia-thumb midia-thumb--img" src={f.previewUrl} alt={f.name} />
@@ -713,7 +726,7 @@ export default function MidiaPage() {
                   <td className="table-cell--muted">{f.dimensions ?? '—'}</td>
                   <td className="table-cell--muted">{f.uploadedAt}</td>
                   <td>
-                    <div className="table-actions">
+                    <div className="table-actions" onClick={e => e.stopPropagation()}>
                       <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(f.id)} disabled={!!f.slot} title={f.slot ? 'Substitua enviando um novo arquivo na página de origem (Logotipo/Favicon/Banner) e clicando em Publicar' : undefined}>Substituir</button>
                       <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)} disabled={!!f.slot} title={f.slot ? 'Gerenciado automaticamente — remova na página de origem' : undefined}>Excluir</button>
                     </div>
@@ -722,6 +735,9 @@ export default function MidiaPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {detailPanel}
         </div>
       )}
 
