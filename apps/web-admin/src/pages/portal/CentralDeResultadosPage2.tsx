@@ -435,6 +435,7 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty, onDocD
                 <th style={{ width: 180 }}>Tipo de documento</th>
                 <th style={{ width: 90 }}>Idioma</th>
                 <th style={{ width: 56 }}>Ext.</th>
+                <th style={{ width: 110 }}>Status</th>
                 <th style={{ width: 150 }}>Publicado por</th>
                 <th style={{ width: 96 }} />
               </tr>
@@ -486,6 +487,11 @@ function FileListEditor({ entries, onChange, uploadedBy, autoOpenOnEmpty, onDocD
                     </td>
                     <td>
                       <span className={`cdr2-ext-badge${ext ? '' : ' cdr2-ext-badge--empty'}`}>{ext || '—'}</span>
+                    </td>
+                    <td>
+                      <span className={`badge ${primary.status === 'published' ? 'badge--success' : 'badge--gray'}`}>
+                        {primary.status === 'published' ? 'Publicado' : 'Rascunho'}
+                      </span>
                     </td>
                     <td className="table-cell--muted">{primary.uploadedBy || '—'}</td>
                     <td>
@@ -946,6 +952,13 @@ export default function CentralDeResultadosPage2() {
   // trimestre" actually call updateQuarterDocs.
   const [stagedDocs, setStagedDocs] = useState<FileEntry[]>([]);
   const [saveConfirmId, setSaveConfirmId] = useState<string | null>(null);
+  // The topbar's dedicated "Publicar" button (as opposed to the per-document
+  // eye-icon toggle) — separate from saveConfirmId's "rascunho ou publicar?"
+  // choice because this one is a single-purpose warning: publishing the
+  // trimestre cascades to every document in it, so anyone who wants a
+  // specific document to stay a rascunho needs to know that BEFORE
+  // confirming, not discover it after the fact.
+  const [topPublishConfirmId, setTopPublishConfirmId] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
   function openWizard() {
@@ -1289,9 +1302,17 @@ export default function CentralDeResultadosPage2() {
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>add</span>
                 Adicionar resultado
               </button>
-              <button type="button" className="btn-primary" onClick={async () => { if (!editingQuarterId) return; await updateQuarterDocs(editingQuarterId, stagedDocs); handleSaveQuarter(editingQuarterId); }}>
+              <button type="button" className="btn-outline" onClick={async () => { if (!editingQuarterId) return; await updateQuarterDocs(editingQuarterId, stagedDocs); handleSaveQuarter(editingQuarterId); }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check</span>
                 Salvar e fechar
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={async () => { if (!editingQuarterId) return; await updateQuarterDocs(editingQuarterId, stagedDocs); setTopPublishConfirmId(editingQuarterId); }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>public</span>
+                Publicar
               </button>
             </div>
           }
@@ -1655,6 +1676,38 @@ export default function CentralDeResultadosPage2() {
       >
         <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
           Publicar tornará o trimestre e seus documentos visíveis no portal. Você pode alterar isso depois.
+        </p>
+      </Modal>
+
+      {/* ── Publicar (topbar): aviso de que TODOS os documentos serão
+          publicados — o toggle por documento (ícone de olho na tabela)
+          continua existindo para manter um documento específico como
+          rascunho, mas só se ajustado ANTES de confirmar aqui. */}
+      <Modal
+        open={!!topPublishConfirmId}
+        onClose={() => setTopPublishConfirmId(null)}
+        title="Publicar trimestre?"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setTopPublishConfirmId(null)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => { if (topPublishConfirmId) setQuarterStatus(topPublishConfirmId, 'published'); setTopPublishConfirmId(null); }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>public</span>
+              Publicar todos
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
+          Todos os documentos deste trimestre serão publicados, inclusive os que estiverem como rascunho.
+          Se quiser manter algum documento específico como rascunho, cancele e ajuste isso primeiro pelo
+          ícone de status (👁) na linha dele.
         </p>
       </Modal>
 
