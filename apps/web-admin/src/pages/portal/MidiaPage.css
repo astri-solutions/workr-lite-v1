@@ -761,3 +761,11 @@
     z-index: 2;
   }
 }
+
+/* Gap between the page-level upload dropzone and the search/filter toolbar
+   below it — the dropzone itself carries no bottom margin (it's shared with
+   modal contexts where that spacing isn't wanted), so it sat flush against
+   the toolbar. */
+.midia-page-dropzone {
+  margin-bottom: var(--space-4);
+}
