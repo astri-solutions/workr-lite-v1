@@ -1813,14 +1813,6 @@ export default function NovaMateriaPage() {
           Matérias
         </button>
 
-        {/* Editing happens once, in the large title field above the first
-            content block — this just echoes it here (read-only) so the
-            matéria's name stays visible in the top bar while scrolled past
-            that field, without duplicating an editable input. */}
-        <span className={`nm-title-input nm-title-input--readonly${title ? '' : ' nm-title-input--empty'}`}>
-          {title || 'Título da matéria...'}
-        </span>
-
         <div className="nm-topbar-actions">
           {!canPublish && !pageOccupied && (
             <span className="nm-validation-hint">

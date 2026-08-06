@@ -396,6 +396,36 @@ function orderKey(list: Canal[]): string {
   ).join('|');
 }
 
+// Row actions (Sub-página / Editar / Publicar-Despublicar / Excluir) collapse
+// into a "⋮" dropdown on phones (see .ct-row-menu in CanaisPage.css) — on
+// desktop the same buttons keep rendering inline, this wrapper is invisible
+// there (`display: contents`). Avoids maintaining two separate action lists.
+function RowActionsMenu({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  return (
+    <div className={`ct-row-menu${open ? ' ct-row-menu--open' : ''}`} ref={ref}>
+      <button type="button" className="ct-row-menu__trigger" aria-label="Mais ações" title="Mais ações"
+        onClick={() => setOpen(o => !o)}>
+        <span className="material-symbols-outlined">more_vert</span>
+      </button>
+      <div className="ct-row-menu__dropdown" onClick={() => setOpen(false)}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // ── Component ───────────────────────────────────────────────────────────────
 export default function CanaisPage() {
   const portalName = usePortalName();
@@ -1250,23 +1280,25 @@ export default function CanaisPage() {
                   </div>
                 </span>
                 <span className="table-actions">
-                  {!isFlatLayout && (
-                    <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
-                      Sub-página
+                  <RowActionsMenu>
+                    {!isFlatLayout && (
+                      <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSub(canal.id)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                        Sub-página
+                      </button>
+                    )}
+                    <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openCanalEdit(canal)}>
+                      <span className="material-symbols-outlined">edit</span>
                     </button>
-                  )}
-                  <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openCanalEdit(canal)}>
-                    <span className="material-symbols-outlined">edit</span>
-                  </button>
-                  <button className={`btn-action btn-action--icon ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
-                    title={canal.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleCanal(canal.id)}>
-                    <span className="material-symbols-outlined">{canal.enabled ? 'visibility_off' : 'visibility'}</span>
-                  </button>
-                  <button className="btn-action btn-action--danger" type="button"
-                    onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
-                    Excluir
-                  </button>
+                    <button className={`btn-action btn-action--icon ${canal.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
+                      title={canal.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleCanal(canal.id)}>
+                      <span className="material-symbols-outlined">{canal.enabled ? 'visibility_off' : 'visibility'}</span>
+                    </button>
+                    <button className="btn-action btn-action--danger" type="button"
+                      onClick={() => openConfirmDelete({ type: 'canal', label: canal.label, canalId: canal.id })}>
+                      Excluir
+                    </button>
+                  </RowActionsMenu>
                 </span>
               </div>
 
@@ -1336,23 +1368,25 @@ export default function CanaisPage() {
                           </div>
                         </span>
                         <span className="table-actions">
-                          {!isFlatLayout && (
-                            <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
-                              Sub-página
+                          <RowActionsMenu>
+                            {!isFlatLayout && (
+                              <button className="btn-action btn-action--enter" type="button" onClick={() => openNewSubSub(canal.id, sub.id)}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>add</span>
+                                Sub-página
+                              </button>
+                            )}
+                            <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openEdit(canal.id, sub)}>
+                              <span className="material-symbols-outlined">edit</span>
                             </button>
-                          )}
-                          <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openEdit(canal.id, sub)}>
-                            <span className="material-symbols-outlined">edit</span>
-                          </button>
-                          <button className={`btn-action btn-action--icon ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
-                            title={sub.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleSub(canal.id, sub.id)}>
-                            <span className="material-symbols-outlined">{sub.enabled ? 'visibility_off' : 'visibility'}</span>
-                          </button>
-                          <button className="btn-action btn-action--danger" type="button"
-                            onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
-                            Excluir
-                          </button>
+                            <button className={`btn-action btn-action--icon ${sub.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
+                              title={sub.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleSub(canal.id, sub.id)}>
+                              <span className="material-symbols-outlined">{sub.enabled ? 'visibility_off' : 'visibility'}</span>
+                            </button>
+                            <button className="btn-action btn-action--danger" type="button"
+                              onClick={() => openConfirmDelete({ type: 'sub', label: sub.label, canalId: canal.id, subId: sub.id })}>
+                              Excluir
+                            </button>
+                          </RowActionsMenu>
                         </span>
                       </div>
 
@@ -1387,17 +1421,19 @@ export default function CanaisPage() {
                                 </div>
                               </span>
                               <span className="table-actions">
-                                <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>
-                                  <span className="material-symbols-outlined">edit</span>
-                                </button>
-                                <button className={`btn-action btn-action--icon ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
-                                  title={ss.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
-                                  <span className="material-symbols-outlined">{ss.enabled ? 'visibility_off' : 'visibility'}</span>
-                                </button>
-                                <button className="btn-action btn-action--danger" type="button"
-                                  onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
-                                  Excluir
-                                </button>
+                                <RowActionsMenu>
+                                  <button className="btn-action btn-action--enter btn-action--icon" type="button" title="Editar" onClick={() => openEditSubSub(canal.id, sub.id, ss)}>
+                                    <span className="material-symbols-outlined">edit</span>
+                                  </button>
+                                  <button className={`btn-action btn-action--icon ${ss.enabled ? 'btn-action--secondary' : 'btn-action--enter'}`} type="button"
+                                    title={ss.enabled ? 'Despublicar' : 'Publicar'} onClick={() => toggleSubSub(canal.id, sub.id, ss.id)}>
+                                    <span className="material-symbols-outlined">{ss.enabled ? 'visibility_off' : 'visibility'}</span>
+                                  </button>
+                                  <button className="btn-action btn-action--danger" type="button"
+                                    onClick={() => openConfirmDelete({ type: 'subsub', label: ss.label, canalId: canal.id, subId: sub.id, subSubId: ss.id })}>
+                                    Excluir
+                                  </button>
+                                </RowActionsMenu>
                               </span>
                             </div>
                           ))}
