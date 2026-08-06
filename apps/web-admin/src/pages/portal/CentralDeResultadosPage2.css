@@ -486,6 +486,48 @@
   border-top: 1px solid var(--color-gray-100);
 }
 
+/* ─── Trimestre editor top bar (StickyPageHeader action) ─── */
+/* Voltar / Adicionar resultado / Salvar e fechar — replaces the old
+   inline flex style, which had no mobile behavior of its own and
+   fought with .page-header__action's column stacking (an inline
+   `style` attribute always wins over a class, so the shared mobile
+   rule in PageHeader.css never actually applied here). */
+.cdr2-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 600px) {
+  .cdr2-editor-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .cdr2-editor-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ─── Documentos table: icon-only leading columns ────────── */
+/* The drag-handle and tipo-icon columns carry no header label and no
+   more than a tiny icon, but the shared .data-table rule gives every
+   th/td a 100–160px floor — on phones that reads as a wide blank strip
+   the user has to scroll past before "Nome" (the first column with
+   actual content) even starts. Only these two need a much smaller
+   floor; every other column keeps the shared min-width. */
+.cdr-page .table-wrapper .data-table th:nth-child(1),
+.cdr-page .table-wrapper .data-table td:nth-child(1),
+.cdr-page .table-wrapper .data-table th:nth-child(2),
+.cdr-page .table-wrapper .data-table td:nth-child(2) {
+  min-width: 0;
+  width: 32px;
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
 /* ─── Responsive ────────────────────────────────── */
 
 /* Mobile: stack into card blocks */

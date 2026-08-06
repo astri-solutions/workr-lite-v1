@@ -206,7 +206,7 @@ const SECTIONS: NavSection[] = [
         children: [
           {
             to: '/portal/splash',
-            label: 'Editar',
+            label: 'Novo',
             end: true,
             icon: (
               <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>edit</span>

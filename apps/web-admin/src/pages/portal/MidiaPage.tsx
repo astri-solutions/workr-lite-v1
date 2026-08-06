@@ -547,9 +547,23 @@ export default function MidiaPage() {
             ))}
           </div>
 
-          {/* Detail panel */}
+          {/* Detail panel — on phones this becomes a fixed side panel over
+              the grid (see .midia-detail-backdrop/.midia-detail__close in
+              MidiaPage.css); on desktop/tablet those two are invisible and
+              it stays the inline panel it always was. */}
+          {selectedFile && (
+            <div className="midia-detail-backdrop" onClick={() => setSelectedId(null)} />
+          )}
           {selectedFile && (
             <div className="midia-detail">
+              <button
+                type="button"
+                className="midia-detail__close"
+                aria-label="Fechar"
+                onClick={() => setSelectedId(null)}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+              </button>
               <div className="midia-detail__preview">
                 {selectedFile.type === 'image' && selectedFile.previewUrl ? (
                   <img className="midia-detail__img" src={selectedFile.previewUrl} alt={selectedFile.name} />
@@ -653,7 +667,14 @@ export default function MidiaPage() {
         </div>
       ) : (
         /* ── LIST VIEW ── */
-        <div className="table-wrapper table-wrapper--responsive">
+        /* Plain .table-wrapper, not the `--responsive` modifier: that
+           modifier hides the table outright at ≤720px in favor of an
+           `.rcard-list` card fallback (used by DocumentosPage/
+           CalendarioPage) — Biblioteca de Mídia has no such fallback for
+           list mode, so with the modifier the table (and every file in
+           it) simply vanished on narrower screens. Plain `.table-wrapper`
+           keeps the normal horizontal-scroll behavior instead. */
+        <div className="table-wrapper">
           <table className="data-table">
             <thead>
               <tr>

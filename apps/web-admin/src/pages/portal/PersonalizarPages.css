@@ -8,12 +8,25 @@
 @media (max-width: 600px) {
   .publish-actions {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .publish-actions .btn-outline,
   .publish-actions .btn-primary {
-    flex: 1;
+    flex: 1 1 auto;
     justify-content: center;
+  }
+}
+
+/* Splash's header has 4 actions (Pré-visualizar / Salvar como modelo /
+   Salvar rascunho / Publicar) instead of the usual 2 — squeezing all four
+   into one `flex: 1` row leaves no room for their labels. Let them wrap
+   two-per-row instead, each button keeping a sane minimum width. */
+@media (max-width: 600px) {
+  .publish-actions--wrap .btn-outline,
+  .publish-actions--wrap .btn-primary {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
   }
 }
 

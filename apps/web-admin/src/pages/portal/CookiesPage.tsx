@@ -13,6 +13,7 @@ import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './CookiesPage.css';
+import './PersonalizarPages.css';
 
 export const COOKIES_KEY = 'portal_cookies';
 
@@ -299,7 +300,7 @@ export default function CookiesPage() {
         title="Cookies"
         description={<>Configure o banner de consentimento de cookies do portal <strong>{portalName}</strong>.</>}
         action={
-          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <div className="publish-actions">
             <button className="btn-outline" type="button" onClick={handleSave} disabled={!isDirty && saved}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>

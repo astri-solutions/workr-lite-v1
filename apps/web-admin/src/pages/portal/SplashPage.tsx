@@ -14,6 +14,7 @@ import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
+import './PersonalizarPages.css';
 
 export const SPLASH_KEY = 'portal_splash';
 
@@ -230,7 +231,7 @@ export default function SplashPage() {
         title="Splash"
         description={<>Splash de entrada do portal <strong>{portalName}</strong>. Exibido automaticamente ao acessar o site.</>}
         action={
-          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <div className="publish-actions publish-actions--wrap">
             <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
               Pré-visualizar

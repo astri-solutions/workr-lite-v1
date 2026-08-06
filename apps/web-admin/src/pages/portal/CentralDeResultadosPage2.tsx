@@ -1266,7 +1266,7 @@ export default function CentralDeResultadosPage2() {
           title={`Trimestre ${editorQuarter?.period ?? ''}`}
           description={<>Editar documentos do trimestre · <strong>{ENTITIES.find(e => e.id === editorQuarter?.entityId)?.name}</strong></>}
           action={
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div className="cdr2-editor-actions">
               <button type="button" className="btn-outline" onClick={closeQuarterEditor}>
                 <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_back</span>
                 Voltar
