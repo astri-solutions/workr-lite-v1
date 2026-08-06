@@ -8,6 +8,7 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
+import MediaPicker from '../../components/MediaPicker';
 import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
@@ -37,6 +38,7 @@ export default function FaviconPage() {
   // unpublished draft, so a fresh session/browser needs to fall back to the
   // copy publish-config already mirrors into portal-media at publish time.
   const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [remoteFaviconUrl, setRemoteFaviconUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -137,20 +139,27 @@ export default function FaviconPage() {
             </div>
             <div className="fav-preview__actions">
               <button type="button" className="logo-btn logo-btn--replace" onClick={() => inputRef.current?.click()}>Substituir</button>
+              <button type="button" className="logo-btn logo-btn--replace" onClick={() => setPickerOpen(true)}>Biblioteca</button>
               <button type="button" className="logo-btn logo-btn--remove" onClick={() => { setFavicon(null); }}>Remover</button>
             </div>
           </div>
         ) : (
-          <button type="button" className="logo-dropzone" onClick={() => inputRef.current?.click()}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <span className="logo-dropzone__text">Clique para enviar favicon</span>
-            <span className="logo-dropzone__hint">ICO, PNG ou SVG — máx. 512KB</span>
-          </button>
+          <>
+            <button type="button" className="logo-dropzone" onClick={() => inputRef.current?.click()}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span className="logo-dropzone__text">Clique para enviar favicon</span>
+              <span className="logo-dropzone__hint">ICO, PNG ou SVG — máx. 512KB</span>
+            </button>
+            <button type="button" className="media-picker-trigger" onClick={() => setPickerOpen(true)}>
+              ou escolher da Biblioteca
+            </button>
+          </>
         )}
+        <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={setFavicon} portalDbId={portalDbId} />
       </div>
 
       <div className="pers-section">

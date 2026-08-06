@@ -14,6 +14,7 @@ import { useCanaisDestinos } from '../../hooks/useCanaisDestinos';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
 import PublishButton from '../../components/PublishButton';
+import MediaPicker from '../../components/MediaPicker';
 import '../admin/AdminPages.css';
 import './PersonalizarPages.css';
 
@@ -155,6 +156,7 @@ export default function BannerPage() {
   const [publishSuccess, setPublishSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const blocker = useUnsavedChanges(dirty);
 
   // Auto-close the success modal after 2.5s
@@ -308,20 +310,27 @@ export default function BannerPage() {
               <img src={previewSrc(active) ?? ''} alt="Banner" className="banner-img-preview__img" />
               <div className="banner-img-preview__actions">
                 <button type="button" className="banner-img-preview__replace" onClick={() => fileRef.current?.click()}>Substituir imagem</button>
+                <button type="button" className="banner-img-preview__replace" onClick={() => setPickerOpen(true)}>Escolher da Biblioteca</button>
                 <button type="button" className="banner-img-preview__remove" onClick={() => updateImage(null)}>Remover imagem</button>
               </div>
             </div>
           ) : (
-            <button type="button" className="logo-dropzone" onClick={() => fileRef.current?.click()}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <span className="logo-dropzone__text">Enviar imagem do banner</span>
-              <span className="logo-dropzone__hint">JPG, PNG ou WebP — 1920×1080px recomendado</span>
-            </button>
+            <>
+              <button type="button" className="logo-dropzone" onClick={() => fileRef.current?.click()}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                <span className="logo-dropzone__text">Enviar imagem do banner</span>
+                <span className="logo-dropzone__hint">JPG, PNG ou WebP — 1920×1080px recomendado</span>
+              </button>
+              <button type="button" className="media-picker-trigger" onClick={() => setPickerOpen(true)}>
+                ou escolher da Biblioteca
+              </button>
+            </>
           )}
+          <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={updateImage} portalDbId={portalDbId} />
 
           {locale !== primaryLang && (
             <p className="banner-field__hint" style={{ margin: '0 0 4px' }}>

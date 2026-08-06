@@ -8,6 +8,7 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import { pKey } from '../../utils/portalStorage';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
+import MediaPicker from '../../components/MediaPicker';
 import { savePortalConfig, fetchPortalConfig } from '../../lib/portalConfigApi';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { resolvePortalId } from '../../lib/portalDb';
@@ -164,6 +165,7 @@ export default function LogotipoPage() {
           inputRef={inputRef}
           onPickFile={() => inputRef.current?.click()}
           onClear={() => { setLogo(null); }}
+          portalDbId={portalDbId}
           inputEl={<input ref={inputRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={e => handleFile(e, setLogo, pendingLogoDataUrl, logoBlobUrlRef, 'logo')} />}
         />
@@ -176,6 +178,7 @@ export default function LogotipoPage() {
           onPickFile={() => inputNegRef.current?.click()}
           onClear={() => { setLogoNegative(null); }}
           dark
+          portalDbId={portalDbId}
           inputEl={<input ref={inputNegRef} type="file" accept=".svg,.png,.jpg,.webp" style={{ display: 'none' }}
             onChange={handleNegativeFile} />}
         />
@@ -190,7 +193,7 @@ export default function LogotipoPage() {
   );
 }
 
-function UploadArea({ title, desc, value, onPickFile, onClear, inputEl, dark }: {
+function UploadArea({ title, desc, value, onChange, onPickFile, onClear, inputEl, dark, portalDbId }: {
   title: string; desc: string; value: string | null;
   onChange: (v: string) => void;
   inputRef: React.RefObject<HTMLInputElement>;
@@ -198,7 +201,9 @@ function UploadArea({ title, desc, value, onPickFile, onClear, inputEl, dark }: 
   // Logo negativo is white/light-colored by design — previewing it on the
   // same light gray box as the other logos makes it all but invisible.
   dark?: boolean;
+  portalDbId: string | null;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   return (
     <div className="pers-section">
       <h2 className="pers-section__title">{title}</h2>
@@ -209,20 +214,27 @@ function UploadArea({ title, desc, value, onPickFile, onClear, inputEl, dark }: 
           <img src={value} alt="Logo preview" className={`logo-preview__img${dark ? ' logo-preview__img--dark' : ''}`} />
           <div className="logo-preview__actions">
             <button type="button" className="logo-btn logo-btn--replace" onClick={onPickFile}>Substituir</button>
+            <button type="button" className="logo-btn logo-btn--replace" onClick={() => setPickerOpen(true)}>Biblioteca</button>
             <button type="button" className="logo-btn logo-btn--remove" onClick={onClear}>Remover</button>
           </div>
         </div>
       ) : (
-        <button type="button" className="logo-dropzone" onClick={onPickFile}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <span className="logo-dropzone__text">Clique para enviar arquivo</span>
-          <span className="logo-dropzone__hint">SVG, PNG ou JPG — máx. 2MB</span>
-        </button>
+        <>
+          <button type="button" className="logo-dropzone" onClick={onPickFile}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <span className="logo-dropzone__text">Clique para enviar arquivo</span>
+            <span className="logo-dropzone__hint">SVG, PNG ou JPG — máx. 2MB</span>
+          </button>
+          <button type="button" className="media-picker-trigger" onClick={() => setPickerOpen(true)}>
+            ou escolher da Biblioteca
+          </button>
+        </>
       )}
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onChange} portalDbId={portalDbId} />
     </div>
   );
 }
