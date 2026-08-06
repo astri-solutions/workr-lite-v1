@@ -78,6 +78,22 @@
 .btn-primary--err { background: var(--color-error-600) !important; }
 .btn-primary--err:hover { background: var(--color-error-700) !important; }
 
+/* The actual reason publish failed — without this, "Tentar novamente" on
+   its own gave zero indication of what went wrong (also on the button's
+   own title, for anyone who hovers instead). Truncates with the full text
+   still available on hover; the row it sits in already wraps (toolbar__
+   actions / nm-topbar-actions), so a long message drops to its own line
+   instead of overflowing. */
+.publish-btn-error {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--color-error-700, #b91c1c);
+}
+
 /* ─── Standard toolbar pattern ─────────────────────────────
    Use on pages that have filters + bulk actions:
    <div className="toolbar">

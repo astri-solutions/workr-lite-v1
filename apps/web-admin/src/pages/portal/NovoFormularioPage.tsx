@@ -123,6 +123,7 @@ export default function NovoFormularioPage() {
     editing?.status === 'publicado' ? 'published' : editing?.status === 'agendado' ? 'scheduled' : 'draft',
   );
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
 
@@ -226,11 +227,28 @@ export default function NovoFormularioPage() {
         },
       };
       persistMateria(materia, activePortalId ?? undefined);
+      setSaveError('');
       if (activePortalId) {
         try {
           const portalDbId = await resolvePortalId(activePortalId);
-          if (portalDbId) await syncMateriaToSupabase(materia, portalDbId);
-        } catch (e) { console.error('sync formulário:', e); }
+          if (portalDbId) {
+            const { error } = await syncMateriaToSupabase(materia, portalDbId);
+            if (error) {
+              // Saved to the local cache only — MateriasPage lists exclusively
+              // from Supabase, so a swallowed error here (as this used to be)
+              // left the button looking like it worked while the formulário
+              // never actually showed up in the list or on the live page.
+              setSaveError(`Não foi possível salvar no banco: ${error}. O formulário NÃO aparecerá na página até isso ser resolvido.`);
+              return;
+            }
+          } else {
+            setSaveError('Não foi possível resolver o portal atual — tente recarregar a página.');
+            return;
+          }
+        } catch (e) {
+          setSaveError(`Não foi possível salvar: ${e instanceof Error ? e.message : String(e)}`);
+          return;
+        }
       }
       // Matérias render from a live Supabase fetch, so the row itself is
       // enough — but "Publicar" here must match the sidebar's global publish
@@ -261,6 +279,12 @@ export default function NovoFormularioPage() {
           <PublishButton onClick={() => handleSave('published')} disabled={!isDirty} />
         </div>
       </div>
+
+      {saveError && (
+        <div className="save-error-banner" role="alert">
+          {saveError}
+        </div>
+      )}
 
       <LangTabs active={locale} onChange={setLocale} />
 

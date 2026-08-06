@@ -9,6 +9,11 @@ interface PublishContextValue {
   publish: () => Promise<boolean>;
   publishing: boolean;
   publishStatus: 'idle' | 'ok' | 'err';
+  // Human-readable reason for the last 'err' — publishStatus alone used to
+  // be the only signal, so every page using PublishButton just showed a red
+  // "Tentar novamente" with zero explanation of what actually went wrong
+  // (expired session, publish-config rejecting the payload, network error).
+  publishError: string | null;
   hasPendingDraft: boolean;
   notifyDraft: () => void;
 }
@@ -17,6 +22,7 @@ const PublishContext = createContext<PublishContextValue>({
   publish: async () => false,
   publishing: false,
   publishStatus: 'idle',
+  publishError: null,
   hasPendingDraft: false,
   notifyDraft: () => {},
 });
@@ -35,6 +41,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
 
   const [publishing, setPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState<'idle' | 'ok' | 'err'>('idle');
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [hasPendingDraft, setHasPendingDraft] = useState(false);
 
   // Sync hasPendingDraft from localStorage when the active portal becomes known
@@ -51,6 +58,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
   async function publish(): Promise<boolean> {
     setPublishing(true);
     setPublishStatus('idle');
+    setPublishError(null);
     try {
       const activePortal = (user?.portais ?? []).find(p => p.id === user?.activePortalId) ?? user?.portais?.[0];
       const pid = activePortal?.id;
@@ -142,7 +150,11 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
 
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) { setPublishStatus('err'); return false; }
+      if (!token) {
+        setPublishStatus('err');
+        setPublishError('Sessão expirada — saia e entre novamente para publicar.');
+        return false;
+      }
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/publish-config`,
@@ -200,12 +212,23 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
         }
         return true;
       } else {
+        // Try to surface publish-config's own error message — it already
+        // returns a JSON {error} body on failure — instead of just the
+        // opaque "Tentar novamente" the button used to show with nothing
+        // explaining why.
+        let detail = `Falha ao publicar (HTTP ${res.status}).`;
+        try {
+          const body = await res.json();
+          if (body?.error) detail = String(body.error);
+        } catch { /* non-JSON error body, keep the generic detail above */ }
         setPublishStatus('err');
+        setPublishError(detail);
         setTimeout(() => setPublishStatus('idle'), 4000);
         return false;
       }
-    } catch {
+    } catch (e) {
       setPublishStatus('err');
+      setPublishError(e instanceof Error ? e.message : 'Erro de rede ao publicar. Verifique sua conexão e tente novamente.');
       setTimeout(() => setPublishStatus('idle'), 4000);
       return false;
     } finally {
@@ -214,7 +237,7 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <PublishContext.Provider value={{ publish, publishing, publishStatus, hasPendingDraft, notifyDraft }}>
+    <PublishContext.Provider value={{ publish, publishing, publishStatus, publishError, hasPendingDraft, notifyDraft }}>
       {children}
     </PublishContext.Provider>
   );
