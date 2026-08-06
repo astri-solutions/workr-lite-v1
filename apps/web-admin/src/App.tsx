@@ -11,6 +11,7 @@ import PortaisPage from './pages/admin/PortaisPage';
 import UsuariosPage from './pages/admin/UsuariosPage';
 import AutoCvmPage from './pages/admin/AutoCvmPage';
 import InformacoesPage from './pages/admin/InformacoesPage';
+import AtendimentoAdminPage from './pages/admin/AtendimentoAdminPage';
 import PainelControlePage from './pages/admin/PainelControlePage';
 import NovoPortalPage from './pages/admin/NovoPortalPage';
 import AnalyticsPage from './pages/admin/AnalyticsPage';
@@ -84,6 +85,7 @@ const router = createBrowserRouter([
       { path: 'usuarios', element: <UsuariosPage /> },
       { path: 'auto-cvm', element: <AutoCvmPage /> },
       { path: 'informacoes', element: <InformacoesPage /> },
+      { path: 'atendimento', element: <AtendimentoAdminPage /> },
       { path: 'portais/:siteId/painel', element: <PainelControlePage /> },
       { path: 'portais/:siteId/analytics', element: <AnalyticsPage /> },
       { path: 'portais/:siteId/banco-de-dados', element: <BancoDeDadosPage /> },

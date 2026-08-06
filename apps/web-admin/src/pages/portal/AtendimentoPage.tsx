@@ -263,12 +263,12 @@ export default function AtendimentoPage() {
               </div>
 
               <div className="atend-field">
-                <label className="atend-label">Anexos <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}>(opcional — imagens ou vídeos, até {MAX_ANEXOS})</span></label>
+                <label className="atend-label">Anexos <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}>(opcional — imagens, vídeos ou documentos, até {MAX_ANEXOS})</span></label>
                 <div className="atend-anexos">
                   {anexos.map((f, i) => (
                     <div key={i} className="atend-anexo-chip">
                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                        {f.type.startsWith('video/') ? 'videocam' : 'image'}
+                        {f.type.startsWith('video/') ? 'videocam' : f.type.startsWith('image/') ? 'image' : 'description'}
                       </span>
                       <span className="atend-anexo-chip__name">{f.name}</span>
                       <button type="button" className="atend-anexo-chip__remove" onClick={() => removeAnexo(i)} aria-label={`Remover ${f.name}`}>
@@ -285,7 +285,7 @@ export default function AtendimentoPage() {
                   <input
                     ref={anexoInputRef}
                     type="file"
-                    accept="image/*,video/*"
+                    accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                     multiple
                     style={{ display: 'none' }}
                     onChange={(e) => { addAnexos(e.target.files); e.target.value = ''; }}
@@ -363,7 +363,7 @@ export default function AtendimentoPage() {
             </h3>
             <ul className="atend-tip-list">
               <li>Informe o nome do portal afetado</li>
-              <li>Anexe prints ou vídeos quando possível</li>
+              <li>Anexe prints, vídeos ou documentos quando possível</li>
               <li>Descreva os passos que levaram ao problema</li>
               <li>Indique se o problema é recorrente ou pontual</li>
             </ul>
