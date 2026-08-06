@@ -1,3 +1,27 @@
+.media-picker__search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  background: var(--color-gray-50);
+  outline: none;
+  margin-bottom: var(--space-3);
+}
+
+.media-picker__search:focus {
+  border-color: var(--color-primary-400, var(--color-primary-500));
+  background: var(--color-white);
+}
+
+.media-picker__hint {
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+  margin: 0 0 var(--space-3);
+}
+
 .media-picker__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -25,6 +49,12 @@
   box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.15);
 }
 
+.media-picker__item:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px rgba(11, 91, 104, 0.25);
+}
+
 .media-picker__thumb {
   width: 100%;
   height: 90px;
@@ -44,13 +74,20 @@
 
 .media-picker__empty {
   text-align: center;
-  color: var(--color-gray-500);
+  /* gray-600, not gray-500 — 500 sits at ~4.29:1 on white, just under the
+     4.5:1 AA floor for normal text. */
+  color: var(--color-gray-600);
   font-size: var(--text-sm);
   padding: var(--space-8) 0;
 }
 
+/* error-700, not error-600: 600 has no dark-mode override in tokens.css,
+   so in dark mode it rendered at ~3.53:1 on the dark surface — 700 is the
+   one error token tokens.css already re-maps for dark mode (#ffb4b4),
+   same pattern used everywhere else error text needs to work in both
+   themes. */
 .media-picker__empty--error {
-  color: var(--color-error-600, #b91c1c);
+  color: var(--color-error-700, #9b1c1c);
 }
 
 /* A "Escolher da Biblioteca" trigger placed next to an existing upload
@@ -62,7 +99,12 @@
   gap: 4px;
   background: none;
   border: none;
-  padding: 0;
+  /* Text itself stays compact, but the clickable box grows via padding —
+     this is used stand-alone on mobile-facing pages (Splash/Banner/Logo/
+     Favicon/Matérias/Canais), not just desktop, where a zero-padding
+     one-line link fell well under any reasonable touch-target floor. */
+  padding: var(--space-2) 0;
+  min-height: 24px;
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   color: var(--color-primary-600-text, var(--color-primary-500));
@@ -74,4 +116,10 @@
 
 .media-picker-trigger:hover {
   text-decoration-color: currentColor;
+}
+
+.media-picker-trigger:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }

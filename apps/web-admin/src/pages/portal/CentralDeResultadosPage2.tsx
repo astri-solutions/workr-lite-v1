@@ -1115,16 +1115,30 @@ export default function CentralDeResultadosPage2() {
   }
 
   async function deleteQuarter(id: string) {
-    setQuarters(prev => prev.filter(q => q.id !== id));
-    setDocs(prev => { const next = { ...prev }; delete next[id]; return next; });
+    // Local state only updates AFTER both deletes actually succeed — this
+    // used to clear `quarters`/`docs` optimistically before touching
+    // Supabase at all, so an RLS rejection (or any other failure) on either
+    // delete left the UI showing the trimestre as gone while it was still
+    // sitting in the database — silently, with no error and no way to tell
+    // short of reloading the page.
     if (portalDbId && supabase) {
       // Arquivos first — portal_resultado_periodos has no ON DELETE CASCADE
       // configured, so deleting the período row first would leave orphaned
       // portal_resultado_arquivos rows behind (invisible in the CMS, but
       // still occupying Storage/DB space).
-      await supabase.from('portal_resultado_arquivos').delete().eq('periodo_id', id);
-      await supabase.from('portal_resultado_periodos').delete().eq('id', id);
+      const { error: arquivosError } = await supabase.from('portal_resultado_arquivos').delete().eq('periodo_id', id);
+      if (arquivosError) {
+        alert(`Não foi possível excluir os documentos deste trimestre: ${arquivosError.message}`);
+        return;
+      }
+      const { error: periodoError } = await supabase.from('portal_resultado_periodos').delete().eq('id', id);
+      if (periodoError) {
+        alert(`Os documentos foram removidos, mas não foi possível excluir o trimestre: ${periodoError.message}`);
+        return;
+      }
     }
+    setQuarters(prev => prev.filter(q => q.id !== id));
+    setDocs(prev => { const next = { ...prev }; delete next[id]; return next; });
   }
 
   function handleSaveQuarter(id: string | null) {

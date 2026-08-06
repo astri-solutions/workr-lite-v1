@@ -48,6 +48,11 @@ interface DocRow {
   filePath?: string;
   scheduleAt?: string;
   arquivos: Record<string, DocFileEntry>;
+  // A marcador is saved as its label text, not an id — if it's renamed or
+  // deleted in Canais afterwards, this row keeps showing the old name
+  // forever with nothing to say it's stale. True while at least one
+  // marcador this document targets no longer exists under that canal.
+  paginaStale?: boolean;
 }
 
 const DOCS_BUCKET = 'portal-documents';
@@ -200,7 +205,7 @@ function emptyDocForm(entityId = ''): DocForm {
 }
 
 // Convert DB row → DocRow
-function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>): DocRow {
+function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>, pageSubGroupsById: Map<string, Set<string>>): DocRow {
   const titulo = (r.titulo as Record<string, string>) ?? {};
   // The table always shows the Portuguese title regardless of which locale
   // tab was last edited — 'PT' was never a real key (locales are stored as
@@ -214,11 +219,13 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
   // made every document under a lista-agrupada canal look identical in the
   // list ("Documentos CVM" for all of them) even when each one actually
   // targets a different group.
+  let paginaStale = false;
   const paginaLabel = paginaIds.length === 0
     ? '—'
     : paginaIds.map(id => {
         const base = pageLabelById.get(id) ?? id;
         const subs = subGroupIds[id] ?? [];
+        if (subs.length > 0 && subs.some(s => !pageSubGroupsById.get(id)?.has(s))) paginaStale = true;
         return subs.length > 0 ? `${base} — ${subs.join(', ')}` : base;
       }).join(', ');
   // For CVM-imported documents, data_publicacao holds the REAL date the
@@ -240,6 +247,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
     status: (r.status as DocStatus) ?? 'Rascunho',
     dataPub: r.status === 'Publicado' ? createdAt : r.status === 'Agendado' ? scheduleLabel : '—',
     pagina: paginaLabel,
+    paginaStale,
     idiomas: (r.idiomas as string[]) ?? ['PT'],
     ptOnly: !!r.pt_only,
     tags: [],
@@ -317,7 +325,8 @@ export default function DocumentosPage() {
 
   const destPages = useMemo(() => buildDestPages(loadPortalCanais(user?.activePortalId)), [user?.activePortalId]);
   const pageLabelById = useMemo(() => new Map(destPages.map(p => [p.id, p.label])), [destPages]);
-  const docs = useMemo(() => rawDocs.map(r => dbToRow(r, pageLabelById)), [rawDocs, pageLabelById]);
+  const pageSubGroupsById = useMemo(() => new Map(destPages.map(p => [p.id, new Set(p.subGroups)])), [destPages]);
+  const docs = useMemo(() => rawDocs.map(r => dbToRow(r, pageLabelById, pageSubGroupsById)), [rawDocs, pageLabelById, pageSubGroupsById]);
 
   const loadDocs = useCallback(async () => {
     if (!portalDbId || !isSupabaseConfigured || !supabase) return;
@@ -802,7 +811,15 @@ export default function DocumentosPage() {
                   <td className="table-cell--muted">{doc.dataPub}</td>
                   <td className="table-cell--muted">
                     <span className="docs-pagina-cell">
-                      {doc.pagina}
+                      <span className="docs-pagina-cell__label" title={doc.pagina}>{doc.pagina}</span>
+                      {doc.paginaStale && (
+                        <span
+                          className="material-symbols-outlined docs-pagina-cell__stale"
+                          title="Um dos grupos deste documento foi renomeado ou removido em Canais — reabra e ajuste o destino."
+                        >
+                          warning
+                        </span>
+                      )}
                       {doc.externalLink && (
                         <span className="docs-ext-badge" title={doc.externalLink}>
                           <span className="material-symbols-outlined docs-ext-badge__icon">open_in_new</span>

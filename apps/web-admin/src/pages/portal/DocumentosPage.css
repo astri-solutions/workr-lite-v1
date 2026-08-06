@@ -868,6 +868,25 @@
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  max-width: 100%;
+}
+
+/* "Canal — Marcador A, Marcador B, ..." has no natural length limit — left
+   unbounded it wrapped onto as many lines as needed, inflating that row's
+   height past its neighbors. Truncate with the full text on hover instead. */
+.docs-pagina-cell__label {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docs-pagina-cell__stale {
+  font-size: 15px !important;
+  /* warning-700, not -600 — -700 is the one warning token tokens.css
+     re-maps for dark mode. */
+  color: var(--color-warning-700, #92400e);
+  flex-shrink: 0;
 }
 
 .docs-ext-badge {
