@@ -70,7 +70,7 @@ interface Fonts { display: string; body: string; }
 interface TickerItem { symbol: string; price: string; change: string; direction: string; }
 interface TickerCfg { type: string; iframeUrl?: string; items?: TickerItem[]; }
 interface SocialCfg { platform: string; url: string; }
-interface LegalLinkCfg { id: string; label: string; enabled: boolean; pageId?: string; }
+interface LegalLinkCfg { id: string; label: string; labels?: Record<string, string>; enabled: boolean; pageId?: string; isExternalLink?: boolean; externalUrl?: string; }
 interface FooterTexts {
   address: string; phone: string; hours: string; copyright: string; disclaimer: string;
 }
@@ -401,20 +401,36 @@ function buildSiteConfig(opts: {
     { id: 'cookies', label: 'Definições de Cookies', enabled: true },
   ]).filter((l: LegalLinkCfg) => l.enabled);
   const legalLinks = legalLinksArr.map((l: LegalLinkCfg) => {
-    const customHref = l.pageId ? findCanalHref(opts.canais, l.pageId) : undefined;
-    const href = customHref ?? (
-      l.id === 'termos' ? '/termos-e-condicoes.html'
-      : l.id === 'privacidade' ? '/politica-de-privacidade.html'
-      : l.id === 'cookies' ? '/definicao-de-cookies.html'
-      : `/${l.id}.html`
-    );
-    return `      { label: ${JSON.stringify(l.label)}, href: ${JSON.stringify(href)} }`;
+    const fields = [
+      `label: ${JSON.stringify(l.label)}`,
+      ...(l.labels ? [`labels: ${JSON.stringify(l.labels)}`] : []),
+    ];
+    if (l.isExternalLink) {
+      fields.push(`href: ${JSON.stringify(l.externalUrl || '#')}`, `isExternalLink: true`);
+    } else {
+      const customHref = l.pageId ? findCanalHref(opts.canais, l.pageId) : undefined;
+      const href = customHref ?? (
+        l.id === 'termos' ? '/termos-e-condicoes.html'
+        : l.id === 'privacidade' ? '/politica-de-privacidade.html'
+        : l.id === 'cookies' ? '/definicao-de-cookies.html'
+        : `/${l.id}.html`
+      );
+      fields.push(`href: ${JSON.stringify(href)}`);
+    }
+    return `      { ${fields.join(', ')} }`;
   }).join(',\n');
 
   const socials = f?.socials ?? [];
   const linkedin  = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'LinkedIn')?.url || '#');
   const instagram = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'Instagram')?.url || '#');
   const facebook  = JSON.stringify(socials.find((s: SocialCfg) => s.platform === 'Facebook')?.url || '#');
+  // Full array (all 5 platforms admins can fill in) — the old fixed
+  // {linkedin,instagram,facebook} object above only ever carried 3 of them,
+  // silently dropping any X (Twitter)/YouTube URL. footer.js prefers this
+  // array when present and falls back to the object above for any
+  // still-cached site.config.js from before this existed.
+  const socialsArr = socials.filter((s: SocialCfg) => s.url).map((s: SocialCfg) =>
+    `{ platform: ${JSON.stringify(s.platform)}, url: ${JSON.stringify(s.url)} }`).join(', ');
 
   const tb = opts.topbar;
   const topbarRi = tb?.ri ?? { label: 'Relações com Investidores', url: '/' };
@@ -496,6 +512,7 @@ ${buildEmpresasSection(opts.empresas, opts.nome)}
     email: ${email},
     content: ${JSON.stringify(footerContent)},
     social: { linkedin: ${linkedin}, instagram: ${instagram}, facebook: ${facebook} },
+    socials: [ ${socialsArr} ],
     legalLinks: [
 ${legalLinks}
     ],

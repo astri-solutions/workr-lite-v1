@@ -18,8 +18,26 @@ import './FooterPage.css';
 type FooterModel = 'completo' | 'compacto' | 'reduzido';
 
 interface SocialLink { platform: string; url: string; icon: React.ReactNode }
-/** pageId, when set, points this link at a real canal instead of the fixed legal page. */
-interface LegalLink  { id: string; label: string; enabled: boolean; pageId?: string }
+
+// Same per-locale-with-fallback shape used for matéria section images/text
+// elsewhere (LocalizedHtml/LocalizedImage) — a plain string is the legacy
+// shape (every legal link saved before labels were tracked per language),
+// which showed the exact same text in every site language.
+type LocalizedLabel = string | Partial<Record<string, string>>;
+
+function labelFor(label: LocalizedLabel, lang: string): string {
+  if (typeof label === 'string') return label;
+  return label[lang] ?? label[primaryLang] ?? Object.values(label)[0] ?? '';
+}
+
+function withLabel(label: LocalizedLabel, lang: string, value: string): LocalizedLabel {
+  const base: Partial<Record<string, string>> = typeof label === 'string' ? { [primaryLang]: label } : { ...label };
+  return { ...base, [lang]: value };
+}
+
+/** pageId, when set, points this link at a real canal instead of the fixed legal page.
+ *  isExternalLink + externalUrl: points at an arbitrary URL instead of any internal page. */
+interface LegalLink  { id: string; label: LocalizedLabel; enabled: boolean; pageId?: string; isExternalLink?: boolean; externalUrl?: string }
 
 // Free text shown to visitors — one independent set per site language
 // (address/hours/copyright/disclaimer read differently per market), same
@@ -277,10 +295,21 @@ export default function FooterPage() {
     markDirty();
   }
 
-  function setLegal(id: string, field: 'label' | 'enabled' | 'pageId', val: string | boolean) {
+  function setLegal(id: string, field: 'enabled' | 'pageId' | 'isExternalLink' | 'externalUrl', val: string | boolean) {
     setConfig(prev => ({
       ...prev,
       legalLinks: prev.legalLinks.map(l => l.id === id ? { ...l, [field]: val } : l),
+    }));
+    markDirty();
+  }
+
+  // Separate from setLegal above — the label is per-locale (LocalizedLabel),
+  // so writing it needs the currently active language tab, unlike the other
+  // fields which are the same regardless of site language.
+  function setLegalLabel(id: string, value: string) {
+    setConfig(prev => ({
+      ...prev,
+      legalLinks: prev.legalLinks.map(l => l.id === id ? { ...l, label: withLabel(l.label, activeLang, value) } : l),
     }));
     markDirty();
   }
@@ -379,7 +408,11 @@ export default function FooterPage() {
         </div>
       )}
 
-      {/* Completo/Compacto: contact & social — only for banner template with full/compact model */}
+      {/* Completo/Compacto: contact — only for banner template with full/compact model.
+          Address/phone/hours need the full/compact footer's own dedicated
+          block to make sense; the reduced (bottom-bar-only) footer used by
+          sidebar/tabmenu — and by banner itself when "Reduzido" is picked —
+          has no room for that, so it stays gated. */}
       {isBannerModel && (config.model === 'completo' || config.model === 'compacto') && (
         <>
           <div className="pers-section">
@@ -426,38 +459,44 @@ export default function FooterPage() {
               </label>
             </div>
           </div>
-
-          <div className="pers-section">
-            <h2 className="pers-section__title">Redes sociais</h2>
-            <p className="pers-section__desc">Deixe o campo em branco para ocultar o ícone no footer.</p>
-            <div className="footer-socials">
-              {config.socials.map(s => {
-                const def = SOCIAL_PLATFORMS.find(p => p.platform === s.platform);
-                return (
-                  <label key={s.platform} className="footer-social-row">
-                    <span className="footer-social-row__icon">{def?.icon}</span>
-                    <span className="footer-social-row__platform">{s.platform}</span>
-                    <input
-                      className="footer-field__input"
-                      type="url"
-                      placeholder="https://..."
-                      value={s.url}
-                      onChange={e => setSocialUrl(s.platform, e.target.value)}
-                    />
-                  </label>
-                );
-              })}
-            </div>
-          </div>
         </>
       )}
+
+      {/* Redes sociais — shown for every layout/model, not just Banner
+          completo/compacto: sidebar/tabmenu (and Banner "Reduzido") only get
+          the bottom-bar-only footer, but that bar has room for a compact row
+          of social icons alongside the legal links, same as the full/compact
+          footer's dedicated block above. */}
+      <div className="pers-section">
+        <h2 className="pers-section__title">Redes sociais</h2>
+        <p className="pers-section__desc">Deixe o campo em branco para ocultar o ícone no footer.</p>
+        <div className="footer-socials">
+          {config.socials.map(s => {
+            const def = SOCIAL_PLATFORMS.find(p => p.platform === s.platform);
+            return (
+              <label key={s.platform} className="footer-social-row">
+                <span className="footer-social-row__icon">{def?.icon}</span>
+                <span className="footer-social-row__platform">{s.platform}</span>
+                <input
+                  className="footer-field__input"
+                  type="url"
+                  placeholder="https://..."
+                  value={s.url}
+                  onChange={e => setSocialUrl(s.platform, e.target.value)}
+                />
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Legal links */}
       <div className="pers-section">
         <h2 className="pers-section__title">Links legais</h2>
         <p className="pers-section__desc">
           Configure os links exibidos na barra inferior do footer. Por padrão cada link aponta para sua página fixa
-          (Termos, Política de Privacidade, Cookies) — selecione uma página do portal para apontar para outro conteúdo.
+          (Termos, Política de Privacidade, Cookies) — selecione uma página do portal ou um link externo para apontar
+          para outro conteúdo.{PORTAL_CONFIG.languages.length > 1 ? ' O texto do link é independente por idioma — use as abas de idioma em Textos, acima.' : ''}
         </p>
         <div className="footer-legal-links">
           {config.legalLinks.map(l => (
@@ -472,21 +511,41 @@ export default function FooterPage() {
               <input
                 className={`footer-field__input${!l.enabled ? ' footer-field__input--muted' : ''}`}
                 type="text"
-                value={l.label}
+                value={labelFor(l.label, activeLang)}
                 disabled={!l.enabled}
-                onChange={e => setLegal(l.id, 'label', e.target.value)}
+                onChange={e => setLegalLabel(l.id, e.target.value)}
               />
-              <select
-                className="footer-field__input filter-select footer-legal-row__page"
-                value={l.pageId ?? ''}
-                disabled={!l.enabled}
-                onChange={e => setLegal(l.id, 'pageId', e.target.value)}
-              >
-                <option value="">Página padrão</option>
-                {destPages.map(p => (
-                  <option key={p.id} value={p.id}>{p.group} → {p.label}</option>
-                ))}
-              </select>
+              {l.isExternalLink ? (
+                <input
+                  className="footer-field__input footer-legal-row__page"
+                  type="url"
+                  placeholder="https://..."
+                  value={l.externalUrl ?? ''}
+                  disabled={!l.enabled}
+                  onChange={e => setLegal(l.id, 'externalUrl', e.target.value)}
+                />
+              ) : (
+                <select
+                  className="footer-field__input filter-select footer-legal-row__page"
+                  value={l.pageId ?? ''}
+                  disabled={!l.enabled}
+                  onChange={e => setLegal(l.id, 'pageId', e.target.value)}
+                >
+                  <option value="">Página padrão</option>
+                  {destPages.map(p => (
+                    <option key={p.id} value={p.id}>{p.group} → {p.label}</option>
+                  ))}
+                </select>
+              )}
+              <label className="footer-legal-row__ext-toggle" title="Apontar este link para uma URL externa em vez de uma página do portal">
+                <input
+                  type="checkbox"
+                  checked={!!l.isExternalLink}
+                  disabled={!l.enabled}
+                  onChange={e => setLegal(l.id, 'isExternalLink', e.target.checked)}
+                />
+                Link externo
+              </label>
             </div>
           ))}
         </div>
@@ -588,7 +647,7 @@ export default function FooterPage() {
                   {config.legalLinks.filter(l => l.enabled).map((l, i) => (
                     <span key={l.id}>
                       {i > 0 && <span className="fp__sep">·</span>}
-                      {l.label}
+                      {labelFor(l.label, activeLang)}
                     </span>
                   ))}
                 </div>
@@ -647,7 +706,7 @@ export default function FooterPage() {
                   {config.legalLinks.filter(l => l.enabled).map((l, i) => (
                     <span key={l.id}>
                       {i > 0 && <span className="fp__sep">·</span>}
-                      {l.label}
+                      {labelFor(l.label, activeLang)}
                     </span>
                   ))}
                 </div>
@@ -670,9 +729,21 @@ export default function FooterPage() {
                   {config.legalLinks.filter(l => l.enabled).map((l, i) => (
                     <span key={l.id}>
                       {i > 0 && <span className="fp__sep">·</span>}
-                      {l.label}
+                      {labelFor(l.label, activeLang)}
                     </span>
                   ))}
+                  {/* Sidebar/tabmenu (e Banner "Reduzido") não têm o bloco
+                      dedicado de redes sociais do modelo completo/compacto —
+                      a barra inferior é o único lugar onde esses ícones
+                      aparecem nesses casos. */}
+                  {config.socials.some(s => s.url) && (
+                    <span className="fp__socials-inline">
+                      {config.socials.filter(s => s.url).map(s => {
+                        const def = SOCIAL_PLATFORMS.find(p => p.platform === s.platform);
+                        return <span key={s.platform} className="fp__social-icon">{def?.icon}</span>;
+                      })}
+                    </span>
+                  )}
                 </div>
                 <div className="fp__bottom-right">
                   <span>{texts.copyright}</span>

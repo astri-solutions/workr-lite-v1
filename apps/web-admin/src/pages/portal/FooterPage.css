@@ -152,7 +152,7 @@
 
 .footer-legal-row {
   display: grid;
-  grid-template-columns: 24px 1fr 1fr;
+  grid-template-columns: 24px 1fr 1fr auto;
   align-items: center;
   gap: var(--space-3);
 }
@@ -161,12 +161,24 @@
   min-width: 0;
 }
 
+.footer-legal-row__ext-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-600);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 @media (max-width: 640px) {
   .footer-legal-row {
     grid-template-columns: 24px 1fr;
-    grid-template-areas: "toggle label" ". page";
+    grid-template-areas: "toggle label" ". page" ". ext";
   }
   .footer-legal-row__page { grid-area: page; }
+  .footer-legal-row__ext-toggle { grid-area: ext; }
 }
 
 .footer-legal-toggle { display: flex; align-items: center; }
@@ -255,6 +267,17 @@
 }
 
 .fp__social-icon { display: flex; align-items: center; }
+
+/* Reduzido preview's bottom-bar-only social icons — same icons as .fp__socials
+   above, just inline alongside the legal links instead of in their own block
+   (there's no separate contact/social section to put them in when the footer
+   is reduced to just the bottom bar). */
+.fp__socials-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: rgba(255,255,255,0.7);
+}
 
 .fp__bottom {
   display: flex;
