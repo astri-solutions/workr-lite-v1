@@ -959,6 +959,7 @@ export default function CentralDeResultadosPage2() {
   // specific document to stay a rascunho needs to know that BEFORE
   // confirming, not discover it after the fact.
   const [topPublishConfirmId, setTopPublishConfirmId] = useState<string | null>(null);
+  const [confirmDeleteQuarterId, setConfirmDeleteQuarterId] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState(false);
 
   function openWizard() {
@@ -1113,6 +1114,19 @@ export default function CentralDeResultadosPage2() {
     if (status === 'published') setPublishSuccess(true);
   }
 
+  async function deleteQuarter(id: string) {
+    setQuarters(prev => prev.filter(q => q.id !== id));
+    setDocs(prev => { const next = { ...prev }; delete next[id]; return next; });
+    if (portalDbId && supabase) {
+      // Arquivos first — portal_resultado_periodos has no ON DELETE CASCADE
+      // configured, so deleting the período row first would leave orphaned
+      // portal_resultado_arquivos rows behind (invisible in the CMS, but
+      // still occupying Storage/DB space).
+      await supabase.from('portal_resultado_arquivos').delete().eq('periodo_id', id);
+      await supabase.from('portal_resultado_periodos').delete().eq('id', id);
+    }
+  }
+
   function handleSaveQuarter(id: string | null) {
     if (!id) return;
     setSaveConfirmId(id);
@@ -1251,6 +1265,11 @@ export default function CentralDeResultadosPage2() {
 
   const editorQuarter = editingQuarterId ? quarters.find(q => q.id === editingQuarterId) : null;
   const editorPublished = stagedDocs.filter(d => d.status === 'published').length;
+
+  const deleteTargetQuarter = confirmDeleteQuarterId ? quarters.find(q => q.id === confirmDeleteQuarterId) : undefined;
+  const deleteTargetDocsCount = confirmDeleteQuarterId
+    ? new Set((docs[confirmDeleteQuarterId] ?? []).map(groupKeyOf)).size
+    : 0;
 
   // The document drawer's own "Salvar" only writes to this staged, in-memory
   // list — nothing reaches Supabase until "Salvar trimestre"/"Salvar e
@@ -1449,7 +1468,13 @@ export default function CentralDeResultadosPage2() {
             <div key={group.year} className="cdr-year-group">
               <div className="cdr-year-label">{group.year}</div>
               {group.quarters.map(q => {
-                const qDocs = docs[q.id] ?? [];
+                // `docs[q.id]` is flat — one FileEntry per locale, so a
+                // document with PT+EN versions is two entries sharing a
+                // groupId. Counting raw entries doubled every multi-idioma
+                // documento here ("2 arquivos" for what's really one). Fold
+                // by groupKeyOf first, same as the editor's own table does.
+                const qDocsRaw = docs[q.id] ?? [];
+                const qDocs = Array.from(new Map(qDocsRaw.map(d => [groupKeyOf(d), d])).values());
                 const published = qDocs.filter(d => d.status === 'published').length;
                 return (
                   <div key={q.id} className="cdr-accordion">
@@ -1491,6 +1516,15 @@ export default function CentralDeResultadosPage2() {
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span>
                         Abrir
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-action btn-action--danger"
+                        onClick={() => setConfirmDeleteQuarterId(q.id)}
+                        title="Excluir trimestre"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
+                        Excluir
                       </button>
                     </div>
                   </div>
@@ -1708,6 +1742,37 @@ export default function CentralDeResultadosPage2() {
           Todos os documentos deste trimestre serão publicados, inclusive os que estiverem como rascunho.
           Se quiser manter algum documento específico como rascunho, cancele e ajuste isso primeiro pelo
           ícone de status (👁) na linha dele.
+        </p>
+      </Modal>
+
+      {/* ── Excluir trimestre — aviso extra só quando há documentos, já
+          que excluir o período cascata para todo mundo em
+          portal_resultado_arquivos. */}
+      <Modal
+        open={!!confirmDeleteQuarterId}
+        onClose={() => setConfirmDeleteQuarterId(null)}
+        title="Excluir trimestre?"
+        size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setConfirmDeleteQuarterId(null)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn-outline btn-outline--danger"
+              onClick={() => { if (confirmDeleteQuarterId) deleteQuarter(confirmDeleteQuarterId); setConfirmDeleteQuarterId(null); }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
+              Excluir
+            </button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-gray-600)', lineHeight: 1.6 }}>
+          {deleteTargetDocsCount > 0
+            ? <>O trimestre <strong>{deleteTargetQuarter?.period}</strong> será excluído junto com {deleteTargetDocsCount === 1 ? 'o documento cadastrado nele' : `os ${deleteTargetDocsCount} documentos cadastrados nele`} — inclusive os já publicados no portal. Esta ação não pode ser desfeita.</>
+            : <>O trimestre <strong>{deleteTargetQuarter?.period}</strong> será excluído. Esta ação não pode ser desfeita.</>}
         </p>
       </Modal>
 

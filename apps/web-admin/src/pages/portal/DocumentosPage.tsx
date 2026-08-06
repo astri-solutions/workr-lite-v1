@@ -194,9 +194,20 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>)
   // 'pt-BR'/'en'/'es'), so this previously fell through to an arbitrary key.
   const nomePrimary = titulo['pt-BR'] ?? titulo[Object.keys(titulo)[0]] ?? String(r.id);
   const paginaIds = (r.pagina_ids as string[]) ?? [];
+  const subGroupIds = (r.sub_group_ids as Record<string, string[]>) ?? {};
+  // A canal checkbox always gets checked when a marcador inside it is
+  // picked (see the "Página de destino" tree), but the marcador itself is
+  // the real, more specific destination — showing only the canal name here
+  // made every document under a lista-agrupada canal look identical in the
+  // list ("Documentos CVM" for all of them) even when each one actually
+  // targets a different group.
   const paginaLabel = paginaIds.length === 0
     ? '—'
-    : paginaIds.map(id => pageLabelById.get(id) ?? id).join(', ');
+    : paginaIds.map(id => {
+        const base = pageLabelById.get(id) ?? id;
+        const subs = subGroupIds[id] ?? [];
+        return subs.length > 0 ? `${base} — ${subs.join(', ')}` : base;
+      }).join(', ');
   // For CVM-imported documents, data_publicacao holds the REAL date the
   // filing was published at the CVM — created_at is just row-insert time
   // and would show "today" for a document filed months/years ago.
