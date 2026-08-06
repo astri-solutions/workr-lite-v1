@@ -202,6 +202,9 @@ export default function MidiaPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [addTagId, setAddTagId] = useState<string | null>(null);
   const [newTag, setNewTag] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Upload modal
@@ -394,6 +397,53 @@ export default function MidiaPage() {
       category: 'midia',
       entity: target?.name ?? '',
     });
+  }
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  // Arquivos "Sistema" (f.slot definido — logotipo/favicon/banner geridos
+  // pelo Publicar) nunca entram na seleção: Excluir/Substituir já ficam
+  // desabilitados por arquivo na UI de sempre por esse mesmo motivo.
+  const selectableIds = filtered.filter(f => !f.slot).map(f => f.id);
+
+  function toggleAllSelected() {
+    setSelected(prev => prev.size === selectableIds.length ? new Set() : new Set(selectableIds));
+  }
+
+  const selectedCount = selected.size;
+
+  async function deleteSelected() {
+    if (!supabase || !portalDbId || selected.size === 0) return;
+    setDeleting(true);
+    const targets = files.filter(f => selected.has(f.id));
+    const { error } = await supabase.from('portal_media').delete().in('id', [...selected]);
+    if (error) {
+      console.error('bulk media delete failed', error);
+      alert(`Não foi possível excluir os arquivos selecionados: ${error.message}`);
+      setDeleting(false);
+      return;
+    }
+    const paths = targets.map(t => t.filePath).filter((p): p is string => !!p);
+    if (paths.length > 0) await supabase.storage.from(MEDIA_BUCKET).remove(paths);
+    if (selectedId && selected.has(selectedId)) setSelectedId(null);
+    setSelected(new Set());
+    setDeleteModalOpen(false);
+    setDeleting(false);
+    await loadFiles();
+    targets.forEach(t => logActivity({
+      portalId: portalDbId,
+      userName,
+      userEmail: user?.email ?? '',
+      action: 'removeu',
+      category: 'midia',
+      entity: t.name,
+    }));
   }
 
   async function handleAddTag(id: string) {
@@ -594,6 +644,11 @@ export default function MidiaPage() {
           <FilterBar groups={MIDIA_FILTERS} value={filters} onChange={(k, v) => setFilters(f => ({ ...f, [k]: v }))} />
         </div>
         <div className="toolbar__actions">
+          {selectedCount > 0 && (
+            <button type="button" className="btn-toolbar btn-toolbar--danger" onClick={() => setDeleteModalOpen(true)}>
+              Excluir selecionados
+            </button>
+          )}
           <div className="midia-view-toggle">
             <button
               type="button"
@@ -612,7 +667,9 @@ export default function MidiaPage() {
               <IconList />
             </button>
           </div>
-          <span className="toolbar__count">{filtered.length} arquivo{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="toolbar__count">
+            {selectedCount > 0 ? `${selectedCount} de ` : ''}{filtered.length} arquivo{filtered.length !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 
@@ -635,6 +692,19 @@ export default function MidiaPage() {
                 className={`midia-card${selectedId === f.id ? ' midia-card--active' : ''}`}
                 onClick={() => setSelectedId(prev => prev === f.id ? null : f.id)}
               >
+                {/* Arquivos "Sistema" (logotipo/favicon/banner) não têm
+                    checkbox — não podem ser excluídos por aqui (ver
+                    deleteFile/deleteSelected), mesma regra dos botões
+                    Substituir/Excluir individuais abaixo. */}
+                {!f.slot && (
+                  <input
+                    type="checkbox"
+                    className="midia-card__checkbox"
+                    checked={selected.has(f.id)}
+                    onClick={e => e.stopPropagation()}
+                    onChange={() => toggleSelect(f.id)}
+                  />
+                )}
                 <div className="midia-card__thumb">
                   {f.type === 'image' && f.previewUrl ? (
                     <img className="midia-card__img" src={f.previewUrl} alt={f.name} />
@@ -699,6 +769,13 @@ export default function MidiaPage() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>
+                  <input
+                    type="checkbox"
+                    checked={selectableIds.length > 0 && selectedCount === selectableIds.length}
+                    onChange={toggleAllSelected}
+                  />
+                </th>
                 <th className="midia-col-thumb"></th>
                 <th className={`th-sort${sortCol === 'name' ? ' th-sort--active' : ''}`} onClick={() => sortToggle('name')}><span className="th-sort-inner">Arquivo <SortIcon dir={sortCol === 'name' ? sortDir : null} /></span></th>
                 <th className={`th-sort${sortCol === 'type' ? ' th-sort--active' : ''}`} onClick={() => sortToggle('type')}><span className="th-sort-inner">Tipo <SortIcon dir={sortCol === 'type' ? sortDir : null} /></span></th>
@@ -715,6 +792,11 @@ export default function MidiaPage() {
                   className={`midia-list-row${selectedId === f.id ? ' midia-list-row--active' : ''}`}
                   onClick={() => setSelectedId(prev => prev === f.id ? null : f.id)}
                 >
+                  <td onClick={e => e.stopPropagation()}>
+                    {!f.slot && (
+                      <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggleSelect(f.id)} />
+                    )}
+                  </td>
                   <td className="midia-col-thumb">
                     {f.type === 'image' && f.previewUrl ? (
                       <img className="midia-thumb midia-thumb--img" src={f.previewUrl} alt={f.name} />
@@ -952,6 +1034,21 @@ export default function MidiaPage() {
           accept=".jpg,.jpeg,.png,.webp,.svg,.gif,.pdf,.mp4,.mov,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
           hint="Selecione o novo arquivo que substituirá o atual"
         />
+      </Modal>
+
+      {/* Bulk delete confirmation */}
+      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Excluir arquivos" size="sm"
+        footer={
+          <div className="modal-footer">
+            <button type="button" className="btn-outline" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>Cancelar</button>
+            <button type="button" className="btn-outline btn-outline--danger" onClick={deleteSelected} disabled={deleting}>
+              {deleting ? 'Excluindo…' : 'Excluir'}
+            </button>
+          </div>
+        }>
+        <p className="midia-replace-info">
+          Tem certeza que deseja excluir <strong>{selectedCount} arquivo{selectedCount !== 1 ? 's' : ''}</strong>? Esta ação não pode ser desfeita.
+        </p>
       </Modal>
     </div>
   );

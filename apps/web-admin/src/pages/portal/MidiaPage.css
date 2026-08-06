@@ -55,6 +55,7 @@
 
 /* ─── Card ───────────────────────────────────────────── */
 .midia-card {
+  position: relative;
   border: 1.5px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -71,6 +72,20 @@
 .midia-card--active {
   border-color: var(--color-primary-600, var(--color-primary-500));
   box-shadow: 0 0 0 2px rgba(11,91,104,.18);
+}
+
+/* Multi-select checkbox — top-left overlay on the thumbnail, above
+   everything else in the card (z-index) so it's always clickable even
+   though it sits over the image. stopPropagation on click keeps checking
+   it from also toggling the card's own onClick (open detail panel). */
+.midia-card__checkbox {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .midia-card__thumb {
