@@ -37,6 +37,11 @@ interface DocRow {
   status: DocStatus;
   dataPub: string;
   pagina: string;
+  // Structured form of `pagina`: one entry per canal targeted, each carrying
+  // its own marcadores separately so the table cell can render the canal
+  // name and its marcador(es) as a badge below it, instead of one long
+  // truncated "Canal — Marcador A, Marcador B" string.
+  paginaGroups: { canal: string; marcadores: string[] }[];
   idiomas: string[];
   ptOnly: boolean;
   tags: string[];
@@ -220,14 +225,15 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>,
   // list ("Documentos CVM" for all of them) even when each one actually
   // targets a different group.
   let paginaStale = false;
-  const paginaLabel = paginaIds.length === 0
+  const paginaGroups = paginaIds.map(id => {
+    const base = pageLabelById.get(id) ?? id;
+    const subs = subGroupIds[id] ?? [];
+    if (subs.length > 0 && subs.some(s => !pageSubGroupsById.get(id)?.has(s))) paginaStale = true;
+    return { canal: base, marcadores: subs };
+  });
+  const paginaLabel = paginaGroups.length === 0
     ? '—'
-    : paginaIds.map(id => {
-        const base = pageLabelById.get(id) ?? id;
-        const subs = subGroupIds[id] ?? [];
-        if (subs.length > 0 && subs.some(s => !pageSubGroupsById.get(id)?.has(s))) paginaStale = true;
-        return subs.length > 0 ? `${base} — ${subs.join(', ')}` : base;
-      }).join(', ');
+    : paginaGroups.map(g => g.marcadores.length > 0 ? `${g.canal} — ${g.marcadores.join(', ')}` : g.canal).join(', ');
   // For CVM-imported documents, data_publicacao holds the REAL date the
   // filing was published at the CVM — created_at is just row-insert time
   // and would show "today" for a document filed months/years ago.
@@ -247,6 +253,7 @@ function dbToRow(r: Record<string, unknown>, pageLabelById: Map<string, string>,
     status: (r.status as DocStatus) ?? 'Rascunho',
     dataPub: r.status === 'Publicado' ? createdAt : r.status === 'Agendado' ? scheduleLabel : '—',
     pagina: paginaLabel,
+    paginaGroups,
     paginaStale,
     idiomas: (r.idiomas as string[]) ?? ['PT'],
     ptOnly: !!r.pt_only,
@@ -811,7 +818,24 @@ export default function DocumentosPage() {
                   <td className="table-cell--muted">{doc.dataPub}</td>
                   <td className="table-cell--muted">
                     <span className="docs-pagina-cell">
-                      <span className="docs-pagina-cell__label" title={doc.pagina}>{doc.pagina}</span>
+                      <span className="docs-pagina-cell__groups">
+                        {doc.paginaGroups.length === 0 ? (
+                          <span className="docs-pagina-cell__canal">—</span>
+                        ) : (
+                          doc.paginaGroups.map((g, i) => (
+                            <span key={i} className="docs-pagina-cell__group">
+                              <span className="docs-pagina-cell__canal" title={g.canal}>{g.canal}</span>
+                              {g.marcadores.length > 0 && (
+                                <span className="docs-pagina-cell__marcadores">
+                                  {g.marcadores.map((m, j) => (
+                                    <span key={j} className="docs-tag docs-tag--marcador" title={m}>{m}</span>
+                                  ))}
+                                </span>
+                              )}
+                            </span>
+                          ))
+                        )}
+                      </span>
                       {doc.paginaStale && (
                         <span
                           className="material-symbols-outlined docs-pagina-cell__stale"

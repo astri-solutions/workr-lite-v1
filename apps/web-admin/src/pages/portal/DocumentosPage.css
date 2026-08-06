@@ -117,6 +117,12 @@
   color: var(--color-fixed-white);
 }
 
+.docs-tag--marcador {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border: 1px solid var(--color-gray-200);
+}
+
 .docs-tag--lang {
   background: var(--color-primary-100);
   color: var(--color-primary-700);
@@ -865,20 +871,41 @@
 /* ─── External link badge in Página column ──────────────── */
 .docs-pagina-cell {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   flex-wrap: wrap;
   max-width: 100%;
 }
 
-/* "Canal — Marcador A, Marcador B, ..." has no natural length limit — left
-   unbounded it wrapped onto as many lines as needed, inflating that row's
-   height past its neighbors. Truncate with the full text on hover instead. */
-.docs-pagina-cell__label {
+/* One block per canal targeted; the marcador(es) inside that canal render as
+   badges on their own line below the canal name instead of being appended
+   inline ("Canal — Marcador A, Marcador B"), which had no natural length
+   limit and either overflowed or had to be truncated with an ellipsis. */
+.docs-pagina-cell__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.docs-pagina-cell__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.docs-pagina-cell__canal {
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.docs-pagina-cell__marcadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .docs-pagina-cell__stale {
