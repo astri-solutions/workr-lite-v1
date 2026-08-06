@@ -10,6 +10,7 @@ import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './TickerPage.css';
+import './PersonalizarPages.css';
 
 type TickerType = 'static' | 'iframe';
 
@@ -78,7 +79,7 @@ export default function TickerPage() {
         title="Ticker de Cotação"
         description={<>Configure o widget de cotação do portal <strong>{portalName}</strong>.</>}
         action={
-          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <div className="publish-actions">
             <button className="btn-outline" type="button" onClick={handleSave} disabled={!isDirty && saved}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>

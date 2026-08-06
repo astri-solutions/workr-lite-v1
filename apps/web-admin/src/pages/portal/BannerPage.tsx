@@ -243,7 +243,7 @@ export default function BannerPage() {
         title="Banner"
         description={<>Banner hero do portal <strong>{portalName}</strong>.</>}
         action={
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <div className="publish-actions">
             <button className="btn-outline" type="button" disabled={!dirty} onClick={handleDraft}>
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>draft</span>
               Salvar rascunho

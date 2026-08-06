@@ -11,6 +11,7 @@ import PublishButton from '../../components/PublishButton';
 import '../admin/AdminPages.css';
 import './TickerPage.css';
 import './CentralDeResultadosPage.css';
+import './PersonalizarPages.css';
 
 interface TopbarLink {
   label: string;
@@ -74,7 +75,7 @@ export default function TopbarPage() {
         title="Topbar"
         description={<>Configure a barra de utilitários do portal <strong>{portalName}</strong>.</>}
         action={
-          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <div className="publish-actions">
             <button className="btn-outline" type="button" onClick={handleSave} disabled={!isDirty && saved}>
               {saved ? 'Salvo!' : 'Salvar rascunho'}
             </button>
