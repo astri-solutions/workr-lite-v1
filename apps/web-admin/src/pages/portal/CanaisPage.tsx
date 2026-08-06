@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, Fragment, useEffect, type DragEvent } fr
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import UnsavedModal from '../../components/UnsavedModal';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import LangTabs from '../../components/LangTabs';
 import { Canal, SubCanal, SubSubCanal, DEFAULT_CANAIS, DEFAULT_CANAIS_FLAT, PageType, ListaAgrupadaStyle, Marcador, normalizeMarcadores } from '../../components/ChannelEditor';
 import MarcadorListEditor from '../../components/MarcadorListEditor';
@@ -430,6 +432,13 @@ function RowActionsMenu({ children }: { children: React.ReactNode }) {
 export default function CanaisPage() {
   const portalName = usePortalName();
   const { publish, hasPendingDraft, notifyDraft } = usePublish();
+  // Every tree edit (toggle/reorder/delete) already writes straight to
+  // portal_config via mutate() — but the LIVE site only reflects it once
+  // "Publicar" is clicked (that's what hasPendingDraft tracks). Someone who
+  // deletes a canal and then navigates away without publishing sees the
+  // deletion "stuck" in the CMS but not on the actual site, with no warning
+  // that anything was still pending.
+  const blocker = useUnsavedChanges(hasPendingDraft);
   const { user } = useAuth();
   const activePortalId = user?.activePortalId;
   const canaisKey = `portal_canais_${activePortalId ?? 'default'}`;
@@ -2636,6 +2645,12 @@ export default function CanaisPage() {
           </div>
         )}
       </Modal>
+
+      <UnsavedModal
+        open={blocker.state === 'blocked'}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
+      />
     </div>
   );
 }

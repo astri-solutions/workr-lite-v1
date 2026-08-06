@@ -570,6 +570,16 @@ export default function MidiaPage() {
 
       <input ref={inputRef} type="file" multiple style={{ display: 'none' }} />
 
+      {/* Drag-and-drop straight onto the page, instead of only via the
+          "Enviar arquivo" button → modal round-trip — drops here just
+          pre-fill that same modal (title/tags/alt still need filling in),
+          it doesn't upload blind. */}
+      <FileDropzone
+        file={null}
+        onChange={f => { setPendingFile(f); setPendingUrl(''); setUploadTab('computer'); setUploadForm(EMPTY_UPLOAD_FORM); setUploadModalOpen(true); }}
+        hint="PDF, Word, Excel, PowerPoint, Imagens — solte aqui ou clique para escolher"
+      />
+
       {loadError && (
         <div className="save-error-banner" role="alert">
           {loadError}
