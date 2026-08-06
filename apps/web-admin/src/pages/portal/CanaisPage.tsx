@@ -907,8 +907,13 @@ export default function CanaisPage() {
     }
 
     // Matérias (incl. Formulários, which reuse the same store): always drop
-    // to draft, unlinked, waiting to be reassigned to another page.
-    if (state.materiasCount > 0) {
+    // to draft, unlinked, waiting to be reassigned to another page. Not
+    // gated on state.materiasCount — that count comes from the async check
+    // in openConfirmDelete() and can still be its stale initial 0 if this
+    // runs before that check finished (the "Excluir" button is disabled
+    // meanwhile now, but this update runs unconditionally regardless, so a
+    // future call site with the same race can't silently skip it either).
+    {
       await supabase.from('portal_materias')
         .update({ page_id: null, page_label: null, status: 'rascunho' })
         .eq('portal_id', portalDbId).in('page_id', affectedIds);
@@ -928,7 +933,11 @@ export default function CanaisPage() {
     // place these render, so there's nowhere to "transfer" them to — drop
     // to draft and flag for auto-reactivation once a new Central de
     // Resultados page exists (handled in CentralDeResultadosPage2).
-    if (state.hasTabelaResultados && state.resultadosPublicadosCount > 0) {
+    // Gated only on hasTabelaResultados (computed synchronously from the
+    // tree, in collectAffectedIds's caller) — resultadosPublicadosCount is
+    // async like materiasCount above, same staleness risk if this ever runs
+    // before openConfirmDelete's check settles.
+    if (state.hasTabelaResultados) {
       await Promise.all([
         supabase.from('portal_resultado_periodos')
           .update({ status: 'Rascunho', pending_reactivation: true }).eq('portal_id', portalDbId).eq('status', 'Publicado'),
@@ -1480,7 +1489,12 @@ export default function CanaisPage() {
           footer={
             <div className="modal-footer">
               <button className="btn-outline" type="button" onClick={() => setConfirmDelete(null)}>Cancelar</button>
-              <button className="btn-danger" type="button" onClick={doDelete}>Excluir</button>
+              {/* Disabled while the async counts (materiasCount, docs, etc.)
+                  are still loading — confirming early used to run
+                  handleLinkedContent() with materiasCount still at its
+                  initial 0, silently skipping the matérias cleanup below
+                  even though it does reference this canal. */}
+              <button className="btn-danger" type="button" onClick={doDelete} disabled={confirmDelete.checking}>Excluir</button>
             </div>
           }
         >
