@@ -1254,6 +1254,15 @@ select.canais-edit-form__input,
 /* .ct-grid itself now stays single-line (flex-nowrap, header hidden) at
    every width above this — this block only needs to cover true phones,
    where nowrap would genuinely overflow instead of just being tight. */
+
+/* Desktop/tablet default: RowActionsMenu is an invisible wrapper — its
+   buttons flow inline in .table-actions exactly as if it weren't there.
+   Must come BEFORE the max-width:640px block below so the mobile
+   dropdown rules (same specificity) win there in the cascade. */
+.ct-row-menu { display: contents; }
+.ct-row-menu__trigger { display: none; }
+.ct-row-menu__dropdown { display: contents; }
+
 @media (max-width: 640px) {
   .canais-edit-row { grid-template-columns: 1fr; }
   .canais-page-types { grid-template-columns: 1fr 1fr; }
@@ -1370,12 +1379,6 @@ select.canais-edit-form__input,
     font-size: 0.78rem;
   }
 }
-
-/* Desktop/tablet default: RowActionsMenu is an invisible wrapper — its
-   buttons flow inline in .table-actions exactly as if it weren't there. */
-.ct-row-menu { display: contents; }
-.ct-row-menu__trigger { display: none; }
-.ct-row-menu__dropdown { display: contents; }
 
 /* ── Matérias link picker ────────────────────────── */
 .ct-mat-list {
