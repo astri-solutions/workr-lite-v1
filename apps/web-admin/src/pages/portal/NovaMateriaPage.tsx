@@ -624,45 +624,53 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portal
   }
 
   return (
-    <div
-      className={`img-upload${value ? ' img-upload--filled' : ''}`}
-      style={{ aspectRatio: ratio }}
-      onClick={() => !value && inputRef.current?.click()}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-      />
-      {value ? (
-        <>
-          <img src={value} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
-          <button
-            type="button"
-            className="img-upload__change-btn"
-            onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
-            disabled={uploading}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
-            {uploading ? 'Enviando…' : 'Alterar imagem'}
-          </button>
-        </>
-      ) : (
-        <>
-          <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>image</span>
-          <span className="img-upload__label">{label}</span>
-          <button type="button" className="img-upload__btn" disabled={uploading} onClick={() => inputRef.current?.click()}>
-            {uploading ? 'Enviando…' : 'Escolher arquivo'}
-          </button>
-          <button type="button" className="media-picker-trigger" onClick={e => { e.stopPropagation(); setPickerOpen(true); }}>
-            ou escolher da Biblioteca
-          </button>
-        </>
-      )}
+    <>
+      <div
+        className={`img-upload${value ? ' img-upload--filled' : ''}`}
+        style={{ aspectRatio: ratio }}
+        onClick={() => !value && inputRef.current?.click()}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+        />
+        {value ? (
+          <>
+            <img src={value} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+            <button
+              type="button"
+              className="img-upload__change-btn"
+              onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
+              disabled={uploading}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit</span>
+              {uploading ? 'Enviando…' : 'Alterar imagem'}
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>image</span>
+            <span className="img-upload__label">{label}</span>
+            <button type="button" className="img-upload__btn" disabled={uploading} onClick={() => inputRef.current?.click()}>
+              {uploading ? 'Enviando…' : 'Escolher arquivo'}
+            </button>
+            <button type="button" className="media-picker-trigger" onClick={e => { e.stopPropagation(); setPickerOpen(true); }}>
+              ou escolher da Biblioteca
+            </button>
+          </>
+        )}
+      </div>
+      {/* Rendered OUTSIDE the div above on purpose — Modal isn't a portal,
+          so a picker nested inside that div's own onClick="open file
+          dialog" handler would have every click inside the modal (picking
+          an image) bubble up through React's tree and ALSO fire that
+          handler, popping the native file picker right after selecting
+          from the library. */}
       <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onChange} portalDbId={portalDbId} />
-    </div>
+    </>
   );
 }
 
@@ -703,26 +711,33 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
 
   if (!file) {
     return (
-      <div
-        className="img-editor-empty"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
-        />
-        <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
-        <span>Clique ou arraste uma imagem</span>
-        <button type="button" className="media-picker-trigger" onClick={e => { e.stopPropagation(); setPickerOpen(true); }}>
-          ou escolher da Biblioteca
-        </button>
+      <>
+        <div
+          className="img-editor-empty"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+          onClick={() => inputRef.current?.click()}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          />
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
+          <span>Clique ou arraste uma imagem</span>
+          <button type="button" className="media-picker-trigger" onClick={e => { e.stopPropagation(); setPickerOpen(true); }}>
+            ou escolher da Biblioteca
+          </button>
+        </div>
+        {/* Outside the div above — Modal isn't a portal, so nesting the
+            picker inside that div's own onClick="open file dialog" handler
+            made every click inside the modal (picking an image) bubble up
+            and ALSO fire that handler, popping the native file picker right
+            after a library selection. */}
         <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={handlePicked} portalDbId={portalDbId} />
-      </div>
+      </>
     );
   }
 
