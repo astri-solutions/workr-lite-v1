@@ -76,10 +76,14 @@ export function persistMateria(materia: StoredMateria, portalKey?: string) {
   }
 }
 
-/** Sync a matéria to Supabase portal_materias table */
-export async function syncMateriaToSupabase(materia: StoredMateria, portalDbId: string) {
-  if (!isSupabaseConfigured || !supabase || !portalDbId) return;
-  await supabase.from('portal_materias').upsert({
+/** Sync a matéria to Supabase portal_materias table. MateriasPage lists
+ * exclusively from this table (localStorage is just this module's own
+ * write-through cache) — a swallowed upsert error here used to leave the
+ * matéria saved locally and the UI showing success, while it silently
+ * never existed in the list the admin actually sees. */
+export async function syncMateriaToSupabase(materia: StoredMateria, portalDbId: string): Promise<{ error: string | null }> {
+  if (!isSupabaseConfigured || !supabase || !portalDbId) return { error: null };
+  const { error } = await supabase.from('portal_materias').upsert({
     id: materia.id,
     portal_id: portalDbId,
     titulo: materia.titulo,
@@ -96,6 +100,8 @@ export async function syncMateriaToSupabase(materia: StoredMateria, portalDbId: 
     schedule_at: materia.scheduleAt ?? null,
     content: materia.content ?? null,
   }, { onConflict: 'id' });
+  if (error) console.error('portal_materias upsert failed', error);
+  return { error: error?.message ?? null };
 }
 
 export function deleteMateria(id: string, portalKey?: string) {
