@@ -132,7 +132,7 @@
   max-height: 100%;
   width: 100%;
   border-radius: 0;
-  animation: modal-side-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modal-side-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal--side.modal--sm { max-width: 440px; }
@@ -140,9 +140,12 @@
 .modal--side.modal--lg { max-width: 720px; }
 .modal--side.modal--xl { max-width: 960px; }
 
+/* Full slide from off-canvas — no opacity fade here (that read as the
+   panel "fading in" rather than sliding), the backdrop's own overlay-in
+   fade already covers the scrim. */
 @keyframes modal-side-in {
-  from { opacity: 0; transform: translateX(24px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
 }
 
 .modal--side .modal__header {
@@ -179,10 +182,10 @@
 }
 
 .modal--side.modal--closing {
-  animation: modal-side-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: modal-side-out 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @keyframes modal-side-out {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(32px); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
 }
