@@ -50,25 +50,10 @@
   background: var(--color-gray-100);
 }
 
-.nm-title-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-family: var(--font-heading);
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--color-gray-900);
-  background: transparent;
-  min-width: 0;
-}
-
-.nm-title-input::placeholder {
-  color: var(--color-gray-300);
-}
-
-/* Same `title` state as .nm-title-input above — this is the large,
-   visible anchor before the first content block; the top-bar span below
-   just echoes it (read-only) while scrolled past this one. */
+/* The only title field in the editor — large, above the first content
+   block. The top bar used to echo it in a compact read-only span, but
+   with both visible at once (empty matéria) they read as a duplicated
+   title, so the top bar now just shows the back button and actions. */
 .nm-title-input-large {
   width: 100%;
   border: none;
@@ -87,26 +72,12 @@
   color: var(--color-gray-300);
 }
 
-/* The top-bar echo of the title — read-only (editing lives in
-   .nm-title-input-large above), so it needs its own overflow/cursor
-   handling instead of reusing an <input>'s built-in ones. */
-.nm-title-input--readonly {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  cursor: default;
-}
-
-.nm-title-input--readonly.nm-title-input--empty {
-  color: var(--color-gray-300);
-}
-
 .nm-topbar-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+  margin-left: auto;
 }
 .nm-validation-hint {
   font-size: var(--text-xs);
@@ -988,6 +959,13 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--color-white);
+}
+
+/* Gap before the optional image stacked below the text block on
+   Tabs/Sidebar layouts (see isFlatShow in SectionEditor) — without it the
+   image drop zone sits flush against the editor's border. */
+.rte + .img-upload {
+  margin-top: var(--space-4);
 }
 
 .rte-toolbar {
