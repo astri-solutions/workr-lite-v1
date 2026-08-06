@@ -12,6 +12,7 @@ import { fetchPortalConfig } from '../../lib/portalConfigApi';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
 import ColorPickerPopover from '../../components/ColorPickerPopover';
+import MediaPicker from '../../components/MediaPicker';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import '../admin/AdminPages.css';
 import './NovaMateriaPage.css';
@@ -610,6 +611,7 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portal
   label?: string; ratio?: string; value: string | null; onChange: (url: string | null) => void; portalDbId: string | null;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -654,8 +656,12 @@ function ImageUpload({ label = 'Imagem', ratio = '16/9', value, onChange, portal
           <button type="button" className="img-upload__btn" disabled={uploading} onClick={() => inputRef.current?.click()}>
             {uploading ? 'Enviando…' : 'Escolher arquivo'}
           </button>
+          <button type="button" className="media-picker-trigger" onClick={e => { e.stopPropagation(); setPickerOpen(true); }}>
+            ou escolher da Biblioteca
+          </button>
         </>
       )}
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onChange} portalDbId={portalDbId} />
     </div>
   );
 }
@@ -667,6 +673,7 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
   const [file, setFile] = useState<{ name: string; url: string; w: number; h: number } | null>(
     value ? { name: '', url: value, w: 0, h: 0 } : null,
   );
+  const [pickerOpen, setPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(f: File) {
@@ -679,6 +686,13 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
       setFile(prev => prev ? { ...prev, url } : prev);
     };
     img.src = result.objectUrl;
+  }
+
+  // Already a real, usable URL (from Biblioteca de Mídia) — no
+  // processImage/upload round-trip needed, unlike a fresh file.
+  function handlePicked(url: string) {
+    setFile({ name: '', url, w: 0, h: 0 });
+    onChange(url);
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -704,6 +718,10 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
         />
         <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
         <span>Clique ou arraste uma imagem</span>
+        <button type="button" className="media-picker-trigger" onClick={e => { e.stopPropagation(); setPickerOpen(true); }}>
+          ou escolher da Biblioteca
+        </button>
+        <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={handlePicked} portalDbId={portalDbId} />
       </div>
     );
   }
@@ -734,6 +752,14 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
             </button>
             <button
               type="button"
+              className="img-editor__btn"
+              title="Escolher da Biblioteca"
+              onClick={() => setPickerOpen(true)}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>perm_media</span>
+            </button>
+            <button
+              type="button"
               className="img-editor__btn img-editor__btn--danger"
               title="Excluir"
               onClick={() => { setFile(null); onChange(null); }}
@@ -760,6 +786,7 @@ function ImageEditor({ value, alt, onChange, onAltChange, portalDbId }: {
         style={{ display: 'none' }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
       />
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={handlePicked} portalDbId={portalDbId} />
     </div>
   );
 }
@@ -813,6 +840,27 @@ async function uploadMateriaImage(file: File, objectUrl: string, portalDbId: str
   }
 }
 
+/* Compact "escolher da Biblioteca" trigger — shared by every per-item image
+   slot below (galeria card, ano da timeline, pessoa) so each one gets the
+   same picker without repeating open-state/modal plumbing three times. */
+function MediaPickerButton({ portalDbId, onSelect, icon = false }: { portalDbId: string | null; onSelect: (url: string) => void; icon?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      {icon ? (
+        <button type="button" className="btn-action btn-action--enter" title="Escolher da Biblioteca" onClick={() => setOpen(true)}>
+          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>perm_media</span>
+        </button>
+      ) : (
+        <button type="button" className="media-picker-trigger" onClick={() => setOpen(true)}>
+          ou escolher da Biblioteca
+        </button>
+      )}
+      <MediaPicker open={open} onClose={() => setOpen(false)} onSelect={onSelect} portalDbId={portalDbId} />
+    </>
+  );
+}
+
 function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; onChange: (cards: GaleriaCard[]) => void; portalDbId: string | null }) {
   function update(id: string, patch: Partial<GaleriaCard>) {
     onChange(cards.map(c => c.id === id ? { ...c, ...patch } : c));
@@ -856,6 +904,7 @@ function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; 
                       <input type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'gallery-card'); update(card.id, { imageUrl: url }); } }} />
                     </label>
+                    <MediaPickerButton portalDbId={portalDbId} icon onSelect={url => update(card.id, { imageUrl: url })} />
                     <button type="button" className="btn-action btn-action--danger" onClick={() => update(card.id, { imageUrl: null })}>
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
                     </button>
@@ -868,6 +917,9 @@ function GaleriaEditor({ cards, onChange, portalDbId }: { cards: GaleriaCard[]; 
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
                   <span>Imagem (opcional)</span>
                 </label>
+              )}
+              {!card.imageUrl && (
+                <MediaPickerButton portalDbId={portalDbId} onSelect={url => update(card.id, { imageUrl: url })} />
               )}
             </div>
             <div className="galeria-card-editor__col-fields">
@@ -963,18 +1015,22 @@ function TimelineEditor({ items, orientation, onChangeItems, onChangeOrientation
                       <input type="file" accept="image/*" style={{ display: 'none' }}
                         onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'timeline-item'); update(item.id, { imageUrl: url }); } }} />
                     </label>
+                    <MediaPickerButton portalDbId={portalDbId} icon onSelect={url => update(item.id, { imageUrl: url })} />
                     <button type="button" className="btn-action btn-action--danger" onClick={() => update(item.id, { imageUrl: null })}>
                       <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
                     </button>
                   </div>
                 </div>
               ) : (
-                <label className="galeria-card-img-empty galeria-img-label">
-                  <input type="file" accept="image/*" style={{ display: 'none' }}
-                    onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'timeline-item'); update(item.id, { imageUrl: url }); } }} />
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
-                  <span>Imagem (opcional)</span>
-                </label>
+                <>
+                  <label className="galeria-card-img-empty galeria-img-label">
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'timeline-item'); update(item.id, { imageUrl: url }); } }} />
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>image</span>
+                    <span>Imagem (opcional)</span>
+                  </label>
+                  <MediaPickerButton portalDbId={portalDbId} onSelect={url => update(item.id, { imageUrl: url })} />
+                </>
               )}
             </div>
             <div className="galeria-card-editor__col-fields">
@@ -1381,18 +1437,22 @@ function SectionEditor({ section, index, onRemove, onUpdateSection, portalDbId, 
                           <input type="file" accept="image/*" style={{ display: 'none' }}
                             onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'pessoa'); update({ imageUrl: url }); } }} />
                         </label>
+                        <MediaPickerButton portalDbId={portalDbId} icon onSelect={url => update({ imageUrl: url })} />
                         <button type="button" className="btn-action btn-action--danger" onClick={() => update({ imageUrl: null })}>
                           <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>delete</span>
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <label className="galeria-card-img-empty galeria-img-label">
-                      <input type="file" accept="image/*" style={{ display: 'none' }}
-                        onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'pessoa'); update({ imageUrl: url }); } }} />
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>person</span>
-                      <span>Foto (opcional)</span>
-                    </label>
+                    <>
+                      <label className="galeria-card-img-empty galeria-img-label">
+                        <input type="file" accept="image/*" style={{ display: 'none' }}
+                          onChange={async e => { const f = e.target.files?.[0]; if (f) { const r = await processImage(f, 'gallery-card'); const url = await uploadMateriaImage(r.file, r.objectUrl, portalDbId, 'pessoa'); update({ imageUrl: url }); } }} />
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>person</span>
+                        <span>Foto (opcional)</span>
+                      </label>
+                      <MediaPickerButton portalDbId={portalDbId} onSelect={url => update({ imageUrl: url })} />
+                    </>
                   )}
                 </div>
                 <div className="galeria-card-editor__col-fields">

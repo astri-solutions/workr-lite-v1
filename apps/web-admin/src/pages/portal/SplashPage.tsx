@@ -10,8 +10,10 @@ import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
 import { savePortalConfig } from '../../lib/portalConfigApi';
 import { useActivePortalId } from '../../hooks/useActivePortalId';
+import { resolvePortalId } from '../../lib/portalDb';
 import { usePublish } from '../../contexts/PublishContext';
 import PublishButton from '../../components/PublishButton';
+import MediaPicker from '../../components/MediaPicker';
 import '../admin/AdminPages.css';
 import './SplashPage.css';
 import './PersonalizarPages.css';
@@ -137,6 +139,12 @@ export default function SplashPage() {
   const activePortalId = useActivePortalId();
   const { publish } = usePublish();
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [portalDbId, setPortalDbId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  useEffect(() => {
+    if (!activePortalId) return;
+    resolvePortalId(activePortalId).then(setPortalDbId).catch(() => {});
+  }, [activePortalId]);
   const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<SplashConfig>(SPLASH_KEY, 'splash', DEFAULT_SPLASH);
   const [config, setConfig] = useState<SplashConfig>(persisted);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -337,6 +345,10 @@ export default function SplashPage() {
                   </>
                 )}
               </div>
+              <button type="button" className="media-picker-trigger" onClick={() => setPickerOpen(true)}>
+                ou escolher da Biblioteca
+              </button>
+              <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={url => patch('imageUrl', url)} portalDbId={portalDbId} />
             </div>
 
             {/* Título */}

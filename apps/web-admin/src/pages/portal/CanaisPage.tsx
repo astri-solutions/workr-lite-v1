@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, Fragment, useEffect, type DragEvent } fr
 import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import Modal from '../../components/Modal';
+import MediaPicker from '../../components/MediaPicker';
 import UnsavedModal from '../../components/UnsavedModal';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import LangTabs from '../../components/LangTabs';
@@ -2756,6 +2757,7 @@ function HeaderImageEditor({ value, onChange, portalDbId, placeholderLabel, disa
   value: string | null; onChange: (v: string | null) => void; portalDbId: string | null; placeholderLabel?: string; disabled?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -2774,15 +2776,27 @@ function HeaderImageEditor({ value, onChange, portalDbId, placeholderLabel, disa
           {uploading ? 'Enviando…' : 'Substituir'}
           <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading || disabled} />
         </label>
+        <button className="btn-action btn-action--enter" type="button" disabled={disabled} onClick={() => setPickerOpen(true)}>
+          Biblioteca
+        </button>
         <button className="btn-action btn-action--danger" type="button" disabled={disabled} onClick={() => onChange(null)}>Remover</button>
       </div>
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onChange} portalDbId={portalDbId} />
     </div>
   );
   return (
-    <label className={`canal-header-img-empty canais-img-file-label${disabled ? ' canal-header-img-empty--disabled' : ''}`}>
-      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading || disabled} />
-      <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
-      <span>{uploading ? 'Enviando…' : (placeholderLabel ?? 'Clique para adicionar imagem de header')}</span>
-    </label>
+    <>
+      <label className={`canal-header-img-empty canais-img-file-label${disabled ? ' canal-header-img-empty--disabled' : ''}`}>
+        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} disabled={uploading || disabled} />
+        <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>image</span>
+        <span>{uploading ? 'Enviando…' : (placeholderLabel ?? 'Clique para adicionar imagem de header')}</span>
+      </label>
+      {!disabled && (
+        <button type="button" className="media-picker-trigger" onClick={() => setPickerOpen(true)}>
+          ou escolher da Biblioteca
+        </button>
+      )}
+      <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onChange} portalDbId={portalDbId} />
+    </>
   );
 }
