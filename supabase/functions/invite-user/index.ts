@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
     // isn't set) fails Supabase's redirect allow-list match and GoTrue silently
     // falls back to the Site URL root, skipping the password-creation screen.
     const resolvedRedirectTo = redirectTo
-      ?? (Deno.env.get('SITE_URL') ? `${Deno.env.get('SITE_URL')}/definir-senha` : 'https://workr-lite-v1.vercel.app/definir-senha');
+      ?? (Deno.env.get('SITE_URL') ? `${Deno.env.get('SITE_URL')}/definir-senha` : 'https://workr.dev.br/definir-senha');
 
     const resolvedRole = inviteRole === 'super_admin' ? 'super_admin' : 'client_user';
 
