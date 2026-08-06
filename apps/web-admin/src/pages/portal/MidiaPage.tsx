@@ -574,11 +574,13 @@ export default function MidiaPage() {
           "Enviar arquivo" button → modal round-trip — drops here just
           pre-fill that same modal (title/tags/alt still need filling in),
           it doesn't upload blind. */}
-      <FileDropzone
-        file={null}
-        onChange={f => { setPendingFile(f); setPendingUrl(''); setUploadTab('computer'); setUploadForm(EMPTY_UPLOAD_FORM); setUploadModalOpen(true); }}
-        hint="PDF, Word, Excel, PowerPoint, Imagens — solte aqui ou clique para escolher"
-      />
+      <div className="midia-page-dropzone">
+        <FileDropzone
+          file={null}
+          onChange={f => { setPendingFile(f); setPendingUrl(''); setUploadTab('computer'); setUploadForm(EMPTY_UPLOAD_FORM); setUploadModalOpen(true); }}
+          hint="PDF, Word, Excel, PowerPoint, Imagens — solte aqui ou clique para escolher"
+        />
+      </div>
 
       {loadError && (
         <div className="save-error-banner" role="alert">
