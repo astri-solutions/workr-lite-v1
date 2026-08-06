@@ -396,6 +396,27 @@
   background: rgba(0, 0, 0, 0.75);
 }
 
+/* Shown when the image displayed for this locale tab is actually the
+   fallback from another one (nothing uploaded specifically for it yet) —
+   "Alterar imagem" above overrides just the current tab, not this shared
+   default, so the note explains why. Positioned like the change button
+   (the box's height comes from aspect-ratio, not content, so a normal-flow
+   line here would just overflow past the image). */
+.img-upload__shared-note {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  right: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-fixed-white);
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  backdrop-filter: blur(4px);
+  z-index: 1;
+}
+
 /* Fields */
 .nm-field {
   border: none;
@@ -789,6 +810,16 @@
   background: var(--color-error-50, var(--color-error-tint));
   color: var(--color-error-500, #ef4444);
   border-color: var(--color-error-200, #fecaca);
+}
+
+/* Same purpose as .img-upload__shared-note — this editor's body is normal
+   flow (not aspect-ratio-boxed like ImageUpload), so it's just a plain line
+   of text instead of an overlay chip. */
+.img-editor__shared-note {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-gray-600);
+  margin-top: var(--space-1);
 }
 
 .img-editor__alt-wrap {
