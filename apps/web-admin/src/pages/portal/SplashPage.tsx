@@ -157,6 +157,26 @@ export const DEFAULT_SPLASH: SplashConfig = {
   content: {},
 };
 
+// Same legacy shape as reviveSplash below, but for a saved/built-in
+// template's `config` (no `enabled`, no `imageUrl`). Templates persisted
+// before content became per-locale crash every reader that assumes
+// `config.content` exists (SplashTemplatesPage's card preview, "Usar este
+// modelo") without this.
+export function reviveTemplateConfig(stored: unknown): SplashTemplate['config'] {
+  const s = (stored ?? {}) as Partial<SplashTemplate['config']> & Partial<Omit<SplashTexts, 'imageUrl'>>;
+  if (s.content) {
+    return { size: s.size ?? 'md', buttons: s.buttons ?? [], content: s.content };
+  }
+  const hasLegacyText = s.titulo != null || s.texto != null || s.conteudo != null || s.legenda != null;
+  return {
+    size: s.size ?? 'md',
+    buttons: s.buttons ?? [],
+    content: hasLegacyText
+      ? { [splashPrimaryLang]: { titulo: s.titulo ?? '', texto: s.texto ?? '', conteudo: s.conteudo ?? '', legenda: s.legenda ?? '' } }
+      : {},
+  };
+}
+
 // Every splash saved before content became per-locale had these 5 fields
 // flat at the top level — normalize that legacy shape into
 // `content[primaryLang]` once, on load, instead of teaching every read site
@@ -212,7 +232,7 @@ export default function SplashPage() {
     if (!raw) return;
     sessionStorage.removeItem(SPLASH_APPLY_TEMPLATE_KEY);
     try {
-      const tplConfig = JSON.parse(raw) as SplashTemplate['config'];
+      const tplConfig = reviveTemplateConfig(JSON.parse(raw));
       setConfig(c => {
         const mergedContent = { ...c.content };
         for (const [lang, t] of Object.entries(tplConfig.content ?? {})) {
