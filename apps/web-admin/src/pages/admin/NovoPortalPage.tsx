@@ -271,7 +271,7 @@ function StepIdentificacao({
 
         <div className="np-field">
           <label className="np-label">Domínio do projeto</label>
-          <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Vercel.</p>
+          <p className="np-field__hint">Gerado automaticamente a partir do nome do site. Usado como nome do repositório GitHub e projeto Cloudflare Pages.</p>
           <div className={`np-domain-readonly${!url ? ' np-domain-readonly--empty' : ''}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
@@ -1332,7 +1332,7 @@ export default function NovoPortalPage() {
             },
             sites: [{
               id: `s${Date.now()}`,
-              link: form.url ? `workr-portal-${form.url}.vercel.app` : `workr-portal-${slugify(form.nome)}.vercel.app`,
+              link: form.url ? `workr-portal-${form.url}.pages.dev` : `workr-portal-${slugify(form.nome)}.pages.dev`,
               status: 'Ativo' as const,
               ip: '',
               tipo: tipoSiteDbValue(form.tipoSite),
@@ -1414,7 +1414,7 @@ export default function NovoPortalPage() {
           const warnings: string[] = [];
           let provisionedUuid: string | undefined;
 
-          // Provisiona repositório GitHub + projeto Vercel
+          // Provisiona repositório GitHub + projeto Cloudflare Pages
           // Strip any accidental 'workr-portal-' prefix — the edge function always prepends it
           const rawSlug = form.url || slugify(form.nome);
           const subdomain = rawSlug.replace(/^workr-portal-/, '');
@@ -1458,29 +1458,17 @@ export default function NovoPortalPage() {
                       emailContato: form.emailContato,
                       ...(form.logoFile    ? { logo:    await fileToBase64(form.logoFile)    } : {}),
                       ...(form.faviconFile ? { favicon: await fileToBase64(form.faviconFile) } : {}),
-                      // Cloudflare Pages is the default hosting provider —
-                      // has been for every real portal since 2026-07-25 (via
-                      // the old workr_test_cloudflare flag, manually set
-                      // every single time). Promoted to the real default
-                      // here instead of staying opt-in-only, since relying
-                      // on someone remembering a devtools flag meant the one
-                      // time it was forgotten, the portal silently landed on
-                      // Vercel instead. Still overridable per-portal via the
-                      // same flag (set to '0') for a one-off Vercel test.
-                      hostingProvider: localStorage.getItem('workr_test_cloudflare') === '0' ? 'vercel' : 'cloudflare',
                     }),
                   }
                 );
                 if (provRes.ok) {
                   const provData = await provRes.json() as {
-                    repoName: string; repoUrl: string; hostingProvider?: 'vercel' | 'cloudflare';
-                    vercelUrl: string; vercelCreated: boolean; vercelError?: string;
-                    cloudflareUrl?: string; cloudflareCreated?: boolean; cloudflareError?: string;
+                    repoName: string; repoUrl: string; hostingProvider: 'cloudflare';
+                    cloudflareUrl?: string; cloudflareCreated: boolean; cloudflareError?: string;
                     portalUuid?: string;
                     portalUpsertError?: string; configUpsertError?: string; siteUpsertError?: string;
                     assetErrors?: string[];
                   };
-                  const isCloudflare = provData.hostingProvider === 'cloudflare';
                   if (provData.portalUpsertError) warnings.push(`Registro do portal no banco: ${provData.portalUpsertError}`);
                   if (provData.configUpsertError) warnings.push(`Configuração inicial no banco: ${provData.configUpsertError}`);
                   if (provData.assetErrors?.length) warnings.push(`Upload de assets: ${provData.assetErrors.join('; ')}`);
@@ -1490,20 +1478,11 @@ export default function NovoPortalPage() {
                   const idx = portais.findIndex((p: { id: string }) => p.id === newPortal.id);
                   if (idx !== -1) {
                     portais[idx].githubRepo = provData.repoName;
-                    // Never store a guessed .vercel.app URL for a portal that was
-                    // actually provisioned on Cloudflare — every screen that renders
-                    // a portal's live link falls back to vercelUrl when it's set,
-                    // so a leftover guess here would keep pointing at a Vercel
-                    // project that was never created for this portal.
-                    portais[idx].vercelUrl = isCloudflare ? undefined : provData.vercelUrl;
-                    portais[idx].vercelCreated = isCloudflare ? undefined : provData.vercelCreated;
+                    portais[idx].cloudflareUrl = provData.cloudflareUrl;
+                    portais[idx].cloudflareCreated = provData.cloudflareCreated;
                     if (provData.portalUuid) { portais[idx].supabaseId = provData.portalUuid; provisionedUuid = provData.portalUuid; }
-                    // The live URL comes from whichever platform actually hosts this
-                    // portal — using vercelUrl unconditionally here previously showed
-                    // (and saved) a fake vercel.app link for a portal provisioned on
-                    // Cloudflare Pages instead.
-                    const liveUrl = isCloudflare ? provData.cloudflareUrl : provData.vercelUrl;
-                    const siteLink = (liveUrl ?? `https://${provData.repoName}.${isCloudflare ? 'pages.dev' : 'vercel.app'}`).replace(/^https?:\/\//, '');
+                    const liveUrl = provData.cloudflareUrl;
+                    const siteLink = (liveUrl ?? `${provData.repoName}.pages.dev`).replace(/^https?:\/\//, '');
                     if (portais[idx].sites?.length > 0) {
                       portais[idx].sites[0].link = siteLink;
                     }
@@ -1552,12 +1531,8 @@ export default function NovoPortalPage() {
                       });
                     }
                   }
-                  if (isCloudflare) {
-                    if (!provData.cloudflareCreated) {
-                      warnings.push(`Projeto Cloudflare Pages não criado: ${provData.cloudflareError ?? 'erro desconhecido'}`);
-                    }
-                  } else if (!provData.vercelCreated) {
-                    warnings.push(`Projeto Vercel não criado: ${provData.vercelError ?? 'erro desconhecido'}`);
+                  if (!provData.cloudflareCreated) {
+                    warnings.push(`Projeto Cloudflare Pages não criado: ${provData.cloudflareError ?? 'erro desconhecido'}`);
                   }
                 } else {
                   const errBody = await provRes.json().catch(() => ({})) as { error?: string };

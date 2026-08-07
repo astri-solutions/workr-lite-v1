@@ -15,7 +15,7 @@ interface PortalRow {
   cliente: string;
   empresa_status: string | null;
   subdomain: string | null;
-  vercel_url: string | null;
+  cloudflare_url: string | null;
 }
 
 
@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
 
       const { data: rows } = await supabase
         .from('portals')
-        .select('id, portal_key, cliente, empresa_status, subdomain, vercel_url')
+        .select('id, portal_key, cliente, empresa_status, subdomain, cloudflare_url')
         .order('created_at', { ascending: false });
 
       if (rows) {
@@ -123,7 +123,7 @@ export default function AdminDashboardPage() {
                 <tr>
                   <th className={`th-sort${col === 'cliente' ? ' th-sort--active' : ''}`} onClick={() => toggle('cliente')}><span className="th-sort-inner">Empresa <SortIcon dir={col === 'cliente' ? dir : null} /></span></th>
                   <th className={`th-sort${col === 'empresa_status' ? ' th-sort--active' : ''}`} onClick={() => toggle('empresa_status')}><span className="th-sort-inner">Status <SortIcon dir={col === 'empresa_status' ? dir : null} /></span></th>
-                  <th className={`th-sort${col === 'vercel_url' ? ' th-sort--active' : ''}`} onClick={() => toggle('vercel_url')}><span className="th-sort-inner">URL <SortIcon dir={col === 'vercel_url' ? dir : null} /></span></th>
+                  <th className={`th-sort${col === 'cloudflare_url' ? ' th-sort--active' : ''}`} onClick={() => toggle('cloudflare_url')}><span className="th-sort-inner">URL <SortIcon dir={col === 'cloudflare_url' ? dir : null} /></span></th>
                   <th>Usuários</th>
                   <th style={{ width: 220 }}>Ações</th>
                 </tr>
@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
                         {portal.empresa_status ?? 'Ativo'}
                       </span>
                     </td>
-                    <td>{portal.vercel_url ?? portal.subdomain ?? portal.portal_key}</td>
+                    <td>{portal.cloudflare_url ?? portal.subdomain ?? portal.portal_key}</td>
                     <td>{userCounts[portal.id] ?? 0} usuário{(userCounts[portal.id] ?? 0) !== 1 ? 's' : ''}</td>
                     <td>
                       <div className="dashboard-portal-row__actions">

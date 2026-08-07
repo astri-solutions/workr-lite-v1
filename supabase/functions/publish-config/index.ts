@@ -15,7 +15,6 @@ function resolveServiceKey(): string {
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
   'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
@@ -821,11 +820,11 @@ Deno.serve(async (req) => {
     }
 
     // ── Batch every file change into ONE commit ──────────────────────────────
-    // GitHub triggers a Vercel deployment per push to main. The old code did a
-    // separate Contents-API PUT/DELETE per file (site.config.js, self-healed
-    // template files, logo, favicon, each new/removed canal page) — a single
-    // "Publicar" click could fire 10+ commits and burn through the account's
-    // daily Vercel deployment quota. Using the Git Data API (blobs → tree →
+    // GitHub triggers a Cloudflare Pages deployment per push to main. The old
+    // code did a separate Contents-API PUT/DELETE per file (site.config.js,
+    // self-healed template files, logo, favicon, each new/removed canal page)
+    // — a single "Publicar" click could fire 10+ commits and burn through the
+    // account's daily deployment quota. Using the Git Data API (blobs → tree →
     // commit → ref update), all of that becomes exactly one commit, one push,
     // one deployment — regardless of how many files changed.
     const refRes = await ghFetch(`/repos/${githubOrg}/${repoName}/git/ref/heads/main`);
@@ -922,7 +921,7 @@ Deno.serve(async (req) => {
         const templateBlobs = tplTreeData.tree.filter(t =>
           t.type === 'blob'
           && (t.path.startsWith('scripts/') || t.path.startsWith('styles/') || t.path === 'vite.config.js' || t.path === 'public/scripts/theme-critical.js'
-              || t.path === 'vercel.json' || t.path === 'public/robots.txt' || t.path === 'public/_headers')
+              || t.path === 'public/robots.txt' || t.path === 'public/_headers')
           && !TEMPLATE_EXCLUDE.has(t.path)
         );
         for (const tf of templateBlobs) {

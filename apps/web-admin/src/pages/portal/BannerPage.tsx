@@ -139,7 +139,7 @@ export default function BannerPage() {
    *
    * O publish-config espelha cada imagem no bucket portal-media (slot
    * `banner-<id>`), então é de lá que vem a prévia: não depende do deploy
-   * do portal ter terminado nem de vercel_url estar preenchido.
+   * do portal ter terminado nem de cloudflare_url estar preenchido.
    */
   function previewSrc(slide: BannerSlide): string | null {
     const img = slide.imagem;

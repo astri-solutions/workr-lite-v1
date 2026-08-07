@@ -80,15 +80,15 @@ interface SiteInfo {
 function getPortalInfo(activePortalId?: string): { url?: string; sites: SiteInfo[] } {
   try {
     const raw = localStorage.getItem('workr_portais');
-    const portals: Array<{ id: string; cliente: string; vercelUrl?: string; sites?: Array<{ link?: string; status?: string; plano?: string; updatedAt?: string }> }> = raw ? JSON.parse(raw) : [];
+    const portals: Array<{ id: string; cliente: string; cloudflareUrl?: string; sites?: Array<{ link?: string; status?: string; plano?: string; updatedAt?: string }> }> = raw ? JSON.parse(raw) : [];
     const portal = portals.find(p => p.id === activePortalId) ?? portals[0];
     if (!portal) return { sites: [] };
     const layout = (localStorage.getItem(PORTAL_LAYOUT_KEY) ?? 'sidebar') as string;
     const LAYOUT_LABEL: Record<string, string> = { sidebar: 'Menu lateral', tabmenu: 'Tabs de conteúdo', banner: 'Banner' };
-    const url = (portal.sites?.[0]?.link ? `https://${portal.sites[0].link}` : undefined) ?? portal.vercelUrl;
-    const sites: SiteInfo[] = (portal.sites ?? [{ link: portal.vercelUrl } ]).map(s => ({
+    const url = (portal.sites?.[0]?.link ? `https://${portal.sites[0].link}` : undefined) ?? portal.cloudflareUrl;
+    const sites: SiteInfo[] = (portal.sites ?? [{ link: portal.cloudflareUrl } ]).map(s => ({
       empresa: portal.cliente ?? '–',
-      dominio: (s as { link?: string }).link ?? portal.vercelUrl ?? '–',
+      dominio: (s as { link?: string }).link ?? portal.cloudflareUrl ?? '–',
       layout: LAYOUT_LABEL[layout] ?? layout,
       status: (s as { status?: string }).status ?? 'Ativo',
       ultimaAtualizacao: (s as { updatedAt?: string }).updatedAt ?? '–',
@@ -111,20 +111,17 @@ export default function DashboardPage() {
     if (!isSupabaseConfigured || !supabase || !user?.activePortalId) return;
     supabase
       .from('portals')
-      .select('vercel_url, hosting_provider, cloudflare_url, suporte_nome, suporte_email')
+      .select('cloudflare_url, suporte_nome, suporte_email')
       .eq('portal_key', user.activePortalId)
       .single()
       .then(({ data }) => {
         if (data?.suporte_nome && data?.suporte_email) {
           setSuporte({ nome: data.suporte_nome as string, email: data.suporte_email as string });
         }
-        // Prefer the URL from whichever platform actually hosts this portal --
-        // a Cloudflare-migrated portal has vercel_url = null, so falling back
-        // to vercel_url unconditionally left "Ver portal" disabled even though
-        // portal_sites.link (and cloudflare_url) already had the real domain.
-        const liveUrl = data?.hosting_provider === 'cloudflare'
-          ? (data?.cloudflare_url as string | undefined)
-          : (data?.vercel_url as string | undefined);
+        // Cloudflare is the only hosting platform now, so the live URL always
+        // comes straight from cloudflare_url (falling back to portal_sites.link
+        // above when this hasn't been populated yet).
+        const liveUrl = data?.cloudflare_url as string | undefined;
         if (liveUrl) {
           setPortalUrl(liveUrl);
           // Sync back to localStorage so other pages get the correct URL too
@@ -133,8 +130,8 @@ export default function DashboardPage() {
             if (raw) {
               const portals = JSON.parse(raw);
               const idx = portals.findIndex((p: { id: string }) => p.id === user.activePortalId);
-              if (idx !== -1 && portals[idx].vercelUrl !== liveUrl) {
-                portals[idx].vercelUrl = liveUrl;
+              if (idx !== -1 && portals[idx].cloudflareUrl !== liveUrl) {
+                portals[idx].cloudflareUrl = liveUrl;
                 localStorage.setItem('workr_portais', JSON.stringify(portals));
               }
             }

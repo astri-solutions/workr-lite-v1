@@ -10,7 +10,7 @@ function resolveServiceKey(): string {
 }
 
 // Called directly from deployed client-portal sites (any of their own
-// subdomains/Vercel projects) via `scripts/components/preview.js`'s
+// subdomains/Cloudflare Pages projects) via `scripts/components/preview.js`'s
 // fetchWithPreview() — access is gated by the opaque, portal-scoped,
 // short-lived token from mint-preview-token instead of a fixed origin
 // allowlist, so CORS is intentionally open on this one read-only endpoint.

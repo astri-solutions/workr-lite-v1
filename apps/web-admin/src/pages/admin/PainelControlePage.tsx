@@ -19,9 +19,6 @@ interface SiteData {
   status: 'Ativo' | 'Suspenso';
   criadoEm: string;
   githubRepo?: string;
-  vercelUrl?: string;
-  vercelCreated?: boolean;
-  hostingProvider?: 'vercel' | 'cloudflare';
   cloudflareUrl?: string;
   cloudflareCreated?: boolean;
   subdomain?: string;
@@ -126,9 +123,10 @@ export default function PainelControlePage() {
   const [suporteSaved, setSuporteSaved] = useState(false);
   const [suporteError, setSuporteError] = useState<string | null>(null);
 
-  // Real Vercel data (deploy status + domain/SSL verification) — disco, CPU,
-  // memória, inodes e versão do PHP não têm equivalente na Vercel (hosting
-  // serverless) e por isso não aparecem mais aqui em vez de serem inventados.
+  // Real Cloudflare Pages data (deploy status + domain verification) —
+  // disco, CPU, memória, inodes e versão do PHP não têm equivalente num
+  // hosting serverless e por isso não aparecem mais aqui em vez de serem
+  // inventados.
   const [deployState, setDeployState] = useState<string | null>(null);
   const [deployCreatedAt, setDeployCreatedAt] = useState<string | null>(null);
   const [domainVerified, setDomainVerified] = useState<boolean | null>(null);
@@ -192,9 +190,6 @@ export default function PainelControlePage() {
         status: info.status,
         criadoEm: info.criadoEm,
         githubRepo: info.githubRepo,
-        vercelUrl: info.vercelUrl,
-        vercelCreated: info.vercelCreated,
-        hostingProvider: info.hostingProvider,
         cloudflareUrl: info.cloudflareUrl,
         cloudflareCreated: info.cloudflareCreated,
         subdomain: info.subdomain,
@@ -222,15 +217,8 @@ export default function PainelControlePage() {
 
   useEffect(() => {
     if (!site || !isSupabaseConfigured || !supabase) return;
-    // get-site-status only knows how to query the Vercel API — for a
-    // Cloudflare-hosted portal it would call Vercel with a project name that
-    // either matches nothing (silent no-op) or, worse, some unrelated Vercel
-    // project. Skip it here; the card just shows "—" until this endpoint
-    // also supports Cloudflare Pages deploy status.
-    if (site.hostingProvider === 'cloudflare') return;
-    const projectName = site.vercelUrl
-      ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
-      : site.githubRepo;
+    // Cloudflare Pages names the project after the repo (provision-portal).
+    const projectName = site.githubRepo;
     if (!projectName) return;
     (async () => {
       const { data: { session } } = await supabase!.auth.getSession();
@@ -302,9 +290,6 @@ export default function PainelControlePage() {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (token) {
-          const vercelProjectName = site.vercelUrl
-            ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
-            : site.subdomain ?? site.githubRepo?.replace(/^portal-/, '');
           const delRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
             {
@@ -316,23 +301,14 @@ export default function PainelControlePage() {
               },
               body: JSON.stringify({
                 repoName: site.githubRepo ?? undefined,
-                // Always try both platforms instead of branching on
-                // site.hostingProvider — delete-portal already no-ops
-                // safely (204/404 both read as "deleted") when a project
-                // doesn't exist on a given platform. Trusting hostingProvider
-                // alone meant a portal whose DB flag drifted/was never set
-                // (or a page that loaded a stale cached value) silently
-                // never even attempted the Cloudflare (or Vercel) delete —
-                // no error shown, project just left orphaned forever.
                 cloudflareProjectName: site.githubRepo ?? undefined,
-                vercelProjectName: vercelProjectName ?? undefined,
                 portalId: site.portalId,
               }),
             }
           );
           const delData = await delRes.json().catch(() => ({})) as {
             ok?: boolean;
-            results?: { github?: string; vercel?: string; cloudflare?: string; db?: string };
+            results?: { github?: string; cloudflare?: string; db?: string };
           };
           if (delData.results?.github?.startsWith('error:')) {
             const ghErr = delData.results.github.replace('error:', '');
@@ -346,19 +322,13 @@ export default function PainelControlePage() {
               );
             }
           }
-          // Vercel/Cloudflare deletion failures used to be silently
-          // discarded here — the portal disappeared from the CMS looking
-          // fully deleted while its hosting project (Vercel or Cloudflare
-          // Pages) kept running orphaned, with nobody ever told.
-          const hostingWarnings: string[] = [];
-          if (delData.results?.vercel?.startsWith('error:')) {
-            hostingWarnings.push(`Projeto Vercel (${vercelProjectName ?? '?'}) não deletado automaticamente — remova manualmente em vercel.com.`);
-          }
+          // Cloudflare deletion failures used to be silently discarded here
+          // — the portal disappeared from the CMS looking fully deleted
+          // while its Cloudflare Pages project kept running orphaned, with
+          // nobody ever told.
           if (delData.results?.cloudflare?.startsWith('error:')) {
-            hostingWarnings.push(`Projeto Cloudflare Pages (${site.githubRepo ?? '?'}) não deletado automaticamente — remova manualmente no dashboard da Cloudflare.`);
-          }
-          if (hostingWarnings.length > 0) {
-            setDeleteGhWarn(prev => [prev, ...hostingWarnings].filter(Boolean).join('\n'));
+            const warn = `Projeto Cloudflare Pages (${site.githubRepo ?? '?'}) não deletado automaticamente — remova manualmente no dashboard da Cloudflare.`;
+            setDeleteGhWarn(prev => [prev, warn].filter(Boolean).join('\n'));
           }
           if (delData.results?.db?.startsWith('error:')) {
             throw new Error(`Erro ao excluir portal do banco de dados: ${delData.results.db}`);
@@ -469,8 +439,8 @@ export default function PainelControlePage() {
           </div>
           <div>
             <div className="painel-header__title">
-              <a className="painel-header__link" href={(site.hostingProvider === 'cloudflare' ? site.cloudflareUrl : site.vercelUrl) ?? `https://${site.link}`} target="_blank" rel="noreferrer">
-                {(site.hostingProvider === 'cloudflare' ? site.cloudflareUrl : site.vercelUrl)?.replace(/^https?:\/\//, '') ?? site.link}
+              <a className="painel-header__link" href={site.cloudflareUrl ?? `https://${site.link}`} target="_blank" rel="noreferrer">
+                {site.cloudflareUrl?.replace(/^https?:\/\//, '') ?? site.link}
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
@@ -498,7 +468,7 @@ export default function PainelControlePage() {
         </div>
       </div>
 
-      {site.githubRepo && site.hostingProvider !== 'cloudflare' && !site.vercelCreated && (
+      {site.githubRepo && !site.cloudflareCreated && (
         <div className="painel-vercel-banner">
           <div className="painel-vercel-banner__icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -507,19 +477,8 @@ export default function PainelControlePage() {
             </svg>
           </div>
           <div className="painel-vercel-banner__text">
-            <strong>Deploy Vercel não configurado.</strong> O repositório GitHub foi criado, mas o projeto Vercel ainda não existe. Importe o repositório no Vercel para ativar o deploy automático.
+            <strong>Deploy Cloudflare Pages não configurado.</strong> O repositório GitHub foi criado, mas o projeto Cloudflare Pages ainda não existe. Verifique o token/conta da Cloudflare e publique novamente, ou importe o repositório manualmente no dashboard da Cloudflare.
           </div>
-          <button
-            className="btn-outline painel-vercel-banner__btn"
-            type="button"
-            onClick={() => window.open(`https://vercel.com/new/import?s=https://github.com/astri-solutions/${site.githubRepo}`, '_blank', 'noreferrer')}
-          >
-            Importar no Vercel
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-          </button>
         </div>
       )}
 
@@ -847,7 +806,7 @@ export default function PainelControlePage() {
                 <div>
                   <p className="painel-suspend-card__title painel-suspend-card__title--warn">Confirmar suspensão</p>
                   <p className="painel-suspend-card__desc">
-                    Tem certeza? O site <strong>{site.vercelUrl ? site.vercelUrl.replace(/^https?:\/\//, '') : site.link}</strong> ficará offline imediatamente para todos os visitantes.
+                    Tem certeza? O site <strong>{site.cloudflareUrl ? site.cloudflareUrl.replace(/^https?:\/\//, '') : site.link}</strong> ficará offline imediatamente para todos os visitantes.
                   </p>
                 </div>
               </div>
@@ -895,7 +854,7 @@ export default function PainelControlePage() {
                 <div>
                   <p className="painel-suspend-card__title painel-suspend-card__title--off">Confirmar reativação</p>
                   <p className="painel-suspend-card__desc">
-                    O site <strong>{site.vercelUrl ? site.vercelUrl.replace(/^https?:\/\//, '') : site.link}</strong> voltará a estar disponível para os visitantes imediatamente.
+                    O site <strong>{site.cloudflareUrl ? site.cloudflareUrl.replace(/^https?:\/\//, '') : site.link}</strong> voltará a estar disponível para os visitantes imediatamente.
                   </p>
                 </div>
               </div>
@@ -927,7 +886,7 @@ export default function PainelControlePage() {
           <div className="painel-danger-item__text">
             <p className="painel-danger-item__title">Excluir portal permanentemente</p>
             <p className="painel-danger-item__desc">
-              Esta ação é irreversível. O repositório GitHub{site.githubRepo ? ` (${site.githubRepo})` : ''} e o projeto Vercel vinculados a este portal serão removidos permanentemente.
+              Esta ação é irreversível. O repositório GitHub{site.githubRepo ? ` (${site.githubRepo})` : ''} e o projeto Cloudflare Pages vinculados a este portal serão removidos permanentemente.
             </p>
           </div>
           <div>
@@ -953,7 +912,7 @@ export default function PainelControlePage() {
         onClose={() => { if (!deleting) setDeleteModalOpen(false); }}
         title="Excluir portal"
         size="sm"
-        description={`Isso irá excluir permanentemente o portal e todos os recursos relacionados como Repositório GitHub, Projeto Vercel e Domínios.`}
+        description={`Isso irá excluir permanentemente o portal e todos os recursos relacionados como Repositório GitHub, Projeto Cloudflare Pages e Domínios.`}
         footer={
           <div className="modal-footer">
             <button

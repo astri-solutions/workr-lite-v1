@@ -19,13 +19,13 @@ const PREVIEW_ENABLED = false;
 function usePreviewBase(): { url: string; portalId: string } | null {
   const { user } = useAuth();
   try {
-    const portais: Array<{ id: string; vercelUrl?: string; subdomain?: string }> =
+    const portais: Array<{ id: string; cloudflareUrl?: string; subdomain?: string }> =
       JSON.parse(localStorage.getItem('workr_portais') ?? '[]');
     const activeId = user?.activePortalId ?? user?.portais?.[0]?.id;
     if (!activeId) return null;
     const record = portais.find(p => p.id === activeId);
     if (!record) return null;
-    const base = record.vercelUrl || (record.subdomain ? `https://workr-portal-${record.subdomain}.vercel.app` : null);
+    const base = record.cloudflareUrl || (record.subdomain ? `https://workr-portal-${record.subdomain}.pages.dev` : null);
     return base ? { url: base.replace(/\/$/, ''), portalId: activeId } : null;
   } catch { return null; }
 }

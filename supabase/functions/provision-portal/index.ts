@@ -15,7 +15,6 @@ function resolveServiceKey(): string {
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
   'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
@@ -404,7 +403,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { portalId: _portalId, nome, nomeFantasia, cnpj, cvmCode, autoCvm, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite, hostingProvider } = await req.json() as {
+    const { portalId: _portalId, nome, nomeFantasia, cnpj, cvmCode, autoCvm, subdomain, layout, colors, fonts, footer, canais, logo, favicon: faviconAsset, ticker, idiomas, seo, emailContato, tipoSite } = await req.json() as {
       portalId: string;
       nome: string;
       nomeFantasia?: string;
@@ -424,16 +423,9 @@ Deno.serve(async (req) => {
       seo?: { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string };
       emailContato?: string;
       tipoSite?: string;
-      // 'vercel' (default, production today) or 'cloudflare' (parallel test
-      // path — Cloudflare Pages, migration in progress). Never inferred from
-      // anything else, so every existing caller that doesn't send this field
-      // keeps provisioning on Vercel exactly as before.
-      hostingProvider?: 'vercel' | 'cloudflare';
     };
-    const useCloudflare = hostingProvider === 'cloudflare';
 
     const githubToken     = Deno.env.get('GITHUB_TOKEN');
-    const vercelToken     = Deno.env.get('VERCEL_TOKEN');
     const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
     const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
     const githubOrg    = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
@@ -441,13 +433,11 @@ Deno.serve(async (req) => {
     // subdomain comes from the wizard's slugify() (or a manually-typed "url"
     // override) — neither trims whitespace or strips a leading/trailing "-",
     // so a client name with a stray trailing space (e.g. "Astride ") slips
-    // through as "astride-". That trailing hyphen is invalid in a DNS label,
-    // so Vercel's own default domain for the project silently drops it
-    // ("workr-portal-astride.vercel.app") while the repo name and the
-    // vercel_url we compute below keep it — the CMS then links to a URL that
-    // never matches the real, working domain. Sanitizing once here, before
-    // it's used to name the GitHub repo AND the Vercel project, keeps both
-    // in sync with whatever Vercel actually ends up serving.
+    // through as "astride-". A trailing hyphen is invalid in a DNS label, so
+    // the custom <slug>.workr.dev.br CNAME below would silently fail to
+    // resolve for the exact hostname the CMS links to. Sanitizing once here,
+    // before it's used to name the GitHub repo AND the Cloudflare Pages
+    // project/custom domain, keeps every reference in sync.
     const cleanSubdomain = subdomain.trim().toLowerCase().replace(/-+/g, '-').replace(/^-+|-+$/g, '');
     const repoName     = `workr-portal-${cleanSubdomain}`;
     const gh           = (url: string, init?: RequestInit) =>
@@ -507,13 +497,6 @@ Deno.serve(async (req) => {
         cliente: nome,
         subdomain: cleanSubdomain,
         github_repo: repoName,
-        // Never guess a .vercel.app URL for a portal being provisioned on
-        // Cloudflare — every place in the admin/CMS that renders a portal's
-        // live link falls back to vercel_url when it's non-null, so a
-        // leftover guess here would keep pointing "Ver portal"/painel links
-        // at a Vercel project that was never created for this portal, even
-        // after step 6 below writes the real cloudflare_url.
-        vercel_url: useCloudflare ? null : `https://${repoName}.vercel.app`,
         empresa_status: 'Ativa',
         ...(cnpj ? { cnpj } : {}),
       }, { onConflict: 'portal_key' }).select('id').maybeSingle();
@@ -546,7 +529,7 @@ Deno.serve(async (req) => {
     // Antes cada arquivo ia num PUT/DELETE separado da Contents API:
     // site.config.js, logo, logo negativo, favicon, index.html, os dois
     // home-*.html removidos e uma página em branco por canal — 10+ commits
-    // num provisionamento. Cada commit é um deploy na Vercel, e os primeiros
+    // num provisionamento. Cada commit é um deploy na Cloudflare, e os primeiros
     // subiam com o site.config.js DEFAULT do template (cores da marca Astri,
     // não as do cliente). O visitante que pegasse o site entre um deploy e o
     // seguinte via as cores antigas — é a origem do flash de cor no refresh.
@@ -672,207 +655,154 @@ Deno.serve(async (req) => {
     }
 
     const repoUrl  = `https://github.com/${githubOrg}/${repoName}`;
-    let   vercelUrl = `https://${repoName}.vercel.app`;
-    let   vercelCreated = false;
-    let   vercelError: string | undefined;
     let   cloudflareUrl: string | undefined;
     let   cloudflareCreated = false;
     let   cloudflareError: string | undefined;
 
-    // ── Step 5: create the hosting project (optional) ──────────────────────────
+    // ── Step 5: create the Cloudflare Pages project ─────────────────────────
     // Wrapped in its own try/catch: a hosting API hiccup (network error,
-    // unexpected response shape, timeout) must degrade to `*Error` like the
-    // "no token" case below, never 500 the whole provision call — the
-    // GitHub repo + portal DB row above already succeeded and must not be
-    // thrown away because of a problem in this optional last step.
+    // unexpected response shape, timeout) must degrade to `cloudflareError`,
+    // never 500 the whole provision call — the GitHub repo + portal DB row
+    // above already succeeded and must not be thrown away because of a
+    // problem in this optional last step.
     //
-    // Cloudflare Pages is the parallel migration path (see hostingProvider):
-    // requires the Cloudflare Pages GitHub App already installed on the org
-    // with access to all repos (one-time manual dashboard step, same
-    // category of dependency Vercel's own GitHub App has) — without it, the
-    // API call below fails with a Cloudflare "git installation" error and
-    // this degrades to cloudflareError exactly like a missing token would.
-    if (useCloudflare) {
-      if (cloudflareToken && cloudflareAccountId) {
-        try {
-          const cfRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects`, {
+    // Requires the Cloudflare Pages GitHub App already installed on the org
+    // with access to all repos (one-time manual dashboard step) — without
+    // it, the API call below fails with a Cloudflare "git installation"
+    // error and this degrades to cloudflareError exactly like a missing
+    // token would.
+    if (cloudflareToken && cloudflareAccountId) {
+      try {
+        const cfRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: repoName,
+            production_branch: 'main',
+            source: { type: 'github', config: { owner: githubOrg, repo_name: repoName, production_branch: 'main', deployments_enabled: true } },
+            build_config: { build_command: 'npm run build', destination_dir: 'dist' },
+          }),
+        });
+        if (cfRes.ok) {
+          const cfBody = await cfRes.json() as { result: { name: string; subdomain: string } };
+          const pagesSubdomain = cfBody.result.subdomain;
+          cloudflareUrl = `https://${pagesSubdomain}`;
+          cloudflareCreated = true;
+
+          // Commits were pushed before the Pages project existed, so Cloudflare
+          // never saw them — trigger an explicit deployment from main now.
+          const cfDeployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${repoName}/deployments`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: repoName,
-              production_branch: 'main',
-              source: { type: 'github', config: { owner: githubOrg, repo_name: repoName, production_branch: 'main', deployments_enabled: true } },
-              build_config: { build_command: 'npm run build', destination_dir: 'dist' },
-            }),
+            headers: { 'Authorization': `Bearer ${cloudflareToken}` },
           });
-          if (cfRes.ok) {
-            const cfBody = await cfRes.json() as { result: { name: string; subdomain: string } };
-            cloudflareUrl = `https://${cfBody.result.subdomain}`;
-            cloudflareCreated = true;
+          if (!cfDeployRes.ok) {
+            const dBody = await cfDeployRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+            // Project exists (cloudflareCreated stays true) — only the initial
+            // deploy trigger failed; Cloudflare's own GitHub integration will
+            // still deploy on the next push.
+            cloudflareError = `Projeto criado, mas deploy inicial falhou: ${dBody?.errors?.[0]?.message ?? `HTTP ${cfDeployRes.status}`}`;
+          }
 
-            // Commits were pushed before the Pages project existed, so Cloudflare
-            // never saw them — trigger an explicit deployment from main now,
-            // same reason the Vercel path below does the same thing.
-            const cfDeployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${repoName}/deployments`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${cloudflareToken}` },
-            });
-            if (!cfDeployRes.ok) {
-              const dBody = await cfDeployRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
-              // Project exists (cloudflareCreated stays true) — only the initial
-              // deploy trigger failed; Cloudflare's own GitHub integration will
-              // still deploy on the next push.
-              cloudflareError = `Projeto criado, mas deploy inicial falhou: ${dBody?.errors?.[0]?.message ?? `HTTP ${cfDeployRes.status}`}`;
-            }
-
-            // Custom subdomain under workr.dev.br. Two SEPARATE Cloudflare
-            // API calls are both required — confirmed by direct diagnostic
-            // against the live API, since this cost real debugging time:
-            // adding a "custom domain" to a Pages project (the /domains call
-            // below) only registers the hostname with Pages for TLS/routing
-            // purposes and starts an HTTP-based validation challenge — it
-            // does NOT create any DNS record, even though the whole zone
-            // lives on Cloudflare. Without the explicit DNS record created
-            // here too, the custom domain sits in Pages' "Active" list
-            // forever while the hostname itself is a bare NXDOMAIN. Best-
-            // effort: a failure in either call still leaves the portal
-            // reachable at the *.pages.dev fallback (cloudflareUrl keeps
-            // that value), it just skips the pretty URL.
-            const customDomain = `${cleanSubdomain}.workr.dev.br`;
-            try {
+          // Custom subdomain under workr.dev.br. Two SEPARATE Cloudflare API
+          // calls are both required: adding a "custom domain" to a Pages
+          // project (the /domains call below) only registers the hostname
+          // with Pages for TLS/routing purposes — it does NOT create any DNS
+          // record, even though the whole zone lives on Cloudflare. Without
+          // the explicit DNS record created here too, the custom domain sits
+          // in Pages' "Active" list forever while the hostname itself is a
+          // bare NXDOMAIN — exactly what happened to a live portal once
+          // (fix-portal-domain exists to repair that after the fact). Each
+          // step below retries once on failure and verifies the DNS record
+          // actually exists via a follow-up read instead of trusting the
+          // write response alone, since that single unverified write is what
+          // silently failed that one time. Best-effort throughout: any
+          // remaining failure still leaves the portal reachable at the
+          // *.pages.dev fallback (cloudflareUrl keeps that value).
+          const customDomain = `${cleanSubdomain}.workr.dev.br`;
+          const cfHeaders = { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' };
+          try {
+            let domainAttached = false;
+            for (let attempt = 0; attempt < 2 && !domainAttached; attempt++) {
               const domainRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${repoName}/domains`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
+                headers: cfHeaders,
                 body: JSON.stringify({ name: customDomain }),
               });
               if (domainRes.ok) {
-                // Resolve the workr.dev.br zone id, then create the actual
-                // CNAME record pointing the new subdomain at this project's
-                // own *.pages.dev domain (same pattern as the root
-                // workr.dev.br -> workr-lite-v1.pages.dev record) — proxied,
-                // so Cloudflare terminates TLS for it same as the root.
-                const zoneRes = await fetch('https://api.cloudflare.com/client/v4/zones?name=workr.dev.br', {
-                  headers: { 'Authorization': `Bearer ${cloudflareToken}` },
-                });
-                const zoneBody = await zoneRes.json().catch(() => ({})) as { result?: { id: string }[] };
-                const zoneId = zoneBody.result?.[0]?.id;
-                if (zoneId) {
+                domainAttached = true;
+              } else {
+                const domainBody = await domainRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+                const msg = domainBody?.errors?.[0]?.message ?? '';
+                // Already attached (e.g. a retried request) counts as success.
+                if (/already added this custom domain/i.test(msg)) {
+                  domainAttached = true;
+                } else if (attempt === 0) {
+                  await sleep(1500);
+                } else {
+                  cloudflareError = `Projeto criado, mas domínio customizado falhou: ${msg || `HTTP ${domainRes.status}`}`;
+                }
+              }
+            }
+
+            if (domainAttached) {
+              const zoneRes = await fetch('https://api.cloudflare.com/client/v4/zones?name=workr.dev.br', { headers: cfHeaders });
+              const zoneBody = await zoneRes.json().catch(() => ({})) as { result?: { id: string }[] };
+              const zoneId = zoneBody.result?.[0]?.id;
+              if (zoneId) {
+                let dnsVerified = false;
+                for (let attempt = 0; attempt < 2 && !dnsVerified; attempt++) {
                   const dnsRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      type: 'CNAME',
-                      name: cleanSubdomain,
-                      content: `${cfBody.result.subdomain}`,
-                      proxied: true,
-                    }),
+                    headers: cfHeaders,
+                    body: JSON.stringify({ type: 'CNAME', name: cleanSubdomain, content: pagesSubdomain, proxied: true }),
                   });
-                  if (dnsRes.ok) {
-                    cloudflareUrl = `https://${customDomain}`;
+                  // A retry after a transient failure on attempt 0 can hit
+                  // "record already exists" on attempt 1 if the first write
+                  // actually landed despite a bad/timed-out response —
+                  // that's success too, not a real failure.
+                  const dnsOkOrDuplicate = dnsRes.ok || (await dnsRes.clone().json().catch(() => ({})) as { errors?: { message?: string }[] })?.errors?.[0]?.message?.match(/already exists/i);
+                  if (dnsOkOrDuplicate) {
+                    // Read-after-write: confirm the record is actually there
+                    // with the right content before trusting it — this is
+                    // the exact gap that let a portal go live with a DNS
+                    // record the write call claimed to have created but
+                    // never actually did.
+                    const checkRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?type=CNAME&name=${customDomain}`, { headers: cfHeaders });
+                    const checkBody = await checkRes.json().catch(() => ({})) as { result?: { content: string }[] };
+                    if (checkBody.result?.some(r => r.content === pagesSubdomain)) {
+                      dnsVerified = true;
+                      cloudflareUrl = `https://${customDomain}`;
+                    } else if (attempt === 0) {
+                      await sleep(1500);
+                    } else {
+                      cloudflareError = 'Domínio customizado criado no Pages, mas o registro DNS não pôde ser confirmado após duas tentativas.';
+                    }
+                  } else if (attempt === 0) {
+                    await sleep(1500);
                   } else {
                     const dnsBody = await dnsRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
                     cloudflareError = `Domínio customizado criado no Pages, mas registro DNS falhou: ${dnsBody?.errors?.[0]?.message ?? `HTTP ${dnsRes.status}`}`;
                   }
-                } else {
-                  cloudflareError = 'Domínio customizado criado no Pages, mas não foi possível resolver a zona workr.dev.br para criar o registro DNS.';
                 }
               } else {
-                const domainBody = await domainRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
-                cloudflareError = `Projeto criado, mas domínio customizado falhou: ${domainBody?.errors?.[0]?.message ?? `HTTP ${domainRes.status}`}`;
+                cloudflareError = 'Domínio customizado criado no Pages, mas não foi possível resolver a zona workr.dev.br para criar o registro DNS.';
               }
-            } catch (e) {
-              cloudflareError = `Projeto criado, mas domínio customizado falhou: ${String((e as Error)?.message ?? e)}`;
             }
-          } else {
-            const cfBody = await cfRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
-            cloudflareError = cfBody?.errors?.[0]?.message ?? `HTTP ${cfRes.status}`;
+          } catch (e) {
+            cloudflareError = `Projeto criado, mas domínio customizado falhou: ${String((e as Error)?.message ?? e)}`;
           }
-        } catch (e) {
-          cloudflareError = `Falha ao criar projeto Cloudflare Pages: ${String((e as Error)?.message ?? e)}`;
-        }
-      } else {
-        cloudflareError = 'CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID não configurados';
-      }
-    } else if (vercelToken) {
-      try {
-        const vercelRes = await fetch('https://api.vercel.com/v10/projects', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: repoName,
-            // Explicit, not left to auto-detection — a portal provisioned with
-            // framework: null could get auto-detected as "Other" instead of
-            // Vite, which silently falls back to no build step / wrong output
-            // directory on the next rebuild that doesn't reuse the cached
-            // deployment config (manual redeploy, settings change, etc.).
-            framework: 'vite',
-            buildCommand: 'npm run build',
-            outputDirectory: 'dist',
-            gitRepository: { type: 'github', repo: `${githubOrg}/${repoName}` },
-          }),
-        });
-
-        if (vercelRes.ok) {
-          const vd = await vercelRes.json() as { name: string; id: string };
-          vercelUrl = `https://${vd.name}.vercel.app`;
-          vercelCreated = true;
-
-          // Commits were pushed before the Vercel project existed, so Vercel never saw them.
-          // Trigger an explicit deployment from the main branch now.
-          const deployRes = await fetch('https://api.vercel.com/v13/deployments', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${vercelToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: vd.name,
-              project: vd.id,
-              target: 'production',
-              gitSource: { type: 'github', org: githubOrg, repo: repoName, ref: 'main' },
-            }),
-          });
-          if (!deployRes.ok) {
-            const dBody = await deployRes.json().catch(() => ({})) as { error?: { message?: string } };
-            // Project exists (vercelCreated stays true) — only the initial
-            // deploy trigger failed; Vercel's own GitHub integration will
-            // still deploy on the next push.
-            vercelError = `Projeto criado, mas deploy inicial falhou: ${dBody?.error?.message ?? `HTTP ${deployRes.status}`}`;
-          }
-
-          // `${vd.name}.vercel.app` is NOT reliably the real production
-          // domain — Vercel silently shortens the auto-generated .vercel.app
-          // alias for longer project names (its own length rule, separate
-          // from the project name itself, which Vercel accepts unshortened).
-          // A portal named "workr-portal-lhpb-servicos-administrativos" kept
-          // showing that full name in the admin panel while the live site
-          // actually only resolved at "...-administ.vercel.app" — look up
-          // the project's real domains and prefer the short public one
-          // (skips the git-branch alias and the team-scoped alias, which are
-          // always longer / less clean than the plain one when it exists).
-          try {
-            const domainsRes = await fetch(`https://api.vercel.com/v9/projects/${vd.id}/domains`, {
-              headers: { 'Authorization': `Bearer ${vercelToken}` },
-            });
-            if (domainsRes.ok) {
-              const domainsBody = await domainsRes.json() as { domains?: { name: string }[] };
-              const names = (domainsBody.domains ?? []).map(d => d.name).filter(n => n.endsWith('.vercel.app'));
-              const canonical = names
-                .filter(n => !n.includes('-git-') && !n.includes('-projects-'))
-                .sort((a, b) => a.length - b.length)[0]
-                ?? names.sort((a, b) => a.length - b.length)[0];
-              if (canonical) vercelUrl = `https://${canonical}`;
-            }
-          } catch { /* keep the ${vd.name}.vercel.app guess */ }
         } else {
-          const vBody = await vercelRes.json().catch(() => ({})) as { error?: { message?: string } };
-          vercelError = vBody?.error?.message ?? `HTTP ${vercelRes.status}`;
+          const cfBody = await cfRes.json().catch(() => ({})) as { errors?: { message?: string }[] };
+          cloudflareError = cfBody?.errors?.[0]?.message ?? `HTTP ${cfRes.status}`;
         }
       } catch (e) {
-        vercelError = `Falha ao criar projeto Vercel: ${String((e as Error)?.message ?? e)}`;
+        cloudflareError = `Falha ao criar projeto Cloudflare Pages: ${String((e as Error)?.message ?? e)}`;
       }
     } else {
-      vercelError = 'VERCEL_TOKEN não configurado';
+      cloudflareError = 'CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID não configurados';
     }
 
-    // ── Step 6: update portal record with final Vercel URL + create portal_config
+    // ── Step 6: update portal record with final Cloudflare URL + create portal_config
     let siteUpsertError: string | undefined;
     let configUpsertError: string | undefined;
     try {
@@ -881,13 +811,8 @@ Deno.serve(async (req) => {
         resolveServiceKey(),
       );
 
-      // Update with the final URL from whichever platform actually hosts this
-      // portal — the other platform's columns are left untouched (still their
-      // defaults), never overwritten with a guess for a platform that wasn't used.
       const { data: portalRow, error: portalUpdateError } = await adminClient.from('portals')
-        .update(useCloudflare
-          ? { hosting_provider: 'cloudflare', cloudflare_url: cloudflareUrl ?? null, cloudflare_created: cloudflareCreated }
-          : { hosting_provider: 'vercel', vercel_url: vercelUrl, vercel_created: vercelCreated })
+        .update({ hosting_provider: 'cloudflare', cloudflare_url: cloudflareUrl ?? null, cloudflare_created: cloudflareCreated })
         .eq('portal_key', _portalId)
         .select('id')
         .maybeSingle();
@@ -897,11 +822,10 @@ Deno.serve(async (req) => {
       if (!pid) configUpsertError = configUpsertError ?? 'portal UUID não resolvido — portal_config não foi criado';
 
       // Create/upsert portal_sites row (the live site entry shown in admin panel)
-      const liveUrl = useCloudflare ? cloudflareUrl : vercelUrl;
       if (pid) {
         const { error: siteErr } = await adminClient.from('portal_sites').upsert({
           portal_id: pid,
-          link: liveUrl ? liveUrl.replace(/^https?:\/\//, '') : `${repoName}.${useCloudflare ? 'pages.dev' : 'vercel.app'}`,
+          link: cloudflareUrl ? cloudflareUrl.replace(/^https?:\/\//, '') : `${repoName}.pages.dev`,
           status: 'Ativo',
           ip: null,
           tipo: tipoSite ?? 'RI',
@@ -944,7 +868,7 @@ Deno.serve(async (req) => {
       }
     } catch (e) { configUpsertError = configUpsertError ?? String(e); }
 
-    return new Response(JSON.stringify({ repoName, repoUrl, hostingProvider: useCloudflare ? 'cloudflare' : 'vercel', vercelUrl, vercelCreated, vercelError, cloudflareUrl, cloudflareCreated, cloudflareError, portalUuid, siteUpsertError, configUpsertError, portalUpsertError, assetErrors: assetErrors.length ? assetErrors : undefined }), {
+    return new Response(JSON.stringify({ repoName, repoUrl, hostingProvider: 'cloudflare', cloudflareUrl, cloudflareCreated, cloudflareError, portalUuid, siteUpsertError, configUpsertError, portalUpsertError, assetErrors: assetErrors.length ? assetErrors : undefined }), {
       status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
     });
 
