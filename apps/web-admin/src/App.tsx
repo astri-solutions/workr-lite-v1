@@ -41,7 +41,6 @@ import NovaMateriaPage from './pages/portal/NovaMateriaPage';
 import NovoFormularioPage from './pages/portal/NovoFormularioPage';
 import CalendarioPage from './pages/portal/CalendarioPage';
 import SplashPage from './pages/portal/SplashPage';
-import SplashTemplatesPage from './pages/portal/SplashTemplatesPage';
 import MailingPage from './pages/portal/MailingPage';
 import PlanilhaDinamicaPage from './pages/portal/PlanilhaDinamicaPage';
 import TransmisoesPage from './pages/portal/TransmisoesPage';
@@ -116,7 +115,8 @@ const router = createBrowserRouter([
       { path: 'materias/formulario', element: <NovoFormularioPage /> },
       { path: 'calendario', element: <CalendarioPage /> },
       { path: 'splash', element: <SplashPage /> },
-      { path: 'splash/templates', element: <SplashTemplatesPage /> },
+      { path: 'splash/templates', element: <Navigate to="/portal/splash" replace /> },
+      { path: 'splash/novo', element: <Navigate to="/portal/splash" replace /> },
       { path: 'mailing', element: <MailingPage /> },
       { path: 'planilha-dinamica', element: <PlanilhaDinamicaPage /> },
       { path: 'transmissoes', element: <TransmisoesPage /> },

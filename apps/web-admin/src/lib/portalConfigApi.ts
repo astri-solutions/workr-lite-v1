@@ -29,6 +29,7 @@ export interface PortalConfigPatch {
   ticker?:       unknown;
   splash?:       unknown;
   splash_templates?: unknown;
+  splash_history?: unknown;
   cookies?:      unknown;
   banner_slides?: unknown;
   banner_shortcuts?: unknown;

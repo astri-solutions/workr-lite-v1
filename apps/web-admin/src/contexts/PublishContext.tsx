@@ -128,10 +128,23 @@ export function PublishProvider({ children }: { children: React.ReactNode }) {
           })
         : null;
 
-      // Same treatment for the splash header image.
+      // Same treatment for the splash header image — per-locale since
+      // Splash content (including the header image) is keyed by language,
+      // not a single shared field. `content` may be absent on a splash
+      // saved before that existed (flat imageUrl at the top level) —
+      // handle both so an old, not-yet-republished splash still resolves.
       const splashResolved = splash && typeof splash === 'object'
         ? (() => {
             const s = splash as Record<string, unknown>;
+            if (s.content && typeof s.content === 'object') {
+              const content: Record<string, unknown> = {};
+              for (const [lang, texts] of Object.entries(s.content as Record<string, unknown>)) {
+                const t = texts as Record<string, unknown> | null;
+                const asset = extractAsset(typeof t?.imageUrl === 'string' ? t.imageUrl : null);
+                content[lang] = t ? { ...t, imageUrl: asset ?? (t.imageUrl ?? null) } : t;
+              }
+              return { ...s, content };
+            }
             const asset = extractAsset(typeof s.imageUrl === 'string' ? s.imageUrl : null);
             return { ...s, imageUrl: asset ?? (s.imageUrl ?? null) };
           })()

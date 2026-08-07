@@ -145,11 +145,17 @@ interface BannerShortcutCfg { id: string; pageId: string; label?: string; }
 interface EmpresaCfg { id: string; label: string; short: string; }
 
 interface SplashBtn { label: string; url: string; variant: string; }
-interface SplashCfg {
-  enabled: boolean; size: string;
+interface SplashTexts {
   titulo: string; texto: string; conteudo: string; legenda: string;
-  buttons: SplashBtn[];
   imageUrl?: string | AssetCfg | null;
+}
+interface SplashCfg {
+  id?: string;
+  enabled: boolean; size: string;
+  buttons: SplashBtn[];
+  content: Record<string, SplashTexts>;
+  publishAt?: string | null;
+  unpublishAt?: string | null;
 }
 interface CookieTexts {
   title: string; description: string; linkText: string;
@@ -334,7 +340,7 @@ function buildSplashSection(splash: SplashCfg | null | undefined): string {
   if (splash) {
     return JSON.stringify(splash, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n');
   }
-  return '{\n    enabled: false,\n    size: \'md\',\n    titulo: \'\',\n    texto: \'\',\n    conteudo: \'\',\n    legenda: \'\',\n    buttons: [],\n  }';
+  return '{\n    enabled: false,\n    size: \'md\',\n    buttons: [],\n    content: {},\n  }';
 }
 
 function buildCookiesSection(cookies: CookieCfg | null | undefined): string {
@@ -726,19 +732,27 @@ Deno.serve(async (req) => {
       return slide;
     });
 
-    // Same treatment as banner slides — splash.imageUrl arrives either as a
-    // fresh {base64, ext} upload or an already-published path string.
+    // Same treatment as banner slides, but per-locale — Splash content
+    // (including the header image) is keyed by language, so each language's
+    // imageUrl arrives independently as either a fresh {base64, ext} upload
+    // or an already-published path string.
     let resolvedSplash = splash ?? null;
     let splashHasFreshImage = false;
-    if (resolvedSplash) {
-      const img = resolvedSplash.imageUrl;
-      if (img && typeof img === 'object' && 'base64' in img) {
-        const path = `/assets/splash/header-${contentHash(img.base64)}.${img.ext}`;
-        bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
-        resolvedSplash = { ...resolvedSplash, imageUrl: path };
-        splashHasFreshImage = true;
-        mediaMirror.push({ slot: 'splash-header', name: 'Splash — imagem', ext: img.ext, base64: img.base64 });
+    if (resolvedSplash?.content) {
+      const content: Record<string, SplashTexts> = {};
+      for (const [lang, texts] of Object.entries(resolvedSplash.content)) {
+        const img = texts?.imageUrl;
+        if (img && typeof img === 'object' && 'base64' in img) {
+          const path = `/assets/splash/header-${lang}-${contentHash(img.base64)}.${img.ext}`;
+          bannerAssetWrites.push({ path: `public${path}`, base64: img.base64 });
+          splashHasFreshImage = true;
+          mediaMirror.push({ slot: `splash-header-${lang}`, name: `Splash — imagem (${lang})`, ext: img.ext, base64: img.base64 });
+          content[lang] = { ...texts, imageUrl: path };
+        } else {
+          content[lang] = texts;
+        }
       }
+      resolvedSplash = { ...resolvedSplash, content };
     }
 
     const filePath = 'scripts/site.config.js';
