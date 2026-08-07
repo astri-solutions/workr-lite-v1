@@ -4,7 +4,7 @@ import StickyPageHeader from '../../components/StickyPageHeader';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
 import PORTAL_CONFIG from '../../portalConfig';
-import { SPLASH_APPLY_TEMPLATE_KEY, type SplashTemplate } from './SplashPage';
+import { SPLASH_APPLY_TEMPLATE_KEY, reviveTemplateConfig, type SplashTemplate } from './SplashPage';
 
 const primaryLang = PORTAL_CONFIG.languages[0];
 import '../admin/AdminPages.css';
@@ -76,8 +76,13 @@ const BUILT_IN_TEMPLATES: SplashTemplate[] = [
 export default function SplashTemplatesPage() {
   const portalName = usePortalName();
   const navigate = useNavigate();
-  const [templates, setTemplates] = usePortalState<SplashTemplate[]>('portal_splash_templates', 'splash_templates', []);
+  const [rawTemplates, setTemplates] = usePortalState<SplashTemplate[]>('portal_splash_templates', 'splash_templates', []);
   const [confirmDelete, setConfirmDelete] = useState<SplashTemplate | null>(null);
+
+  // Templates saved before content became per-locale still have the old
+  // flat `config` shape (no `content` field) — normalize on read instead of
+  // mutating what's persisted, so cards/apply never crash on a legacy save.
+  const templates = rawTemplates.map(t => ({ ...t, config: reviveTemplateConfig(t.config) }));
 
   function useTemplate(tpl: SplashTemplate) {
     sessionStorage.setItem(SPLASH_APPLY_TEMPLATE_KEY, JSON.stringify(tpl.config));
@@ -85,7 +90,7 @@ export default function SplashTemplatesPage() {
   }
 
   function deleteTemplate(id: string) {
-    setTemplates(templates.filter(t => t.id !== id));
+    setTemplates(rawTemplates.filter(t => t.id !== id));
     setConfirmDelete(null);
   }
 
