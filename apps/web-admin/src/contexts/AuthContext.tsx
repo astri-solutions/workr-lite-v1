@@ -66,13 +66,13 @@ async function loadClientPortais(sbUserId: string): Promise<Portal[]> {
   try {
     const { data, error } = await supabase
       .from('portal_users')
-      .select('role, empresas, portals!inner(portal_key, cliente, vercel_url, subdomain, github_repo, vercel_created)')
+      .select('role, empresas, portals!inner(portal_key, cliente, cloudflare_url, subdomain, github_repo, cloudflare_created)')
       .eq('user_id', sbUserId);
     if (error || !data) return [];
     type PortalRow = {
       portal_key: string; cliente: string;
-      vercel_url?: string; subdomain?: string;
-      github_repo?: string; vercel_created?: boolean;
+      cloudflare_url?: string; subdomain?: string;
+      github_repo?: string; cloudflare_created?: boolean;
     };
     type Row = { role: string; empresas: string[] | null; portals: unknown };
 
@@ -91,10 +91,10 @@ async function loadClientPortais(sbUserId: string): Promise<Portal[]> {
           return {
             id: p.portal_key,
             cliente: p.cliente,
-            vercelUrl: p.vercel_url ?? null,
+            cloudflareUrl: p.cloudflare_url ?? null,
             subdomain: p.subdomain ?? null,
             githubRepo: p.github_repo ?? null,
-            vercelCreated: p.vercel_created ?? false,
+            cloudflareCreated: p.cloudflare_created ?? false,
           };
         })
         .filter(entry => !existingIds.has(entry.id));

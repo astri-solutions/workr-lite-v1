@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { sendUserInvite, sendPortalAccessGranted } from '../_shared/postmark.ts';
+import { sendUserInvite, sendPortalAccessGranted, sendPasswordReset } from '../_shared/postmark.ts';
 
 function resolveServiceKey(): string {
   try {
@@ -42,7 +42,6 @@ async function adminCall<T>(
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
   'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
@@ -106,7 +105,7 @@ Deno.serve(async (req) => {
       resolveServiceKey(),
     );
 
-    const { email, nome, portalId, portalKey, role, empresas, redirectTo, resend } = await req.json() as {
+    const { email, nome, portalId, portalKey, role, empresas, redirectTo, resend, resetPassword } = await req.json() as {
       email: string;
       nome?: string;
       portalId?: string;
@@ -115,6 +114,10 @@ Deno.serve(async (req) => {
       empresas?: string[] | null;
       redirectTo?: string;
       resend?: boolean;
+      // Portal-admin-triggered "Resetar senha" — overwrites the user's
+      // current password without needing to know it, same as manage-user's
+      // reset_password action for the admin-panel-side UsuariosPage.
+      resetPassword?: boolean;
     };
 
     if (!email) {
@@ -157,6 +160,54 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...ch, 'Content-Type': 'application/json' },
         });
       }
+    }
+
+    // Portal-admin-triggered password reset — short-circuits before the
+    // invite/link logic below, since it neither creates a user nor touches
+    // role/empresas: just overwrites whatever password the target already
+    // has via the same Supabase Auth `recovery` link type the user's own
+    // "Esqueci minha senha" flow uses, sent through Postmark for branding.
+    if (resetPassword) {
+      const { users: usersForReset, error: listErr2 } = await listAllUsers(supabaseUrl);
+      if (listErr2 || !usersForReset) {
+        return new Response(JSON.stringify({ error: `Falha ao verificar usuário: ${listErr2?.message ?? 'erro desconhecido'}` }), {
+          status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      const target = usersForReset.find(u => u.email === email);
+      if (!target) {
+        return new Response(JSON.stringify({ error: 'Usuário não encontrado.' }), {
+          status: 404, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      const resetRedirectTo = redirectTo ?? `${Deno.env.get('SITE_URL') ?? 'https://workr.dev.br'}/definir-senha`;
+      const { data: linkData2, error: linkErr2 } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo: resetRedirectTo },
+      }));
+      if (linkErr2 || !linkData2?.properties?.action_link) {
+        return new Response(JSON.stringify({ error: linkErr2?.message ?? 'Falha ao gerar link de redefinição' }), {
+          status: 400, headers: { ...ch, 'Content-Type': 'application/json' },
+        });
+      }
+      const postmarkTokenForReset = Deno.env.get('POSTMARK_TOKEN');
+      if (postmarkTokenForReset) {
+        try {
+          await sendPasswordReset({ email, nome: nome ?? undefined, resetLink: linkData2.properties.action_link, triggeredByAdmin: true });
+        } catch (emailErr) {
+          return new Response(JSON.stringify({ id: target.id, emailError: String(emailErr) }), {
+            status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+          });
+        }
+      } else {
+        await adminCall(supabaseUrl, c => c.auth.resetPasswordForEmail(email, {
+          redirectTo: resetRedirectTo,
+        })).catch(() => { /* non-fatal */ });
+      }
+      return new Response(JSON.stringify({ id: target.id, emailSent: true }), {
+        status: 200, headers: { ...ch, 'Content-Type': 'application/json' },
+      });
     }
 
     async function upsertPortalUser(uid: string) {

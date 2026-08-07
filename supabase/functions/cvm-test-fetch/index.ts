@@ -11,7 +11,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { unzipSync } from 'https://esm.sh/fflate@0.8.2';
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
   'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',

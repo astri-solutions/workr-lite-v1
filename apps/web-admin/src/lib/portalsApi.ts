@@ -27,9 +27,6 @@ export interface Portal {
   empresa: Empresa;
   sites: Site[];
   githubRepo?: string;
-  vercelUrl?: string;
-  vercelCreated?: boolean;
-  hostingProvider?: 'vercel' | 'cloudflare';
   cloudflareUrl?: string;
   cloudflareCreated?: boolean;
   subdomain?: string;
@@ -79,9 +76,6 @@ function dbToPortal(row: Record<string, unknown>, sites: Record<string, unknown>
       tipo: (s['tipo'] as SiteTipo) ?? 'RI',
     })),
     githubRepo: (row['github_repo'] as string) ?? undefined,
-    vercelUrl: (row['vercel_url'] as string) ?? undefined,
-    vercelCreated: (row['vercel_created'] as boolean) ?? false,
-    hostingProvider: ((row['hosting_provider'] as string) ?? 'vercel') as 'vercel' | 'cloudflare',
     cloudflareUrl: (row['cloudflare_url'] as string) ?? undefined,
     cloudflareCreated: (row['cloudflare_created'] as boolean) ?? false,
     subdomain: (row['subdomain'] as string) ?? undefined,
@@ -161,8 +155,6 @@ export async function savePortal(portal: Portal): Promise<void> {
       email: portal.empresa.email || null,
       empresa_status: portal.empresa.status,
       github_repo: portal.githubRepo ?? null,
-      vercel_url: portal.vercelUrl ?? null,
-      vercel_created: portal.vercelCreated ?? false,
       subdomain: portal.subdomain ?? null,
     }, { onConflict: 'portal_key' })
     .select('id')
@@ -270,8 +262,8 @@ export async function updateSiteStatus(
 export async function fetchPortalSite(siteId: string): Promise<{
   siteId: string; portalId: string; portalKey: string; cliente: string; link: string;
   ip: string; status: 'Ativo' | 'Suspenso'; criadoEm: string;
-  githubRepo?: string; vercelUrl?: string; vercelCreated?: boolean; subdomain?: string;
-  hostingProvider?: 'vercel' | 'cloudflare'; cloudflareUrl?: string; cloudflareCreated?: boolean;
+  githubRepo?: string; subdomain?: string;
+  cloudflareUrl?: string; cloudflareCreated?: boolean;
   suporteNome?: string; suporteEmail?: string; suporteUserId?: string;
 } | undefined> {
   if (!isSupabaseConfigured || !supabase) {
@@ -304,9 +296,6 @@ export async function fetchPortalSite(siteId: string): Promise<{
     status: (data['status'] as 'Ativo' | 'Suspenso') ?? 'Ativo',
     criadoEm,
     githubRepo: (portal['github_repo'] as string) ?? undefined,
-    vercelUrl: (portal['vercel_url'] as string) ?? undefined,
-    vercelCreated: (portal['vercel_created'] as boolean) ?? false,
-    hostingProvider: ((portal['hosting_provider'] as string) ?? 'vercel') as 'vercel' | 'cloudflare',
     cloudflareUrl: (portal['cloudflare_url'] as string) ?? undefined,
     cloudflareCreated: (portal['cloudflare_created'] as boolean) ?? false,
     subdomain: (portal['subdomain'] as string) ?? undefined,
@@ -332,8 +321,6 @@ function fromLocalStorage(siteId: string) {
           status: s.status,
           criadoEm: portal.criadoEm,
           githubRepo: portal.githubRepo,
-          vercelUrl: portal.vercelUrl,
-          vercelCreated: portal.vercelCreated,
           subdomain: portal.subdomain,
         };
       }

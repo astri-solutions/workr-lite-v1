@@ -263,7 +263,7 @@ export default function AnalyticsPage() {
   const site = portalSite
     ? { id: portalSite.siteId, link: portalSite.link, cliente: portalSite.cliente, portalId: portalSite.portalId, portalKey: portalSite.portalKey }
     : undefined;
-  // Analytics data is illustrative — real data will come from Vercel Analytics API in a future integration
+  // Analytics data is illustrative — real data will come from a future analytics integration
   const analytics = ANALYTICS_DB['s1'];
 
   // SEO/Analytics config (meta título/descrição, Google Analytics/GTM,

@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendPasswordReset } from '../_shared/postmark.ts';
 
 // Supabase project migrated to JWT Signing Keys (asymmetric ES256) — the
 // legacy SUPABASE_SERVICE_ROLE_KEY (still auto-injected) fails signature
@@ -92,11 +93,12 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json() as {
-      action: 'delete' | 'ban' | 'unban' | 'update';
+      action: 'delete' | 'ban' | 'unban' | 'update' | 'reset_password';
       userId: string;
       role?: string;
       portais?: string[];
       portalRoles?: Record<string, string>;
+      redirectTo?: string;
     };
 
     const { action, userId } = body;
@@ -131,6 +133,56 @@ Deno.serve(async (req) => {
         ban_duration: 'none',
       }));
       if (error) throw error;
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Admin-triggered password reset: overwrites whatever password the user
+    // currently has, without needing to know it. Generates the same
+    // Supabase Auth `recovery` link the user's own "Esqueci minha senha"
+    // flow uses, but sends it via Postmark (reliable, on-brand) instead of
+    // Supabase's own SMTP — same reasoning as invite-user's invite link.
+    if (action === 'reset_password') {
+      const { data: userData, error: getErr } = await adminCall(supabaseUrl, c => c.auth.admin.getUserById(userId));
+      if (getErr || !userData?.user?.email) {
+        return new Response(JSON.stringify({ error: getErr?.message ?? 'Usuário sem e-mail cadastrado' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const email = userData.user.email;
+      const nome = (userData.user.user_metadata?.name as string | undefined)
+        ?? (userData.user.user_metadata?.full_name as string | undefined);
+
+      const resolvedRedirectTo = body.redirectTo
+        ?? (Deno.env.get('SITE_URL') ? `${Deno.env.get('SITE_URL')}/definir-senha` : 'https://workr.dev.br/definir-senha');
+
+      const { data: linkData, error: linkErr } = await adminCall(supabaseUrl, c => c.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo: resolvedRedirectTo },
+      }));
+      if (linkErr || !linkData?.properties?.action_link) {
+        return new Response(JSON.stringify({ error: linkErr?.message ?? 'Falha ao gerar link de redefinição' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const postmarkToken = Deno.env.get('POSTMARK_TOKEN');
+      if (postmarkToken) {
+        try {
+          await sendPasswordReset({ email, nome, resetLink: linkData.properties.action_link, triggeredByAdmin: true });
+        } catch (emailErr) {
+          return new Response(JSON.stringify({ ok: true, emailError: String(emailErr) }), {
+            status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      } else {
+        await adminCall(supabaseUrl, c => c.auth.resetPasswordForEmail(email, {
+          redirectTo: resolvedRedirectTo,
+        })).catch(() => { /* non-fatal */ });
+      }
+
       return new Response(JSON.stringify({ ok: true }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

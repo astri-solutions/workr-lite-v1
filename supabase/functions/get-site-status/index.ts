@@ -14,7 +14,6 @@ function resolveServiceKey(): string {
 }
 
 const ALLOWED_ORIGINS = [
-  'https://workr-lite-v1.vercel.app',
   'https://workr.dev.br',
   'http://localhost:5173',
   'http://localhost:4173',
@@ -30,10 +29,10 @@ function corsHeaders(origin: string | null) {
   };
 }
 
-// disco/cpu/memória/inodes/versão do PHP não têm equivalente honesto na
-// Vercel (hosting serverless, sem esse tipo de métrica) — em vez de inventar
-// valores, este endpoint só devolve o que a API da Vercel realmente informa:
-// estado do último deploy e verificação de domínio/SSL.
+// disco/cpu/memória/inodes/versão do PHP não têm equivalente honesto num
+// hosting serverless — em vez de inventar valores, este endpoint só devolve
+// o que a API da Cloudflare Pages realmente informa: estado do último
+// deploy e verificação de domínio customizado.
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const ch = corsHeaders(origin);
@@ -71,6 +70,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // `projectName` here is the Cloudflare Pages project name — same value
+    // as the portal's github_repo (provision-portal names the Pages project
+    // after the repo).
     const { projectName } = await req.json() as { projectName?: string };
     if (!projectName) {
       return new Response(JSON.stringify({ error: 'projectName é obrigatório' }), {
@@ -78,27 +80,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    const vercelToken = Deno.env.get('VERCEL_TOKEN');
-    if (!vercelToken) {
-      return new Response(JSON.stringify({ error: 'VERCEL_TOKEN não configurado' }), {
+    const cloudflareToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
+    const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+    if (!cloudflareToken || !cloudflareAccountId) {
+      return new Response(JSON.stringify({ error: 'CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID não configurados' }), {
         status: 500, headers: { ...ch, 'Content-Type': 'application/json' },
       });
     }
-    const vHeaders = { 'Authorization': `Bearer ${vercelToken}` };
+    const cfHeaders = { 'Authorization': `Bearer ${cloudflareToken}` };
 
+    // Mapped to the same READY/ERROR/BUILDING/QUEUED/CANCELED/INITIALIZING
+    // vocabulary the admin panel already renders (deployStateLabel in
+    // PainelControlePage.tsx) — Cloudflare Pages doesn't have a single
+    // top-level "state" field like Vercel did, only a `latest_stage`
+    // {name, status} pair per deployment (stages: queued → initialize →
+    // clone_repo → build → deploy; status: idle/active/success/failure).
     let deployState: string | null = null;
     let deployCreatedAt: string | null = null;
     try {
       const depRes = await fetch(
-        `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projectName)}&limit=1&target=production`,
-        { headers: vHeaders }
+        `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${encodeURIComponent(projectName)}/deployments?env=production&per_page=1`,
+        { headers: cfHeaders }
       );
       if (depRes.ok) {
-        const depJson = await depRes.json() as { deployments?: { state: string; created: number }[] };
-        const d = depJson.deployments?.[0];
+        const depJson = await depRes.json() as {
+          result?: { created_on: string; latest_stage?: { name: string; status: string } }[];
+        };
+        const d = depJson.result?.[0];
         if (d) {
-          deployState = d.state;
-          deployCreatedAt = new Date(d.created).toISOString();
+          deployCreatedAt = d.created_on;
+          const stage = d.latest_stage;
+          if (!stage) deployState = 'QUEUED';
+          else if (stage.status === 'failure') deployState = 'ERROR';
+          else if (stage.status === 'canceled') deployState = 'CANCELED';
+          else if (stage.name === 'deploy' && stage.status === 'success') deployState = 'READY';
+          else if (stage.name === 'queued') deployState = 'QUEUED';
+          else deployState = 'BUILDING';
         }
       }
     } catch { /* non-fatal */ }
@@ -106,13 +123,13 @@ Deno.serve(async (req) => {
     let domainVerified: boolean | null = null;
     try {
       const domRes = await fetch(
-        `https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}/domains`,
-        { headers: vHeaders }
+        `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${encodeURIComponent(projectName)}/domains`,
+        { headers: cfHeaders }
       );
       if (domRes.ok) {
-        const domJson = await domRes.json() as { domains?: { verified: boolean }[] };
-        if (domJson.domains && domJson.domains.length > 0) {
-          domainVerified = domJson.domains.every(d => d.verified);
+        const domJson = await domRes.json() as { result?: { status: string }[] };
+        if (domJson.result && domJson.result.length > 0) {
+          domainVerified = domJson.result.every(d => d.status === 'active');
         }
       }
     } catch { /* non-fatal */ }

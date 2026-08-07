@@ -35,7 +35,7 @@ function loadEmpresas(): AdminEmpresa[] {
     if (!portaisRaw) return [];
     const portais = JSON.parse(portaisRaw) as Array<{
       id: string; cliente: string; cnpj?: string; cvmCode?: string;
-      vercelUrl?: string; githubRepo?: string; createdAt?: string;
+      cloudflareUrl?: string; githubRepo?: string; createdAt?: string;
     }>;
     return portais.map(p => ({
       id: p.id,
@@ -46,7 +46,7 @@ function loadEmpresas(): AdminEmpresa[] {
       email: '',
       criadoEm: p.createdAt ?? new Date().toISOString().slice(0, 10),
       status: 'ativa' as ContaStatus,
-      portais: [{ id: p.id, link: p.vercelUrl ?? p.githubRepo ?? '', ativo: true }],
+      portais: [{ id: p.id, link: p.cloudflareUrl ?? p.githubRepo ?? '', ativo: true }],
     }));
   } catch { return []; }
 }

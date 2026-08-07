@@ -20,9 +20,10 @@ supabase secrets set \
   POSTMARK_FROM=noreply@astri.solutions \
   OPS_ALERT_EMAIL=projetos@astri.solutions \
   GITHUB_TOKEN=<ghp_...> \
-  VERCEL_TOKEN=<vercel_token> \
+  CLOUDFLARE_API_TOKEN=<cloudflare_token> \
+  CLOUDFLARE_ACCOUNT_ID=<cloudflare_account_id> \
   GITHUB_ORG=astri-solutions \
-  SITE_URL=https://workr-lite-v1.vercel.app
+  SITE_URL=https://workr.dev.br
 ```
 
 Verificar secrets configurados:
@@ -70,22 +71,23 @@ Módulo compartilhado: `supabase/functions/_shared/postmark.ts`
 
 ---
 
-## 3. GitHub + Vercel (provision-portal)
+## 3. GitHub + Cloudflare (provision-portal)
 
 ### GitHub Token
 1. github.com → Settings → Developer settings → Personal access tokens → Fine-grained
 2. Permissões necessárias na org `astri-solutions`: **Contents** (read/write), **Administration** (read/write)
 3. `supabase secrets set GITHUB_TOKEN=ghp_...`
 
-### Vercel Token
-1. vercel.com → Settings → Tokens → Create
-2. Scope: `Full Account`
-3. `supabase secrets set VERCEL_TOKEN=...`
+### Cloudflare API Token
+1. dash.cloudflare.com → My Profile → API Tokens → Create Token
+2. Permissões necessárias: **Account → Cloudflare Pages: Edit**, **Zone → DNS: Edit** (na zona `workr.dev.br`)
+3. `supabase secrets set CLOUDFLARE_API_TOKEN=...`
+4. `supabase secrets set CLOUDFLARE_ACCOUNT_ID=...` (Dashboard → conta → sidebar direita "Account ID")
 
 Padrão de nomes gerados:
 - Repo GitHub: `astri-solutions/workr-portal-{subdomain}`
-- Projeto Vercel: `workr-portal-{subdomain}`
-- URL: `https://workr-portal-{subdomain}.vercel.app`
+- Projeto Cloudflare Pages: `workr-portal-{subdomain}`
+- URL: `https://{subdomain}.workr.dev.br` (custom domain apontando para `workr-portal-{subdomain}.pages.dev`)
 
 ---
 

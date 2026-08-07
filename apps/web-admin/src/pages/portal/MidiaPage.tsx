@@ -16,9 +16,20 @@ import '../admin/AdminPages.css';
 import './MidiaPage.css';
 
 const MEDIA_BUCKET = 'portal-media';
+// Documentos and Central de Resultados both store their files in this same
+// bucket (see DOCS_BUCKET in DocumentosPage.tsx / RESULTADOS_BUCKET in
+// CentralDeResultadosPage2.tsx) — reused here only to build a public URL for
+// display, never to upload/copy anything into it.
+const DOCS_BUCKET = 'portal-documents';
 
 type FileType = 'image' | 'pdf' | 'doc' | 'xls' | 'ppt' | 'video' | 'other';
 type ViewMode = 'grid' | 'list';
+// Where a file actually lives — 'midia' is the only origin this page owns
+// (upload/replace/delete). 'documentos' and 'resultados' are read-only
+// mirrors of rows that live in portal_documents / portal_resultado_arquivos:
+// same file, same storage path, never copied or duplicated — just also
+// listed here so this page works as one shared library view.
+type MediaOrigin = 'midia' | 'documentos' | 'resultados';
 
 interface MediaFile {
   id: string;
@@ -41,6 +52,7 @@ interface MediaFile {
   descricao?: string;
   link?: string;
   slot?: string;
+  origin: MediaOrigin;
 }
 
 function dbToMedia(r: Record<string, unknown>): MediaFile {
@@ -65,6 +77,64 @@ function dbToMedia(r: Record<string, unknown>): MediaFile {
     descricao: (r.descricao as string) ?? undefined,
     link: (r.link as string) ?? undefined,
     slot: (r.slot as string) ?? undefined,
+    origin: 'midia',
+  };
+}
+
+// Read-only mirror of a portal_documents row (Documentos page). Only the
+// PRIMARY locale's file is shown — a document with per-locale files still
+// counts as one file here, same as it's one row in Documentos itself.
+function docToMedia(r: Record<string, unknown>): MediaFile | null {
+  const titulo = (r.titulo as Record<string, string>) ?? {};
+  const arquivos = (r.arquivos as Record<string, { filePath?: string; externalLink?: string }>) ?? {};
+  const primary = arquivos['pt-BR'] ?? arquivos[Object.keys(arquivos)[0]]
+    ?? { filePath: r.file_path as string | undefined, externalLink: r.external_link as string | undefined };
+  const filePath = primary?.filePath;
+  const externalLink = primary?.externalLink;
+  if (!filePath && !externalLink) return null; // nothing to show a file for
+  const publicUrl = filePath && supabase
+    ? supabase.storage.from(DOCS_BUCKET).getPublicUrl(filePath).data.publicUrl
+    : null;
+  const name = filePath ? filePath.split('/').pop() ?? String(r.id) : (externalLink ?? String(r.id));
+  const nomeTitulo = titulo['pt-BR'] ?? titulo[Object.keys(titulo)[0]];
+  return {
+    id: `doc:${r.id as string}`,
+    name,
+    type: extType(name),
+    size: '—',
+    url: publicUrl ?? externalLink ?? null,
+    filePath,
+    uploadedAt: new Date((r.data_publicacao as string | null) ?? (r.created_at as string)).toLocaleDateString('pt-BR'),
+    tags: [],
+    uploadedBy: (r.publicado_por as string) || (r.ultimo_editor as string) || '',
+    titulo: nomeTitulo,
+    origin: 'documentos',
+  };
+}
+
+// Read-only mirror of a portal_resultado_arquivos row (Central de
+// Resultados). Same reasoning as docToMedia — the file itself stays only in
+// portal_resultado_arquivos/its bucket path, this just surfaces it here too.
+function resultadoToMedia(r: Record<string, unknown>): MediaFile | null {
+  const filePath = r.file_path as string | undefined;
+  const externalLink = r.external_link as string | undefined;
+  if (!filePath && !externalLink) return null;
+  const publicUrl = filePath && supabase
+    ? supabase.storage.from(DOCS_BUCKET).getPublicUrl(filePath).data.publicUrl
+    : null;
+  const name = filePath ? filePath.split('/').pop() ?? String(r.id) : (externalLink ?? String(r.id));
+  return {
+    id: `res:${r.id as string}`,
+    name,
+    type: extType(name),
+    size: '—',
+    url: publicUrl ?? externalLink ?? null,
+    filePath,
+    uploadedAt: new Date(r.created_at as string).toLocaleDateString('pt-BR'),
+    tags: [],
+    uploadedBy: '',
+    titulo: (r.nome as string) || undefined,
+    origin: 'resultados',
   };
 }
 
@@ -145,6 +215,10 @@ const TYPE_LABEL: Record<FileType, string> = {
   image: 'Imagem', pdf: 'PDF', doc: 'Word', xls: 'Planilha', ppt: 'Apresentação', video: 'Vídeo', other: 'Outro',
 };
 
+const ORIGIN_LABEL: Record<MediaOrigin, string> = {
+  midia: 'Mídia', documentos: 'Documentos', resultados: 'Central de Resultados',
+};
+
 const MIDIA_FILTERS = [
   {
     key: 'tipo',
@@ -157,6 +231,16 @@ const MIDIA_FILTERS = [
       { value: 'xls', label: 'Planilhas' },
       { value: 'ppt', label: 'Apresentações' },
       { value: 'video', label: 'Vídeos' },
+    ],
+  },
+  {
+    key: 'origem',
+    label: 'Origem',
+    options: [
+      { value: '', label: 'Todas as origens', shortLabel: 'Todas' },
+      { value: 'midia', label: 'Mídia' },
+      { value: 'documentos', label: 'Documentos' },
+      { value: 'resultados', label: 'Central de Resultados' },
     ],
   },
 ];
@@ -196,7 +280,7 @@ export default function MidiaPage() {
   // "empty" from "broke" instead of silently looking like the former.
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState<Record<string, string>>({ tipo: '' });
+  const [filters, setFilters] = useState<Record<string, string>>({ tipo: '', origem: '' });
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -227,20 +311,36 @@ export default function MidiaPage() {
     resolvePortalId(portalKey).then(setPortalDbId).catch(() => setPortalDbId(null));
   }, [user?.activePortalId]);
 
+  // Aggregates three independent tables into one list for display only —
+  // Documentos (portal_documents) and Central de Resultados
+  // (portal_resultado_arquivos) files are never uploaded, copied, or
+  // inserted anywhere here; this just also *shows* the same storage path/
+  // link that's already the source of truth on their own pages, tagged
+  // with `origin` so the UI can filter by it and keep edit/delete actions
+  // exclusive to whichever page actually owns the row (see `origin !==
+  // 'midia'` checks below, mirroring the existing `slot` read-only pattern).
   const loadFiles = useCallback(async () => {
     if (!portalDbId || !isSupabaseConfigured || !supabase) return;
-    const { data, error } = await supabase
-      .from('portal_media')
-      .select('*')
-      .eq('portal_id', portalDbId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('portal_media load failed', error);
-      setLoadError(`Não foi possível carregar a biblioteca de mídia: ${error.message}`);
+    const [mediaRes, docsRes, resultadosRes] = await Promise.all([
+      supabase.from('portal_media').select('*').eq('portal_id', portalDbId).order('created_at', { ascending: false }),
+      supabase.from('portal_documents').select('*').eq('portal_id', portalDbId).order('created_at', { ascending: false }),
+      supabase.from('portal_resultado_arquivos').select('*').eq('portal_id', portalDbId).order('created_at', { ascending: false }),
+    ]);
+    if (mediaRes.error) {
+      console.error('portal_media load failed', mediaRes.error);
+      setLoadError(`Não foi possível carregar a biblioteca de mídia: ${mediaRes.error.message}`);
       return;
     }
+    // Documentos/Resultados failing to load is non-fatal — the page still
+    // works as a media library on its own, just without those extra items.
+    if (docsRes.error) console.error('portal_documents load (for Mídia) failed', docsRes.error);
+    if (resultadosRes.error) console.error('portal_resultado_arquivos load (for Mídia) failed', resultadosRes.error);
+
     setLoadError('');
-    setFiles((data ?? []).map(dbToMedia));
+    const mediaFiles = (mediaRes.data ?? []).map(dbToMedia);
+    const docFiles = (docsRes.data ?? []).map(docToMedia).filter((f): f is MediaFile => f !== null);
+    const resultadoFiles = (resultadosRes.data ?? []).map(resultadoToMedia).filter((f): f is MediaFile => f !== null);
+    setFiles([...mediaFiles, ...docFiles, ...resultadoFiles]);
   }, [portalDbId]);
 
   useEffect(() => { loadFiles(); }, [loadFiles]);
@@ -248,6 +348,7 @@ export default function MidiaPage() {
   const _filtered = files.filter(f => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filters.tipo && f.type !== filters.tipo) return false;
+    if (filters.origem && f.origin !== filters.origem) return false;
     return true;
   });
   const { sorted: filtered, col: sortCol, dir: sortDir, toggle: sortToggle } = useSort(_filtered);
@@ -408,9 +509,14 @@ export default function MidiaPage() {
   }
 
   // Arquivos "Sistema" (f.slot definido — logotipo/favicon/banner geridos
-  // pelo Publicar) nunca entram na seleção: Excluir/Substituir já ficam
-  // desabilitados por arquivo na UI de sempre por esse mesmo motivo.
-  const selectableIds = filtered.filter(f => !f.slot).map(f => f.id);
+  // pelo Publicar) e arquivos que só existem aqui como espelho de leitura de
+  // Documentos/Central de Resultados (f.origin !== 'midia') nunca entram na
+  // seleção: Excluir/Substituir só fazem sentido para o dono real do
+  // arquivo — a página de origem — e ficam desabilitados por arquivo na UI.
+  function isReadOnly(f: MediaFile): boolean {
+    return !!f.slot || f.origin !== 'midia';
+  }
+  const selectableIds = filtered.filter(f => !isReadOnly(f)).map(f => f.id);
 
   function toggleAllSelected() {
     setSelected(prev => prev.size === selectableIds.length ? new Set() : new Set(selectableIds));
@@ -449,18 +555,23 @@ export default function MidiaPage() {
   async function handleAddTag(id: string) {
     const tag = newTag.trim();
     setAddTagId(null);
-    if (!tag || !supabase) { setNewTag(''); return; }
     const target = files.find(f => f.id === id);
-    const nextTags = [...(target?.tags ?? []), tag];
+    // Defense in depth — the UI already hides this control for
+    // Documentos/Resultados items (see isReadOnly), but the target's real
+    // id lives in a different table for those, so writing to portal_media
+    // with it would silently no-op in the DB while still visually "sticking"
+    // in local state until the next reload. Never worth the confusion.
+    if (!tag || !supabase || !target || target.origin !== 'midia') { setNewTag(''); return; }
+    const nextTags = [...target.tags, tag];
     setFiles(prev => prev.map(f => f.id === id ? { ...f, tags: nextTags } : f));
     setNewTag('');
     await supabase.from('portal_media').update({ tags: nextTags }).eq('id', id);
   }
 
   async function removeTag(id: string, tag: string) {
-    if (!supabase) return;
     const target = files.find(f => f.id === id);
-    const nextTags = (target?.tags ?? []).filter(t => t !== tag);
+    if (!supabase || !target || target.origin !== 'midia') return;
+    const nextTags = target.tags.filter(t => t !== tag);
     setFiles(prev => prev.map(f => f.id === id ? { ...f, tags: nextTags } : f));
     await supabase.from('portal_media').update({ tags: nextTags }).eq('id', id);
   }
@@ -470,6 +581,8 @@ export default function MidiaPage() {
   };
 
   function patchFile<K extends keyof MediaFile>(id: string, key: K, value: MediaFile[K]) {
+    const target = files.find(f => f.id === id);
+    if (!target || target.origin !== 'midia') return; // see handleAddTag comment
     setFiles(prev => prev.map(f => f.id === id ? { ...f, [key]: value } : f));
     const column = MEDIA_FIELD_COLUMN[key];
     if (!column || !supabase) return;
@@ -521,6 +634,11 @@ export default function MidiaPage() {
         <div className="midia-detail__divider" />
 
         <div className="midia-detail__form">
+          {selectedFile.origin !== 'midia' && (
+            <p className="midia-detail__meta-row" style={{ color: 'var(--color-gray-500)' }}>
+              Metadados (título, legenda, tags…) só podem ser editados em {ORIGIN_LABEL[selectedFile.origin]} — aqui é somente leitura.
+            </p>
+          )}
           {selectedFile.type === 'image' && (
             <div className="midia-detail__form-field">
               <label className="midia-detail__form-label">Texto alternativo</label>
@@ -530,6 +648,7 @@ export default function MidiaPage() {
                 value={selectedFile.alt ?? ''}
                 onChange={e => patchFile(selectedFile.id, 'alt', e.target.value)}
                 placeholder="Descreva a imagem para acessibilidade…"
+                disabled={isReadOnly(selectedFile)}
               />
             </div>
           )}
@@ -540,6 +659,7 @@ export default function MidiaPage() {
               type="text"
               value={selectedFile.titulo ?? selectedFile.name.replace(/\.[^.]+$/, '')}
               onChange={e => patchFile(selectedFile.id, 'titulo', e.target.value)}
+              disabled={isReadOnly(selectedFile)}
             />
           </div>
           <div className="midia-detail__form-field">
@@ -549,6 +669,7 @@ export default function MidiaPage() {
               rows={2}
               value={selectedFile.legenda ?? ''}
               onChange={e => patchFile(selectedFile.id, 'legenda', e.target.value)}
+              disabled={isReadOnly(selectedFile)}
             />
           </div>
           <div className="midia-detail__form-field">
@@ -558,6 +679,7 @@ export default function MidiaPage() {
               rows={3}
               value={selectedFile.descricao ?? ''}
               onChange={e => patchFile(selectedFile.id, 'descricao', e.target.value)}
+              disabled={isReadOnly(selectedFile)}
             />
           </div>
           <div className="midia-detail__form-field">
@@ -589,6 +711,10 @@ export default function MidiaPage() {
         {selectedFile.slot ? (
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', lineHeight: 1.5 }}>
             Gerenciado automaticamente pelo CMS. Para substituir ou remover, use a página de origem (Logotipo/Favicon/Banner) e clique em Publicar.
+          </p>
+        ) : selectedFile.origin !== 'midia' ? (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-gray-500)', lineHeight: 1.5 }}>
+            Este arquivo pertence a {ORIGIN_LABEL[selectedFile.origin]} — para substituir ou remover, use aquela página.
           </p>
         ) : (
           <div className="midia-detail__links">
@@ -692,11 +818,11 @@ export default function MidiaPage() {
                 className={`midia-card${selectedId === f.id ? ' midia-card--active' : ''}`}
                 onClick={() => setSelectedId(prev => prev === f.id ? null : f.id)}
               >
-                {/* Arquivos "Sistema" (logotipo/favicon/banner) não têm
-                    checkbox — não podem ser excluídos por aqui (ver
-                    deleteFile/deleteSelected), mesma regra dos botões
-                    Substituir/Excluir individuais abaixo. */}
-                {!f.slot && (
+                {/* Arquivos "Sistema" (logotipo/favicon/banner) e arquivos
+                    espelhados de Documentos/Resultados não têm checkbox —
+                    não podem ser excluídos por aqui (ver isReadOnly), mesma
+                    regra dos botões Substituir/Excluir individuais abaixo. */}
+                {!isReadOnly(f) && (
                   <input
                     type="checkbox"
                     className="midia-card__checkbox"
@@ -718,13 +844,14 @@ export default function MidiaPage() {
                   <div className="midia-card__chips">
                     <span className="midia-chip midia-chip--ext">{extLabel(f.name)}</span>
                     {f.slot && <span className="badge badge--gray" style={{ fontSize: '11px' }} title="Gerenciado automaticamente via Publicar">Sistema</span>}
+                    {f.origin !== 'midia' && <span className="badge badge--gray" style={{ fontSize: '11px' }} title={`Somente leitura — gerenciado em ${ORIGIN_LABEL[f.origin]}`}>{ORIGIN_LABEL[f.origin]}</span>}
                     {f.tags.map(t => (
                       <span key={t} className="midia-chip midia-chip--tag" onClick={e => { e.stopPropagation(); removeTag(f.id, t); }}>
                         {t} ×
                       </span>
                     ))}
                   </div>
-                  {addTagId === f.id ? (
+                  {isReadOnly(f) ? null : addTagId === f.id ? (
                     <div className="midia-tag-input-wrap" onClick={e => e.stopPropagation()}>
                       <input
                         autoFocus
@@ -793,7 +920,7 @@ export default function MidiaPage() {
                   onClick={() => setSelectedId(prev => prev === f.id ? null : f.id)}
                 >
                   <td onClick={e => e.stopPropagation()}>
-                    {!f.slot && (
+                    {!isReadOnly(f) && (
                       <input type="checkbox" checked={selected.has(f.id)} onChange={() => toggleSelect(f.id)} />
                     )}
                   </td>
@@ -808,6 +935,7 @@ export default function MidiaPage() {
                     <div>
                       <span className="table-cell--bold">{f.name}</span>
                       {f.slot && <span className="badge badge--gray" style={{ marginLeft: 6, fontSize: '11px' }} title="Gerenciado automaticamente via Publicar">Sistema</span>}
+                      {f.origin !== 'midia' && <span className="badge badge--gray" style={{ marginLeft: 6, fontSize: '11px' }} title={`Somente leitura — gerenciado em ${ORIGIN_LABEL[f.origin]}`}>{ORIGIN_LABEL[f.origin]}</span>}
                       {f.tags.length > 0 && (
                         <div className="midia-list-chips">
                           {f.tags.map(t => <span key={t} className="midia-chip midia-chip--tag">{t}</span>)}
@@ -821,8 +949,8 @@ export default function MidiaPage() {
                   <td className="table-cell--muted">{f.uploadedAt}</td>
                   <td>
                     <div className="table-actions" onClick={e => e.stopPropagation()}>
-                      <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(f.id)} disabled={!!f.slot} title={f.slot ? 'Substitua enviando um novo arquivo na página de origem (Logotipo/Favicon/Banner) e clicando em Publicar' : undefined}>Substituir</button>
-                      <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)} disabled={!!f.slot} title={f.slot ? 'Gerenciado automaticamente — remova na página de origem' : undefined}>Excluir</button>
+                      <button className="btn-action btn-action--secondary" type="button" onClick={() => openReplaceModal(f.id)} disabled={isReadOnly(f)} title={isReadOnly(f) ? (f.slot ? 'Substitua enviando um novo arquivo na página de origem (Logotipo/Favicon/Banner) e clicando em Publicar' : `Substitua em ${ORIGIN_LABEL[f.origin]}`) : undefined}>Substituir</button>
+                      <button className="btn-action btn-action--danger" type="button" onClick={() => deleteFile(f.id)} disabled={isReadOnly(f)} title={isReadOnly(f) ? (f.slot ? 'Gerenciado automaticamente — remova na página de origem' : `Remova em ${ORIGIN_LABEL[f.origin]}`) : undefined}>Excluir</button>
                     </div>
                   </td>
                 </tr>
