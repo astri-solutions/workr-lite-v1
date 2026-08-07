@@ -69,12 +69,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { repoName, cloudflareProjectName, portalId } = await req.json() as {
+    const { repoName, cloudflareProjectName, subdomain, portalId } = await req.json() as {
       repoName?: string;
       // Cloudflare Pages project name (== repoName in practice, since
       // provision-portal names the Pages project after the repo) — kept as
       // its own field rather than reusing repoName for explicitness.
       cloudflareProjectName?: string;
+      // The portal's <subdomain>.workr.dev.br slug — needed separately from
+      // cloudflareProjectName because deleting the Pages project does NOT
+      // delete the DNS CNAME record pointing at it (see below).
+      subdomain?: string;
       portalId?: string; // UUID or portal_key — we resolve either
     };
 
@@ -83,7 +87,7 @@ Deno.serve(async (req) => {
     const cloudflareAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
     const githubOrg   = Deno.env.get('GITHUB_ORG') ?? 'astri-solutions';
 
-    const results: { github?: string; cloudflare?: string; db?: string } = {};
+    const results: { github?: string; cloudflare?: string; cloudflareDns?: string; db?: string } = {};
 
     // ── Delete GitHub repo ────────────────────────────────────────────────────
     if (repoName && githubToken) {
@@ -120,6 +124,48 @@ Deno.serve(async (req) => {
       results.cloudflare = (cfRes.status === 204 || cfRes.ok || cfRes.status === 404) ? 'deleted' : `error:${cfRes.status}`;
     } else if (cloudflareProjectName && (!cloudflareToken || !cloudflareAccountId)) {
       results.cloudflare = 'error:no_token';
+    }
+
+    // ── Delete the Cloudflare DNS record ─────────────────────────────────────
+    // Deleting the Pages project above only removes the project and its
+    // custom-domain attachment — it does NOT delete the CNAME record in the
+    // workr.dev.br zone that points <subdomain>.workr.dev.br at it. Left
+    // behind, that record shows up as an orphaned "Active"/SSL-enabled
+    // custom domain forever (as seen in the dashboard for a deleted portal)
+    // and can collide if the same subdomain is ever reused for a new portal.
+    if (subdomain && cloudflareToken && cloudflareAccountId) {
+      const cleanSubdomain = subdomain.trim().toLowerCase();
+      const customDomain = `${cleanSubdomain}.workr.dev.br`;
+      const cfHeaders = { 'Authorization': `Bearer ${cloudflareToken}`, 'Content-Type': 'application/json' };
+      try {
+        const zoneRes = await fetch('https://api.cloudflare.com/client/v4/zones?name=workr.dev.br', { headers: cfHeaders });
+        const zoneBody = await zoneRes.json().catch(() => ({})) as { result?: { id: string }[] };
+        const zoneId = zoneBody.result?.[0]?.id;
+        if (!zoneId) {
+          results.cloudflareDns = 'error:zone_not_found';
+        } else {
+          const listRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?type=CNAME&name=${customDomain}`, { headers: cfHeaders });
+          const listBody = await listRes.json().catch(() => ({})) as { result?: { id: string }[] };
+          const records = listBody.result ?? [];
+          if (records.length === 0) {
+            results.cloudflareDns = 'not_found';
+          } else {
+            const deleteErrors: string[] = [];
+            for (const record of records) {
+              const delRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${record.id}`, {
+                method: 'DELETE',
+                headers: cfHeaders,
+              });
+              if (!delRes.ok && delRes.status !== 404) deleteErrors.push(`${record.id}:HTTP ${delRes.status}`);
+            }
+            results.cloudflareDns = deleteErrors.length > 0 ? `error:${deleteErrors.join(',')}` : 'deleted';
+          }
+        }
+      } catch (e) {
+        results.cloudflareDns = `error:${String(e)}`;
+      }
+    } else if (subdomain && (!cloudflareToken || !cloudflareAccountId)) {
+      results.cloudflareDns = 'error:no_token';
     }
 
     // ── Delete all database records (service role — bypasses RLS) ─────────────

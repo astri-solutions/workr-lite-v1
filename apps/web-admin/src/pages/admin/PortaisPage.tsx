@@ -329,6 +329,7 @@ export default function PortaisPage() {
               body: JSON.stringify({
                 repoName: portal.githubRepo ?? undefined,
                 cloudflareProjectName: portal.githubRepo ?? undefined,
+                subdomain: portal.subdomain ?? undefined,
                 portalId: portal.id,
               }),
             }
