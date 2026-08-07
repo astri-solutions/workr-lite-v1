@@ -296,8 +296,26 @@
    most cells still wrap onto 2-3 lines, making every table read as a
    ragged wall of broken text instead of scrolling sideways cleanly.
    Widening the floor here means content scrolls horizontally (the
-   table-wrapper already has overflow-x: auto) instead of wrapping. */
+   table-wrapper already has overflow-x: auto) instead of wrapping.
+
+   A long table (Documentos with dozens of rows, say) also means the
+   horizontal scrollbar sits at the very bottom of the page — the user
+   has to scroll all the way down just to reach it. Capping the wrapper's
+   height and letting it scroll vertically too keeps the horizontal
+   scrollbar within reach at all times; the header row stays pinned via
+   position: sticky so column labels don't scroll out of view. */
 @media (max-width: 1024px) {
+  .table-wrapper {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
   .data-table th,
   .data-table td {
     min-width: 160px;
