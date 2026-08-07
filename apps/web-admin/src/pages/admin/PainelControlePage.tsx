@@ -302,7 +302,6 @@ export default function PainelControlePage() {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
         if (token) {
-          const isCloudflare = site.hostingProvider === 'cloudflare';
           const vercelProjectName = site.vercelUrl
             ? site.vercelUrl.replace(/^https?:\/\//, '').replace(/\.vercel\.app.*$/, '')
             : site.subdomain ?? site.githubRepo?.replace(/^portal-/, '');
@@ -317,16 +316,23 @@ export default function PainelControlePage() {
               },
               body: JSON.stringify({
                 repoName: site.githubRepo ?? undefined,
-                ...(isCloudflare
-                  ? { cloudflareProjectName: site.githubRepo ?? undefined }
-                  : { vercelProjectName: vercelProjectName ?? undefined }),
+                // Always try both platforms instead of branching on
+                // site.hostingProvider — delete-portal already no-ops
+                // safely (204/404 both read as "deleted") when a project
+                // doesn't exist on a given platform. Trusting hostingProvider
+                // alone meant a portal whose DB flag drifted/was never set
+                // (or a page that loaded a stale cached value) silently
+                // never even attempted the Cloudflare (or Vercel) delete —
+                // no error shown, project just left orphaned forever.
+                cloudflareProjectName: site.githubRepo ?? undefined,
+                vercelProjectName: vercelProjectName ?? undefined,
                 portalId: site.portalId,
               }),
             }
           );
           const delData = await delRes.json().catch(() => ({})) as {
             ok?: boolean;
-            results?: { github?: string; vercel?: string; db?: string };
+            results?: { github?: string; vercel?: string; cloudflare?: string; db?: string };
           };
           if (delData.results?.github?.startsWith('error:')) {
             const ghErr = delData.results.github.replace('error:', '');
@@ -339,6 +345,20 @@ export default function PainelControlePage() {
                   : 'Repositório GitHub não deletado automaticamente. Verifique se já foi removido.'
               );
             }
+          }
+          // Vercel/Cloudflare deletion failures used to be silently
+          // discarded here — the portal disappeared from the CMS looking
+          // fully deleted while its hosting project (Vercel or Cloudflare
+          // Pages) kept running orphaned, with nobody ever told.
+          const hostingWarnings: string[] = [];
+          if (delData.results?.vercel?.startsWith('error:')) {
+            hostingWarnings.push(`Projeto Vercel (${vercelProjectName ?? '?'}) não deletado automaticamente — remova manualmente em vercel.com.`);
+          }
+          if (delData.results?.cloudflare?.startsWith('error:')) {
+            hostingWarnings.push(`Projeto Cloudflare Pages (${site.githubRepo ?? '?'}) não deletado automaticamente — remova manualmente no dashboard da Cloudflare.`);
+          }
+          if (hostingWarnings.length > 0) {
+            setDeleteGhWarn(prev => [prev, ...hostingWarnings].filter(Boolean).join('\n'));
           }
           if (delData.results?.db?.startsWith('error:')) {
             throw new Error(`Erro ao excluir portal do banco de dados: ${delData.results.db}`);
