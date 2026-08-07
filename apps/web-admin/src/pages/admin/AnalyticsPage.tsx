@@ -2,8 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import type { AdminOutletContext } from '../../components/AdminLayout';
 import { loadPortalSite } from '../../utils/loadPortalSite';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import './AdminPages.css';
+import './PainelControlePage.css';
 import './AnalyticsPage.css';
+
+const FN_BASE = import.meta.env.VITE_SUPABASE_URL
+  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  : '';
 
 type Period = '1h' | '6h' | '24h' | '7d';
 type MainTab = 'paises' | 'ips' | 'solicitacoes' | 'dominios';
@@ -254,14 +260,82 @@ export default function AnalyticsPage() {
   const [mainTab, setMainTab] = useState<MainTab>('paises');
 
   const portalSite = loadPortalSite(siteId ?? '');
-  const site = portalSite ? { id: portalSite.siteId, link: portalSite.link, cliente: portalSite.cliente } : undefined;
+  const site = portalSite
+    ? { id: portalSite.siteId, link: portalSite.link, cliente: portalSite.cliente, portalId: portalSite.portalId, portalKey: portalSite.portalKey }
+    : undefined;
   // Analytics data is illustrative — real data will come from Vercel Analytics API in a future integration
   const analytics = ANALYTICS_DB['s1'];
+
+  // SEO/Analytics config (meta título/descrição, Google Analytics/GTM,
+  // Microsoft Clarity) — same fields collected in the New Portal wizard's
+  // SEO step, editable here since this is the page about analytics anyway.
+  const [seoMetaTitulo, setSeoMetaTitulo] = useState('');
+  const [seoMetaDescricao, setSeoMetaDescricao] = useState('');
+  const [seoAnalyticsId, setSeoAnalyticsId] = useState('');
+  const [seoClarityId, setSeoClarityId] = useState('');
+  const [seoLoaded, setSeoLoaded] = useState(false);
+  const [savingSeo, setSavingSeo] = useState(false);
+  const [seoSaved, setSeoSaved] = useState(false);
+  const [seoError, setSeoError] = useState<string | null>(null);
+  const [seoWarning, setSeoWarning] = useState<string | null>(null);
 
   useEffect(() => {
     if (site) setPortalCtx({ name: site.cliente, backTo: '/admin/portais' });
     return () => setPortalCtx(null);
   }, [site?.id]);
+
+  useEffect(() => {
+    if (!site?.portalId || !isSupabaseConfigured || !supabase) return;
+    supabase
+      .from('portal_config')
+      .select('informacoes')
+      .eq('portal_id', site.portalId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const seo = (data?.informacoes as { seo?: { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string } } | null)?.seo;
+        setSeoMetaTitulo(seo?.metaTitulo ?? '');
+        setSeoMetaDescricao(seo?.metaDescricao ?? '');
+        setSeoAnalyticsId(seo?.analyticsId ?? '');
+        setSeoClarityId(seo?.clarityId ?? '');
+        setSeoLoaded(true);
+      });
+  }, [site?.portalId]);
+
+  async function handleSalvarSeo() {
+    if (!site || !isSupabaseConfigured || !supabase) return;
+    setSavingSeo(true);
+    setSeoError(null);
+    setSeoWarning(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Sessão expirada');
+      const res = await fetch(`${FN_BASE}/set-seo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({
+          portalId: site.portalKey,
+          metaTitulo: seoMetaTitulo,
+          metaDescricao: seoMetaDescricao,
+          analyticsId: seoAnalyticsId,
+          clarityId: seoClarityId,
+        }),
+      });
+      const json = await res.json().catch(() => ({})) as { ok?: boolean; sitePatched?: boolean; warning?: string; error?: string };
+      if (!res.ok || !json.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      if (json.warning) setSeoWarning(json.warning);
+      setSeoSaved(true);
+      setTimeout(() => setSeoSaved(false), 2500);
+    } catch (e) {
+      setSeoError(`Não foi possível salvar SEO/Analytics: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSavingSeo(false);
+    }
+  }
 
   if (!site) {
     return (
@@ -333,6 +407,79 @@ export default function AnalyticsPage() {
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <span className="painel-breadcrumb__current">Analytics</span>
+      </div>
+
+      {/* SEO/Analytics config — meta título/descrição, Google Analytics/GTM,
+          Microsoft Clarity. Not traffic data like the rest of the page, but
+          the natural home for it since it's what powers Analytics on the
+          live site. */}
+      <div className="painel-card painel-seo" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="painel-card__header-row">
+          <div className="painel-card__title">SEO e Analytics</div>
+        </div>
+        <div className="painel-card__body">
+          <p className="painel-recursos__hint" style={{ marginBottom: 'var(--space-3)' }}>
+            Mesmos campos coletados na criação do portal (passo SEO do assistente) — editáveis aqui a qualquer momento, sem precisar recriar o portal.
+          </p>
+          {!seoLoaded ? (
+            <p className="painel-recursos__hint">Carregando…</p>
+          ) : (
+            <div className="painel-seo__fields">
+              <label className="painel-seo__field">
+                <span className="painel-seo__label">Meta título</span>
+                <input
+                  className="painel-seo__input"
+                  type="text"
+                  placeholder={`Ex: ${site.cliente} — Relações com Investidores`}
+                  value={seoMetaTitulo}
+                  onChange={e => setSeoMetaTitulo(e.target.value)}
+                />
+              </label>
+              <label className="painel-seo__field">
+                <span className="painel-seo__label">Meta descrição</span>
+                <textarea
+                  className="painel-seo__input painel-seo__textarea"
+                  rows={2}
+                  placeholder="Resumo exibido nos resultados de busca (recomendado: até 160 caracteres)"
+                  value={seoMetaDescricao}
+                  onChange={e => setSeoMetaDescricao(e.target.value)}
+                />
+              </label>
+              <label className="painel-seo__field">
+                <span className="painel-seo__label">ID do Google Analytics / GTM</span>
+                <input
+                  className="painel-seo__input"
+                  type="text"
+                  placeholder="G-XXXXXXXXXX ou GTM-XXXXXXX"
+                  value={seoAnalyticsId}
+                  onChange={e => setSeoAnalyticsId(e.target.value)}
+                />
+              </label>
+              <label className="painel-seo__field">
+                <span className="painel-seo__label">ID do Microsoft Clarity</span>
+                <input
+                  className="painel-seo__input"
+                  type="text"
+                  placeholder="XXXXXXXXXX"
+                  value={seoClarityId}
+                  onChange={e => setSeoClarityId(e.target.value)}
+                />
+              </label>
+              <button
+                className="btn-primary painel-suporte__save"
+                type="button"
+                disabled={savingSeo}
+                onClick={handleSalvarSeo}
+                style={{ fontSize: '13px', alignSelf: 'flex-start' }}
+              >
+                {savingSeo ? 'Salvando…' : 'Salvar'}
+              </button>
+            </div>
+          )}
+          {seoSaved && <p style={{ color: 'var(--color-success-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>✓ SEO/Analytics atualizado no site</p>}
+          {seoWarning && <p style={{ color: 'var(--color-warning-700, #92600a)', fontSize: '13px', marginTop: 'var(--space-2)' }}>{seoWarning}</p>}
+          {seoError && <p style={{ color: 'var(--color-error-600)', fontSize: '13px', marginTop: 'var(--space-2)' }}>{seoError}</p>}
+        </div>
       </div>
 
       {/* Summary header */}
