@@ -1458,12 +1458,16 @@ export default function NovoPortalPage() {
                       emailContato: form.emailContato,
                       ...(form.logoFile    ? { logo:    await fileToBase64(form.logoFile)    } : {}),
                       ...(form.faviconFile ? { favicon: await fileToBase64(form.faviconFile) } : {}),
-                      // Cloudflare Pages migration test path — no UI toggle on
-                      // purpose, so the wizard's normal flow (and every real
-                      // client portal) is untouched. Flip on only via
-                      // localStorage.setItem('workr_test_cloudflare', '1') in
-                      // the browser console while validating the migration.
-                      ...(localStorage.getItem('workr_test_cloudflare') === '1' ? { hostingProvider: 'cloudflare' } : {}),
+                      // Cloudflare Pages is the default hosting provider —
+                      // has been for every real portal since 2026-07-25 (via
+                      // the old workr_test_cloudflare flag, manually set
+                      // every single time). Promoted to the real default
+                      // here instead of staying opt-in-only, since relying
+                      // on someone remembering a devtools flag meant the one
+                      // time it was forgotten, the portal silently landed on
+                      // Vercel instead. Still overridable per-portal via the
+                      // same flag (set to '0') for a one-off Vercel test.
+                      hostingProvider: localStorage.getItem('workr_test_cloudflare') === '0' ? 'vercel' : 'cloudflare',
                     }),
                   }
                 );
