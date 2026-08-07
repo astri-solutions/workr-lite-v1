@@ -3,6 +3,7 @@ import { processImageToDataUrl } from '../../utils/imageProcessor';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import LangTabs from '../../components/LangTabs';
 import Modal from '../../components/Modal';
+import DatePicker from '../../components/DatePicker';
 import PORTAL_CONFIG, { LocaleCode } from '../../portalConfig';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
@@ -565,19 +566,26 @@ export default function SplashPage() {
         variant="side"
         size="lg"
         footer={draft ? (
-          <div className="publish-actions publish-actions--wrap" style={{ width: '100%', justifyContent: 'flex-end' }}>
-            <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
-              Pré-visualizar
-            </button>
-            <button type="button" className="btn-outline" onClick={() => setSaveTemplateOpen(true)}>
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>bookmark_add</span>
-              Salvar como modelo
-            </button>
-            <button type="button" className="btn-outline" onClick={saveDraft}>
-              {saved ? 'Salvo!' : 'Salvar rascunho'}
-            </button>
-            <PublishButton onClick={publishDraft} />
+          <div style={{ width: '100%' }}>
+            <div className="publish-actions publish-actions--wrap" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="btn-outline" onClick={() => setPreviewOpen(true)}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>visibility</span>
+                Pré-visualizar
+              </button>
+              <button type="button" className="btn-outline" onClick={() => setSaveTemplateOpen(true)}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>bookmark_add</span>
+                Salvar como modelo
+              </button>
+              <button type="button" className="btn-outline" onClick={saveDraft}>
+                {saved ? 'Salvo!' : 'Salvar rascunho'}
+              </button>
+              <PublishButton onClick={publishDraft} disabled={!draft.enabled && !draft.publishAt} />
+            </div>
+            {!draft.enabled && !draft.publishAt && (
+              <p className="splash-card__desc" style={{ margin: 'var(--space-2) 0 0', textAlign: 'right' }}>
+                Ative o splash ou defina uma data de publicação para poder publicar. Até lá, fica salvo só como rascunho/modelo.
+              </p>
+            )}
           </div>
         ) : null}
       >
@@ -605,18 +613,21 @@ export default function SplashPage() {
             <div className="splash-card">
               <p className="splash-section-label">Agendamento</p>
               <div className="splash-field-row">
-                <label className="splash-field">
-                  <span className="splash-field__label">Publicar a partir de</span>
-                  <input className="splash-field__input" type="date"
+                <div className="splash-field">
+                  <DatePicker
+                    label="Publicar a partir de"
                     value={draft.publishAt ?? ''}
-                    onChange={e => patchDraft('publishAt', e.target.value || null)} />
-                </label>
-                <label className="splash-field">
-                  <span className="splash-field__label">Tirar do ar em</span>
-                  <input className="splash-field__input" type="date"
+                    onChange={v => patchDraft('publishAt', v || null)}
+                  />
+                </div>
+                <div className="splash-field">
+                  <DatePicker
+                    label="Tirar do ar em"
                     value={draft.unpublishAt ?? ''}
-                    onChange={e => patchDraft('unpublishAt', e.target.value || null)} />
-                </label>
+                    onChange={v => patchDraft('unpublishAt', v || null)}
+                    min={draft.publishAt || undefined}
+                  />
+                </div>
               </div>
               <p className="splash-card__desc" style={{ margin: 0 }}>
                 Deixe em branco para publicar imediatamente / manter no ar indefinidamente.
