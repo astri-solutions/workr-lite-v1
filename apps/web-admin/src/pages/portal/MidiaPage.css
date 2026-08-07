@@ -208,18 +208,50 @@
 }
 
 /* ─── Detail panel ───────────────────────────────────── */
+/* Slide-over sidebar overlaying the page — same pattern as Documentos'
+   .doc-drawer — instead of the old inline panel that sat sticky beside the
+   grid and pushed it aside; that read as "the grid shrank", not "a panel
+   opened", and never matched Documentos' own detail-panel convention. */
 .midia-detail {
-  width: 300px;
-  flex-shrink: 0;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-xl);
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 420px;
+  max-width: 100vw;
+  border: none;
+  border-left: 1px solid var(--color-gray-200);
+  border-radius: 0;
   background: var(--color-white);
-  overflow: hidden;
-  position: sticky;
-  top: 80px;
-  max-height: calc(100vh - 100px);
   overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  z-index: 201;
 }
+
+.midia-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 200;
+}
+
+.midia-detail__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-white);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  z-index: 2;
+}
+
 
 .midia-detail__preview {
   height: 180px;
@@ -711,70 +743,13 @@
 }
 
 /* ─── Responsive ─────────────────────────────────────── */
-@media (max-width: 960px) {
-  .midia-workspace--with-panel {
-    flex-direction: column;
-  }
-
-  .midia-detail {
-    width: 100%;
-    position: static;
-  }
-}
-
-/* Hidden by default (desktop/tablet keep the inline panel exactly as
-   before) — must come BEFORE the max-width:720px block below so that
-   block's `display` wins there in the cascade (same specificity; last
-   rule in source order wins at any width where both blocks match). */
-.midia-detail-backdrop { display: none; }
-.midia-detail__close { display: none; }
-
 @media (max-width: 720px) {
   .midia-col-thumb { width: 80px; padding: 6px 8px 6px 12px !important; }
   .midia-thumb { width: 68px; height: 52px; }
   .midia-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-  /* Detail panel becomes a slide-over side panel (90% width) instead of
-     pushing full-width into the document flow below the grid — opening a
-     file used to shove the whole page down; now it overlays instead. */
-  .midia-detail-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(20, 20, 20, 0.45);
-    z-index: 49;
-  }
-
-  .midia-detail {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 90vw;
-    max-width: 420px;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    border-width: 0 0 0 1px;
-    z-index: 50;
-  }
-
-  .midia-detail__close {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: var(--space-2);
-    right: var(--space-2);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid var(--color-gray-200);
-    color: var(--color-gray-700);
-    cursor: pointer;
-    z-index: 2;
-  }
+  .midia-detail { width: 90vw; }
 }
 
 /* Gap between the page-level upload dropzone and the search/filter toolbar
