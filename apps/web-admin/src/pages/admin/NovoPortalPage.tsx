@@ -489,7 +489,14 @@ function StepFonte({
               key={f.id}
               type="button"
               className={`np-font-item${value === f.id ? ' np-font-item--selected' : ''}`}
-              onClick={() => onChange(f.id)}
+              onClick={() => {
+                onChange(f.id);
+                // The font list can run well past the fold — after picking
+                // one, scroll the "Próximo"/"Voltar" footer into view so
+                // it's not left hidden below, looking like nothing
+                // happened after the click.
+                document.querySelector('.np-footer')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+              }}
             >
               <span className="np-font-item__preview" style={{ fontFamily: f.family }}>Aa</span>
               <span className="np-font-item__name">{f.label}</span>
