@@ -3,7 +3,10 @@ import { useState } from 'react';
 import StickyPageHeader from '../../components/StickyPageHeader';
 import { usePortalName } from '../../hooks/usePortalName';
 import { usePortalState } from '../../hooks/usePortalState';
+import PORTAL_CONFIG from '../../portalConfig';
 import { SPLASH_APPLY_TEMPLATE_KEY, type SplashTemplate } from './SplashPage';
+
+const primaryLang = PORTAL_CONFIG.languages[0];
 import '../admin/AdminPages.css';
 import './SplashTemplatesPage.css';
 
@@ -17,10 +20,12 @@ const BUILT_IN_TEMPLATES: SplashTemplate[] = [
     nome: 'Fato Relevante',
     config: {
       size: 'md',
-      titulo: 'Fato Relevante',
-      texto: 'A Companhia comunica aos seus acionistas e ao mercado em geral o seguinte Fato Relevante:',
-      conteudo: 'Descreva aqui o conteúdo completo do Fato Relevante, incluindo contexto, decisão tomada e seus efeitos esperados.',
-      legenda: '',
+      content: { [primaryLang]: {
+        titulo: 'Fato Relevante',
+        texto: 'A Companhia comunica aos seus acionistas e ao mercado em geral o seguinte Fato Relevante:',
+        conteudo: 'Descreva aqui o conteúdo completo do Fato Relevante, incluindo contexto, decisão tomada e seus efeitos esperados.',
+        legenda: '',
+      } },
       buttons: [{ label: 'Ver documento completo', url: '', variant: 'primary' }],
     },
   },
@@ -29,10 +34,12 @@ const BUILT_IN_TEMPLATES: SplashTemplate[] = [
     nome: 'Comunicado ao Mercado',
     config: {
       size: 'md',
-      titulo: 'Comunicado ao Mercado',
-      texto: 'A Companhia vem a público prestar o seguinte esclarecimento:',
-      conteudo: 'Descreva aqui o conteúdo do comunicado.',
-      legenda: '',
+      content: { [primaryLang]: {
+        titulo: 'Comunicado ao Mercado',
+        texto: 'A Companhia vem a público prestar o seguinte esclarecimento:',
+        conteudo: 'Descreva aqui o conteúdo do comunicado.',
+        legenda: '',
+      } },
       buttons: [{ label: 'Saiba mais', url: '', variant: 'primary' }],
     },
   },
@@ -41,10 +48,12 @@ const BUILT_IN_TEMPLATES: SplashTemplate[] = [
     nome: 'Convocação AGO',
     config: {
       size: 'lg',
-      titulo: 'Convocação para Assembleia Geral Ordinária',
-      texto: 'Ficam os senhores acionistas convocados para a Assembleia Geral Ordinária a ser realizada conforme os termos abaixo.',
-      conteudo: 'Data, horário, local (ou modalidade digital) e ordem do dia da assembleia.',
-      legenda: 'Dúvidas: fale com a área de Relações com Investidores.',
+      content: { [primaryLang]: {
+        titulo: 'Convocação para Assembleia Geral Ordinária',
+        texto: 'Ficam os senhores acionistas convocados para a Assembleia Geral Ordinária a ser realizada conforme os termos abaixo.',
+        conteudo: 'Data, horário, local (ou modalidade digital) e ordem do dia da assembleia.',
+        legenda: 'Dúvidas: fale com a área de Relações com Investidores.',
+      } },
       buttons: [{ label: 'Ver edital de convocação', url: '', variant: 'primary' }],
     },
   },
@@ -53,10 +62,12 @@ const BUILT_IN_TEMPLATES: SplashTemplate[] = [
     nome: 'Aviso de Manutenção',
     config: {
       size: 'sm',
-      titulo: 'Manutenção Programada',
-      texto: 'Este site passará por uma manutenção programada e pode ficar temporariamente indisponível.',
-      conteudo: '',
-      legenda: '',
+      content: { [primaryLang]: {
+        titulo: 'Manutenção Programada',
+        texto: 'Este site passará por uma manutenção programada e pode ficar temporariamente indisponível.',
+        conteudo: '',
+        legenda: '',
+      } },
       buttons: [],
     },
   },
@@ -79,6 +90,9 @@ export default function SplashTemplatesPage() {
   }
 
   function renderCard(tpl: SplashTemplate, removable: boolean) {
+    // Cards always preview the primary-language text — a template's other
+    // languages (if any) only show up once applied in Splash → Editar.
+    const previewTexto = tpl.config.content[primaryLang]?.texto;
     return (
       <div key={tpl.id} className="splash-tpl-card">
         <div className="splash-tpl-card__head">
@@ -88,7 +102,7 @@ export default function SplashTemplatesPage() {
             <span className="splash-tpl-card__meta">{tpl.config.size === 'sm' ? 'Pequeno' : tpl.config.size === 'lg' ? 'Largo' : 'Médio'}{tpl.config.buttons.length > 0 ? ` · ${tpl.config.buttons.length} botão(ões)` : ''}</span>
           </div>
         </div>
-        {tpl.config.texto && <p className="splash-tpl-card__preview">{tpl.config.texto}</p>}
+        {previewTexto && <p className="splash-tpl-card__preview">{previewTexto}</p>}
         <div className="splash-tpl-card__actions">
           <button type="button" className="btn-primary" onClick={() => useTemplate(tpl)}>Usar este modelo</button>
           {removable && (
