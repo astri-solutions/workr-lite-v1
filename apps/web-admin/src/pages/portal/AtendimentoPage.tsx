@@ -126,6 +126,7 @@ export default function AtendimentoPage() {
       // edge function only ever sees JSON, so it gets storage paths and
       // signs them into links for the support email.
       const anexoPaths: string[] = [];
+      const anexoUploadErrors: string[] = [];
       if (anexos.length > 0) {
         const portalDbId = user?.activePortalId ? await resolvePortalId(user.activePortalId) : null;
         if (portalDbId) {
@@ -142,9 +143,19 @@ export default function AtendimentoPage() {
             const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${portalDbId}/atendimento/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
             const { error } = await supabase.storage.from('portal-documents').upload(path, file, { contentType: file.type || 'application/octet-stream' });
-            if (!error) anexoPaths.push(path);
+            // This used to be swallowed silently — a rejected upload (e.g.
+            // the bucket's mime allow-list not covering that file's type)
+            // left the ticket submitted successfully with zero anexos and
+            // nothing telling the user their attachment never made it.
+            if (error) anexoUploadErrors.push(`${file.name}: ${error.message}`);
+            else anexoPaths.push(path);
           }
+        } else {
+          anexoUploadErrors.push('Não foi possível resolver o portal atual para enviar os anexos.');
         }
+      }
+      if (anexoUploadErrors.length > 0) {
+        throw new Error(`Falha ao enviar anexo(s) — a mensagem NÃO foi enviada: ${anexoUploadErrors.join('; ')}`);
       }
 
       const res = await fetch(`${FN_BASE}/submit-atendimento`, {
