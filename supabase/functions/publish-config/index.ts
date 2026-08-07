@@ -143,6 +143,7 @@ function findCanalNode(canais: CanalCfg[] | undefined, id: string): { href: stri
 }
 interface BannerShortcutCfg { id: string; pageId: string; label?: string; }
 interface EmpresaCfg { id: string; label: string; short: string; }
+interface SeoCfg { metaTitulo?: string; metaDescricao?: string; analyticsId?: string; clarityId?: string; }
 
 interface SplashBtn { label: string; url: string; variant: string; }
 interface SplashTexts {
@@ -343,6 +344,18 @@ function buildSplashSection(splash: SplashCfg | null | undefined): string {
   return '{\n    enabled: false,\n    size: \'md\',\n    buttons: [],\n    content: {},\n  }';
 }
 
+// Exact same shape provision-portal writes at creation time — set-seo's
+// regex patch (super_admin editing from Painel de Controle, outside the
+// full-regenerate publish flow) depends on this staying byte-identical.
+function buildSeoSection(seo: SeoCfg | null | undefined, fallbackTitle: string): string {
+  return `{
+    title:             ${JSON.stringify(seo?.metaTitulo || fallbackTitle)},
+    description:       ${JSON.stringify(seo?.metaDescricao ?? '')},
+    googleAnalyticsId: ${JSON.stringify(seo?.analyticsId ?? '')},
+    clarityId:         ${JSON.stringify(seo?.clarityId ?? '')},
+  }`;
+}
+
 function buildCookiesSection(cookies: CookieCfg | null | undefined): string {
   if (cookies) {
     return JSON.stringify(cookies, null, 2).split('\n').map((l, i) => i === 0 ? l : '  ' + l).join('\n');
@@ -375,6 +388,7 @@ function buildSiteConfig(opts: {
   topbar?: TopbarCfg | null;
   languages?: string[];
   maintenance?: boolean;
+  seo?: SeoCfg | null;
 }) {
   const year = new Date().getFullYear();
 
@@ -502,6 +516,8 @@ ${buildEmpresasSection(opts.empresas, opts.nome)}
 
   header: { variant: '${headerVariant(opts.layout)}' },
 
+  seo: ${buildSeoSection(opts.seo, `${opts.nome} — Relações com Investidores`)},
+
   languages: ${JSON.stringify(languages)},
 
   topbar: {
@@ -586,7 +602,7 @@ Deno.serve(async (req) => {
 
     const {
       repoName: repoNameRaw, portalId, portalNome, layout, colors, fonts, footer, ticker,
-      canais, empresas, splash, cookies, errorPages, banner, bannerShortcuts, logo, favicon, logoNegativo, topbar, languages,
+      canais, empresas, splash, cookies, errorPages, banner, bannerShortcuts, logo, favicon, logoNegativo, topbar, languages, seo,
     } = await req.json() as {
       repoName?: string;
       portalId?: string;
@@ -608,6 +624,7 @@ Deno.serve(async (req) => {
       logoNegativo?: AssetCfg | null;
       topbar?: TopbarCfg | null;
       languages?: string[];
+      seo?: SeoCfg | null;
     };
 
     const githubToken = Deno.env.get('GITHUB_TOKEN');
@@ -642,12 +659,20 @@ Deno.serve(async (req) => {
     // Fetch previously saved logo/favicon extensions + idiomas so we don't reset them on publish
     let savedLanguages: string[] | undefined;
     let savedMaintenance = false;
+    // SEO/Analytics (meta título/descrição, Google Analytics/GTM, Clarity) is
+    // edited from Painel de Controle (super_admin), not from the regular
+    // publish flow — a normal "Publicar" click never sends `seo` at all, so
+    // without this fallback every publish would silently wipe it back to
+    // empty (this function fully regenerates site.config.js from its
+    // request body every time). It's nested under `informacoes` in
+    // portal_config, alongside nomeFantasia/emailContato/idiomas.
+    let savedSeo: SeoCfg | undefined;
     if (resolvedPortalUuid || portalId) {
       try {
         const adminClient = createClient(supabaseUrl, resolveServiceKey());
         const query = resolvedPortalUuid
-          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, maintenance').eq('portal_id', resolvedPortalUuid).maybeSingle()
-          : adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, maintenance, portal_id').eq('portal_id',
+          ? adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, maintenance, informacoes').eq('portal_id', resolvedPortalUuid).maybeSingle()
+          : adminClient.from('portal_config').select('logo_ext, favicon_ext, logo_negativo_ext, idiomas, maintenance, informacoes, portal_id').eq('portal_id',
               (await adminClient.from('portals').select('id').eq('portal_key', portalId!).maybeSingle()).data?.id ?? ''
             ).maybeSingle();
         const { data: cfgRow } = await query;
@@ -656,6 +681,7 @@ Deno.serve(async (req) => {
         savedLogoNegativeExt = cfgRow?.logo_negativo_ext ?? undefined;
         savedLanguages = Array.isArray(cfgRow?.idiomas) && cfgRow.idiomas.length > 0 ? cfgRow.idiomas : undefined;
         savedMaintenance = cfgRow?.maintenance ?? false;
+        savedSeo = (cfgRow?.informacoes as { seo?: typeof savedSeo } | null)?.seo ?? undefined;
       } catch { /* non-fatal */ }
     }
 
@@ -779,6 +805,7 @@ Deno.serve(async (req) => {
       topbar: topbar ?? null,
       languages: languages?.length ? languages : savedLanguages,
       maintenance: savedMaintenance,
+      seo: seo ?? savedSeo ?? null,
     });
     const encoded = btoa(unescape(encodeURIComponent(newContent)));
 
