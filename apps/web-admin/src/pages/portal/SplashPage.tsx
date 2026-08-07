@@ -28,23 +28,40 @@ export interface SplashBtn {
   variant: 'primary' | 'outline';
 }
 
-export interface SplashConfig {
-  enabled: boolean;
-  size: SplashSize;
-  imageUrl: string | null;
+// Title/intro/body/caption AND the header image are all per-locale — each
+// site language shows genuinely different content, same pattern as Footer's
+// address/copyright/etc and NovaMateriaPage's per-locale section images.
+// `string` legacy shape below (reviveSplash) is every splash saved before
+// this existed, when LangTabs was purely cosmetic — content stayed the same
+// no matter which language tab was active. `imageUrl` too: only one header
+// image existed for every language.
+export interface SplashTexts {
   titulo: string;
   texto: string;
   conteudo: string;
   legenda: string;
+  imageUrl: string | null;
+}
+
+export interface SplashConfig {
+  enabled: boolean;
+  size: SplashSize;
   buttons: SplashBtn[];
+  content: Partial<Record<string, SplashTexts>>;
 }
 
 export interface SplashTemplate {
   id: string;
   nome: string;
-  // Everything but `enabled` and `imageUrl` — a saved template is reusable
-  // text/button content, not "turn the splash on" or someone else's image.
-  config: Omit<SplashConfig, 'enabled' | 'imageUrl'>;
+  // Everything but `enabled` — a saved template is reusable text/button
+  // content, not "turn the splash on". Per-locale text, but never an image
+  // (a template is text you reapply across portals/announcements, not
+  // someone else's specific header photo).
+  config: {
+    size: SplashSize;
+    buttons: SplashBtn[];
+    content: Partial<Record<string, Omit<SplashTexts, 'imageUrl'>>>;
+  };
 }
 
 // sessionStorage handoff from SplashTemplatesPage → SplashPage: "apply this
@@ -123,16 +140,42 @@ function emptyBtn(): SplashBtn {
   return { label: '', url: '', variant: 'primary' };
 }
 
+function emptySplashTexts(): SplashTexts {
+  return { titulo: '', texto: '', conteudo: '', legenda: '', imageUrl: null };
+}
+
+const splashPrimaryLang = PORTAL_CONFIG.languages[0];
+
+function textsOf(cfg: SplashConfig, lang: string): SplashTexts {
+  return cfg.content[lang] ?? cfg.content[splashPrimaryLang] ?? emptySplashTexts();
+}
+
 export const DEFAULT_SPLASH: SplashConfig = {
   enabled: false,
   size: 'md',
-  imageUrl: null,
-  titulo: '',
-  texto: '',
-  conteudo: '',
-  legenda: '',
   buttons: [],
+  content: {},
 };
+
+// Every splash saved before content became per-locale had these 5 fields
+// flat at the top level — normalize that legacy shape into
+// `content[primaryLang]` once, on load, instead of teaching every read site
+// to understand both shapes.
+function reviveSplash(stored: unknown): SplashConfig {
+  const s = (stored ?? {}) as Partial<SplashConfig> & Partial<SplashTexts>;
+  if (s.content) {
+    return { enabled: s.enabled ?? false, size: s.size ?? 'md', buttons: s.buttons ?? [], content: s.content };
+  }
+  const hasLegacyText = s.titulo != null || s.texto != null || s.conteudo != null || s.legenda != null || s.imageUrl != null;
+  return {
+    enabled: s.enabled ?? false,
+    size: s.size ?? 'md',
+    buttons: s.buttons ?? [],
+    content: hasLegacyText
+      ? { [splashPrimaryLang]: { titulo: s.titulo ?? '', texto: s.texto ?? '', conteudo: s.conteudo ?? '', legenda: s.legenda ?? '', imageUrl: s.imageUrl ?? null } }
+      : {},
+  };
+}
 
 export default function SplashPage() {
   const portalName = usePortalName();
@@ -146,21 +189,23 @@ export default function SplashPage() {
     resolvePortalId(activePortalId).then(setPortalDbId).catch(() => {});
   }, [activePortalId]);
   const [persisted, setPersisted, { hydrated, saveError }] = usePortalState<SplashConfig>(SPLASH_KEY, 'splash', DEFAULT_SPLASH);
-  const [config, setConfig] = useState<SplashConfig>(persisted);
+  const [config, setConfig] = useState<SplashConfig>(() => reviveSplash(persisted));
   const [previewOpen, setPreviewOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeLang, setActiveLang] = useState<LocaleCode>(PORTAL_CONFIG.languages[0]);
 
   // Sync draft once the authoritative Supabase value arrives
   useEffect(() => {
-    if (hydrated) setConfig({ ...DEFAULT_SPLASH, ...persisted });
+    if (hydrated) setConfig(reviveSplash(persisted));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
   // "Usar este modelo" in Templates stashes the chosen content here and
   // navigates here — applied once, after hydration (so it isn't immediately
   // clobbered by the persisted-value sync above), then cleared so a normal
-  // page reload doesn't reapply it.
+  // page reload doesn't reapply it. Merged per-locale (not spread wholesale)
+  // so applying a template doesn't wipe out an already-uploaded header image
+  // for any language — templates never carry one.
   useEffect(() => {
     if (!hydrated) return;
     const raw = sessionStorage.getItem(SPLASH_APPLY_TEMPLATE_KEY);
@@ -168,7 +213,13 @@ export default function SplashPage() {
     sessionStorage.removeItem(SPLASH_APPLY_TEMPLATE_KEY);
     try {
       const tplConfig = JSON.parse(raw) as SplashTemplate['config'];
-      setConfig(c => ({ ...c, ...tplConfig, enabled: true }));
+      setConfig(c => {
+        const mergedContent = { ...c.content };
+        for (const [lang, t] of Object.entries(tplConfig.content ?? {})) {
+          mergedContent[lang] = { ...emptySplashTexts(), ...c.content[lang], ...t };
+        }
+        return { ...c, size: tplConfig.size, buttons: tplConfig.buttons, content: mergedContent, enabled: true };
+      });
     } catch { /* ignore malformed handoff */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
@@ -180,26 +231,40 @@ export default function SplashPage() {
   function saveAsTemplate() {
     const nome = saveTemplateName.trim();
     if (!nome) return;
+    const content: Partial<Record<string, Omit<SplashTexts, 'imageUrl'>>> = {};
+    for (const [lang, t] of Object.entries(config.content)) {
+      if (!t) continue;
+      content[lang] = { titulo: t.titulo, texto: t.texto, conteudo: t.conteudo, legenda: t.legenda };
+    }
     const tpl: SplashTemplate = {
       id: Math.random().toString(36).slice(2),
       nome,
-      config: { size: config.size, titulo: config.titulo, texto: config.texto, conteudo: config.conteudo, legenda: config.legenda, buttons: config.buttons },
+      config: { size: config.size, buttons: config.buttons, content },
     };
     setTemplates([...templates, tpl]);
     setSaveTemplateOpen(false);
     setSaveTemplateName('');
   }
 
-  // Compared against the SAME { ...DEFAULT_SPLASH, ...persisted } shape
-  // config was seeded with — comparing straight to `persisted` falsely
-  // flagged the page as dirty on load whenever the raw saved record's key
-  // order/shape didn't exactly match DEFAULT_SPLASH's, since JSON.stringify
-  // is key-order-sensitive.
-  const isDirty = !saved && JSON.stringify(config) !== JSON.stringify({ ...DEFAULT_SPLASH, ...persisted });
+  // Compared against the SAME reviveSplash(persisted) shape config was
+  // seeded with — comparing straight to `persisted` falsely flagged the page
+  // as dirty on load whenever the raw saved record's key order/shape didn't
+  // exactly match (legacy flat shape vs. current content-keyed shape, or
+  // just JSON.stringify's key-order sensitivity).
+  const isDirty = !saved && JSON.stringify(config) !== JSON.stringify(reviveSplash(persisted));
   const blocker = useUnsavedChanges(isDirty);
 
   function patch<K extends keyof SplashConfig>(key: K, val: SplashConfig[K]) {
     setConfig(c => ({ ...c, [key]: val }));
+  }
+
+  const texts = textsOf(config, activeLang);
+
+  function setText<K extends keyof SplashTexts>(key: K, val: SplashTexts[K]) {
+    setConfig(c => {
+      const current = textsOf(c, activeLang);
+      return { ...c, content: { ...c.content, [activeLang]: { ...current, [key]: val } } };
+    });
   }
 
   function addBtn() {
@@ -319,7 +384,7 @@ export default function SplashPage() {
             <div className="splash-field">
               <label className="splash-field__label">Imagem de header</label>
               <div
-                className={`splash-img-zone${config.imageUrl ? ' splash-img-zone--filled' : ''}`}
+                className={`splash-img-zone${texts.imageUrl ? ' splash-img-zone--filled' : ''}`}
                 onClick={() => imageInputRef.current?.click()}
               >
                 <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }}
@@ -327,13 +392,13 @@ export default function SplashPage() {
                     const f = e.target.files?.[0];
                     if (!f) return;
                     const result = await processImageToDataUrl(f, 'splash-header');
-                    patch('imageUrl', result.dataUrl);
+                    setText('imageUrl', result.dataUrl);
                   }} />
-                {config.imageUrl ? (
+                {texts.imageUrl ? (
                   <>
-                    <img src={config.imageUrl} alt="" className="splash-img-zone__img" />
+                    <img src={texts.imageUrl} alt="" className="splash-img-zone__img" />
                     <button type="button" className="splash-img-zone__remove"
-                      onClick={e => { e.stopPropagation(); patch('imageUrl', null); }}>
+                      onClick={e => { e.stopPropagation(); setText('imageUrl', null); }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
                     </button>
                   </>
@@ -348,7 +413,7 @@ export default function SplashPage() {
               <button type="button" className="media-picker-trigger" onClick={() => setPickerOpen(true)}>
                 ou escolher da Biblioteca
               </button>
-              <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={url => patch('imageUrl', url)} portalDbId={portalDbId} />
+              <MediaPicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={url => setText('imageUrl', url)} portalDbId={portalDbId} />
             </div>
 
             {/* Título */}
@@ -356,7 +421,7 @@ export default function SplashPage() {
               <label className="splash-field__label">Título</label>
               <input className="splash-field__input" type="text"
                 placeholder="Ex: Nota Importante ao Mercado"
-                value={config.titulo} onChange={e => patch('titulo', e.target.value)} />
+                value={texts.titulo} onChange={e => setText('titulo', e.target.value)} />
             </div>
 
             {/* Texto intro */}
@@ -364,7 +429,7 @@ export default function SplashPage() {
               <label className="splash-field__label">Texto introdutório</label>
               <textarea className="splash-field__input splash-field__textarea" rows={3}
                 placeholder="Breve descrição ou lead do comunicado..."
-                value={config.texto} onChange={e => patch('texto', e.target.value)} />
+                value={texts.texto} onChange={e => setText('texto', e.target.value)} />
             </div>
 
             {/* Conteúdo */}
@@ -372,7 +437,7 @@ export default function SplashPage() {
               <label className="splash-field__label">Conteúdo</label>
               <textarea className="splash-field__input splash-field__textarea" rows={5}
                 placeholder="Corpo do comunicado, instruções ou informações detalhadas..."
-                value={config.conteudo} onChange={e => patch('conteudo', e.target.value)} />
+                value={texts.conteudo} onChange={e => setText('conteudo', e.target.value)} />
             </div>
 
             {/* Legenda */}
@@ -380,7 +445,7 @@ export default function SplashPage() {
               <label className="splash-field__label">Legenda <span style={{ fontWeight: 400, color: 'var(--color-gray-400)' }}>(opcional)</span></label>
               <input className="splash-field__input" type="text"
                 placeholder="Ex: contato@empresa.com.br · Av. Paulista, 1000 — São Paulo"
-                value={config.legenda} onChange={e => patch('legenda', e.target.value)} />
+                value={texts.legenda} onChange={e => setText('legenda', e.target.value)} />
             </div>
           </div>
 
@@ -450,19 +515,19 @@ export default function SplashPage() {
                 className="splash-mini-preview__modal"
                 style={{ width: `${Math.round(SIZE_PX[config.size] * 0.45)}px` }}
               >
-                {config.imageUrl && (
-                  <img src={config.imageUrl} alt="" className="splash-mini-preview__img" />
+                {texts.imageUrl && (
+                  <img src={texts.imageUrl} alt="" className="splash-mini-preview__img" />
                 )}
-                {!config.imageUrl && (
+                {!texts.imageUrl && (
                   <div className="splash-mini-preview__img-placeholder">
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>image</span>
                   </div>
                 )}
                 <div className="splash-mini-preview__body">
-                  <p className="splash-mini-preview__title">{config.titulo || 'Título do comunicado'}</p>
-                  <p className="splash-mini-preview__text">{config.texto || 'Texto introdutório do splash aparecerá aqui.'}</p>
-                  {config.conteudo && (
-                    <p className="splash-mini-preview__content">{config.conteudo.slice(0, 120)}{config.conteudo.length > 120 ? '…' : ''}</p>
+                  <p className="splash-mini-preview__title">{texts.titulo || 'Título do comunicado'}</p>
+                  <p className="splash-mini-preview__text">{texts.texto || 'Texto introdutório do splash aparecerá aqui.'}</p>
+                  {texts.conteudo && (
+                    <p className="splash-mini-preview__content">{texts.conteudo.slice(0, 120)}{texts.conteudo.length > 120 ? '…' : ''}</p>
                   )}
                   {config.buttons.length > 0 && (
                     <div className="splash-mini-preview__btns">
@@ -490,8 +555,8 @@ export default function SplashPage() {
             style={{ maxWidth: `${SIZE_PX[config.size]}px` }}
             onClick={e => e.stopPropagation()}
           >
-            {config.imageUrl ? (
-              <img src={config.imageUrl} alt="" className="splash-fullpreview__img" />
+            {texts.imageUrl ? (
+              <img src={texts.imageUrl} alt="" className="splash-fullpreview__img" />
             ) : (
               <div className="splash-fullpreview__img-placeholder">
                 <span className="material-symbols-outlined" style={{ fontSize: '36px' }}>image</span>
@@ -499,10 +564,10 @@ export default function SplashPage() {
               </div>
             )}
             <div className="splash-fullpreview__body">
-              <h2 className="splash-fullpreview__title">{config.titulo || 'Título do comunicado'}</h2>
-              {config.texto && <p className="splash-fullpreview__lead">{config.texto}</p>}
-              {config.conteudo && <p className="splash-fullpreview__content">{config.conteudo}</p>}
-              {config.legenda && <p className="splash-fullpreview__legenda">{config.legenda}</p>}
+              <h2 className="splash-fullpreview__title">{texts.titulo || 'Título do comunicado'}</h2>
+              {texts.texto && <p className="splash-fullpreview__lead">{texts.texto}</p>}
+              {texts.conteudo && <p className="splash-fullpreview__content">{texts.conteudo}</p>}
+              {texts.legenda && <p className="splash-fullpreview__legenda">{texts.legenda}</p>}
               {config.buttons.length > 0 && (
                 <div className="splash-fullpreview__btns">
                   {config.buttons.map((b, i) => (
