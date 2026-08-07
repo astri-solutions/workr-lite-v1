@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import './ChangePasswordModal.css';
 
 interface ChangePasswordModalProps {
@@ -18,20 +20,63 @@ function makeField(): FieldState {
 }
 
 export default function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
+  const { user } = useAuth();
   const [current, setCurrent] = useState<FieldState>(makeField());
   const [next, setNext] = useState<FieldState>(makeField());
   const [confirm, setConfirm] = useState<FieldState>(makeField());
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [formError, setFormError] = useState('');
 
   function handleClose() {
     setCurrent(makeField());
     setNext(makeField());
     setConfirm(makeField());
+    setSubmitting(false);
+    setDone(false);
+    setFormError('');
     onClose();
   }
 
-  function handleSubmit() {
-    // TODO: call API PATCH /auth/change-password { currentPassword, newPassword }
-    handleClose();
+  async function handleSubmit() {
+    if (submitting) return;
+    setFormError('');
+
+    let hasError = false;
+    if (!current.value) { setCurrent(s => ({ ...s, error: 'Informe a senha atual.' })); hasError = true; }
+    if (next.value.length < 8) { setNext(s => ({ ...s, error: 'Mínimo 8 caracteres.' })); hasError = true; }
+    if (confirm.value !== next.value) { setConfirm(s => ({ ...s, error: 'As senhas não coincidem.' })); hasError = true; }
+    if (hasError || !isSupabaseConfigured || !supabase || !user?.email) return;
+
+    setSubmitting(true);
+    try {
+      // Supabase's updateUser() trusts whatever session is active — it never
+      // asks for the current password on its own. Re-authenticating with it
+      // first (signInWithPassword) is what actually verifies the user knows
+      // it before we let them overwrite it; a wrong current password fails
+      // here instead of silently being ignored.
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: current.value,
+      });
+      if (verifyError) {
+        setCurrent(s => ({ ...s, error: 'Senha atual incorreta.' }));
+        setSubmitting(false);
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: next.value });
+      if (updateError) {
+        setFormError(updateError.message || 'Não foi possível atualizar a senha.');
+        setSubmitting(false);
+        return;
+      }
+
+      setDone(true);
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : 'Não foi possível atualizar a senha.');
+      setSubmitting(false);
+    }
   }
 
   function PasswordField({
@@ -86,41 +131,54 @@ export default function ChangePasswordModal({ open, onClose }: ChangePasswordMod
       title="Mudar senha"
       size="md"
       footer={
-        <>
-          <button className="chpw-btn-cancel" type="button" onClick={handleClose}>Cancelar</button>
-          <button className="chpw-btn-confirm" type="button" onClick={handleSubmit}>Confirmar</button>
-        </>
+        done ? (
+          <button className="chpw-btn-confirm" type="button" onClick={handleClose}>Fechar</button>
+        ) : (
+          <>
+            <button className="chpw-btn-cancel" type="button" onClick={handleClose} disabled={submitting}>Cancelar</button>
+            <button className="chpw-btn-confirm" type="button" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? 'Confirmando…' : 'Confirmar'}
+            </button>
+          </>
+        )
       }
     >
-      <PasswordField
-        id="chpw-current"
-        label="Senha atual"
-        state={current}
-        setState={setCurrent}
-        placeholder="Insira a senha atual"
-      />
-      <PasswordField
-        id="chpw-next"
-        label="Nova senha"
-        state={next}
-        setState={setNext}
-        placeholder="Insira a nova senha"
-      />
-      {!next.error && (
-        <p className="chpw-hint">Mínimo 8 caracteres com letras e números.</p>
+      {done ? (
+        <p className="chpw-success">Senha atualizada com sucesso.</p>
+      ) : (
+        <>
+          <PasswordField
+            id="chpw-current"
+            label="Senha atual"
+            state={current}
+            setState={setCurrent}
+            placeholder="Insira a senha atual"
+          />
+          <PasswordField
+            id="chpw-next"
+            label="Nova senha"
+            state={next}
+            setState={setNext}
+            placeholder="Insira a nova senha"
+          />
+          {!next.error && (
+            <p className="chpw-hint">Mínimo 8 caracteres.</p>
+          )}
+          <PasswordField
+            id="chpw-confirm"
+            label="Insira a senha novamente"
+            state={confirm}
+            setState={setConfirm}
+            placeholder="Confirme a nova senha"
+            onChange={(e) => {
+              const val = e.target.value;
+              const mismatch = val.length > 0 && val !== next.value;
+              setConfirm((s) => ({ ...s, value: val, error: mismatch ? 'As senhas não coincidem.' : '' }));
+            }}
+          />
+          {formError && <p className="chpw-error">{formError}</p>}
+        </>
       )}
-      <PasswordField
-        id="chpw-confirm"
-        label="Insira a senha novamente"
-        state={confirm}
-        setState={setConfirm}
-        placeholder="Confirme a nova senha"
-        onChange={(e) => {
-          const val = e.target.value;
-          const mismatch = val.length > 0 && val !== next.value;
-          setConfirm((s) => ({ ...s, value: val, error: mismatch ? 'As senhas não coincidem.' : '' }));
-        }}
-      />
     </Modal>
   );
 }

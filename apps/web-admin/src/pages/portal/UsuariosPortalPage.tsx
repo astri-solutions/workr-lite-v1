@@ -75,8 +75,8 @@ function initials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
-function KebabMenu({ onEdit, onToggle, onDelete, onResend, resending, ativo, isAdmin, canManage, isSuperAdmin }: {
-  onEdit: () => void; onToggle: () => void; onDelete: () => void; onResend: () => void; resending: boolean; ativo: boolean; isAdmin: boolean; canManage: boolean; isSuperAdmin: boolean;
+function KebabMenu({ onEdit, onToggle, onDelete, onResend, onResetPassword, resending, resettingPassword, ativo, isAdmin, canManage, isSuperAdmin }: {
+  onEdit: () => void; onToggle: () => void; onDelete: () => void; onResend: () => void; onResetPassword: () => void; resending: boolean; resettingPassword: boolean; ativo: boolean; isAdmin: boolean; canManage: boolean; isSuperAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -102,6 +102,11 @@ function KebabMenu({ onEdit, onToggle, onDelete, onResend, resending, ativo, isA
               {resending ? 'Reenviando…' : 'Reenviar convite'}
             </button>
           )}
+          {canManage && (
+            <button className="up-kebab__item" type="button" disabled={resettingPassword} onClick={() => { setOpen(false); onResetPassword(); }}>
+              {resettingPassword ? 'Enviando…' : 'Resetar senha'}
+            </button>
+          )}
           {canManage && !isAdmin && <button className="up-kebab__item" type="button" onClick={() => { setOpen(false); onToggle(); }}>{ativo ? 'Desativar' : 'Ativar'}</button>}
           {canManage && (!isAdmin || isSuperAdmin) && <button className="up-kebab__item up-kebab__item--danger" type="button" onClick={() => { setOpen(false); onDelete(); }}>Remover</button>}
           {!canManage && <span className="up-kebab__item up-kebab__item--disabled">Sem permissão</span>}
@@ -123,11 +128,13 @@ interface UserCardProps {
   onToggle: () => void;
   onDelete: () => void;
   onResend: () => void;
+  onResetPassword: () => void;
   resending: boolean;
+  resettingPassword: boolean;
   resendMsg?: string;
 }
 
-function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, onDelete, onResend, resending, resendMsg }: UserCardProps) {
+function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, onDelete, onResend, onResetPassword, resending, resettingPassword, resendMsg }: UserCardProps) {
   // Admin means full portal access — show "Todas" even for a legacy record
   // saved with a specific empresaIds subset from before this was enforced,
   // rather than the stale single-empresa chip it was invited with.
@@ -152,7 +159,7 @@ function UserCard({ user, empresas, canManage, isSuperAdmin, onEdit, onToggle, o
           </span>
           {user.criadoEm && <span className="up-user-card__date">{user.criadoEm}</span>}
         </div>
-        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} isSuperAdmin={isSuperAdmin} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} onResend={onResend} resending={resending} />
+        <KebabMenu ativo={user.ativo} isAdmin={user.role === 'admin'} canManage={canManage} isSuperAdmin={isSuperAdmin} onEdit={onEdit} onToggle={onToggle} onDelete={onDelete} onResend={onResend} onResetPassword={onResetPassword} resending={resending} resettingPassword={resettingPassword} />
       </div>
       <div className="up-user-card__footer">
         <span className="up-user-card__footer-label">
@@ -220,6 +227,7 @@ export default function UsuariosPortalPage() {
   const [inviteError, setInviteError] = useState('');
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [resendMsgs, setResendMsgs] = useState<Record<string, string>>({});
+  const [resettingPasswordId, setResettingPasswordId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const filtered = users.filter(u => {
@@ -361,6 +369,43 @@ export default function UsuariosPortalPage() {
     }
   }
 
+  // Overwrites the user's current password — sends a fresh recovery link via
+  // invite-portal-user's resetPassword flag. Doesn't touch the user's
+  // ativo/role state; reuses the same resendMsgs banner the resend action
+  // uses for feedback.
+  async function handleResetPassword(u: PortalUser) {
+    setResettingPasswordId(u.id);
+    setResendMsgs(prev => ({ ...prev, [u.id]: '' }));
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('Sessão não encontrada');
+      const res = await fetch(`${FN_BASE}/invite-portal-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({
+          email: u.email,
+          nome: u.nome,
+          portalId: user?.activePortalId,
+          resetPassword: true,
+          redirectTo: 'https://workr.dev.br/definir-senha',
+        }),
+      });
+      const body = await res.json().catch(() => ({})) as { error?: string; emailError?: string };
+      if (!res.ok || body.error) throw new Error(body.error ?? 'Erro ao enviar redefinição de senha');
+      if (body.emailError) throw new Error(`Link gerado, mas o e-mail falhou: ${body.emailError}`);
+      setResendMsgs(prev => ({ ...prev, [u.id]: 'E-mail de redefinição de senha enviado.' }));
+    } catch (e) {
+      setResendMsgs(prev => ({ ...prev, [u.id]: e instanceof Error ? e.message : 'Erro ao enviar redefinição de senha.' }));
+    } finally {
+      setResettingPasswordId(null);
+      setTimeout(() => setResendMsgs(prev => ({ ...prev, [u.id]: '' })), 5000);
+    }
+  }
+
   function toggleEmpresa(id: string) {
     setForm(f => ({
       ...f,
@@ -474,7 +519,9 @@ export default function UsuariosPortalPage() {
               }}
               onDelete={() => setDeleteTarget(u)}
               onResend={() => handleResend(u)}
+              onResetPassword={() => handleResetPassword(u)}
               resending={resendingId === u.id}
+              resettingPassword={resettingPasswordId === u.id}
               resendMsg={resendMsgs[u.id]}
             />
           ))}

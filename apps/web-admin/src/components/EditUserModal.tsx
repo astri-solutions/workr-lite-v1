@@ -34,6 +34,7 @@ interface EditUserModalProps {
   onSave: (id: string, role: 'super_admin' | 'client_user', portais: string[], portalRoles: Record<string, PortalRole>) => void;
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
+  onResetPassword: (id: string) => Promise<void>;
 }
 
 const PERFIS = [
@@ -52,7 +53,7 @@ const PERFIS = [
 ];
 
 export default function EditUserModal({
-  user, open, portais, onClose, onSave, onToggleStatus, onDelete,
+  user, open, portais, onClose, onSave, onToggleStatus, onDelete, onResetPassword,
 }: EditUserModalProps) {
   const [tab, setTab] = useState<'info' | 'acesso'>('info');
   const [role, setRole] = useState<'super_admin' | 'client_user'>('client_user');
@@ -62,6 +63,7 @@ export default function EditUserModal({
   const [expandedPortalId, setExpandedPortalId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [resetState, setResetState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   useEffect(() => {
     if (user) {
@@ -73,6 +75,7 @@ export default function EditUserModal({
       setTab('info');
       setSearch('');
       setExpandedPortalId(null);
+      setResetState('idle');
     }
   }, [user]);
 
@@ -101,6 +104,17 @@ export default function EditUserModal({
     if (!user) return;
     onDelete(user.id);
     handleClose();
+  }
+
+  async function handleResetPassword() {
+    if (!user || resetState === 'sending') return;
+    setResetState('sending');
+    try {
+      await onResetPassword(user.id);
+      setResetState('sent');
+    } catch {
+      setResetState('error');
+    }
   }
 
   /* ── Portal selection helpers (mirrors InviteUserModal) ── */
@@ -241,6 +255,26 @@ export default function EditUserModal({
 
           <div className="eu-divider" />
           <div className="eu-actions">
+            <button
+              type="button"
+              className="eu-action-btn"
+              onClick={handleResetPassword}
+              disabled={resetState === 'sending'}
+            >
+              {resetState === 'sent' ? (
+                <><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>E-mail de redefinição enviado</>
+              ) : resetState === 'error' ? (
+                <><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>Falha ao enviar — tentar novamente</>
+              ) : (
+                <><span className="material-symbols-outlined" style={{ fontSize: '16px' }}>lock_reset</span>{resetState === 'sending' ? 'Enviando…' : 'Resetar senha'}</>
+              )}
+            </button>
+            {resetState === 'sent' && (
+              <p className="eu-reset-hint">
+                A senha atual continua válida até o usuário abrir o link e definir uma nova.
+              </p>
+            )}
+
             <button
               type="button"
               className={`eu-action-btn${isSuspended ? ' eu-action-btn--activate' : ' eu-action-btn--suspend'}`}

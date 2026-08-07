@@ -94,6 +94,63 @@ export async function sendUserInvite(opts: {
 }
 
 /**
+ * Send a password-reset link, triggered either by an admin (from the "Editar
+ * usuário" modal) or by the user themselves (login screen's "Esqueci minha
+ * senha"). Uses the same Supabase-generated `action_link` pattern as
+ * sendUserInvite — bypasses Supabase's own SMTP so the email is reliable and
+ * carries the same Workr Lite branding. The recovery link overwrites whatever
+ * password already exists once the user submits a new one on /definir-senha;
+ * it does not require knowing the old password.
+ */
+export async function sendPasswordReset(opts: {
+  email: string;
+  nome?: string;
+  resetLink: string;
+  triggeredByAdmin?: boolean;
+}): Promise<void> {
+  const displayName = opts.nome || opts.email;
+  const context = opts.triggeredByAdmin
+    ? 'Um administrador solicitou a redefinição da sua senha de acesso ao CMS.'
+    : 'Recebemos uma solicitação para redefinir a senha da sua conta no CMS.';
+
+  await sendPostmark({
+    From: from(),
+    To: opts.email,
+    Subject: 'Redefinição de senha — Workr Lite',
+    MessageStream: 'outbound',
+    HtmlBody: `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Inter,Arial,sans-serif">
+  <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+    <div style="background:#0B5B68;padding:28px 32px">
+      <span style="color:#00D865;font-size:20px;font-weight:700;letter-spacing:-0.5px">Workr Lite</span>
+    </div>
+    <div style="padding:32px">
+      <p style="margin:0 0 16px;font-size:15px;color:#141414">Olá, <strong>${displayName}</strong></p>
+      <p style="margin:0 0 24px;font-size:15px;color:#414141;line-height:1.6">
+        ${context} Clique no botão abaixo para criar uma nova senha — a senha atual deixa de funcionar assim que você definir a nova.
+      </p>
+      <a href="${opts.resetLink}"
+         style="display:inline-block;padding:13px 28px;background:#0B5B68;color:#fff;text-decoration:none;border-radius:7px;font-size:14px;font-weight:600">
+        Redefinir senha
+      </a>
+      <p style="margin:24px 0 0;font-size:12px;color:#949494;line-height:1.5">
+        Este link expira em 1 hora. Se você não solicitou esta redefinição, ignore este e-mail — sua senha atual continua válida.
+      </p>
+    </div>
+    <div style="padding:16px 32px;background:#f9f9f9;border-top:1px solid #eee">
+      <p style="margin:0;font-size:11px;color:#B8B8B8">Workr Lite · Astri Solutions · astri.solutions</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    TextBody: `Olá ${displayName},\n\n${context}\n\nAcesse o link abaixo para criar uma nova senha:\n${opts.resetLink}\n\nEste link expira em 1 hora. Se você não solicitou esta redefinição, ignore este e-mail — sua senha atual continua válida.\n\n— Workr Lite / Astri Solutions`,
+  });
+}
+
+/**
  * Notify an email that ALREADY has an account that it was just granted
  * access to another portal — no activation link, since there's no signup
  * step left to complete. Sending an activation/magic link to someone who

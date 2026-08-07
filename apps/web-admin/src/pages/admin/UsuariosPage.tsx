@@ -277,6 +277,14 @@ export default function UsuariosPage() {
     setActionLoading(null);
   }
 
+  // Overwrites the user's current password — they receive an e-mail with a
+  // link to set a new one; the old password stops working the moment they
+  // do. Doesn't touch actionLoading/fetchUsuarios since nothing about the
+  // user list changes — EditUserModal tracks its own sent/error state.
+  async function handleResetPassword(id: string) {
+    await callManageUser({ action: 'reset_password', userId: id, redirectTo: 'https://workr.dev.br/definir-senha' });
+  }
+
   const _filtered = usuarios.filter((u) => {
     if (search) {
       const q = search.toLowerCase();
@@ -333,6 +341,7 @@ export default function UsuariosPage() {
         onSave={handleSaveRole}
         onToggleStatus={handleToggleStatus}
         onDelete={handleDelete}
+        onResetPassword={handleResetPassword}
       />
 
       {desativarTarget && (

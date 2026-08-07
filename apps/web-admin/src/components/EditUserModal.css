@@ -184,6 +184,31 @@
   text-align: left;
 }
 
+.eu-action-btn {
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-200);
+  color: var(--color-gray-700);
+}
+
+.eu-action-btn:hover:not(:disabled) {
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-300);
+}
+
+.eu-action-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.eu-reset-hint {
+  margin: -2px 0 0;
+  padding: 0 var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  line-height: 1.4;
+}
+
 .eu-action-btn--suspend {
   background: var(--color-warning-50);
   border-color: var(--color-warning-200);
