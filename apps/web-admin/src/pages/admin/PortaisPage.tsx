@@ -288,7 +288,16 @@ export default function PortaisPage() {
 
   async function checkPendingSitesOnce(): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) return false;
-    const pending = portaisRef.current.filter(p => p.sites.length === 0 && (p.vercelUrl || p.githubRepo));
+    // get-site-status only queries the Vercel API (same limitation noted in
+    // PainelControlePage's "Saúde do site" card) — a Cloudflare-hosted
+    // portal never has a real Vercel project to check, so this used to poll
+    // forever and, worse, sometimes matched some unrelated Vercel project
+    // under the same account and wrote its .vercel.app URL as this portal's
+    // link (exactly backwards for a portal actually served from Cloudflare
+    // Pages). provision-portal already creates the portal_sites row with
+    // the correct link at creation time for Cloudflare portals — nothing
+    // pending to poll for here.
+    const pending = portaisRef.current.filter(p => p.sites.length === 0 && p.hostingProvider !== 'cloudflare' && (p.vercelUrl || p.githubRepo));
     if (pending.length === 0) return false;
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
