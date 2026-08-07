@@ -37,6 +37,22 @@ const FN_BASE = import.meta.env.VITE_SUPABASE_URL
   ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
   : '';
 
+// A bare getSession() returns whatever access_token is cached client-side,
+// even one signed before this Supabase project's JWT Signing Keys migration
+// — the server-side anon client's auth.getUser() then fails with
+// "unrecognized JWT kid" and every edge function call below silently reads
+// as Unauthorized (caught non-fatally, UI just falls back to "—"/no-op).
+// refreshSession() re-signs with whatever key GoTrue currently has active,
+// sidestepping the whole class of error — same fix already applied to
+// UsuariosPage/UsuariosPortalPage's getToken() helper.
+async function getToken(): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  const { data, error } = await supabase.auth.refreshSession();
+  if (!error && data.session?.access_token) return data.session.access_token;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 
 export default function PainelControlePage() {
   const { siteId } = useParams<{ siteId: string }>();
@@ -86,8 +102,7 @@ export default function PainelControlePage() {
     setMaintenanceError(null);
     setMaintenanceWarning(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = await getToken();
       if (!token) throw new Error('Sessão expirada');
       const res = await fetch(`${FN_BASE}/set-maintenance`, {
         method: 'POST',
@@ -134,8 +149,7 @@ export default function PainelControlePage() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
     (async () => {
-      const { data: { session } } = await supabase!.auth.getSession();
-      const token = session?.access_token;
+      const token = await getToken();
       if (!token) return;
       try {
         const res = await fetch(`${FN_BASE}/list-users`, { headers: { Authorization: `Bearer ${token}` } });
@@ -221,8 +235,7 @@ export default function PainelControlePage() {
     const projectName = site.githubRepo;
     if (!projectName) return;
     (async () => {
-      const { data: { session } } = await supabase!.auth.getSession();
-      const token = session?.access_token;
+      const token = await getToken();
       if (!token) return;
       try {
         const res = await fetch(`${FN_BASE}/get-site-status`, {
@@ -287,8 +300,7 @@ export default function PainelControlePage() {
     setDeleteGhWarn(null);
     try {
       if (isSupabaseConfigured && supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
+        const token = await getToken();
         if (token) {
           const delRes = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-portal`,
@@ -302,6 +314,7 @@ export default function PainelControlePage() {
               body: JSON.stringify({
                 repoName: site.githubRepo ?? undefined,
                 cloudflareProjectName: site.githubRepo ?? undefined,
+                subdomain: site.subdomain ?? undefined,
                 portalId: site.portalId,
               }),
             }
@@ -353,8 +366,7 @@ export default function PainelControlePage() {
     setInviteResult(null);
     setInviteError(null);
     try {
-      const { data: { session } } = await supabase!.auth.getSession();
-      const token = session?.access_token;
+      const token = await getToken();
       if (!token) throw new Error('Sessão expirada');
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-portal-user`,
